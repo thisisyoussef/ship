@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "skills": {
+    "gemini-visualize": {
+      "source": "Galbaz1/video-research-mcp",
+      "sourceType": "github",
+      "computedHash": "808127978a5105931fea270cae770ddcc601369d9e35a54c15f23a7f73c40221"
+    },
+    "gr-advisor": {
+      "source": "Galbaz1/video-research-mcp",
+      "sourceType": "github",
+      "computedHash": "06ca91ccf70feb19a4bf3e7ca0c1f245c747969eae4e75f4097238ac77437de0"
+    },
+    "mlflow-traces": {
+      "source": "Galbaz1/video-research-mcp",
+      "sourceType": "github",
+      "computedHash": "af6111fc6e682a5a0685b4321912503e06d9ef81d4f2a984e594a20c9c4eadd6"
+    },
+    "video-explainer": {
+      "source": "Galbaz1/video-research-mcp",
+      "sourceType": "github",
+      "computedHash": "cdd7e37633fc04179e31d987eaddfd3dcca10287c72308191df3e0dbecb08d26"
+    },
+    "video-research": {
+      "source": "Galbaz1/video-research-mcp",
+      "sourceType": "github",
+      "computedHash": "a4c9175540c9baa1b86951349779a84a8fcde417b88972b8b34c73ef6d6eb5ed"
+    },
+    "weaviate-setup": {
+      "source": "Galbaz1/video-research-mcp",
+      "sourceType": "github",
+      "computedHash": "b19f70020f1ac1c9dbe45d23ddf02a170a391e09a1f5eb5effe9a48f546af827"
+    }
+  }
+}

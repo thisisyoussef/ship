@@ -49,6 +49,9 @@ Thumbs.db
 evidence/
 *.png
 
+# Test coverage output
+coverage/
+
 # Playwright test artifacts
 playwright-report/
 test-results/

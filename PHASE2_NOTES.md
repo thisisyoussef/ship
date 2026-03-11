@@ -118,9 +118,16 @@
 - Approach applied: moved the test onto typed fixtures, typed query results, and explicit narrowing helpers so assertions follow the same shapes the production code uses.
 - Tradeoff made: targeted test execution still trips the repo-wide Vitest DB setup before assertions run, so validation for this file is package type-check plus the same pre-existing global test failure observed elsewhere in the API suite.
 
+- File path: `api/src/services/accountability.test.ts`
+- Violations before / after: 64 -> 0
+- What the any/as/! was actually modeling: the service test was using untyped Postgres mock results, mock-chaining against the overloaded `pool.query` API, and loosely shaped plan/retro fixture documents for due-window scenarios.
+- What type replaced it and why: replaced those casts with a typed hoisted `queryMock`, explicit mock row types (`WorkspaceRow`, `PersonRow`, `AccountabilityDocRow`), a `QueryResult` factory, and typed allocation/business-day mocks so each scenario now reflects the actual query and fixture shapes the service consumes.
+- Approach applied: converted the test harness to typed mocks and scenario-specific helper builders so each query in the sequence is modeled explicitly without relying on assertion escapes.
+- Tradeoff made: like the other API tests, direct Vitest execution still stops in the shared DB setup before assertions run, so the verification gate here is package type-check plus the same pre-existing DB bootstrap failure in the API test runner.
+
 ### Totals
 
 - Reproduced baseline total: 2962 (grep scan), 1291 (AST audit baseline)
-- Final total after fixes: 966 (AST audit)
-- Percentage reduction achieved: 25.17% (325 / 1291)
+- Final total after fixes: 902 (AST audit)
+- Percentage reduction achieved: 30.13% (389 / 1291)
 - Passing verdict: yes

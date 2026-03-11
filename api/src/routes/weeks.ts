@@ -1665,51 +1665,68 @@ router.get('/:id/issues', authMiddleware, async (req: Request<IdParams>, res: Re
 
     const { userId, workspaceId } = auth;
 
-    // Get visibility context for filtering
-    const { isAdmin } = await getVisibilityContext(userId, workspaceId);
+    // Super-admin status is already loaded by authMiddleware, so skip the extra
+    // workspace_memberships lookup on the audit path.
+    const isAdmin = req.isSuperAdmin === true
+      ? true
+      : (await getVisibilityContext(userId, workspaceId)).isAdmin;
 
-    // Verify sprint exists, user can access it, and get program info
-    const sprintResult = await pool.query(
-      `SELECT d.id, p.properties->>'prefix' as prefix FROM documents d
-       LEFT JOIN document_associations prog_da ON prog_da.document_id = d.id AND prog_da.relationship_type = 'program'
-       LEFT JOIN documents p ON prog_da.related_id = p.id
-       WHERE d.id = $1 AND d.workspace_id = $2 AND d.document_type = 'sprint'
-         AND ${VISIBILITY_FILTER_SQL('d', '$3', '$4')}`,
+    // Fold sprint access verification into the issue query so we preserve:
+    // - 404 when the sprint is missing/inaccessible
+    // - [] when the sprint exists but has no issues
+    const result = await pool.query(
+      `WITH accessible_sprint AS (
+         SELECT d.id
+         FROM documents d
+         WHERE d.id = $1
+           AND d.workspace_id = $2
+           AND d.document_type = 'sprint'
+           AND ${VISIBILITY_FILTER_SQL('d', '$3', '$4')}
+       )
+       SELECT sprint.id as sprint_id,
+              issue.id, issue.title, issue.properties, issue.ticket_number,
+              issue.created_at, issue.updated_at, issue.created_by,
+              issue.assignee_name, issue.assignee_archived
+       FROM accessible_sprint sprint
+       LEFT JOIN LATERAL (
+         SELECT d.id, d.title, d.properties, d.ticket_number,
+                d.created_at, d.updated_at, d.created_by,
+                u.name as assignee_name,
+                CASE WHEN person_doc.archived_at IS NOT NULL THEN true ELSE false END as assignee_archived
+         FROM documents d
+         JOIN document_associations sprint_da
+           ON sprint_da.document_id = d.id
+          AND sprint_da.related_id = sprint.id
+          AND sprint_da.relationship_type = 'sprint'
+         LEFT JOIN users u ON (d.properties->>'assignee_id')::uuid = u.id
+         LEFT JOIN documents person_doc
+           ON person_doc.workspace_id = d.workspace_id
+          AND person_doc.document_type = 'person'
+          AND person_doc.properties->>'user_id' = d.properties->>'assignee_id'
+         WHERE d.document_type = 'issue'
+           AND ${VISIBILITY_FILTER_SQL('d', '$3', '$4')}
+         ORDER BY
+           CASE d.properties->>'priority'
+             WHEN 'urgent' THEN 1
+             WHEN 'high' THEN 2
+             WHEN 'medium' THEN 3
+             WHEN 'low' THEN 4
+             ELSE 5
+           END,
+           d.updated_at DESC
+       ) issue ON TRUE`,
       [id, workspaceId, userId, isAdmin]
     );
 
-    if (sprintResult.rows.length === 0) {
+    if (result.rows.length === 0) {
       res.status(404).json({ error: 'Week not found' });
       return;
     }
 
-    const result = await pool.query(
-      `SELECT d.id, d.title, d.properties, d.ticket_number,
-              d.created_at, d.updated_at, d.created_by,
-              u.name as assignee_name,
-              CASE WHEN person_doc.archived_at IS NOT NULL THEN true ELSE false END as assignee_archived
-       FROM documents d
-       JOIN document_associations sprint_da ON sprint_da.document_id = d.id AND sprint_da.related_id = $1 AND sprint_da.relationship_type = 'sprint'
-       LEFT JOIN users u ON (d.properties->>'assignee_id')::uuid = u.id
-       LEFT JOIN documents person_doc ON person_doc.workspace_id = d.workspace_id
-         AND person_doc.document_type = 'person'
-         AND person_doc.properties->>'user_id' = d.properties->>'assignee_id'
-       WHERE d.document_type = 'issue'
-         AND ${VISIBILITY_FILTER_SQL('d', '$2', '$3')}
-       ORDER BY
-         CASE d.properties->>'priority'
-           WHEN 'urgent' THEN 1
-           WHEN 'high' THEN 2
-           WHEN 'medium' THEN 3
-           WHEN 'low' THEN 4
-           ELSE 5
-         END,
-         d.updated_at DESC`,
-      [id, userId, isAdmin]
-    );
+    const issueRows = result.rows.filter(row => row.id !== null);
 
     // Get carryover sprint names for issues that have carryover_from_sprint_id
-    const carryoverSprintIds = result.rows
+    const carryoverSprintIds = issueRows
       .map(row => row.properties?.carryover_from_sprint_id)
       .filter(Boolean);
 
@@ -1725,7 +1742,7 @@ router.get('/:id/issues', authMiddleware, async (req: Request<IdParams>, res: Re
       );
     }
 
-    const issues = result.rows.map(row => {
+    const issues = issueRows.map(row => {
       const props = row.properties || {};
       const carryoverFromSprintId = props.carryover_from_sprint_id || null;
       return {

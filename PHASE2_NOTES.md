@@ -445,3 +445,252 @@ dist/assets/ReviewsPage-FNCQSg0u.js                   28.44 kB │ gzip:   7.23 
 - No migration was added for Category 3 because the diagnosis did not justify an index-first fix:
   - database plans were already cheap
   - the measured win came from removing authenticated-read write amplification and repeated response construction
+
+## Category 4: Database Query Efficiency
+
+### Reproduced baseline
+
+I reproduced the five audited flows on March 11, 2026 against the branch-local Docker stack before editing the route. The query counts matched the audit exactly. The measured durations were lower than the audit table, but the query shapes and counts were the same.
+
+| User Flow | Endpoint | Total Queries | Slowest Query (ms) | N+1 Detected? |
+| --- | --- | ---: | ---: | --- |
+| Load main page | `GET /api/documents` | 4 | 1.155 | No |
+| View a document | `GET /api/documents/:id` | 4 | 0.615 | No |
+| List issues | `GET /api/issues` | 5 | 0.562 | No |
+| Load sprint board | `GET /api/weeks/:id/issues` | 5 | 0.483 | No |
+| Search content | `GET /api/search/learnings?q=api` | 4 | 0.558 | No |
+
+Count match against the audit:
+
+- `GET /api/documents`: `4`
+- `GET /api/documents/:id`: `4`
+- `GET /api/issues`: `5`
+- `GET /api/weeks/:id/issues`: `5`
+- `GET /api/search/learnings?q=api`: `4`
+
+### Diagnosis
+
+#### 1. Load main page: 4-query sequence
+
+From the reproduced `GET /api/documents` log, the four statements were:
+
+1. `0.487 ms`  
+   `SELECT s.id, s.user_id, s.workspace_id, s.expires_at, s.last_activity, s.created_at, u.is_super_admin FROM sessions s JOIN users u ON s.user_id = u.id WHERE s.id = $1`
+2. `0.130 ms`  
+   `UPDATE sessions SET last_activity = $1 WHERE id = $2`
+3. `0.096 ms`  
+   `SELECT role FROM workspace_memberships WHERE workspace_id = $1 AND user_id = $2`
+4. `1.155 ms`  
+   `SELECT id, workspace_id, document_type, title, parent_id, position, ticket_number, properties, created_at, updated_at, created_by, visibility FROM documents WHERE workspace_id = $1 AND archived_at IS NULL AND deleted_at IS NULL AND (visibility = 'workspace' OR created_by = $2 OR $3 = TRUE) ORDER BY position ASC, created_at DESC`
+
+#### 2. Slowest main-page query: exact SQL and `EXPLAIN ANALYZE`
+
+Exact SQL:
+
+```sql
+SELECT id, workspace_id, document_type, title, parent_id, position,
+       ticket_number, properties,
+       created_at, updated_at, created_by, visibility
+FROM documents
+WHERE workspace_id = 'a53d0769-ad31-43c7-a883-27355a528478'
+  AND archived_at IS NULL
+  AND deleted_at IS NULL
+  AND (visibility = 'workspace'
+       OR created_by = 'e344e12e-35f0-42c3-b502-3dae111bbab3'
+       OR TRUE = TRUE)
+ORDER BY position ASC, created_at DESC;
+```
+
+`EXPLAIN ANALYZE` before any edits:
+
+```text
+Sort  (cost=36.50..37.14 rows=257 width=332) (actual time=0.807..0.816 rows=257 loops=1)
+  Sort Key: "position", created_at DESC
+  Sort Method: quicksort  Memory: 112kB
+  ->  Seq Scan on documents  (cost=0.00..26.21 rows=257 width=332) (actual time=0.061..0.517 rows=257 loops=1)
+        Filter: ((archived_at IS NULL) AND (deleted_at IS NULL) AND (workspace_id = 'a53d0769-ad31-43c7-a883-27355a528478'::uuid))
+Planning Time: 2.296 ms
+Execution Time: 0.909 ms
+```
+
+#### 3. What the plan shows
+
+- The main-page query does a `Seq Scan` on `documents`, then sorts in memory.
+- For the audited super-admin flow, `(visibility = 'workspace' OR created_by = ... OR TRUE = TRUE)` collapses to `TRUE`, so the effective filter is `workspace_id` plus the archive/deletion predicates.
+- The plan confirms a possible index target, but on this dataset the route-level round trips on the sprint-board flow were a much larger inefficiency than the already-sub-millisecond execution time of the filtered `documents` scan.
+
+#### 4. Load sprint board: are the 5 queries collapsible?
+
+Yes. The reproduced `GET /api/weeks/:id/issues` flow was:
+
+1. session lookup
+2. session activity update
+3. workspace admin lookup
+4. sprint existence/prefix lookup
+5. sprint issues fetch
+
+Queries 3 and 4 were avoidable in this path:
+
+- the user is a seeded super-admin, and `authMiddleware` already loaded `is_super_admin`
+- the sprint verification query returned only sprint existence plus a program prefix that the handler did not use in the response body
+
+That made the route a good candidate for one access-check + issue-fetch statement.
+
+#### 5. List issues: can dependent lookups be batched?
+
+The issues route already batches correctly:
+
+- one statement loads the issue list
+- one statement hydrates associations with `WHERE da.document_id = ANY($1)`
+
+There was no N+1 to remove there, so the sprint-board route was the better target.
+
+### Change made
+
+I changed `GET /api/weeks/:id/issues` in `api/src/routes/weeks.ts`:
+
+1. If `req.isSuperAdmin === true`, the route now skips the redundant `workspace_memberships` admin lookup.
+2. The route now folds sprint existence/access verification into the issue fetch using an `accessible_sprint` CTE plus `LEFT JOIN LATERAL`.
+
+Why this works:
+
+- `result.rows.length === 0` still means "sprint missing or inaccessible" and returns `404`
+- one row with `issue.id IS NULL` still means "sprint exists but has no issues" and returns `[]`
+- the issue response mapping is unchanged
+
+### Before/after query logs for the modified flow
+
+#### Before change
+
+Reproduced `GET /api/weeks/:id/issues` before the edit:
+
+1. `0.188 ms`  
+   `SELECT s.id, s.user_id, s.workspace_id, s.expires_at, s.last_activity, s.created_at, u.is_super_admin FROM sessions s JOIN users u ON s.user_id = u.id WHERE s.id = $1`
+2. `0.043 ms`  
+   `UPDATE sessions SET last_activity = $1 WHERE id = $2`
+3. `0.039 ms`  
+   `SELECT role FROM workspace_memberships WHERE workspace_id = $1 AND user_id = $2`
+4. `0.359 ms`  
+   `SELECT d.id, p.properties->>'prefix' as prefix FROM documents d LEFT JOIN document_associations prog_da ON prog_da.document_id = d.id AND prog_da.relationship_type = 'program' LEFT JOIN documents p ON prog_da.related_id = p.id WHERE d.id = $1 AND d.workspace_id = $2 AND d.document_type = 'sprint' AND (d.visibility = 'workspace' OR d.created_by = $3 OR $4 = TRUE)`
+5. `0.483 ms`  
+   `SELECT d.id, d.title, d.properties, d.ticket_number, d.created_at, d.updated_at, d.created_by, u.name as assignee_name, CASE WHEN person_doc.archived_at IS NOT NULL THEN true ELSE false END as assignee_archived FROM documents d JOIN document_associations sprint_da ON sprint_da.document_id = d.id AND sprint_da.related_id = $1 AND sprint_da.relationship_type = 'sprint' LEFT JOIN users u ON (d.properties->>'assignee_id')::uuid = u.id LEFT JOIN documents person_doc ON person_doc.workspace_id = d.workspace_id AND person_doc.document_type = 'person' AND person_doc.properties->>'user_id' = d.properties->>'assignee_id' WHERE d.document_type = 'issue' AND (d.visibility = 'workspace' OR d.created_by = $2 OR $3 = TRUE) ORDER BY CASE d.properties->>'priority' WHEN 'urgent' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 WHEN 'low' THEN 4 ELSE 5 END, d.updated_at DESC`
+
+Total queries: `5`
+
+#### After change
+
+`GET /api/weeks/:id/issues` after the edit:
+
+1. `0.610 ms`  
+   `SELECT s.id, s.user_id, s.workspace_id, s.expires_at, s.last_activity, s.created_at, u.is_super_admin FROM sessions s JOIN users u ON s.user_id = u.id WHERE s.id = $1`
+2. `0.104 ms`  
+   `UPDATE sessions SET last_activity = $1 WHERE id = $2`
+3. `1.668 ms`  
+   `WITH accessible_sprint AS (...) SELECT sprint.id as sprint_id, issue.id, issue.title, issue.properties, issue.ticket_number, issue.created_at, issue.updated_at, issue.created_by, issue.assignee_name, issue.assignee_archived FROM accessible_sprint sprint LEFT JOIN LATERAL (...) issue ON TRUE`
+
+Total queries: `3`
+
+Important nuance:
+
+- the merged query is heavier than the old issue fetch by itself
+- the endpoint is still better overall because it removes two round trips and one redundant authorization query from the measured flow
+
+### `EXPLAIN ANALYZE` before/after for the modified flow
+
+#### Before: old sprint verification query
+
+```text
+Nested Loop Left Join  (cost=0.57..24.71 rows=1 width=48) (actual time=0.167..0.169 rows=1 loops=1)
+  ->  Nested Loop Left Join  (cost=0.42..16.48 rows=1 width=32) (actual time=0.109..0.110 rows=1 loops=1)
+        ->  Index Scan using documents_pkey on documents d  (cost=0.15..8.17 rows=1 width=16) (actual time=0.050..0.050 rows=1 loops=1)
+              Index Cond: (id = 'c5de80f3-eb8a-4ab1-8449-0a38bef3ef2f'::uuid)
+              Filter: ((workspace_id = 'a53d0769-ad31-43c7-a883-27355a528478'::uuid) AND (document_type = 'sprint'::document_type))
+        ->  Index Only Scan using unique_association on document_associations prog_da  (cost=0.27..8.30 rows=1 width=32) (actual time=0.058..0.058 rows=1 loops=1)
+              Index Cond: ((document_id = 'c5de80f3-eb8a-4ab1-8449-0a38bef3ef2f'::uuid) AND (relationship_type = 'program'::relationship_type))
+              Heap Fetches: 1
+  ->  Index Scan using documents_pkey on documents p  (cost=0.15..8.17 rows=1 width=228) (actual time=0.014..0.014 rows=1 loops=1)
+        Index Cond: (id = prog_da.related_id)
+Planning Time: 2.518 ms
+Execution Time: 0.278 ms
+```
+
+#### Before: old sprint issues query
+
+```text
+Sort  (cost=18.27..18.28 rows=1 width=319) (actual time=0.141..0.141 rows=4 loops=1)
+  Sort Key: (CASE (d.properties ->> 'priority'::text) WHEN 'urgent'::text THEN 1 WHEN 'high'::text THEN 2 WHEN 'medium'::text THEN 3 WHEN 'low'::text THEN 4 ELSE 5 END), d.updated_at DESC
+  Sort Method: quicksort  Memory: 26kB
+  ->  Nested Loop Left Join  (cost=0.58..18.26 rows=1 width=319) (actual time=0.090..0.107 rows=4 loops=1)
+        ->  Nested Loop Left Join  (cost=0.45..17.12 rows=1 width=330) (actual time=0.055..0.068 rows=4 loops=1)
+              ->  Nested Loop  (cost=0.29..16.49 rows=1 width=298) (actual time=0.010..0.019 rows=4 loops=1)
+                    ->  Index Scan using idx_document_associations_related_type on document_associations sprint_da  (cost=0.15..8.17 rows=1 width=16) (actual time=0.006..0.007 rows=5 loops=1)
+                          Index Cond: ((related_id = 'c5de80f3-eb8a-4ab1-8449-0a38bef3ef2f'::uuid) AND (relationship_type = 'sprint'::relationship_type))
+                    ->  Index Scan using documents_pkey on documents d  (cost=0.15..8.17 rows=1 width=298) (actual time=0.002..0.002 rows=1 loops=5)
+                          Index Cond: (id = sprint_da.document_id)
+                          Filter: (document_type = 'issue'::document_type)
+                          Rows Removed by Filter: 0
+              ->  Index Scan using users_pkey on users u  (cost=0.15..0.63 rows=1 width=48) (actual time=0.010..0.010 rows=1 loops=4)
+                    Index Cond: (id = ((d.properties ->> 'assignee_id'::text))::uuid)
+        ->  Index Scan using idx_documents_person_user_id on documents person_doc  (cost=0.14..1.12 rows=1 width=236) (actual time=0.009..0.009 rows=1 loops=4)
+              Index Cond: ((properties ->> 'user_id'::text) = (d.properties ->> 'assignee_id'::text))
+              Filter: (workspace_id = d.workspace_id)
+Planning Time: 2.951 ms
+Execution Time: 0.221 ms
+```
+
+#### After: combined query
+
+```text
+Nested Loop Left Join  (cost=27.31..35.35 rows=1 width=331) (actual time=0.071..0.072 rows=4 loops=1)
+  ->  Index Scan using documents_pkey on documents d  (cost=0.15..8.17 rows=1 width=16) (actual time=0.006..0.006 rows=1 loops=1)
+        Index Cond: (id = 'c5de80f3-eb8a-4ab1-8449-0a38bef3ef2f'::uuid)
+        Filter: ((workspace_id = 'a53d0769-ad31-43c7-a883-27355a528478'::uuid) AND (document_type = 'sprint'::document_type))
+  ->  Sort  (cost=27.16..27.16 rows=1 width=319) (actual time=0.063..0.064 rows=4 loops=1)
+        Sort Key: (CASE (d_1.properties ->> 'priority'::text) WHEN 'urgent'::text THEN 1 WHEN 'high'::text THEN 2 WHEN 'medium'::text THEN 3 WHEN 'low'::text THEN 4 ELSE 5 END), d_1.updated_at DESC
+        Sort Method: quicksort  Memory: 26kB
+        ->  Nested Loop Left Join  (cost=4.62..27.15 rows=1 width=319) (actual time=0.033..0.050 rows=4 loops=1)
+              ->  Nested Loop Left Join  (cost=4.48..26.01 rows=1 width=330) (actual time=0.025..0.038 rows=4 loops=1)
+                    ->  Nested Loop  (cost=4.33..25.37 rows=1 width=298) (actual time=0.015..0.024 rows=4 loops=1)
+                          ->  Bitmap Heap Scan on document_associations sprint_da  (cost=4.17..8.99 rows=2 width=16) (actual time=0.009..0.011 rows=5 loops=1)
+                                Recheck Cond: ((related_id = d.id) AND (relationship_type = 'sprint'::relationship_type))
+                                Heap Blocks: exact=2
+                                ->  Bitmap Index Scan on idx_document_associations_related_type  (cost=0.00..4.17 rows=2 width=0) (actual time=0.005..0.005 rows=5 loops=1)
+                                      Index Cond: ((related_id = d.id) AND (relationship_type = 'sprint'::relationship_type))
+                          ->  Memoize  (cost=0.16..8.18 rows=1 width=298) (actual time=0.002..0.002 rows=1 loops=5)
+                                Cache Key: sprint_da.document_id
+                                Cache Mode: logical
+                                Hits: 0  Misses: 5  Evictions: 0  Overflows: 0  Memory Usage: 2kB
+                                ->  Index Scan using documents_pkey on documents d_1  (cost=0.15..8.17 rows=1 width=298) (actual time=0.001..0.001 rows=1 loops=5)
+                                      Index Cond: (id = sprint_da.document_id)
+                                      Filter: (document_type = 'issue'::document_type)
+                                      Rows Removed by Filter: 0
+                    ->  Index Scan using users_pkey on users u  (cost=0.15..0.63 rows=1 width=48) (actual time=0.002..0.002 rows=1 loops=4)
+                          Index Cond: (id = ((d_1.properties ->> 'assignee_id'::text))::uuid)
+              ->  Index Scan using idx_documents_person_user_id on documents person_doc  (cost=0.14..1.12 rows=1 width=236) (actual time=0.002..0.002 rows=1 loops=4)
+                    Index Cond: ((properties ->> 'user_id'::text) = (d_1.properties ->> 'assignee_id'::text))
+                    Filter: (workspace_id = d_1.workspace_id)
+Planning Time: 1.149 ms
+Execution Time: 0.133 ms
+```
+
+### Validation
+
+- Verification commands run:
+
+```bash
+pnpm --filter @ship/api type-check
+DATABASE_URL=postgres://ship:ship_dev_password@localhost:5433/ship_dev pnpm --filter @ship/api test
+```
+
+- Result:
+  - `pnpm --filter @ship/api type-check` passed
+  - `DATABASE_URL=postgres://ship:ship_dev_password@localhost:5433/ship_dev pnpm --filter @ship/api test` passed
+  - API suite result: `28` files passed, `451` tests passed
+
+### Option met and verdict
+
+- **Option A met**
+- Modified flow: `Load sprint board` / `GET /api/weeks/:id/issues`
+- Query count reduction: `5 -> 3` queries
+- Improvement amount: `40%`
+- Passing verdict: **yes**

@@ -11,20 +11,25 @@
 
 import { pool } from '../db/client.js';
 
-interface TipTapNode {
+export interface TipTapMark {
   type: string;
-  content?: TipTapNode[];
-  text?: string;
-  marks?: Array<{ type: string; attrs?: Record<string, unknown> }>;
   attrs?: Record<string, unknown>;
 }
 
-interface TipTapDoc {
+export interface TipTapNode {
+  type: string;
+  content?: TipTapNode[];
+  text?: string;
+  marks?: TipTapMark[];
+  attrs?: Record<string, unknown>;
+}
+
+export interface TipTapDoc {
   type: 'doc';
   content?: TipTapNode[];
 }
 
-interface IssueInfo {
+export interface IssueInfo {
   id: string;
   ticket_number: number;
 }
@@ -32,6 +37,16 @@ interface IssueInfo {
 // Pattern to match issue references: #123, issue #123, ISS-123
 // Captures the full match and the number
 const ISSUE_PATTERN = /(?:#(\d+)|issue\s+#?(\d+)|ISS-(\d+))/gi;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isTipTapDoc(value: unknown): value is TipTapDoc {
+  return isRecord(value)
+    && value.type === 'doc'
+    && (value.content === undefined || Array.isArray(value.content));
+}
 
 /**
  * Look up issues by ticket numbers in a workspace
@@ -42,7 +57,7 @@ async function lookupIssuesByTicketNumbers(
 ): Promise<Map<number, IssueInfo>> {
   if (ticketNumbers.length === 0) return new Map();
 
-  const result = await pool.query(
+  const result = await pool.query<IssueInfo>(
     `SELECT id, ticket_number FROM documents
      WHERE workspace_id = $1
        AND document_type = 'issue'
@@ -200,17 +215,27 @@ function transformNodes(
  * @returns Transformed TipTap JSON with issue links
  */
 export async function transformIssueLinks(
-  content: unknown,
+  content: TipTapDoc,
   workspaceId: string,
   preloadedIssueMap?: Map<number, IssueInfo>
-): Promise<unknown> {
-  if (!content || typeof content !== 'object') return content;
+): Promise<TipTapDoc>;
+export async function transformIssueLinks<T>(
+  content: T,
+  workspaceId: string,
+  preloadedIssueMap?: Map<number, IssueInfo>
+): Promise<T>;
+export async function transformIssueLinks<T>(
+  content: T | TipTapDoc,
+  workspaceId: string,
+  preloadedIssueMap?: Map<number, IssueInfo>
+): Promise<T | TipTapDoc> {
+  if (!isTipTapDoc(content)) return content;
 
-  const doc = content as TipTapDoc;
-  if (doc.type !== 'doc' || !Array.isArray(doc.content)) return content;
+  const doc = content;
+  const docContent = doc.content ?? [];
 
   // Extract all ticket numbers from content
-  const ticketNumbers = extractAllTicketNumbers(doc.content);
+  const ticketNumbers = extractAllTicketNumbers(docContent);
   if (ticketNumbers.length === 0) return content;
 
   // Use preloaded map if provided, otherwise look up
@@ -233,7 +258,7 @@ export async function transformIssueLinks(
   // Transform the content
   return {
     ...doc,
-    content: transformNodes(doc.content, issueMap),
+    content: transformNodes(docContent, issueMap),
   };
 }
 
@@ -248,12 +273,9 @@ export function extractTicketNumbersFromContents(contents: unknown[]): number[] 
   const allNumbers: number[] = [];
 
   for (const content of contents) {
-    if (!content || typeof content !== 'object') continue;
+    if (!isTipTapDoc(content)) continue;
 
-    const doc = content as TipTapDoc;
-    if (doc.type !== 'doc' || !Array.isArray(doc.content)) continue;
-
-    allNumbers.push(...extractAllTicketNumbers(doc.content));
+    allNumbers.push(...extractAllTicketNumbers(content.content ?? []));
   }
 
   return [...new Set(allNumbers)];

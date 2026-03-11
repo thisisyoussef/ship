@@ -104,9 +104,23 @@
 - Which skill pattern was applied: assertion-function style invariant narrowing from `typescript-strict-migrator`; source-of-truth collection typing from `managing-database-schemas` for seed model shapes.
 - Tradeoff made: seed failures now surface earlier and more explicitly if the generated fixture arrays drift out of sync, which is stricter than the previous implicit undefined access but safer for maintenance.
 
+- File path: `api/src/utils/transformIssueLinks.ts`
+- Violations before / after: 0 -> 0
+- What the any/as/! was actually modeling: callers and tests were forced to re-assert transformed TipTap documents because the helper accepted and returned `unknown`, even though the transformation preserves `TipTapDoc` shape when given a valid document.
+- What type replaced it and why: exported `TipTapDoc`, `TipTapNode`, `TipTapMark`, and `IssueInfo`; added a real `isTipTapDoc` guard plus overloads so valid TipTap inputs now return typed TipTap outputs while invalid inputs preserve their original type without casts.
+- Which skill pattern was applied: assertion-function and overload narrowing from `typescript-strict-migrator`; type guard selection from the `typescript-ops` narrowing decision tree.
+- Tradeoff made: this file did not directly reduce the audit count, but it removed the need for downstream cast-heavy consumers and made the associated test rewrite structurally sound.
+
+- File path: `api/src/__tests__/transformIssueLinks.test.ts`
+- Violations before / after: 66 -> 0
+- What the any/as/! was actually modeling: mocked Postgres query results, transformed TipTap document inspection, and callback-local text node lookups were all being forced through `any` because the test had no typed fixture model or stable mock signature.
+- What type replaced it and why: replaced loose mocks with a typed `queryMock`, `QueryResult` factory, concrete `IssueLookupRow` fixtures, exported TipTap types from the production helper, and narrowing helpers (`getNodeContent`, `findTextNode`, `getLinkHref`) so every assertion now follows the real document and query shapes under test.
+- Which skill pattern was applied: utility-type and narrowing workflow from `typescript-ops`; assertion-function style narrowing from `typescript-strict-migrator`.
+- Tradeoff made: targeted test execution still trips the repo-wide Vitest DB setup before assertions run, so validation for this file is package type-check plus the same pre-existing global test failure observed elsewhere in the API suite.
+
 ### Totals
 
 - Reproduced baseline total: 2962 (grep scan), 1291 (AST audit baseline)
-- Final total after fixes: pending
-- Percentage reduction achieved: pending
-- Passing verdict: pending
+- Final total after fixes: 966 (AST audit)
+- Percentage reduction achieved: 25.17% (325 / 1291)
+- Passing verdict: yes

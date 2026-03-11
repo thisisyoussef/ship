@@ -1,133 +1,250 @@
-## Category 1: Type Safety
+# Phase 2 Notes
 
-### Baseline Reproduction
+## Category 6: Runtime Error Handling
 
-- Reproduced on March 11, 2026 from `/Users/youss/Development/gauntlet/ship`.
-- Exact scan commands run before edits:
-  - `grep -rn ': any' web/src api/src shared/src --include="*.ts" --include="*.tsx" | wc -l`
-  - `grep -rn ' as ' web/src api/src shared/src --include="*.ts" --include="*.tsx" | wc -l`
-  - `grep -rn '[^!]![^=]' web/src api/src shared/src --include="*.ts" --include="*.tsx" | wc -l`
-- Reproduced baseline totals from those commands:
-  - `any`: 99
-  - `as`: 1422
-  - `!`: 1441
-  - Total: 2962
-- Note: the grep scan is noisy because it counts SQL ` as ` aliases inside query strings and many non-type `!` tokens. It is preserved here because it was explicitly requested, but it is not the meaningful type-safety baseline.
-- AST-based audit baseline used for the actual type-safety work:
-  - `any`: 271
-  - `as`: 691
-  - non-null assertions: 329
-  - `@ts-ignore` / `@ts-expect-error`: 1
-  - Total: 1291
-- AST-based package breakdown:
-  - `api/` any: 238
-  - `web/` any: 33
-  - `shared/` any: 0
-  - `api/` as: 317
-  - `web/` as: 372
-  - `shared/` as: 2
-  - `api/` !: 296
-  - `web/` !: 33
-  - `shared/` !: 0
-- AST top violation-dense files:
-  - `api/src/routes/weeks.ts`: 85
-  - `api/src/routes/projects.ts`: 51
-  - `api/src/routes/issues.ts`: 49
-  - `web/src/pages/UnifiedDocumentPage.tsx`: 37
-  - `api/src/db/seed.ts`: 35
-- Working reduction target from the AST baseline:
-  - Need to eliminate at least 323 violations.
-  - Required final total: 968 or fewer.
-- Reproduced package breakdown from the same commands:
-  - `api/` any: 75
-  - `web/` any: 24
-  - `shared/` any: 0
-  - `api/` as: 964
-  - `web/` as: 453
-  - `shared/` as: 5
-  - `api/` !: 702
-  - `web/` !: 739
-  - `shared/` !: 0
-- Constraint mismatches discovered during preflight:
-  - The API package uses Express + raw `pg`.
-  - Root `pnpm tsc --noEmit` fails before edits due pre-existing workspace-wide errors outside the target packages.
-  - Package-local type-check passes for `@ship/api`, `@ship/web`, and `@ship/shared`, so package-local `tsc --noEmit` is the enforceable regression gate for this work.
+### Diagnosis
 
-### File Log
+1. Why is `GET /api/auth/session` returning 500?
 
-- File path: `api/src/routes/route-helpers.ts`
-- Violations before / after: new file
-- What the any/as/! was actually modeling: repeated authenticated request context checks, raw UUID strings crossing route boundaries, and Postgres scalar coercions were duplicated as ad hoc `req.userId!`, `req.workspaceId!`, and manual count/boolean parsing across route modules.
-- What type replaced it and why: added typed `AuthContext`, branded UUID aliases (`UserId`, `WorkspaceId`, `ProjectId`, `IssueId`, `WeekId`, `ProgramId`, `PersonId`), guard helpers, `getAuthContext`, `ensureUuidId`, `parsePgCount`, and `parsePgBoolean` so route files can narrow auth/session state and route params once and consume parsed PG values without local assertions.
-- Approach applied: introduced branded identifiers and centralized auth/UUID narrowing so routes can validate request context once and reuse the narrowed values safely.
-- Tradeoff made: the helper returns a 401 fallback if auth context is unexpectedly missing after `authMiddleware`; this preserves safe runtime behavior without changing the middleware contract.
+- The backend route in `/Users/youss/Development/gauntlet/ship/api/src/routes/auth.ts` is mounted behind `authMiddleware` from `/Users/youss/Development/gauntlet/ship/api/src/middleware/auth.ts`, which correctly returns `401` for missing or expired sessions.
+- The reproduced `500` is not coming from the Express handler. It is coming from the Dockerized Vite dev server in the `web` container trying to proxy a relative `/api/auth/session` request to `http://127.0.0.1:3000`, which is wrong inside that container.
+- Root cause: `/Users/youss/Development/gauntlet/ship/web/src/hooks/useSessionTimeout.ts` uses `fetch('/api/auth/session', { credentials: 'include' })` instead of the same absolute `VITE_API_URL` path used by the rest of the app. `api.auth.me()` succeeds because `/Users/youss/Development/gauntlet/ship/web/src/lib/api.ts` already uses `import.meta.env.VITE_API_URL`.
 
-- File path: `api/src/routes/weeks.ts`
-- Violations before / after: 85 -> 0
-- What the any/as/! was actually modeling: authenticated route context, lookup query params, sprint/standup/review SQL row shapes, grouped week issue summaries, and prefilled review TipTap content.
-- What type replaced it and why: replaced non-null assertions with `getAuthContext`, query casts with Zod-parsed lookup schemas, row `any` with schema-derived local interfaces (`SprintRow`, `StandupRow`, `ReviewIssueRow`), and ad hoc `any[]` containers with concrete collection types or `unknown[]` SQL parameter arrays.
-- Approach applied: parsed external input through schemas, derived explicit SQL row types from selected columns, and used narrowing helpers to remove local assertions.
-- Tradeoff made: kept the route aligned with the existing Express runtime and middleware model instead of introducing a different server typing pattern.
+2. What is the modal overlay on the document page?
 
-- File path: `api/src/routes/projects.ts`
-- Violations before / after: 51 -> 0
-- What the any/as/! was actually modeling: authenticated route context, project list query params, project/sprint/issue/retro SQL row shapes, retro issue summaries, raw UUID params, and synthetic TipTap retro content documents.
-- What type replaced it and why: replaced non-null assertions with `getAuthContext`, raw `id` strings with branded `ProjectId` narrowing, request query casts with Zod-parsed list params, row `any` with concrete SQL row interfaces passed through `pool.query<T>()`, retro document bodies with recursive `TipTapDocument` typing, and SQL `any[]` parameter bags with `unknown[]`.
-- Approach applied: combined schema-validated input, branded route IDs, recursive document typing, and explicit query row interfaces so the handler no longer relies on downstream casts.
-- Tradeoff made: `program_id` remains structurally a UUID string in the create-project response path because that value originates from validated request input rather than a narrowed DB row, but all route-param and auth IDs in this module are now branded and guarded.
+- The blocking overlay is the global `ActionItemsModal` rendered from `/Users/youss/Development/gauntlet/ship/web/src/pages/App.tsx`.
+- It auto-opens on initial load when `!actionItemsModalShownOnLoad && hasActionItems && actionItemsData?.items`.
+- The modal itself is implemented in `/Users/youss/Development/gauntlet/ship/web/src/components/ActionItemsModal.tsx` with a full-screen `Dialog.Overlay` and modal `Dialog.Content`, so it intentionally intercepts pointer events until dismissed.
+- On a direct document visit after login, the editor is already visible behind the modal, but the modal still owns focus and pointer events. That makes the main product surface feel broken if the user tries to click into the editor first.
 
-- File path: `api/src/routes/issues.ts`
-- Violations before / after: 49 -> 0
-- What the any/as/! was actually modeling: issue list filter query params, authenticated route context, issue/document redirect SQL rows, transaction-local update payloads, history/iteration rows, and parent-child association checks during close/carryover flows.
-- What type replaced it and why: replaced non-null assertions with `getAuthContext`, raw route params with branded `IssueId` narrowing, query casts with Zod-parsed filter schemas, generic `any` rows with concrete issue/history/iteration interfaces passed through `query<T>()`, and transactional `any[]` parameter arrays with `unknown[]`.
-- Approach applied: narrowed filters and route IDs at the boundary, modeled association shapes explicitly, and derived row types from the actual selected columns in each query.
-- Tradeoff made: kept the issue-property type local to the route because the route currently accepts a `'none'` priority value that does not exist in `shared/`; widening `shared/` was deferred to avoid changing the shared contract during this targeted pass.
+3. Are the existing error boundaries actually configured with fallback UI?
 
-- File path: `web/src/components/UnifiedEditor.tsx`
-- Violations before / after: 28 -> 28
-- What the any/as/! was actually modeling: the editor’s local document union was narrower than the runtime data already passed in from the page layer, specifically omitting `standup` documents and `action_items` issue sources.
-- What type replaced it and why: widened the local `DocumentType` and `IssueDocument['source']` unions so the page layer can narrow real API responses without casting unsupported-but-real values back into the editor.
-- Approach applied: widened the editor’s discriminated unions to match the runtime document variants already flowing through this surface.
-- Tradeoff made: this change improves downstream safety in the page transformer without yet reducing the editor file’s own assertion count; that cleanup is deferred as a separate follow-up.
+- Yes. `/Users/youss/Development/gauntlet/ship/web/src/pages/App.tsx` and `/Users/youss/Development/gauntlet/ship/web/src/components/Editor.tsx` both use `/Users/youss/Development/gauntlet/ship/web/src/components/ui/ErrorBoundary.tsx` without a custom fallback.
+- Reproduced by rendering a throwing child inside the boundary. All three cases rendered the default fallback instead of a blank screen.
+- Current fallback text is `Something went wrong` with a single `Try Again` button. It is not blank, but it does not offer a page reload path, which is below the requested minimum recovery affordance.
 
-- File path: `web/src/pages/UnifiedDocumentPage.tsx`
-- Violations before / after: 37 -> 0
-- What the any/as/! was actually modeling: document-type discrimination, weekly-project context extraction, tab counts, standup author lookup, issue/project conversion source types, and transformation from a flexible API `DocumentResponse` into the stricter `UnifiedDocument` union.
-- What type replaced it and why: replaced every assertion with runtime guards and typed accessors (`isRecord`, string/number/array readers, document-type predicates, `BelongsTo` validation, owner parsing) so the page now constructs `UnifiedDocument` values from verified shapes instead of trusting ambient `Record<string, unknown>` data.
-- Approach applied: built a guard-driven normalization layer that validates flexible API payloads before constructing stricter UI document unions.
-- Tradeoff made: the page now drops malformed optional fields to `undefined`/`null` instead of forcing them into typed positions, which is safer but means obviously bad API payloads render with defaults rather than surfacing as casted values.
+4. Additional silent failures found during scan
 
-- File path: `api/src/db/seed.ts`
-- Violations before / after: 35 -> 0
-- What the any/as/! was actually modeling: optional array lookups and map lookups across seeded users, projects, sprints, ticket counters, content pools, and report-to hierarchy references that the script previously treated as guaranteed-present via non-null assertions.
-- What type replaced it and why: replaced each non-null assertion with `requireValue<T>()`-guarded retrieval so the script now fails with explicit seed-data invariants when an indexed item or map entry is missing, while preserving the real inferred types of those collections.
-- Approach applied: replaced implicit assumptions with explicit invariant checks so indexed and mapped seed lookups narrow to concrete values before use.
-- Tradeoff made: seed failures now surface earlier and more explicitly if the generated fixture arrays drift out of sync, which is stricter than the previous implicit undefined access but safer for maintenance.
+- I scanned `useEffect` async flows and `.then()` chains in `web/src`.
+- I did not find a second critical document-save or issue-update path that is fully silent. Most mutation failures are routed through React Query’s global mutation cache and surfaced by `/Users/youss/Development/gauntlet/ship/web/src/components/MutationErrorToast.tsx`.
+- I did find intentionally quiet background requests in `/Users/youss/Development/gauntlet/ship/web/src/components/PlanQualityBanner.tsx` and `/Users/youss/Development/gauntlet/ship/web/src/components/sidebars/QualityAssistant.tsx`; both files explicitly document that they are advisory/non-critical and should not redirect or spam the user.
+- The third actionable gap for this phase is the incomplete error-boundary recovery UI, not another hidden async failure.
 
-- File path: `api/src/utils/transformIssueLinks.ts`
-- Violations before / after: 0 -> 0
-- What the any/as/! was actually modeling: callers and tests were forced to re-assert transformed TipTap documents because the helper accepted and returned `unknown`, even though the transformation preserves `TipTapDoc` shape when given a valid document.
-- What type replaced it and why: exported `TipTapDoc`, `TipTapNode`, `TipTapMark`, and `IssueInfo`; added a real `isTipTapDoc` guard plus overloads so valid TipTap inputs now return typed TipTap outputs while invalid inputs preserve their original type without casts.
-- Approach applied: exported the document model, added a concrete shape guard, and used overloads so valid inputs preserve strong types through the transformation boundary.
-- Tradeoff made: this file did not directly reduce the audit count, but it removed the need for downstream cast-heavy consumers and made the associated test rewrite structurally sound.
+### Baseline Reproductions
 
-- File path: `api/src/__tests__/transformIssueLinks.test.ts`
-- Violations before / after: 66 -> 0
-- What the any/as/! was actually modeling: mocked Postgres query results, transformed TipTap document inspection, and callback-local text node lookups were all being forced through `any` because the test had no typed fixture model or stable mock signature.
-- What type replaced it and why: replaced loose mocks with a typed `queryMock`, `QueryResult` factory, concrete `IssueLookupRow` fixtures, exported TipTap types from the production helper, and narrowing helpers (`getNodeContent`, `findTextNode`, `getLinkHref`) so every assertion now follows the real document and query shapes under test.
-- Approach applied: moved the test onto typed fixtures, typed query results, and explicit narrowing helpers so assertions follow the same shapes the production code uses.
-- Tradeoff made: targeted test execution still trips the repo-wide Vitest DB setup before assertions run, so validation for this file is package type-check plus the same pre-existing global test failure observed elsewhere in the API suite.
+#### Issue 1: Auth session console noise
 
-- File path: `api/src/services/accountability.test.ts`
-- Violations before / after: 64 -> 0
-- What the any/as/! was actually modeling: the service test was using untyped Postgres mock results, mock-chaining against the overloaded `pool.query` API, and loosely shaped plan/retro fixture documents for due-window scenarios.
-- What type replaced it and why: replaced those casts with a typed hoisted `queryMock`, explicit mock row types (`WorkspaceRow`, `PersonRow`, `AccountabilityDocRow`), a `QueryResult` factory, and typed allocation/business-day mocks so each scenario now reflects the actual query and fixture shapes the service consumes.
-- Approach applied: converted the test harness to typed mocks and scenario-specific helper builders so each query in the sequence is modeled explicitly without relying on assertion escapes.
-- Tradeoff made: like the other API tests, direct Vitest execution still stops in the shared DB setup before assertions run, so the verification gate here is package type-check plus the same pre-existing DB bootstrap failure in the API test runner.
+- Severity: Medium
+- Reproduction steps:
+  1. Start the local Docker stack with `docker compose -f docker-compose.yml -f docker-compose.local.yml up -d`.
+  2. Open `http://localhost:5173/login`.
+  3. Sign in with `dev@ship.local / admin123`.
+  4. Wait on the first authenticated page load for the session-timeout hook to run.
+- Before behavior:
+  - The UI loads, but the console shows repeated `500` noise for `GET /api/auth/session`.
+  - Playwright also records `net::ERR_ABORTED` for the same request.
+- Root cause:
+  - `/Users/youss/Development/gauntlet/ship/web/src/hooks/useSessionTimeout.ts` uses a relative `/api/auth/session` fetch.
+  - Inside the `web` Docker container, Vite proxies relative `/api/*` calls to `127.0.0.1:3000`, which is not the API container.
+  - The web container logs show `http proxy error: /api/auth/session` and `connect ECONNREFUSED 127.0.0.1:3000`.
+- Fix applied:
+  - Pending.
+- After behavior:
+  - Pending.
+- Evidence:
+  - `/Users/youss/Development/gauntlet/ship/output/playwright/phase2/baseline/login-console.txt`
+  - `/Users/youss/Development/gauntlet/ship/output/playwright/phase2/baseline/after-login.png`
 
-### Totals
+#### Issue 2: Modal overlay blocking editor entry
 
-- Reproduced baseline total: 2962 (grep scan), 1291 (AST audit baseline)
-- Final total after fixes: 902 (AST audit)
-- Percentage reduction achieved: 30.13% (389 / 1291)
+- Severity: High
+- Reproduction steps:
+  1. Sign in with `dev@ship.local / admin123`.
+  2. Without dismissing the `Action Items` modal, navigate to a document detail page.
+  3. Try to click into the editor immediately.
+- Before behavior:
+  - The editor is visible, but clicks do not enter the editor.
+  - Playwright reports the dialog subtree intercepting pointer events instead of the editor receiving the click.
+- Root cause:
+  - `ActionItemsModal` is rendered globally from `AppLayout` and remains open over document routes until dismissed.
+  - The overlay and dialog are modal by design, so the editor is blocked even though the user is already on the document page.
+- Fix applied:
+  - Pending.
+- After behavior:
+  - Pending.
+- Evidence:
+  - `/Users/youss/Development/gauntlet/ship/output/playwright/phase2/baseline/issue2-document-overlay.png`
+  - `/Users/youss/Development/gauntlet/ship/output/playwright/phase2/baseline/issue2-click-log.txt`
+
+#### Issue 3: Error boundary recovery is incomplete
+
+- Severity: Medium
+- Reproduction steps:
+  1. Render a throwing child inside the shared `ErrorBoundary`.
+  2. Repeat for the same default boundary wiring used by the App subtree and Editor subtree.
+- Before behavior:
+  - The boundary does catch the render error and shows fallback UI.
+  - The fallback only offers `Try Again`; there is no explicit reload affordance.
+- Root cause:
+  - `/Users/youss/Development/gauntlet/ship/web/src/components/ui/ErrorBoundary.tsx` renders a minimal fallback with reset-only recovery.
+- Fix applied:
+  - Pending.
+- After behavior:
+  - Pending.
+- Evidence:
+  - `/Users/youss/Development/gauntlet/ship/output/playwright/phase2/baseline/error-boundary-verification.txt`
+
+### Initial Implementation Plan
+
+1. Fix the session-timeout hook so it uses the same API base path as the rest of the app and handles non-OK session responses explicitly.
+2. Change the action-items flow so the startup accountability prompt does not block initial document editing on document routes.
+3. Improve the shared error-boundary fallback to provide a clear reload path and verify the updated fallback in all three boundary placements.
+
+### Final Summary
+
+- 3 fixes completed: Pending
+- At least one user-facing confusion scenario fixed: Pending
+- Passing verdict: Pending
+
+## Category 2: Bundle Size
+
+### Reproduced Baseline
+
+- Reproduced on March 11, 2026 from `/Users/youss/Development/gauntlet/ship` on commit `55e2ee1`.
+- Exact build command run before edits:
+  - `pnpm --filter @ship/web exec vite build --sourcemap`
+- Exact chunk listing command run before edits:
+  - `pnpm --filter @ship/web exec vite build --sourcemap 2>&1 | grep -E '\.(js|css)' | sort -k2 -rh | head -30`
+- Reproduced baseline totals:
+  - Total bundle size: `10,539.29 KB`
+    - Measured as all files under `web/dist/assets`, including sourcemaps.
+  - Main chunk (raw): `2,025.10 KB`
+  - Main chunk (gzip): `587.62 KB`
+  - Number of chunks: `262`
+- Baseline discrepancy note:
+  - No material discrepancy.
+  - Total bundle size matches the audit baseline exactly.
+  - Main chunk raw differs by `0.04 KB`, well below the allowed 5%.
+
+### Baseline Build Output
+
+```text
+dist/assets/index-DJeYp5na.css                          66.51 kB │ gzip:  12.93 kB
+dist/assets/ProgramWeeksTab-BzbUWlt4.js                 16.81 kB │ gzip:   5.56 kB │ map:    55.51 kB
+dist/assets/WeekReviewTab-DmxN07T1.js                   12.70 kB │ gzip:   3.71 kB │ map:    37.54 kB
+dist/assets/StandupFeed-BjJLDai5.js                      9.70 kB │ gzip:   2.92 kB │ map:    24.17 kB
+dist/assets/ProjectRetroTab-BV2rvgoM.js                  9.10 kB │ gzip:   2.44 kB │ map:    23.90 kB
+dist/assets/ProjectWeeksTab-oE3MioHn.js                  6.71 kB │ gzip:   2.34 kB │ map:    19.44 kB
+dist/assets/ProgramProjectsTab-eNNvrO8g.js               4.46 kB │ gzip:   1.58 kB │ map:    10.19 kB
+dist/assets/ProjectDetailsTab-gSyN3jFM.js                3.66 kB │ gzip:   1.52 kB │ map:    15.03 kB
+dist/assets/WeekPlanningTab-DWsXI-LK.js                  3.04 kB │ gzip:   1.51 kB │ map:     9.03 kB
+dist/assets/index-C2vAyoQ1.js                        2,073.74 kB │ gzip: 587.62 kB │ map: 8,003.97 kB
+```
+
+### Diagnosis Findings
+
+1. Which modules are dynamically imported in `vite.config` or route definitions?
+   - `web/vite.config.ts` does not define any dynamic imports or manual chunking.
+   - Top-level route definitions in `web/src/main.tsx` did not use dynamic imports before the fix; every page was statically imported.
+   - Existing dynamic imports before the fix were limited to:
+     - `React.lazy()` tab components in `web/src/lib/document-tabs.tsx`
+     - `import('@/services/upload')` and `import('./FileAttachment')` in `web/src/components/editor/SlashCommands.tsx`
+     - `import.meta.glob('/node_modules/@uswds/uswds/dist/img/usa-icons/*.svg', { query: '?react' })` in `web/src/components/icons/uswds/Icon.tsx`
+
+2. Are any of those same modules also statically imported somewhere else in the codebase?
+   - Yes.
+   - Vite reported two broken splits during the reproduced baseline build:
+     - `web/src/services/upload.ts` is dynamically imported by `web/src/components/editor/SlashCommands.tsx` but also statically imported by `web/src/components/editor/FileAttachment.tsx` and `web/src/components/editor/ImageUpload.tsx`.
+     - `web/src/components/editor/FileAttachment.tsx` is dynamically imported by `web/src/components/editor/SlashCommands.tsx` but also statically imported by `web/src/components/Editor.tsx`.
+   - The larger route-level split was missing entirely:
+     - `web/src/main.tsx` statically imported `web/src/pages/UnifiedDocumentPage.tsx`, `web/src/pages/PersonEditor.tsx`, and every other route page.
+     - `web/src/pages/UnifiedDocumentPage.tsx` statically imported `web/src/components/UnifiedEditor.tsx`.
+     - `web/src/components/UnifiedEditor.tsx` statically imported `web/src/components/Editor.tsx`.
+     - `web/src/components/Editor.tsx` statically imported `yjs`, `y-websocket`, `y-indexeddb`, `lowlight`, and TipTap/ProseMirror packages.
+   - Net effect before the fix:
+     - editor and collaboration code was eligible to land in the initial `index-*.js` chunk even though only document/person editing routes need it.
+
+3. Which of the top 5 contributors can be deferred to route-level or component-level load without breaking functionality?
+   - `emoji-picker-react`: yes. It is only used by `web/src/components/EmojiPicker.tsx`, which is reached from document-editing sidebars.
+   - `highlight.js` / `lowlight`: yes. It is only used by `web/src/components/Editor.tsx` for code block highlighting.
+   - `yjs`: yes. It is only used by `web/src/components/Editor.tsx` for collaborative editing.
+   - `prosemirror-view` and the rest of the TipTap/ProseMirror stack: yes. They are only needed when an editor route renders.
+   - `react-router`: no meaningful defer opportunity. It is part of the SPA bootstrap path.
+
+4. Are the two unused dependencies actually unused?
+   - `@tanstack/query-sync-storage-persister`: confirmed unused in `web/src`.
+     - Verification command: `grep -rn "@tanstack/query-sync-storage-persister" web/src --include="*.ts" --include="*.tsx"`
+     - Result: no matches.
+   - `@uswds/uswds`: not unused.
+     - Verification command: `grep -rn "@uswds/uswds" web/src --include="*.ts" --include="*.tsx"`
+     - Result: used in `web/src/components/icons/uswds/Icon.tsx` through `import.meta.glob()` against the USWDS SVG icon set.
+
+### Change Log
+
+- Change 1: removed `@tanstack/query-sync-storage-persister` from `web/package.json` and refreshed the lockfile.
+  - Target: eliminate a verified-dead dependency from the frontend manifest.
+  - Result: no measurable production bundle reduction; the package was already tree-shaken out of the build.
+- Change 2: converted top-level page imports in `web/src/main.tsx` from static imports to `React.lazy()` route chunks and wrapped the route tree in `Suspense`.
+  - Target: stop editor-bearing routes from being pulled into the initial app entry.
+  - Affected routes: `AppLayout`, `Documents`, `Issues`, `Programs`, `TeamMode`, `TeamDirectory`, `PersonEditor`, `FeedbackEditor`, `PublicFeedback`, `Projects`, `Dashboard`, `MyWeekPage`, `AdminDashboard`, `AdminWorkspaceDetail`, `WorkspaceSettings`, `ConvertedDocuments`, `UnifiedDocumentPage`, `StatusOverviewPage`, `ReviewsPage`, `OrgChartPage`, `Login`, `InviteAccept`, and `Setup`.
+- Change 3: gated React Query Devtools behind `import.meta.env.DEV` and lazy-loaded them separately.
+  - Target: prevent production from shipping development-only tooling inside the entry graph.
+
+### Split Verification
+
+- `web/dist/index.html` now references only:
+  - `/assets/index-CPPNbq8d.js`
+  - `/assets/index-D_Rleic7.css`
+- There are no `modulepreload` links in the generated HTML.
+- The new entry chunk contains dynamic preload metadata for route chunks, but no static JS imports.
+- The editor stack is isolated behind route chunks instead of the entry bundle:
+  - `UnifiedDocumentPage-BTtMQph-.js`: `406.07 kB`
+  - `PropertyRow-CzWzi-N4.js`: `836.62 kB`
+
+### After Build Output
+
+```text
+dist/assets/PropertyRow-CzWzi-N4.js                  836.62 kB │ gzip: 261.18 kB │ map: 3,790.73 kB
+dist/assets/UnifiedDocumentPage-BTtMQph-.js          406.07 kB │ gzip: 100.17 kB │ map: 1,189.41 kB
+dist/assets/index-CPPNbq8d.js                        293.94 kB │ gzip:  91.71 kB │ map: 1,229.96 kB
+dist/assets/App-CCSqVuN2.js                           88.49 kB │ gzip:  19.38 kB │ map:   269.15 kB
+dist/assets/index-DuV_k7kB.js                         74.56 kB │ gzip:  25.91 kB │ map:   367.81 kB
+dist/assets/index-D_Rleic7.css                        65.10 kB │ gzip:  12.56 kB
+dist/assets/IssuesList-BpXCpLdo.js                    54.21 kB │ gzip:  15.85 kB │ map:   200.28 kB
+dist/assets/Login-BBu4DqUf.js                         52.05 kB │ gzip:  10.63 kB │ map:    37.64 kB
+dist/assets/core.esm-B4ST11IL.js                      43.78 kB │ gzip:  14.56 kB │ map:   192.02 kB
+dist/assets/ReviewsPage-FNCQSg0u.js                   28.44 kB │ gzip:   7.23 kB │ map:    85.42 kB
+```
+
+### Rebuilt Metrics
+
+- Total bundle size: `10,622.76 KB`
+- Main chunk (raw): `287.05 KB`
+  - Entry file: `web/dist/assets/index-CPPNbq8d.js`
+- Main chunk (gzip): `91.71 kB` (Vite output)
+- Number of chunks: `307`
+- Main chunk reduction:
+  - Before: `2,025.10 KB`
+  - After: `287.05 KB`
+  - Reduction: `1,738.05 KB` (`85.83%`)
+- Total bundle size reduction:
+  - Before: `10,539.29 KB`
+  - After: `10,622.76 KB`
+  - Change: `+83.47 KB`
+
+### Result
+
+- Total reduction achieved:
+  - Option A: no. Total bundle size increased slightly because route-splitting created more individual sourcemaps and chunk metadata.
+  - Option B: yes. The initial entry chunk was reduced by `85.83%`.
+- Threshold met: `Option B`
 - Passing verdict: yes
+
+### Verification Notes
+
+- `pnpm --filter @ship/web exec vite build --sourcemap` passes after the bundle changes.
+- `pnpm --filter @ship/web test` still fails, but the failures are pre-existing and unchanged by this work:
+  - `src/styles/drag-handle.test.ts`
+  - `src/lib/document-tabs.test.ts`
+  - `src/components/editor/DetailsExtension.test.ts`
+  - `src/hooks/useSessionTimeout.test.ts`

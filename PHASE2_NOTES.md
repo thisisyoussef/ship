@@ -76,6 +76,13 @@
 - Which skill pattern was applied: branded IDs and Zod inference from `typescript-advanced-patterns`; narrowing strategy from `typescript-ops`; raw-SQL row typing derived from the schema and selected columns per `managing-database-schemas`.
 - Tradeoff made: `program_id` remains structurally a UUID string in the create-project response path because that value originates from validated request input rather than a narrowed DB row, but all route-param and auth IDs in this module are now branded and guarded.
 
+- File path: `api/src/routes/issues.ts`
+- Violations before / after: 49 -> 0
+- What the any/as/! was actually modeling: issue list filter query params, authenticated route context, issue/document redirect SQL rows, transaction-local update payloads, history/iteration rows, and parent-child association checks during close/carryover flows.
+- What type replaced it and why: replaced non-null assertions with `getAuthContext`, raw route params with branded `IssueId` narrowing, query casts with Zod-parsed filter schemas, generic `any` rows with concrete issue/history/iteration interfaces passed through `query<T>()`, and transactional `any[]` parameter arrays with `unknown[]`.
+- Which skill pattern was applied: branded IDs and discriminated association unions from `typescript-advanced-patterns`; query/body narrowing from `typescript-ops`; raw-SQL row typing derived from selected columns per `managing-database-schemas`.
+- Tradeoff made: kept the issue-property type local to the route because the route currently accepts a `'none'` priority value that does not exist in `shared/`; widening `shared/` was deferred to avoid changing the shared contract during this targeted pass.
+
 ### Totals
 
 - Reproduced baseline total: 2962 (grep scan), 1291 (AST audit baseline)

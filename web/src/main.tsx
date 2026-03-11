@@ -60,9 +60,15 @@ const InviteAcceptPage = lazyPage(async () => ({ default: (await import('@/pages
 const SetupPage = lazyPage(async () => ({ default: (await import('@/pages/Setup')).SetupPage }));
 
 const ReactQueryDevtools = import.meta.env.DEV
-  ? lazyPage(async () => ({
-      default: (await import('@tanstack/react-query-devtools')).ReactQueryDevtools,
-    }))
+  ? React.lazy(async () => {
+      const { ReactQueryDevtools: Devtools } = await import('@tanstack/react-query-devtools');
+
+      return {
+        default: function ReactQueryDevtoolsRoute() {
+          return <Devtools initialIsOpen={false} />;
+        },
+      };
+    })
   : null;
 
 function RouteLoader() {
@@ -294,7 +300,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       </ToastProvider>
       {ReactQueryDevtools ? (
         <React.Suspense fallback={null}>
-          <ReactQueryDevtools initialIsOpen={false} />
+          <ReactQueryDevtools />
         </React.Suspense>
       ) : null}
     </PersistQueryClientProvider>

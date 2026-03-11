@@ -35,6 +35,14 @@ async function createAssociation(
   );
 }
 
+function requireValue<T>(value: T | undefined, message: string): T {
+  if (value === undefined) {
+    throw new Error(message);
+  }
+
+  return value;
+}
+
 async function seed() {
   // Load secrets from SSM in production (must happen before Pool creation)
   await loadProductionSecrets();
@@ -211,7 +219,7 @@ async function seed() {
     let reportsToSet = 0;
     for (const [email, managers] of Object.entries(reportingHierarchy)) {
       if (managers.length === 0) continue; // Root has no manager
-      const managerEmail = managers[0]!;
+      const managerEmail = requireValue(managers[0], `Missing manager email for ${email}`);
       const managerId = emailToUserId.get(managerEmail);
       const userId = emailToUserId.get(email);
       if (managerId && userId) {
@@ -362,7 +370,7 @@ async function seed() {
         } else {
           // Assign owner rotating through team members
           const ownerIdx = (programs.indexOf(program) * projectTemplates.length + projectTemplates.indexOf(template)) % allUsers.length;
-          const owner = allUsers[ownerIdx]!;
+          const owner = requireValue(allUsers[ownerIdx], `Missing project owner at index ${ownerIdx}`);
 
           // Calculate target date (2-4 weeks from now based on project type)
           const targetDate = new Date();
@@ -430,16 +438,22 @@ async function seed() {
     // Sprints are distributed among the program's projects
     const sprintsToCreate: Array<{ programId: string; projectId: string; number: number; ownerIdx: number }> = [];
     for (const program of programs) {
-      const team = programTeams[program.id]!;
+      const team = requireValue(programTeams[program.id], `Missing team for program ${program.id}`);
       // Get projects for this program to distribute sprints among them
       const programProjects = projects.filter(p => p.programId === program.id);
       let projectIdx = 0;
       for (let sprintNum = currentSprintNumber - 3; sprintNum <= currentSprintNumber + 3; sprintNum++) {
         if (sprintNum > 0) {
           // Round-robin assign sprints to projects within the program
-          const project = programProjects[projectIdx % programProjects.length]!;
+          const project = requireValue(
+            programProjects[projectIdx % programProjects.length],
+            `Missing project for program ${program.id}`
+          );
           // Owner rotates within the program's team
-          const ownerIdx = team[(sprintNum - 1) % team.length]!;
+          const ownerIdx = requireValue(
+            team[(sprintNum - 1) % team.length],
+            `Missing sprint owner index for program ${program.id}`
+          );
           sprintsToCreate.push({
             programId: program.id,
             projectId: project.id,
@@ -455,7 +469,7 @@ async function seed() {
     let sprintsCreated = 0;
 
     for (const sprint of sprintsToCreate) {
-      const owner = allUsers[sprint.ownerIdx]!;
+      const owner = requireValue(allUsers[sprint.ownerIdx], `Missing sprint owner at index ${sprint.ownerIdx}`);
 
       // Check for existing sprint by sprint_number and project (via junction table)
       const existingSprint = await pool.query(
@@ -515,9 +529,9 @@ async function seed() {
         else baseConfidence = 40; // Future sprints - lower confidence
 
         // Other assignee comes from the same program team (not global +1)
-        const team = programTeams[sprint.programId]!;
-        const otherIdx = team.find(idx => idx !== sprint.ownerIdx) ?? team[0]!;
-        const otherUser = allUsers[otherIdx]!;
+        const team = requireValue(programTeams[sprint.programId], `Missing team for sprint program ${sprint.programId}`);
+        const otherIdx = team.find(idx => idx !== sprint.ownerIdx) ?? requireValue(team[0], `Missing fallback assignee for ${sprint.programId}`);
+        const otherUser = requireValue(allUsers[otherIdx], `Missing secondary sprint assignee at index ${otherIdx}`);
         // Set sprint status based on timing so action items don't fire for past sprints
         let sprintStatus: string | undefined;
         if (sprintOffset < 0) sprintStatus = 'completed';
@@ -563,7 +577,7 @@ async function seed() {
     }
 
     // Get Ship Core program for comprehensive sprint testing
-    const shipCoreProgram = programs.find(p => p.prefix === 'SHIP')!;
+    const shipCoreProgram = requireValue(programs.find(p => p.prefix === 'SHIP'), 'Missing Ship Core program');
 
     // Comprehensive issue templates for Ship Core covering all sprint/state combinations
     // This gives us realistic data to test all views
@@ -664,10 +678,14 @@ async function seed() {
     }
 
     // Seed Ship Core issues with comprehensive sprint coverage
-    const shipCoreTeam = programTeams[shipCoreProgram.id]!;
+    const shipCoreTeam = requireValue(programTeams[shipCoreProgram.id], 'Missing Ship Core team');
     for (let i = 0; i < shipCoreIssues.length; i++) {
-      const issue = shipCoreIssues[i]!;
-      const assignee = allUsers[shipCoreTeam[i % shipCoreTeam.length]!]!;
+      const issue = requireValue(shipCoreIssues[i], `Missing Ship Core issue template at index ${i}`);
+      const assigneeIdx = requireValue(
+        shipCoreTeam[i % shipCoreTeam.length],
+        `Missing Ship Core assignee index at position ${i % shipCoreTeam.length}`
+      );
+      const assignee = requireValue(allUsers[assigneeIdx], `Missing Ship Core assignee at index ${assigneeIdx}`);
 
       // Find the sprint based on offset
       let sprintId: string | null = null;
@@ -689,7 +707,8 @@ async function seed() {
       );
 
       if (!existingIssue.rows[0]) {
-        maxTickets[shipCoreProgram.id]!++;
+        const nextShipCoreTicket = requireValue(maxTickets[shipCoreProgram.id], 'Missing Ship Core ticket counter') + 1;
+        maxTickets[shipCoreProgram.id] = nextShipCoreTicket;
         const issueProperties: Record<string, unknown> = {
           state: issue.state,
           priority: issue.priority,
@@ -724,7 +743,10 @@ async function seed() {
           // For backlog issues without sprints, assign to a random project in the program
           const programProjects = projects.filter(p => p.programId === shipCoreProgram.id);
           if (programProjects.length > 0) {
-            const randomProject = programProjects[issuesCreated % programProjects.length]!;
+            const randomProject = requireValue(
+              programProjects[issuesCreated % programProjects.length],
+              'Missing fallback Ship Core project'
+            );
             await createAssociation(pool, issueId, randomProject.id, 'project');
           }
         }
@@ -736,10 +758,11 @@ async function seed() {
     // Seed generic issues for other programs
     const otherPrograms = programs.filter(p => p.prefix !== 'SHIP');
     for (const program of otherPrograms) {
-      const team = programTeams[program.id]!;
+      const team = requireValue(programTeams[program.id], `Missing team for program ${program.id}`);
       for (let i = 0; i < genericIssueTemplates.length; i++) {
-        const template = genericIssueTemplates[i]!;
-        const assignee = allUsers[team[i % team.length]!]!;
+        const template = requireValue(genericIssueTemplates[i], `Missing issue template at index ${i}`);
+        const assigneeIdx = requireValue(team[i % team.length], `Missing assignee index for program ${program.id}`);
+        const assignee = requireValue(allUsers[assigneeIdx], `Missing assignee at index ${assigneeIdx}`);
 
         // Find the sprint based on offset (same pattern as Ship Core issues)
         let sprintId: string | null = null;
@@ -761,7 +784,8 @@ async function seed() {
         );
 
         if (!existingIssue.rows[0]) {
-          maxTickets[program.id]!++;
+          const nextProgramTicket = requireValue(maxTickets[program.id], `Missing ticket counter for program ${program.id}`) + 1;
+          maxTickets[program.id] = nextProgramTicket;
           const issueProperties = {
             state: template.state,
             priority: template.priority,
@@ -793,7 +817,10 @@ async function seed() {
             // For backlog issues without sprints, assign to a random project in the program
             const programProjects = projects.filter(p => p.programId === program.id);
             if (programProjects.length > 0) {
-              const randomProject = programProjects[issuesCreated % programProjects.length]!;
+              const randomProject = requireValue(
+                programProjects[issuesCreated % programProjects.length],
+                `Missing fallback project for program ${program.id}`
+              );
               await createAssociation(pool, issueId, randomProject.id, 'project');
             }
           }
@@ -869,7 +896,7 @@ async function seed() {
 
     let standaloneDocsCreated = 0;
     for (let i = 0; i < standaloneWikiDocs.length; i++) {
-      const doc = standaloneWikiDocs[i]!;
+      const doc = requireValue(standaloneWikiDocs[i], `Missing standalone wiki document at index ${i}`);
       const existingDoc = await pool.query(
         'SELECT id FROM documents WHERE workspace_id = $1 AND document_type = $2 AND title = $3 AND parent_id IS NULL',
         [workspaceId, 'wiki', doc.title]
@@ -946,8 +973,8 @@ async function seed() {
           ];
 
           for (let i = 0; i < standupAuthors.length; i++) {
-            const author = standupAuthors[i]!;
-            const message = standupMessages[i]!;
+            const author = requireValue(standupAuthors[i], `Missing standup author at index ${i}`);
+            const message = requireValue(standupMessages[i], `Missing standup message at index ${i}`);
             const daysAgo = i; // Stagger the standups over recent days
             const properties = { author_id: author.id };
 
@@ -1008,7 +1035,7 @@ async function seed() {
             ],
           };
 
-          const owner = allUsers[sprint.number % allUsers.length]!;
+          const owner = requireValue(allUsers[sprint.number % allUsers.length], `Missing review owner for sprint ${sprint.number}`);
           // Create sprint review document without legacy sprint_id column
           const reviewResult = await pool.query(
             `INSERT INTO documents (workspace_id, document_type, title, content, created_by)
@@ -1109,16 +1136,16 @@ async function seed() {
 
     // Iterate through sprint assignments and create plans/retros
     for (let i = 0; i < sprintsToCreate.length; i++) {
-      const sprintDef = sprintsToCreate[i]!;
+      const sprintDef = requireValue(sprintsToCreate[i], `Missing sprint definition at index ${i}`);
       const matchingSprint = sprints.find(
         s => s.programId === sprintDef.programId && s.number === sprintDef.number
       );
       if (!matchingSprint) continue;
 
-      const owner = allUsers[sprintDef.ownerIdx]!;
-      const team = programTeams[sprintDef.programId]!;
-      const otherIdx = team.find(idx => idx !== sprintDef.ownerIdx) ?? team[0]!;
-      const otherUser = allUsers[otherIdx]!;
+      const owner = requireValue(allUsers[sprintDef.ownerIdx], `Missing weekly-doc owner at index ${sprintDef.ownerIdx}`);
+      const team = requireValue(programTeams[sprintDef.programId], `Missing weekly-doc team for program ${sprintDef.programId}`);
+      const otherIdx = team.find(idx => idx !== sprintDef.ownerIdx) ?? requireValue(team[0], `Missing fallback teammate for ${sprintDef.programId}`);
+      const otherUser = requireValue(allUsers[otherIdx], `Missing weekly-doc teammate at index ${otherIdx}`);
       const assignees = [
         { personDocId: owner.person_doc_id, userId: owner.id },
         { personDocId: otherUser.person_doc_id, userId: otherUser.id },
@@ -1127,7 +1154,7 @@ async function seed() {
       const sprintOffset = sprintDef.number - currentSprintNumber;
 
       for (let p = 0; p < assignees.length; p++) {
-        const assignee = assignees[p]!;
+        const assignee = requireValue(assignees[p], `Missing assignee at position ${p}`);
         const contentIdx = (i + p) % planContentPools.length;
 
         // Deterministic skip patterns for realistic gaps in past data
@@ -1156,7 +1183,7 @@ async function seed() {
                 [
                   workspaceId,
                   `Week ${sprintDef.number} Plan`,
-                  JSON.stringify(makePlanContent(planContentPools[contentIdx]!)),
+                  JSON.stringify(makePlanContent(requireValue(planContentPools[contentIdx], `Missing plan content pool entry ${contentIdx}`))),
                   JSON.stringify({
                     person_id: assignee.personDocId,
                     project_id: sprintDef.projectId,
@@ -1186,7 +1213,7 @@ async function seed() {
                 [
                   workspaceId,
                   `Week ${sprintDef.number} Retro`,
-                  JSON.stringify(makeRetroContent(retroContentPools[contentIdx]!)),
+                  JSON.stringify(makeRetroContent(requireValue(retroContentPools[contentIdx], `Missing retro content pool entry ${contentIdx}`))),
                   JSON.stringify({
                     person_id: assignee.personDocId,
                     project_id: sprintDef.projectId,
@@ -1218,7 +1245,7 @@ async function seed() {
               [
                 workspaceId,
                 `Week ${sprintDef.number} Plan`,
-                JSON.stringify(makePlanContent(planContentPools[contentIdx]!)),
+                JSON.stringify(makePlanContent(requireValue(planContentPools[contentIdx], `Missing current plan content pool entry ${contentIdx}`))),
                 JSON.stringify({
                   person_id: assignee.personDocId,
                   project_id: sprintDef.projectId,

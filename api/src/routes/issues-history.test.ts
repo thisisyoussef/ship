@@ -24,16 +24,25 @@ vi.mock('../middleware/visibility.js', () => ({
 // Mock auth middleware
 vi.mock('../middleware/auth.js', () => ({
   authMiddleware: vi.fn((req, res, next) => {
-    req.userId = 'user-123';
-    req.workspaceId = 'ws-123';
+    req.userId = '11111111-1111-4111-8111-111111111111';
+    req.workspaceId = '22222222-2222-4222-8222-222222222222';
     next();
   }),
+}));
+
+vi.mock('../services/list-response-cache.js', () => ({
+  buildIssuesListCacheKey: vi.fn(() => 'issues-cache-key'),
+  getCachedListResponse: vi.fn((_key, build) => build()),
+  listCacheInvalidationMiddleware: vi.fn((req, res, next) => next()),
 }));
 
 import { pool } from '../db/client.js';
 import express from 'express';
 import request from 'supertest';
 import issuesRouter from './issues.js';
+
+const TEST_ISSUE_ID = '33333333-3333-4333-8333-333333333333';
+const MISSING_ISSUE_ID = '44444444-4444-4444-8444-444444444444';
 
 describe('Issues History API', () => {
   let app: express.Express;
@@ -51,7 +60,7 @@ describe('Issues History API', () => {
 
   describe('POST /api/issues/:id/history', () => {
     it('creates history entry with valid data', async () => {
-      const issueId = 'issue-123';
+      const issueId = TEST_ISSUE_ID;
 
       vi.mocked(pool.query)
         // Issue access check
@@ -73,7 +82,7 @@ describe('Issues History API', () => {
     });
 
     it('creates history entry without automated_by', async () => {
-      const issueId = 'issue-123';
+      const issueId = TEST_ISSUE_ID;
 
       vi.mocked(pool.query)
         .mockResolvedValueOnce({ rows: [{ id: issueId }] } as any)
@@ -93,7 +102,7 @@ describe('Issues History API', () => {
 
     it('returns 400 for missing field', async () => {
       const res = await request(app)
-        .post('/api/issues/issue-123/history')
+        .post(`/api/issues/${TEST_ISSUE_ID}/history`)
         .send({
           old_value: 'test',
           new_value: 'test2',
@@ -105,7 +114,7 @@ describe('Issues History API', () => {
 
     it('returns 400 for empty field', async () => {
       const res = await request(app)
-        .post('/api/issues/issue-123/history')
+        .post(`/api/issues/${TEST_ISSUE_ID}/history`)
         .send({
           field: '',
           old_value: 'test',
@@ -118,7 +127,7 @@ describe('Issues History API', () => {
 
     it('returns 400 for field too long', async () => {
       const res = await request(app)
-        .post('/api/issues/issue-123/history')
+        .post(`/api/issues/${TEST_ISSUE_ID}/history`)
         .send({
           field: 'a'.repeat(101),
           old_value: 'test',
@@ -134,7 +143,7 @@ describe('Issues History API', () => {
         .mockResolvedValueOnce({ rows: [] } as any);
 
       const res = await request(app)
-        .post('/api/issues/nonexistent/history')
+        .post(`/api/issues/${MISSING_ISSUE_ID}/history`)
         .send({
           field: 'verification_failed',
           old_value: '1',
@@ -146,7 +155,7 @@ describe('Issues History API', () => {
     });
 
     it('accepts null values', async () => {
-      const issueId = 'issue-123';
+      const issueId = TEST_ISSUE_ID;
 
       vi.mocked(pool.query)
         .mockResolvedValueOnce({ rows: [{ id: issueId }] } as any)
@@ -167,7 +176,7 @@ describe('Issues History API', () => {
 
   describe('GET /api/issues/:id/history', () => {
     it('returns history entries with automated_by', async () => {
-      const issueId = 'issue-123';
+      const issueId = TEST_ISSUE_ID;
       const historyEntries = [
         {
           id: 'hist-1',
@@ -212,7 +221,7 @@ describe('Issues History API', () => {
         .mockResolvedValueOnce({ rows: [] } as any);
 
       const res = await request(app)
-        .get('/api/issues/nonexistent/history');
+        .get(`/api/issues/${MISSING_ISSUE_ID}/history`);
 
       expect(res.status).toBe(404);
       expect(res.body.error).toBe('Issue not found');
@@ -221,7 +230,7 @@ describe('Issues History API', () => {
 
   describe('PATCH /api/issues/:id with claude_metadata', () => {
     it('accepts claude_metadata with telemetry', async () => {
-      const issueId = 'issue-123';
+      const issueId = TEST_ISSUE_ID;
       const existingIssue = {
         id: issueId,
         title: 'Test Issue',
@@ -286,7 +295,7 @@ describe('Issues History API', () => {
 
     it('rejects claude_metadata with invalid confidence', async () => {
       const res = await request(app)
-        .patch('/api/issues/issue-123')
+        .patch(`/api/issues/${TEST_ISSUE_ID}`)
         .send({
           claude_metadata: {
             updated_by: 'claude',
@@ -300,7 +309,7 @@ describe('Issues History API', () => {
 
     it('rejects claude_metadata with wrong updated_by', async () => {
       const res = await request(app)
-        .patch('/api/issues/issue-123')
+        .patch(`/api/issues/${TEST_ISSUE_ID}`)
         .send({
           claude_metadata: {
             updated_by: 'human', // Must be 'claude'

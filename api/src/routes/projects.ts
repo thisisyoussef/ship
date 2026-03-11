@@ -14,6 +14,7 @@ import {
 import { checkDocumentCompleteness } from '../utils/extractHypothesis.js';
 import { logDocumentChange, getLatestDocumentFieldHistory } from '../utils/document-crud.js';
 import { broadcastToUser } from '../collaboration/index.js';
+import { listCacheInvalidationMiddleware } from '../services/list-response-cache.js';
 import {
   ensureUuidId,
   getAuthContext,
@@ -29,6 +30,8 @@ import {
 
 type RouterType = ReturnType<typeof Router>;
 const router: RouterType = Router();
+
+router.use(listCacheInvalidationMiddleware);
 
 type ProjectProperties = Partial<SharedProjectProperties>;
 type ProjectIssueProperties = Partial<SharedIssueProperties>;

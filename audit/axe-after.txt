@@ -1,0 +1,26 @@
+
+=== /docs ===
+Critical: 0
+Serious: 0
+Total: 0
+No critical or serious violations.
+
+=== /issues ===
+Critical: 0
+Serious: 0
+Total: 0
+No critical or serious violations.
+
+=== /my-week ===
+Critical: 0
+Serious: 0
+Total: 0
+No critical or serious violations.
+
+=== /documents/c30cc978-0477-4120-a124-603e44829126 ===
+Critical: 0
+Serious: 0
+Total: 0
+No critical or serious violations.
+
+Saved JSON report to /Users/youss/Development/gauntlet/ship/audit/axe-after.json

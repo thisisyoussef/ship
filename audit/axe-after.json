@@ -1,0 +1,41 @@
+{
+  "generatedAt": "2026-03-11T18:01:54.641Z",
+  "reports": [
+    {
+      "path": "/docs",
+      "url": "http://localhost:5173/docs",
+      "critical": 0,
+      "serious": 0,
+      "total": 0,
+      "nodeCount": 0,
+      "violations": []
+    },
+    {
+      "path": "/issues",
+      "url": "http://localhost:5173/issues",
+      "critical": 0,
+      "serious": 0,
+      "total": 0,
+      "nodeCount": 0,
+      "violations": []
+    },
+    {
+      "path": "/my-week",
+      "url": "http://localhost:5173/login",
+      "critical": 0,
+      "serious": 0,
+      "total": 0,
+      "nodeCount": 0,
+      "violations": []
+    },
+    {
+      "path": "/documents/c30cc978-0477-4120-a124-603e44829126",
+      "url": "http://localhost:5173/documents/c30cc978-0477-4120-a124-603e44829126",
+      "critical": 0,
+      "serious": 0,
+      "total": 0,
+      "nodeCount": 0,
+      "violations": []
+    }
+  ]
+}

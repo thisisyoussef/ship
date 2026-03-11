@@ -19,6 +19,19 @@
 
 ---
 
+## Audit Submission
+
+For grading and review, the final audit deliverables are here:
+
+- [Written audit report](docs/g4/audit-report.md)
+- [Visual audit report](docs/g4/audit-report-visual.html)
+
+Supporting audit evidence and charts are here:
+
+- [Audit resources dashboard](docs/g4/audit-resources/index.html)
+
+---
+
 ## What is Ship?
 
 Ship is a project management tool that combines documentation, issue tracking, and plan-driven weekly workflows in one place. Instead of switching between a wiki, a task tracker, and a spreadsheet, everything lives together.

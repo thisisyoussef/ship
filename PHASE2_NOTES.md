@@ -248,3 +248,250 @@ dist/assets/ReviewsPage-FNCQSg0u.js                   28.44 kB │ gzip:   7.23 
   - `src/lib/document-tabs.test.ts`
   - `src/components/editor/DetailsExtension.test.ts`
   - `src/hooks/useSessionTimeout.test.ts`
+
+## Category 7: Accessibility
+
+### Baseline Reproduction
+
+- Reproduced on March 11, 2026 from `/Users/youss/Development/gauntlet/ship`.
+- Local stack used: `docker compose -f docker-compose.yml -f docker-compose.local.yml up -d`
+- Auth used: `dev@ship.local / admin123`
+- Lighthouse baseline commands run with an authenticated persistent Chromium profile:
+  - `lighthouse http://localhost:5173/docs --only-categories=accessibility`
+  - `lighthouse http://localhost:5173/issues --only-categories=accessibility`
+  - `lighthouse http://localhost:5173/my-week --only-categories=accessibility`
+- Saved Lighthouse baseline artifacts:
+  - `/Users/youss/Development/gauntlet/ship/audit/lighthouse-docs-baseline.json`
+  - `/Users/youss/Development/gauntlet/ship/audit/lighthouse-issues-baseline.json`
+  - `/Users/youss/Development/gauntlet/ship/audit/lighthouse-my-week-baseline.json`
+  - `/Users/youss/Development/gauntlet/ship/audit/lighthouse-document-baseline.json`
+- Reproduced Lighthouse accessibility scores:
+  - `/docs`: `100`
+  - `/issues`: `100`
+  - `/my-week`: `100`
+- Note on Lighthouse `/documents/:id`:
+  - The authenticated CLI run wrote a baseline report, but `finalUrl` resolved to `/` in that artifact.
+  - I used axe as the authoritative before/after evidence for `/documents/:id`, which matches the task threshold and the measured failures.
+- Axe baseline scan command:
+  - `node scripts/axe-scan.js baseline`
+- Saved axe artifacts:
+  - Baseline output preserved in `/Users/youss/Development/gauntlet/ship/audit/axe-baseline.txt`
+  - After JSON preserved in `/Users/youss/Development/gauntlet/ship/audit/axe-after.json`
+  - After console output preserved in `/Users/youss/Development/gauntlet/ship/audit/axe-after.txt`
+- Baseline discrepancy vs provided audit table:
+  - `/docs` reproduced as `1 critical + 1 serious`, not `2 critical`.
+  - `/documents/:id` reproduced as `1 critical + 1 serious`, not `2 critical`.
+  - `/my-week` reproduced as `1 serious rule` with `12 failing nodes`, not `18 separate serious rule objects`.
+  - I proceeded with the reproduced state and recorded the mismatch before editing.
+
+### Diagnosis
+
+1. What are the Critical violations on `/docs`?
+- Reproduced critical violation ID: `aria-required-children`.
+- Affected element:
+  - `<ul role="tree" aria-label="Workspace documents" aria-live="polite" class="space-y-0.5 px-2">`
+- Reproduced companion serious violation on the same surface:
+  - `listitem`
+  - `<li><a ... href="/docs?filter=workspace">305 more...</a></li>`
+- Root cause:
+  - The workspace navigation tree in `/Users/youss/Development/gauntlet/ship/web/src/pages/App.tsx` included a non-tree child (`<li>` wrapping the `305 more...` link) inside a `role="tree"` container.
+
+2. What are the Serious violations on `/my-week`?
+- Reproduced serious violation ID: `color-contrast`.
+- Failing elements and ratios from the reproduced baseline:
+  - `<span class="text-xs bg-accent/20 text-accent px-1.5 py-0.5 rounded">Current</span>`: `2.55:1`, required `4.5:1`
+  - `<span class="text-[11px] font-semibold text-muted/50 ...">1.</span>`: `2.26:1`, required `4.5:1`
+  - `<span class="text-[11px] font-semibold text-muted/50 ...">2.</span>`: `2.26:1`, required `4.5:1`
+  - `<span class="text-[11px] font-semibold text-muted/50 ...">3.</span>`: `2.26:1`, required `4.5:1`
+  - `<span class="text-[11px] font-semibold text-muted/50 ...">4.</span>`: `2.26:1`, required `4.5:1`
+  - `<span class="text-xs font-medium text-accent">Wed</span>`: `2.82:1`, required `4.5:1`
+  - `<span class="text-xs font-medium text-muted">Thu</span>`: `1.84:1`, required `4.5:1`
+  - `<span class="text-xs text-muted ml-1">3/12</span>`: `1.84:1`, required `4.5:1`
+  - `<span class="text-xs text-muted italic">Upcoming</span>`: `1.84:1`, required `4.5:1`
+  - `<span class="text-xs font-medium text-muted">Fri</span>`: `1.84:1`, required `4.5:1`
+  - `<span class="text-xs text-muted ml-1">3/13</span>`: `1.84:1`, required `4.5:1`
+  - `<span class="text-xs text-muted italic">Upcoming</span>`: `1.84:1`, required `4.5:1`
+
+3. What are the Critical violations on `/documents/:id`?
+- Same reproduced pattern as `/docs`.
+- Critical violation ID: `aria-required-children`
+- Companion serious violation ID: `listitem`
+- Affected elements:
+  - Tree root: `<ul role="tree" aria-label="Workspace documents" ...>`
+  - Trailing more-link row: `<li><a ... href="/docs?filter=workspace">305 more...</a></li>`
+
+4. What CSS variables or colors produced the `/my-week` contrast failures?
+- The failing global theme tokens came from `/Users/youss/Development/gauntlet/ship/web/tailwind.config.js`:
+  - `accent: #005ea2`
+  - `muted: #8a8a8a`
+- The actual failures were page-specific combinations in `/Users/youss/Development/gauntlet/ship/web/src/pages/MyWeekPage.tsx`:
+  - `text-accent` on `bg-accent/20` for the `Current` chip
+  - `text-accent` on `bg-accent/5` for the current-day label
+  - `text-muted/50` on 11px list indices
+  - `opacity-40` applied to future rows, which reduced effective `text-muted` to the failing computed color shown by axe (`#3f3f3f`)
+- Conclusion:
+  - The underlying tokens are shared, but the failing contrast came from `/my-week`-specific class combinations rather than a globally broken text token.
+
+5. Is keyboard navigation partial because of missing focus indicators, incorrect tab order, or unreachable interactive elements?
+- Reproduced keyboard sweep result:
+  - After dismissing the startup action-items modal, the tested controls on `/docs`, `/my-week`, and `/documents/:id` were reachable with `Tab`.
+  - Visible focus styling was present via `/Users/youss/Development/gauntlet/ship/web/src/index.css` `:focus-visible`.
+  - The early tab order was logical: skip link, accountability button, avatar/menu, then primary navigation rail buttons.
+- Conclusion:
+  - I did not reproduce a keyboard failure driven by missing focus indicators, broken tab order, or unreachable interactive elements on the audited flows.
+  - The only notable focus behavior was the intentionally modal action-items dialog owning first focus until dismissed.
+
+### Reproduced Axe Output
+
+```text
+=== /docs ===
+Critical: 1
+Serious: 1
+Total: 2
+[critical] aria-required-children: Ensure elements with an ARIA role that require child roles contain them
+  Element: <ul role="tree" aria-label="Workspace documents" aria-live="polite" class="space-y-0.5 px-2">
+  Failure: Fix any of the following: Element has children which are not allowed: li[tabindex]
+[serious] listitem: Ensure <li> elements are used semantically
+  Element: <li><a class="block px-2 py-1.5 text-sm text-muted hover:text-foreground hover:bg-border/30 rounded-md transition-colors" href="/docs?filter=workspace" data-discover="true">305 more...</a></li>
+  Failure: Fix any of the following: List item parent element has a role that is not role="list"
+
+=== /issues ===
+Critical: 0
+Serious: 0
+Total: 0
+No critical or serious violations.
+
+=== /my-week ===
+Critical: 0
+Serious: 1
+Total: 1
+[serious] color-contrast: Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds
+  Element: <span class="text-xs bg-accent/20 text-accent px-1.5 py-0.5 rounded">Current</span>
+  Failure: Fix any of the following: Element has insufficient color contrast of 2.55 (foreground color: #005ea2, background color: #0a1d2b, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1
+  Element: <span class="text-[11px] font-semibold text-muted/50 w-4 text-right shrink-0 mt-0.5">1.</span>
+  Failure: Fix any of the following: Element has insufficient color contrast of 2.26 (foreground color: #4c4c4c, background color: #0d0d0d, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1
+  Element: <span class="text-[11px] font-semibold text-muted/50 w-4 text-right shrink-0 mt-0.5">2.</span>
+  Failure: Fix any of the following: Element has insufficient color contrast of 2.26 (foreground color: #4c4c4c, background color: #0d0d0d, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1
+  Element: <span class="text-[11px] font-semibold text-muted/50 w-4 text-right shrink-0 mt-0.5">3.</span>
+  Failure: Fix any of the following: Element has insufficient color contrast of 2.26 (foreground color: #4c4c4c, background color: #0d0d0d, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1
+  Element: <span class="text-[11px] font-semibold text-muted/50 w-4 text-right shrink-0 mt-0.5">4.</span>
+  Failure: Fix any of the following: Element has insufficient color contrast of 2.26 (foreground color: #4c4c4c, background color: #0d0d0d, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1
+  Element: <span class="text-xs font-medium text-accent">Wed</span>
+  Failure: Fix any of the following: Element has insufficient color contrast of 2.82 (foreground color: #005ea2, background color: #0c1114, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1
+  Element: <span class="text-xs font-medium text-muted">Thu</span>
+  Failure: Fix any of the following: Element has insufficient color contrast of 1.84 (foreground color: #3f3f3f, background color: #0d0d0d, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1
+  Element: <span class="text-xs text-muted ml-1">3/12</span>
+  Failure: Fix any of the following: Element has insufficient color contrast of 1.84 (foreground color: #3f3f3f, background color: #0d0d0d, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1
+  Element: <span class="text-xs text-muted italic">Upcoming</span>
+  Failure: Fix any of the following: Element has insufficient color contrast of 1.84 (foreground color: #3f3f3f, background color: #0d0d0d, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1
+  Element: <span class="text-xs font-medium text-muted">Fri</span>
+  Failure: Fix any of the following: Element has insufficient color contrast of 1.84 (foreground color: #3f3f3f, background color: #0d0d0d, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1
+  Element: <span class="text-xs text-muted ml-1">3/13</span>
+  Failure: Fix any of the following: Element has insufficient color contrast of 1.84 (foreground color: #3f3f3f, background color: #0d0d0d, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1
+  Element: <span class="text-xs text-muted italic">Upcoming</span>
+  Failure: Fix any of the following: Element has insufficient color contrast of 1.84 (foreground color: #3f3f3f, background color: #0d0d0d, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1
+
+=== /documents/7071de1d-3ac4-43d4-9f86-dbea7d788f53 ===
+Critical: 1
+Serious: 1
+Total: 2
+[critical] aria-required-children: Ensure elements with an ARIA role that require child roles contain them
+  Element: <ul role="tree" aria-label="Workspace documents" aria-live="polite" class="space-y-0.5 px-2">
+  Failure: Fix any of the following: Element has children which are not allowed: li[tabindex]
+[serious] listitem: Ensure <li> elements are used semantically
+  Element: <li><a class="block px-2 py-1.5 text-sm text-muted hover:text-foreground hover:bg-border/30 rounded-md transition-colors" href="/docs?filter=workspace" data-discover="true">305 more...</a></li>
+  Failure: Fix any of the following: List item parent element has a role that is not role="list"
+```
+
+### Fix Log
+
+#### Fix 1: Shared workspace tree semantics
+
+- Violation IDs:
+  - `aria-required-children` (`critical`)
+  - `listitem` (`serious`)
+- Affected element snippets:
+  - `<ul role="tree" aria-label="Workspace documents" ...>`
+  - `<li><a ... href="/docs?filter=workspace">305 more...</a></li>`
+- Root cause:
+  - The `more...` overflow link lived inside the tree container as a plain list item instead of a tree item.
+- Fix applied:
+  - In `/Users/youss/Development/gauntlet/ship/web/src/pages/App.tsx`, moved the workspace/private `N more...` links out of the `role="tree"` lists so the tree contains only actual document tree items.
+- Axe output after fix:
+  - `/docs`: `Critical: 0`, `Serious: 0`
+  - `/documents/:id`: `Critical: 0`, `Serious: 0`
+
+#### Fix 2: `/my-week` contrast
+
+- Violation ID:
+  - `color-contrast` (`serious`)
+- Affected element snippets:
+  - `<span class="text-xs bg-accent/20 text-accent ...">Current</span>`
+  - `<span class="text-[11px] font-semibold text-muted/50 ...">1.</span>`
+  - `<span class="text-xs font-medium text-accent">Wed</span>`
+  - Future-row labels using `text-muted` under a parent with `opacity-40`
+- Root cause:
+  - Tiny text was rendered with accent-on-accent-tint or muted/50 on dark backgrounds.
+  - Future daily-update rows used `opacity-40`, which dragged otherwise-compliant muted text below the required ratio.
+- Fix applied:
+  - In `/Users/youss/Development/gauntlet/ship/web/src/pages/MyWeekPage.tsx`:
+    - changed the `Current` badge to an accessible solid accent chip with white text,
+    - changed the 11px list numerals from `text-muted/50` to `text-muted`,
+    - removed `opacity-40` from future daily-update rows,
+    - changed the current-day label from `text-accent` to `text-blue-300`.
+- Axe output after fix:
+  - `/my-week`: `Critical: 0`, `Serious: 0`
+
+### Final Axe Scan Output
+
+```text
+=== /docs ===
+Critical: 0
+Serious: 0
+Total: 0
+No critical or serious violations.
+
+=== /issues ===
+Critical: 0
+Serious: 0
+Total: 0
+No critical or serious violations.
+
+=== /my-week ===
+Critical: 0
+Serious: 0
+Total: 0
+No critical or serious violations.
+
+=== /documents/c30cc978-0477-4120-a124-603e44829126 ===
+Critical: 0
+Serious: 0
+Total: 0
+No critical or serious violations.
+```
+
+### Keyboard Navigation Sweep
+
+- Before:
+  - A startup action-items modal took initial focus until dismissed.
+  - After dismissing it, `/docs`, `/my-week`, and `/documents/:id` all exposed visible focus styles and reachable controls in a logical tab order.
+- After:
+  - Same result after the fixes.
+  - The accessibility fixes did not introduce unreachable controls or focus regressions.
+
+### Verification Notes
+
+- `pnpm --filter @ship/web test`
+  - First run immediately after the tree-only change surfaced unrelated transient failures in `document-tabs.test.ts` and `DetailsExtension.test.ts`.
+  - Second run after the `/my-week` change passed cleanly: `16 passed`, `153 passed`.
+  - Final verification rerun before commit passed cleanly: `18 passed`, `161 passed`.
+- Final axe verification command:
+  - `node scripts/axe-scan.js after | tee audit/axe-after.txt`
+
+### Final Summary
+
+- Required outcome:
+  - `/docs`: pass
+  - `/my-week`: pass
+  - `/documents/:id`: pass
+- Passing verdict: yes

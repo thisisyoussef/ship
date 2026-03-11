@@ -3,24 +3,207 @@ import { pool } from '../db/client.js';
 import { z } from 'zod';
 import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
 import { authMiddleware } from '../middleware/auth.js';
-import { DEFAULT_PROJECT_PROPERTIES, computeICEScore } from '@ship/shared';
+import {
+  DEFAULT_PROJECT_PROPERTIES,
+  computeICEScore,
+  type ICEScore,
+  type IssueProperties as SharedIssueProperties,
+  type ProjectProperties as SharedProjectProperties,
+  type WeekProperties,
+} from '@ship/shared';
 import { checkDocumentCompleteness } from '../utils/extractHypothesis.js';
 import { logDocumentChange, getLatestDocumentFieldHistory } from '../utils/document-crud.js';
 import { broadcastToUser } from '../collaboration/index.js';
+import {
+  ensureUuidId,
+  getAuthContext,
+  parsePgCount,
+  type IssueId,
+  type JsonObject,
+  type ProjectId,
+  type ProgramId,
+  type UserId,
+  type WeekId,
+  isProjectId,
+} from './route-helpers.js';
 
 type RouterType = ReturnType<typeof Router>;
 const router: RouterType = Router();
 
-// Inferred project status type
-type InferredProjectStatus = 'active' | 'planned' | 'completed' | 'backlog' | 'archived';
+type ProjectProperties = Partial<SharedProjectProperties>;
+type ProjectIssueProperties = Partial<SharedIssueProperties>;
+type SprintProperties = Partial<WeekProperties>;
+
+const inferredProjectStatusSchema = z.enum(['active', 'planned', 'completed', 'backlog', 'archived']);
+type InferredProjectStatus = z.infer<typeof inferredProjectStatusSchema>;
+
+const projectSortFieldSchema = z.enum([
+  'ice_score',
+  'impact',
+  'confidence',
+  'ease',
+  'title',
+  'updated_at',
+  'created_at',
+]);
+
+const projectListQuerySchema = z.object({
+  archived: z.enum(['true', 'false']).optional(),
+  sort: projectSortFieldSchema.optional().default('ice_score'),
+  dir: z.enum(['asc', 'desc']).optional().default('desc'),
+});
+
+interface IdParams {
+  [key: string]: string;
+  id: string;
+}
+
+type TipTapNode = {
+  type: string;
+  attrs?: JsonObject;
+  content?: TipTapNode[];
+  text?: string;
+};
+
+type TipTapDocument = TipTapNode & {
+  type: 'doc';
+  content: TipTapNode[];
+};
+
+const tipTapNodeSchema: z.ZodType<TipTapNode> = z.lazy(() =>
+  z.object({
+    type: z.string(),
+    attrs: z.record(z.unknown()).optional(),
+    content: z.array(tipTapNodeSchema).optional(),
+    text: z.string().optional(),
+  })
+);
+
+const tipTapDocumentSchema: z.ZodType<TipTapDocument> = z.object({
+  type: z.literal('doc'),
+  attrs: z.record(z.unknown()).optional(),
+  content: z.array(tipTapNodeSchema),
+});
+
+interface ProjectRow {
+  id: ProjectId;
+  title: string;
+  properties: ProjectProperties | null;
+  program_id?: string | ProgramId | null;
+  archived_at: string | Date | null;
+  created_at: string | Date;
+  updated_at: string | Date;
+  converted_to_id?: string | null;
+  converted_from_id?: string | null;
+  owner_id?: UserId | null;
+  owner_name?: string | null;
+  owner_email?: string | null;
+  sprint_count?: number | string | null;
+  issue_count?: number | string | null;
+  inferred_status?: string | null;
+}
+
+interface ProjectRetroRow {
+  id: ProjectId;
+  title: string;
+  content: JsonObject | TipTapDocument | null;
+  properties: ProjectProperties | null;
+}
+
+interface ProjectRetroSprintRow {
+  id: WeekId;
+  title: string;
+  sprint_number: number | string | null;
+}
+
+interface ProjectRetroIssueRow {
+  id: IssueId;
+  title: string;
+  state: string | null;
+}
+
+interface ProjectIssueRow {
+  id: IssueId;
+  title: string;
+  properties: ProjectIssueProperties | null;
+  ticket_number: number | null;
+  created_at: string | Date;
+  updated_at: string | Date;
+  started_at: string | Date | null;
+  completed_at: string | Date | null;
+  cancelled_at: string | Date | null;
+  assignee_name: string | null;
+}
+
+interface ProjectSprintRow {
+  id: WeekId;
+  title: string;
+  properties: SprintProperties | null;
+  program_id: ProgramId | null;
+  program_name: string | null;
+  program_prefix: string | null;
+  workspace_sprint_start_date: string | Date | null;
+  project_id: ProjectId | null;
+  project_name: string | null;
+  owner_id: UserId | null;
+  owner_name: string | null;
+  owner_email: string | null;
+  issue_count: number | string | null;
+  completed_count: number | string | null;
+  started_count: number | string | null;
+}
+
+interface ProjectPropertiesRow {
+  id: ProjectId;
+  properties: ProjectProperties | null;
+  content?: JsonObject | TipTapDocument | null;
+}
+
+interface DocumentRedirectRow {
+  id: string;
+  document_type: string;
+}
+
+interface ProjectProgramContextRow {
+  id: ProjectId;
+  program_id: ProgramId | null;
+  sprint_start_date: string | Date | null;
+}
+
+interface MaxSprintRow {
+  max_sprint: number | null;
+}
+
+interface WorkspaceUserRow {
+  id: UserId;
+  name: string;
+  email: string;
+}
+
+function getProjectId(req: Request<IdParams>, res: Response): ProjectId | null {
+  return ensureUuidId(req.params.id, res, 'project', isProjectId);
+}
+
+function buildProjectIssueSummary(issues: ReadonlyArray<ProjectRetroIssueRow>) {
+  const completed = issues.filter((issue) => issue.state === 'done').length;
+  const cancelled = issues.filter((issue) => issue.state === 'cancelled').length;
+
+  return {
+    total: issues.length,
+    completed,
+    cancelled,
+    active: issues.length - completed - cancelled,
+  };
+}
 
 // Helper to extract project from row with computed ice_score
-function extractProjectFromRow(row: any) {
-  const props = row.properties || {};
+function extractProjectFromRow(row: ProjectRow) {
+  const props: ProjectProperties = row.properties ?? {};
   // ICE values can be null (not yet set) - don't default to 3
   const impact = props.impact !== undefined ? props.impact : null;
   const confidence = props.confidence !== undefined ? props.confidence : null;
   const ease = props.ease !== undefined ? props.ease : null;
+  const inferredStatusResult = inferredProjectStatusSchema.safeParse(row.inferred_status);
 
   return {
     id: row.id,
@@ -46,13 +229,13 @@ function extractProjectFromRow(row: any) {
       email: row.owner_email,
     } : null,
     // Counts
-    sprint_count: parseInt(row.sprint_count) || 0,
-    issue_count: parseInt(row.issue_count) || 0,
+    sprint_count: parsePgCount(row.sprint_count),
+    issue_count: parsePgCount(row.issue_count),
     // Completeness flags
     is_complete: props.is_complete ?? null,
     missing_fields: props.missing_fields ?? [],
     // Inferred status (computed from sprint relationships)
-    inferred_status: row.inferred_status as InferredProjectStatus || 'backlog',
+    inferred_status: inferredStatusResult.success ? inferredStatusResult.data : 'backlog',
     // Conversion tracking
     converted_from_id: row.converted_from_id || null,
     // RACI fields
@@ -73,7 +256,13 @@ function extractProjectFromRow(row: any) {
 }
 
 // Validation schemas
-const iceScoreSchema = z.number().int().min(1).max(5);
+const iceScoreSchema = z.union([
+  z.literal(1),
+  z.literal(2),
+  z.literal(3),
+  z.literal(4),
+  z.literal(5),
+]);
 
 const createProjectSchema = z.object({
   title: z.string().min(1).max(200).optional().default('Untitled'),
@@ -116,20 +305,24 @@ const projectRetroSchema = z.object({
   monetary_impact_actual: z.string().max(500).nullable().optional(),
   success_criteria: z.array(z.string().max(500)).nullable().optional(),
   next_steps: z.string().max(2000).nullable().optional(),
-  content: z.record(z.unknown()).optional(), // TipTap content for narrative
+  content: tipTapDocumentSchema.optional(),
 });
 
 // Helper to generate pre-filled retro content for a project
-async function generatePrefilledRetroContent(projectData: any, sprints: any[], issues: any[]) {
-  const props = projectData.properties || {};
+async function generatePrefilledRetroContent(
+  projectData: ProjectRetroRow,
+  sprints: ProjectRetroSprintRow[],
+  issues: ProjectRetroIssueRow[]
+): Promise<TipTapDocument> {
+  const props: ProjectProperties = projectData.properties ?? {};
 
   // Categorize issues by state
-  const completedIssues = issues.filter(i => i.state === 'done');
-  const cancelledIssues = issues.filter(i => i.state === 'cancelled');
-  const activeIssues = issues.filter(i => !['done', 'cancelled'].includes(i.state));
+  const completedIssues = issues.filter((issue) => issue.state === 'done');
+  const cancelledIssues = issues.filter((issue) => issue.state === 'cancelled');
+  const activeIssues = issues.filter((issue) => issue.state !== 'done' && issue.state !== 'cancelled');
 
   // Build TipTap content
-  const content: any = {
+  const content: TipTapDocument = {
     type: 'doc',
     content: [
       {
@@ -147,9 +340,9 @@ async function generatePrefilledRetroContent(projectData: any, sprints: any[], i
   };
 
   // Add ICE Score section
-  const impact = props.impact;
-  const confidence = props.confidence;
-  const ease = props.ease;
+  const impact: ICEScore | null = props.impact ?? null;
+  const confidence: ICEScore | null = props.confidence ?? null;
+  const ease: ICEScore | null = props.ease ?? null;
   const iceScore = (impact !== null && confidence !== null && ease !== null)
     ? impact * confidence * ease
     : null;
@@ -201,11 +394,11 @@ async function generatePrefilledRetroContent(projectData: any, sprints: any[], i
     });
     content.content.push({
       type: 'bulletList',
-      content: sprints.map(s => ({
+      content: sprints.map((sprint) => ({
         type: 'listItem',
         content: [{
           type: 'paragraph',
-          content: [{ type: 'text', text: `Week ${s.sprint_number}: ${s.title}` }],
+          content: [{ type: 'text', text: `Week ${parsePgCount(sprint.sprint_number)}: ${sprint.title}` }],
         }],
       })),
     });
@@ -220,9 +413,9 @@ async function generatePrefilledRetroContent(projectData: any, sprints: any[], i
     });
     content.content.push({
       type: 'bulletList',
-      content: completedIssues.map(i => ({
+      content: completedIssues.map((issue) => ({
         type: 'listItem',
-        content: [{ type: 'paragraph', content: [{ type: 'text', text: i.title }] }],
+        content: [{ type: 'paragraph', content: [{ type: 'text', text: issue.title }] }],
       })),
     });
   }
@@ -236,9 +429,9 @@ async function generatePrefilledRetroContent(projectData: any, sprints: any[], i
     });
     content.content.push({
       type: 'bulletList',
-      content: activeIssues.map(i => ({
+      content: activeIssues.map((issue) => ({
         type: 'listItem',
-        content: [{ type: 'paragraph', content: [{ type: 'text', text: `${i.title} (${i.state})` }] }],
+        content: [{ type: 'paragraph', content: [{ type: 'text', text: `${issue.title} (${issue.state})` }] }],
       })),
     });
   }
@@ -252,9 +445,9 @@ async function generatePrefilledRetroContent(projectData: any, sprints: any[], i
     });
     content.content.push({
       type: 'bulletList',
-      content: cancelledIssues.map(i => ({
+      content: cancelledIssues.map((issue) => ({
         type: 'listItem',
-        content: [{ type: 'paragraph', content: [{ type: 'text', text: i.title }] }],
+        content: [{ type: 'paragraph', content: [{ type: 'text', text: issue.title }] }],
       })),
     });
   }
@@ -306,38 +499,49 @@ async function generatePrefilledRetroContent(projectData: any, sprints: any[], i
   return content;
 }
 
-// Valid sort fields for projects
-const VALID_SORT_FIELDS = ['ice_score', 'impact', 'confidence', 'ease', 'title', 'updated_at', 'created_at'];
-
 // List projects (documents with document_type = 'project')
 router.get('/', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const includeArchived = req.query.archived === 'true';
-    const sortField = (req.query.sort as string) || 'ice_score';
-    const sortDir = (req.query.dir as string) === 'asc' ? 'ASC' : 'DESC';
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
-
-    // Validate sort field to prevent SQL injection
-    if (!VALID_SORT_FIELDS.includes(sortField)) {
-      res.status(400).json({ error: `Invalid sort field. Valid fields: ${VALID_SORT_FIELDS.join(', ')}` });
+    const auth = getAuthContext(req, res);
+    if (!auth) {
       return;
     }
+
+    const parsedQuery = projectListQuerySchema.safeParse(req.query);
+    if (!parsedQuery.success) {
+      res.status(400).json({
+        error: `Invalid sort field. Valid fields: ${projectSortFieldSchema.options.join(', ')}`,
+        details: parsedQuery.error.errors,
+      });
+      return;
+    }
+
+    const { userId, workspaceId } = auth;
+    const includeArchived = parsedQuery.data.archived === 'true';
+    const sortField = parsedQuery.data.sort;
+    const sortDir = parsedQuery.data.dir === 'asc' ? 'ASC' : 'DESC';
 
     // Get visibility context for filtering
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // Build ORDER BY clause - ice_score is computed, others are from properties or columns
     let orderByClause: string;
-    if (sortField === 'ice_score') {
-      // Compute ICE score: impact * confidence * ease
-      orderByClause = `((COALESCE((d.properties->>'impact')::int, 3) * COALESCE((d.properties->>'confidence')::int, 3) * COALESCE((d.properties->>'ease')::int, 3))) ${sortDir}`;
-    } else if (['impact', 'confidence', 'ease'].includes(sortField)) {
-      orderByClause = `COALESCE((d.properties->>'${sortField}')::int, 3) ${sortDir}`;
-    } else if (sortField === 'title') {
-      orderByClause = `d.title ${sortDir}`;
-    } else {
-      orderByClause = `d.${sortField} ${sortDir}`;
+    switch (sortField) {
+      case 'ice_score':
+        orderByClause = `((COALESCE((d.properties->>'impact')::int, 3) * COALESCE((d.properties->>'confidence')::int, 3) * COALESCE((d.properties->>'ease')::int, 3))) ${sortDir}`;
+        break;
+      case 'impact':
+      case 'confidence':
+      case 'ease':
+        orderByClause = `COALESCE((d.properties->>'${sortField}')::int, 3) ${sortDir}`;
+        break;
+      case 'title':
+        orderByClause = `d.title ${sortDir}`;
+        break;
+      case 'updated_at':
+      case 'created_at':
+        orderByClause = `d.${sortField} ${sortDir}`;
+        break;
     }
 
     // Subquery to compute inferred status based on sprint allocations
@@ -400,7 +604,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
       WHERE d.workspace_id = $1 AND d.document_type = 'project'
         AND ${VISIBILITY_FILTER_SQL('d', '$2', '$3')}
     `;
-    const params: (string | boolean)[] = [workspaceId, userId, isAdmin];
+    const params: [string, string, boolean] = [workspaceId, userId, isAdmin];
 
     if (!includeArchived) {
       query += ` AND d.archived_at IS NULL`;
@@ -408,7 +612,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
 
     query += ` ORDER BY ${orderByClause}`;
 
-    const result = await pool.query(query, params);
+    const result = await pool.query<ProjectRow>(query, params);
     res.json(result.rows.map(extractProjectFromRow));
   } catch (err) {
     console.error('List projects error:', err);
@@ -417,11 +621,19 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
 });
 
 // Get single project
-router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
+router.get('/:id', authMiddleware, async (req: Request<IdParams>, res: Response) => {
   try {
-    const { id } = req.params;
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const auth = getAuthContext(req, res);
+    if (!auth) {
+      return;
+    }
+
+    const id = getProjectId(req, res);
+    if (!id) {
+      return;
+    }
+
+    const { userId, workspaceId } = auth;
 
     // Get visibility context for filtering
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
@@ -461,7 +673,7 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
       END
     `;
 
-    const result = await pool.query(
+    const result = await pool.query<ProjectRow>(
       `SELECT d.id, d.title, d.properties, prog_da.related_id as program_id, d.archived_at, d.created_at, d.updated_at,
               d.converted_to_id, d.converted_from_id,
               (d.properties->>'owner_id')::uuid as owner_id,
@@ -487,17 +699,25 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
     }
 
     const row = result.rows[0];
+    if (!row) {
+      res.status(404).json({ error: 'Project not found' });
+      return;
+    }
 
     // Check if project was converted - redirect to new document
     if (row.converted_to_id) {
       // Fetch the new document to determine its type for proper routing
-      const newDocResult = await pool.query(
+      const newDocResult = await pool.query<DocumentRedirectRow>(
         'SELECT id, document_type FROM documents WHERE id = $1 AND workspace_id = $2',
         [row.converted_to_id, workspaceId]
       );
 
       if (newDocResult.rows.length > 0) {
         const newDoc = newDocResult.rows[0];
+        if (!newDoc) {
+          res.status(404).json({ error: 'Converted document not found' });
+          return;
+        }
         // Return 301 with Location header to the new document's API endpoint
         // Include X-Converted-Type header so frontend knows the target type for routing
         res.set('X-Converted-Type', newDoc.document_type);
@@ -517,16 +737,22 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
 // Create project (creates a document with document_type = 'project')
 router.post('/', authMiddleware, async (req: Request, res: Response) => {
   try {
+    const auth = getAuthContext(req, res);
+    if (!auth) {
+      return;
+    }
+
     const parsed = createProjectSchema.safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ error: 'Invalid input', details: parsed.error.errors });
       return;
     }
 
+    const { userId, workspaceId } = auth;
     const { title, impact, confidence, ease, owner_id, accountable_id, consulted_ids, informed_ids, color, emoji, program_id, plan, target_date } = parsed.data;
 
     // Build properties JSONB with RACI fields
-    const properties: Record<string, unknown> = {
+    const properties: ProjectProperties = {
       impact,
       confidence,
       ease,
@@ -551,12 +777,17 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
     properties.is_complete = completeness.isComplete;
     properties.missing_fields = completeness.missingFields;
 
-    const result = await pool.query(
+    const result = await pool.query<ProjectRow>(
       `INSERT INTO documents (workspace_id, document_type, title, properties, created_by)
        VALUES ($1, 'project', $2, $3, $4)
        RETURNING id, title, properties, archived_at, created_at, updated_at`,
-      [req.workspaceId, title, JSON.stringify(properties), req.userId]
+      [workspaceId, title, JSON.stringify(properties), userId]
     );
+    const createdProject = result.rows[0];
+    if (!createdProject) {
+      res.status(500).json({ error: 'Failed to create project' });
+      return;
+    }
 
     // Create program association in junction table (mirrors PATCH behavior)
     if (program_id) {
@@ -564,14 +795,14 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
         `INSERT INTO document_associations (document_id, related_id, relationship_type)
          VALUES ($1, $2, 'program')
          ON CONFLICT (document_id, related_id, relationship_type) DO NOTHING`,
-        [result.rows[0].id, program_id]
+        [createdProject.id, program_id]
       );
     }
 
     // Get user info for owner response (only if owner_id is set)
     let owner = null;
     if (owner_id) {
-      const userResult = await pool.query(
+      const userResult = await pool.query<WorkspaceUserRow>(
         'SELECT id, name, email FROM users WHERE id = $1',
         [owner_id]
       );
@@ -586,7 +817,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
     }
 
     res.status(201).json({
-      ...extractProjectFromRow({ ...result.rows[0], program_id: program_id || null, inferred_status: 'backlog' }),
+      ...extractProjectFromRow({ ...createdProject, program_id: program_id || null, inferred_status: 'backlog' }),
       sprint_count: 0,
       issue_count: 0,
       owner,
@@ -598,11 +829,17 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
 });
 
 // Update project
-router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
+router.patch('/:id', authMiddleware, async (req: Request<IdParams>, res: Response) => {
   try {
-    const { id } = req.params;
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const auth = getAuthContext(req, res);
+    if (!auth) {
+      return;
+    }
+
+    const id = getProjectId(req, res);
+    if (!id) {
+      return;
+    }
 
     const parsed = updateProjectSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -610,11 +847,13 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
       return;
     }
 
+    const { userId, workspaceId } = auth;
+
     // Get visibility context for filtering
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // Verify project exists and user can access it
-    const existing = await pool.query(
+    const existing = await pool.query<ProjectPropertiesRow>(
       `SELECT id, properties FROM documents
        WHERE id = $1 AND workspace_id = $2 AND document_type = 'project'
          AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
@@ -626,9 +865,15 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
       return;
     }
 
-    const currentProps = existing.rows[0].properties || {};
+    const existingProject = existing.rows[0];
+    if (!existingProject) {
+      res.status(404).json({ error: 'Project not found' });
+      return;
+    }
+
+    const currentProps: ProjectProperties = existingProject.properties ?? {};
     const updates: string[] = [];
-    const values: any[] = [];
+    const values: unknown[] = [];
     let paramIndex = 1;
 
     const data = parsed.data;
@@ -752,21 +997,22 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
       await pool.query(
         `UPDATE documents SET ${updates.join(', ')}
          WHERE id = $${paramIndex} AND workspace_id = $${paramIndex + 1} AND document_type = 'project'`,
-        [...values, id, req.workspaceId]
+        [...values, id, workspaceId]
       );
     }
 
     // Broadcast celebration when plan is added
-    if (data.plan && data.plan.trim() !== '') {
-      broadcastToUser(userId, 'accountability:updated', { type: 'project_plan', targetId: id as string });
+    if (planWasWritten) {
+      broadcastToUser(userId, 'accountability:updated', { type: 'project_plan', targetId: id });
     }
 
     // Log plan changes to document_history for approval workflow tracking
     if (data.plan !== undefined && data.plan !== currentProps.plan) {
+      const currentPlan = typeof currentProps.plan === 'string' ? currentProps.plan : null;
       await logDocumentChange(
-        id as string,
+        id,
         'plan',
-        currentProps.plan || null,
+        currentPlan,
         data.plan || null,
         userId
       );
@@ -825,7 +1071,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
       END
     `;
 
-    const result = await pool.query(
+    const result = await pool.query<ProjectRow>(
       `SELECT d.id, d.title, d.properties, prog_da.related_id as program_id, d.archived_at, d.created_at, d.updated_at,
               d.converted_from_id,
               (d.properties->>'owner_id')::uuid as owner_id,
@@ -844,7 +1090,13 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
       [id]
     );
 
-    res.json(extractProjectFromRow(result.rows[0]));
+    const updatedProject = result.rows[0];
+    if (!updatedProject) {
+      res.status(404).json({ error: 'Project not found' });
+      return;
+    }
+
+    res.json(extractProjectFromRow(updatedProject));
   } catch (err) {
     console.error('Update project error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -852,11 +1104,19 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
 });
 
 // Delete project
-router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
+router.delete('/:id', authMiddleware, async (req: Request<IdParams>, res: Response) => {
   try {
-    const { id } = req.params;
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const auth = getAuthContext(req, res);
+    if (!auth) {
+      return;
+    }
+
+    const id = getProjectId(req, res);
+    if (!id) {
+      return;
+    }
+
+    const { userId, workspaceId } = auth;
 
     // Get visibility context for filtering
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
@@ -894,17 +1154,25 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
 });
 
 // GET /api/projects/:id/retro - Returns pre-filled draft or existing retro
-router.get('/:id/retro', authMiddleware, async (req: Request, res: Response) => {
+router.get('/:id/retro', authMiddleware, async (req: Request<IdParams>, res: Response) => {
   try {
-    const { id } = req.params;
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const auth = getAuthContext(req, res);
+    if (!auth) {
+      return;
+    }
+
+    const id = getProjectId(req, res);
+    if (!id) {
+      return;
+    }
+
+    const { userId, workspaceId } = auth;
 
     // Get visibility context for filtering
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // Get project
-    const projectResult = await pool.query(
+    const projectResult = await pool.query<ProjectRetroRow>(
       `SELECT id, title, content, properties FROM documents
        WHERE id = $1 AND workspace_id = $2 AND document_type = 'project'
          AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
@@ -917,13 +1185,17 @@ router.get('/:id/retro', authMiddleware, async (req: Request, res: Response) => 
     }
 
     const projectData = projectResult.rows[0];
-    const props = projectData.properties || {};
+    if (!projectData) {
+      res.status(404).json({ error: 'Project not found' });
+      return;
+    }
+    const props: ProjectProperties = projectData.properties ?? {};
 
     // Check if retro has been filled (has plan_validated set)
     const hasRetro = props.plan_validated !== undefined && props.plan_validated !== null;
 
     // Get sprints for this project via junction table
-    const sprintsResult = await pool.query(
+    const sprintsResult = await pool.query<ProjectRetroSprintRow>(
       `SELECT d.id, d.title, d.properties->>'sprint_number' as sprint_number
        FROM documents d
        JOIN document_associations da ON da.document_id = d.id AND da.related_id = $1 AND da.relationship_type = 'project'
@@ -933,7 +1205,7 @@ router.get('/:id/retro', authMiddleware, async (req: Request, res: Response) => 
     );
 
     // Get issues for this project via junction table
-    const issuesResult = await pool.query(
+    const issuesResult = await pool.query<ProjectRetroIssueRow>(
       `SELECT d.id, d.title, d.properties->>'state' as state
        FROM documents d
        JOIN document_associations da ON da.document_id = d.id
@@ -942,6 +1214,8 @@ router.get('/:id/retro', authMiddleware, async (req: Request, res: Response) => 
          AND d.archived_at IS NULL AND d.deleted_at IS NULL`,
       [id]
     );
+
+    const issueSummary = buildProjectIssueSummary(issuesResult.rows);
 
     if (hasRetro) {
       // Return existing retro data
@@ -954,12 +1228,7 @@ router.get('/:id/retro', authMiddleware, async (req: Request, res: Response) => 
         next_steps: props.next_steps || null,
         content: projectData.content || {},
         weeks: sprintsResult.rows,
-        issues_summary: {
-          total: issuesResult.rows.length,
-          completed: issuesResult.rows.filter((i: any) => i.state === 'done').length,
-          cancelled: issuesResult.rows.filter((i: any) => i.state === 'cancelled').length,
-          active: issuesResult.rows.filter((i: any) => !['done', 'cancelled'].includes(i.state)).length,
-        },
+        issues_summary: issueSummary,
       });
     } else {
       // Generate pre-filled draft
@@ -978,12 +1247,7 @@ router.get('/:id/retro', authMiddleware, async (req: Request, res: Response) => 
         next_steps: null,
         content: prefilledContent,
         weeks: sprintsResult.rows,
-        issues_summary: {
-          total: issuesResult.rows.length,
-          completed: issuesResult.rows.filter((i: any) => i.state === 'done').length,
-          cancelled: issuesResult.rows.filter((i: any) => i.state === 'cancelled').length,
-          active: issuesResult.rows.filter((i: any) => !['done', 'cancelled'].includes(i.state)).length,
-        },
+        issues_summary: issueSummary,
       });
     }
   } catch (err) {
@@ -993,11 +1257,19 @@ router.get('/:id/retro', authMiddleware, async (req: Request, res: Response) => 
 });
 
 // POST /api/projects/:id/retro - Creates finalized project retro
-router.post('/:id/retro', authMiddleware, async (req: Request, res: Response) => {
+router.post('/:id/retro', authMiddleware, async (req: Request<IdParams>, res: Response) => {
   try {
-    const { id } = req.params;
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const auth = getAuthContext(req, res);
+    if (!auth) {
+      return;
+    }
+
+    const id = getProjectId(req, res);
+    if (!id) {
+      return;
+    }
+
+    const { userId, workspaceId } = auth;
 
     const parsed = projectRetroSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -1009,7 +1281,7 @@ router.post('/:id/retro', authMiddleware, async (req: Request, res: Response) =>
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // Verify project exists and user can access it
-    const existing = await pool.query(
+    const existing = await pool.query<ProjectPropertiesRow>(
       `SELECT id, properties FROM documents
        WHERE id = $1 AND workspace_id = $2 AND document_type = 'project'
          AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
@@ -1021,7 +1293,13 @@ router.post('/:id/retro', authMiddleware, async (req: Request, res: Response) =>
       return;
     }
 
-    const currentProps = existing.rows[0].properties || {};
+    const existingProject = existing.rows[0];
+    if (!existingProject) {
+      res.status(404).json({ error: 'Project not found' });
+      return;
+    }
+
+    const currentProps: ProjectProperties = existingProject.properties ?? {};
     const { plan_validated, monetary_impact_actual, success_criteria, next_steps, content } = parsed.data;
 
     // Update properties with retro data
@@ -1035,7 +1313,7 @@ router.post('/:id/retro', authMiddleware, async (req: Request, res: Response) =>
 
     // Update project with retro properties and optional content
     const updates: string[] = ['properties = $1', 'updated_at = now()'];
-    const values: any[] = [JSON.stringify(newProps)];
+    const values: unknown[] = [JSON.stringify(newProps)];
 
     if (content) {
       updates.push('content = $2');
@@ -1049,12 +1327,12 @@ router.post('/:id/retro', authMiddleware, async (req: Request, res: Response) =>
     );
 
     // Broadcast celebration when project retro is completed
-    broadcastToUser(userId, 'accountability:updated', { type: 'project_retro', targetId: id as string });
+    broadcastToUser(userId, 'accountability:updated', { type: 'project_retro', targetId: id });
 
     // Log initial retro content to document_history for approval workflow tracking
     if (content) {
       await logDocumentChange(
-        id as string,
+        id,
         'retro_content',
         null,
         JSON.stringify(content),
@@ -1063,12 +1341,18 @@ router.post('/:id/retro', authMiddleware, async (req: Request, res: Response) =>
     }
 
     // Re-query to get updated data
-    const result = await pool.query(
+    const result = await pool.query<ProjectRetroRow>(
       `SELECT id, title, content, properties FROM documents WHERE id = $1`,
       [id]
     );
 
-    const updatedProps = result.rows[0].properties || {};
+    const updatedProject = result.rows[0];
+    if (!updatedProject) {
+      res.status(404).json({ error: 'Project not found' });
+      return;
+    }
+
+    const updatedProps: ProjectProperties = updatedProject.properties ?? {};
     res.status(201).json({
       is_draft: false,
       plan_validated: updatedProps.plan_validated,
@@ -1076,7 +1360,7 @@ router.post('/:id/retro', authMiddleware, async (req: Request, res: Response) =>
       monetary_impact_actual: updatedProps.monetary_impact_actual || null,
       success_criteria: updatedProps.success_criteria || [],
       next_steps: updatedProps.next_steps || null,
-      content: result.rows[0].content || {},
+      content: updatedProject.content || {},
     });
   } catch (err) {
     console.error('Create project retro error:', err);
@@ -1099,8 +1383,8 @@ const createProjectSprintSchema = z.object({
 });
 
 // Helper to extract sprint from row (matches sprints.ts pattern)
-function extractSprintFromRow(row: any) {
-  const props = row.properties || {};
+function extractSprintFromRow(row: ProjectSprintRow) {
+  const props: SprintProperties = row.properties ?? {};
   return {
     id: row.id,
     name: row.title,
@@ -1117,9 +1401,9 @@ function extractSprintFromRow(row: any) {
     program_name: row.program_name,
     program_prefix: row.program_prefix,
     workspace_sprint_start_date: row.workspace_sprint_start_date,
-    issue_count: parseInt(row.issue_count) || 0,
-    completed_count: parseInt(row.completed_count) || 0,
-    started_count: parseInt(row.started_count) || 0,
+    issue_count: parsePgCount(row.issue_count),
+    completed_count: parsePgCount(row.completed_count),
+    started_count: parsePgCount(row.started_count),
     plan: props.plan || null,
     success_criteria: props.success_criteria || null,
     confidence: typeof props.confidence === 'number' ? props.confidence : null,
@@ -1127,11 +1411,19 @@ function extractSprintFromRow(row: any) {
 }
 
 // GET /api/projects/:id/issues - List issues for a project
-router.get('/:id/issues', authMiddleware, async (req: Request, res: Response) => {
+router.get('/:id/issues', authMiddleware, async (req: Request<IdParams>, res: Response) => {
   try {
-    const { id } = req.params;
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const auth = getAuthContext(req, res);
+    if (!auth) {
+      return;
+    }
+
+    const id = getProjectId(req, res);
+    if (!id) {
+      return;
+    }
+
+    const { userId, workspaceId } = auth;
 
     // Get visibility context for filtering
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
@@ -1150,7 +1442,7 @@ router.get('/:id/issues', authMiddleware, async (req: Request, res: Response) =>
     }
 
     // Get issues associated with this project via junction table
-    const result = await pool.query(
+    const result = await pool.query<ProjectIssueRow>(
       `SELECT d.id, d.title, d.properties, d.ticket_number,
               d.created_at, d.updated_at,
               d.started_at, d.completed_at, d.cancelled_at,
@@ -1175,8 +1467,8 @@ router.get('/:id/issues', authMiddleware, async (req: Request, res: Response) =>
     );
 
     // Transform rows to issue objects
-    const issues = result.rows.map(row => {
-      const props = row.properties || {};
+    const issues = result.rows.map((row) => {
+      const props: ProjectIssueProperties = row.properties ?? {};
       return {
         id: row.id,
         title: row.title,
@@ -1202,11 +1494,19 @@ router.get('/:id/issues', authMiddleware, async (req: Request, res: Response) =>
 
 // GET /api/projects/:id/weeks - List weeks (sprints) for a project
 // Note: "weeks" is the user-facing terminology, "sprints" is internal
-router.get('/:id/weeks', authMiddleware, async (req: Request, res: Response) => {
+router.get('/:id/weeks', authMiddleware, async (req: Request<IdParams>, res: Response) => {
   try {
-    const { id } = req.params;
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const auth = getAuthContext(req, res);
+    if (!auth) {
+      return;
+    }
+
+    const id = getProjectId(req, res);
+    if (!id) {
+      return;
+    }
+
+    const { userId, workspaceId } = auth;
 
     // Get visibility context for filtering
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
@@ -1225,7 +1525,7 @@ router.get('/:id/weeks', authMiddleware, async (req: Request, res: Response) => 
     }
 
     // Get sprints associated with this project via junction table
-    const result = await pool.query(
+    const result = await pool.query<ProjectSprintRow>(
       `SELECT d.id, d.title, d.properties, prog_da.related_id as program_id,
               p.title as program_name, p.properties->>'prefix' as program_prefix,
               w.sprint_start_date as workspace_sprint_start_date,
@@ -1261,11 +1561,19 @@ router.get('/:id/weeks', authMiddleware, async (req: Request, res: Response) => 
 });
 
 // GET /api/projects/:id/sprints - List sprints for a project (deprecated, use /weeks)
-router.get('/:id/sprints', authMiddleware, async (req: Request, res: Response) => {
+router.get('/:id/sprints', authMiddleware, async (req: Request<IdParams>, res: Response) => {
   try {
-    const { id } = req.params;
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const auth = getAuthContext(req, res);
+    if (!auth) {
+      return;
+    }
+
+    const id = getProjectId(req, res);
+    if (!id) {
+      return;
+    }
+
+    const { userId, workspaceId } = auth;
 
     // Get visibility context for filtering
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
@@ -1284,7 +1592,7 @@ router.get('/:id/sprints', authMiddleware, async (req: Request, res: Response) =
     }
 
     // Get sprints associated with this project via junction table
-    const result = await pool.query(
+    const result = await pool.query<ProjectSprintRow>(
       `SELECT d.id, d.title, d.properties, prog_da.related_id as program_id,
               p.title as program_name, p.properties->>'prefix' as program_prefix,
               w.sprint_start_date as workspace_sprint_start_date,
@@ -1320,11 +1628,19 @@ router.get('/:id/sprints', authMiddleware, async (req: Request, res: Response) =
 });
 
 // POST /api/projects/:id/sprints - Create a sprint associated with a project
-router.post('/:id/sprints', authMiddleware, async (req: Request, res: Response) => {
+router.post('/:id/sprints', authMiddleware, async (req: Request<IdParams>, res: Response) => {
   try {
-    const { id } = req.params;
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const auth = getAuthContext(req, res);
+    if (!auth) {
+      return;
+    }
+
+    const id = getProjectId(req, res);
+    if (!id) {
+      return;
+    }
+
+    const { userId, workspaceId } = auth;
 
     const parsed = createProjectSprintSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -1336,7 +1652,7 @@ router.post('/:id/sprints', authMiddleware, async (req: Request, res: Response) 
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // Verify project exists, user can access it, and get workspace info
-    const projectCheck = await pool.query(
+    const projectCheck = await pool.query<ProjectProgramContextRow>(
       `SELECT d.id, prog_da.related_id as program_id, w.sprint_start_date
        FROM documents d
        JOIN workspaces w ON d.workspace_id = w.id
@@ -1352,12 +1668,16 @@ router.post('/:id/sprints', authMiddleware, async (req: Request, res: Response) 
     }
 
     const project = projectCheck.rows[0];
+    if (!project) {
+      res.status(404).json({ error: 'Project not found' });
+      return;
+    }
     const { title, owner_id, plan, success_criteria, confidence } = parsed.data;
     let { sprint_number } = parsed.data;
 
     // If sprint_number not provided, auto-increment based on project's existing sprints
     if (!sprint_number) {
-      const maxSprintResult = await pool.query(
+      const maxSprintResult = await pool.query<MaxSprintRow>(
         `SELECT MAX((d.properties->>'sprint_number')::int) as max_sprint
          FROM documents d
          JOIN document_associations da ON da.document_id = d.id AND da.related_id = $1 AND da.relationship_type = 'project'
@@ -1381,9 +1701,9 @@ router.post('/:id/sprints', authMiddleware, async (req: Request, res: Response) 
     }
 
     // Verify owner exists in workspace (if provided)
-    let ownerData = null;
+    let ownerData: WorkspaceUserRow | null = null;
     if (owner_id) {
-      const ownerCheck = await pool.query(
+      const ownerCheck = await pool.query<WorkspaceUserRow>(
         `SELECT u.id, u.name, u.email FROM users u
          JOIN workspace_memberships wm ON wm.user_id = u.id
          WHERE u.id = $1 AND wm.workspace_id = $2`,
@@ -1394,11 +1714,11 @@ router.post('/:id/sprints', authMiddleware, async (req: Request, res: Response) 
         res.status(400).json({ error: 'Owner not found in workspace' });
         return;
       }
-      ownerData = ownerCheck.rows[0];
+      ownerData = ownerCheck.rows[0] ?? null;
     }
 
     // Build properties JSONB
-    const properties: Record<string, unknown> = { sprint_number };
+    const properties: SprintProperties = { sprint_number };
     if (owner_id) properties.owner_id = owner_id;
     if (plan) {
       properties.plan = plan;
@@ -1412,7 +1732,7 @@ router.post('/:id/sprints', authMiddleware, async (req: Request, res: Response) 
     if (confidence !== undefined) properties.confidence = confidence;
 
     // Default TipTap content for new sprints with Hypothesis and Success Criteria headings
-    const defaultContent = {
+    const defaultContent: TipTapDocument = {
       type: 'doc',
       content: [
         {
@@ -1438,7 +1758,7 @@ router.post('/:id/sprints', authMiddleware, async (req: Request, res: Response) 
 
     // Create the sprint document
     // program_id is set via document_associations below (not directly on documents table)
-    const result = await pool.query(
+    const result = await pool.query<ProjectSprintRow>(
       `INSERT INTO documents (workspace_id, document_type, title, properties, created_by, content)
        VALUES ($1, 'sprint', $2, $3, $4, $5)
        RETURNING id, title, properties`,
@@ -1446,6 +1766,10 @@ router.post('/:id/sprints', authMiddleware, async (req: Request, res: Response) 
     );
 
     const sprint = result.rows[0];
+    if (!sprint) {
+      res.status(500).json({ error: 'Failed to create week' });
+      return;
+    }
 
     // Create association in junction table for project
     await pool.query(
@@ -1491,11 +1815,19 @@ router.post('/:id/sprints', authMiddleware, async (req: Request, res: Response) 
 });
 
 // PATCH /api/projects/:id/retro - Updates existing project retro
-router.patch('/:id/retro', authMiddleware, async (req: Request, res: Response) => {
+router.patch('/:id/retro', authMiddleware, async (req: Request<IdParams>, res: Response) => {
   try {
-    const { id } = req.params;
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const auth = getAuthContext(req, res);
+    if (!auth) {
+      return;
+    }
+
+    const id = getProjectId(req, res);
+    if (!id) {
+      return;
+    }
+
+    const { userId, workspaceId } = auth;
 
     const parsed = projectRetroSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -1507,7 +1839,7 @@ router.patch('/:id/retro', authMiddleware, async (req: Request, res: Response) =
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // Verify project exists and user can access it
-    const existing = await pool.query(
+    const existing = await pool.query<ProjectPropertiesRow>(
       `SELECT id, properties, content FROM documents
        WHERE id = $1 AND workspace_id = $2 AND document_type = 'project'
          AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
@@ -1519,8 +1851,14 @@ router.patch('/:id/retro', authMiddleware, async (req: Request, res: Response) =
       return;
     }
 
-    const currentProps = existing.rows[0].properties || {};
-    const currentContent = existing.rows[0].content;
+    const existingProject = existing.rows[0];
+    if (!existingProject) {
+      res.status(404).json({ error: 'Project not found' });
+      return;
+    }
+
+    const currentProps: ProjectProperties = existingProject.properties ?? {};
+    const currentContent = existingProject.content;
     const { plan_validated, monetary_impact_actual, success_criteria, next_steps, content } = parsed.data;
 
     // Update properties with retro data (only update fields that are provided)
@@ -1554,7 +1892,7 @@ router.patch('/:id/retro', authMiddleware, async (req: Request, res: Response) =
 
     // Update project with retro properties and optional content
     const updates: string[] = ['properties = $1', 'updated_at = now()'];
-    const values: any[] = [JSON.stringify(newProps)];
+    const values: unknown[] = [JSON.stringify(newProps)];
 
     if (content !== undefined) {
       updates.push('content = $2');
@@ -1573,7 +1911,7 @@ router.patch('/:id/retro', authMiddleware, async (req: Request, res: Response) =
       const newContent = JSON.stringify(content);
       if (oldContent !== newContent) {
         await logDocumentChange(
-          id as string,
+          id,
           'retro_content',
           oldContent,
           newContent,
@@ -1583,12 +1921,18 @@ router.patch('/:id/retro', authMiddleware, async (req: Request, res: Response) =
     }
 
     // Re-query to get updated data
-    const result = await pool.query(
+    const result = await pool.query<ProjectRetroRow>(
       `SELECT id, title, content, properties FROM documents WHERE id = $1`,
       [id]
     );
 
-    const updatedProps = result.rows[0].properties || {};
+    const updatedProject = result.rows[0];
+    if (!updatedProject) {
+      res.status(404).json({ error: 'Project not found' });
+      return;
+    }
+
+    const updatedProps: ProjectProperties = updatedProject.properties ?? {};
     res.json({
       is_draft: false,
       plan_validated: updatedProps.plan_validated,
@@ -1596,7 +1940,7 @@ router.patch('/:id/retro', authMiddleware, async (req: Request, res: Response) =
       monetary_impact_actual: updatedProps.monetary_impact_actual || null,
       success_criteria: updatedProps.success_criteria || [],
       next_steps: updatedProps.next_steps || null,
-      content: result.rows[0].content || {},
+      content: updatedProject.content || {},
     });
   } catch (err) {
     console.error('Update project retro error:', err);
@@ -1605,17 +1949,25 @@ router.patch('/:id/retro', authMiddleware, async (req: Request, res: Response) =
 });
 
 // POST /api/projects/:id/approve-plan - Approve project plan
-router.post('/:id/approve-plan', authMiddleware, async (req: Request, res: Response) => {
+router.post('/:id/approve-plan', authMiddleware, async (req: Request<IdParams>, res: Response) => {
   try {
-    const { id } = req.params;
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const auth = getAuthContext(req, res);
+    if (!auth) {
+      return;
+    }
+
+    const id = getProjectId(req, res);
+    if (!id) {
+      return;
+    }
+
+    const { userId, workspaceId } = auth;
 
     // Get visibility context for admin check
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // Verify project exists and get its properties
-    const projectResult = await pool.query(
+    const projectResult = await pool.query<ProjectPropertiesRow>(
       `SELECT id, properties FROM documents
        WHERE id = $1 AND workspace_id = $2 AND document_type = 'project'
          AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
@@ -1628,7 +1980,11 @@ router.post('/:id/approve-plan', authMiddleware, async (req: Request, res: Respo
     }
 
     const project = projectResult.rows[0];
-    const currentProps = project.properties || {};
+    if (!project) {
+      res.status(404).json({ error: 'Project not found' });
+      return;
+    }
+    const currentProps: ProjectProperties = project.properties ?? {};
     const accountableId = currentProps.accountable_id;
 
     // Check authorization: must be project's accountable_id OR workspace admin
@@ -1638,7 +1994,7 @@ router.post('/:id/approve-plan', authMiddleware, async (req: Request, res: Respo
     }
 
     // Get the latest plan history entry for version tracking
-    const historyEntry = await getLatestDocumentFieldHistory(id as string, 'plan');
+    const historyEntry = await getLatestDocumentFieldHistory(id, 'plan');
     const versionId = historyEntry?.id || null;
 
     // Update project properties with approval
@@ -1669,17 +2025,25 @@ router.post('/:id/approve-plan', authMiddleware, async (req: Request, res: Respo
 });
 
 // POST /api/projects/:id/approve-retro - Approve project retro
-router.post('/:id/approve-retro', authMiddleware, async (req: Request, res: Response) => {
+router.post('/:id/approve-retro', authMiddleware, async (req: Request<IdParams>, res: Response) => {
   try {
-    const { id } = req.params;
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const auth = getAuthContext(req, res);
+    if (!auth) {
+      return;
+    }
+
+    const id = getProjectId(req, res);
+    if (!id) {
+      return;
+    }
+
+    const { userId, workspaceId } = auth;
 
     // Get visibility context for admin check
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // Verify project exists and get its properties
-    const projectResult = await pool.query(
+    const projectResult = await pool.query<ProjectPropertiesRow>(
       `SELECT id, properties FROM documents
        WHERE id = $1 AND workspace_id = $2 AND document_type = 'project'
          AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
@@ -1692,7 +2056,11 @@ router.post('/:id/approve-retro', authMiddleware, async (req: Request, res: Resp
     }
 
     const project = projectResult.rows[0];
-    const currentProps = project.properties || {};
+    if (!project) {
+      res.status(404).json({ error: 'Project not found' });
+      return;
+    }
+    const currentProps: ProjectProperties = project.properties ?? {};
     const accountableId = currentProps.accountable_id;
 
     // Check authorization: must be project's accountable_id OR workspace admin
@@ -1702,7 +2070,7 @@ router.post('/:id/approve-retro', authMiddleware, async (req: Request, res: Resp
     }
 
     // Get the latest retro content history entry for version tracking
-    const historyEntry = await getLatestDocumentFieldHistory(id as string, 'retro_content');
+    const historyEntry = await getLatestDocumentFieldHistory(id, 'retro_content');
     const versionId = historyEntry?.id || null;
 
     // Update project properties with retro approval

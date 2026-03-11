@@ -97,6 +97,13 @@
 - Which skill pattern was applied: Type Narrowing Decision Tree from `typescript-ops`; additive union widening from `typescript-advanced-patterns` where the page and editor contracts had drifted.
 - Tradeoff made: the page now drops malformed optional fields to `undefined`/`null` instead of forcing them into typed positions, which is safer but means obviously bad API payloads render with defaults rather than surfacing as casted values.
 
+- File path: `api/src/db/seed.ts`
+- Violations before / after: 35 -> 0
+- What the any/as/! was actually modeling: optional array lookups and map lookups across seeded users, projects, sprints, ticket counters, content pools, and report-to hierarchy references that the script previously treated as guaranteed-present via non-null assertions.
+- What type replaced it and why: replaced each non-null assertion with `requireValue<T>()`-guarded retrieval so the script now fails with explicit seed-data invariants when an indexed item or map entry is missing, while preserving the real inferred types of those collections.
+- Which skill pattern was applied: assertion-function style invariant narrowing from `typescript-strict-migrator`; source-of-truth collection typing from `managing-database-schemas` for seed model shapes.
+- Tradeoff made: seed failures now surface earlier and more explicitly if the generated fixture arrays drift out of sync, which is stricter than the previous implicit undefined access but safer for maintenance.
+
 ### Totals
 
 - Reproduced baseline total: 2962 (grep scan), 1291 (AST audit baseline)

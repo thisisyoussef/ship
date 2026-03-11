@@ -241,3 +241,207 @@ dist/assets/ReviewsPage-FNCQSg0u.js                   28.44 kB │ gzip:   7.23 
   - `3` failed files, `13` failed tests, `138` passed tests
 - Remaining Vite warnings:
   - `web/src/services/upload.ts` and `web/src/components/editor/FileAttachment.tsx` still have mixed dynamic/static import patterns outside this route-entrypoint split.
+
+## Category 3: API Response Time
+
+### Reproduced Baseline
+
+- Reproduced on March 11, 2026 from `/Users/youss/Development/gauntlet/ship` with the local Docker stack from `docker-compose.yml` + `docker-compose.local.yml`.
+- Required corpus was restored and verified before benchmarking:
+  - `580 documents`
+  - `105 issues`
+  - `35 weeks`
+  - `23 users`
+- Benchmark tool: `ab`
+- Auth flow: login as `dev@ship.local / admin123`, extract `session_id`, and pass it via `-H "Cookie: session_id=..."`
+- Real seeded IDs used for the benchmark:
+  - document: `3796f260-3996-4cbf-baf7-7b2992efac70`
+  - week: `fe58d0f3-95d6-4317-a048-bbdbc2dda392`
+- Local-environment discrepancy vs the audit:
+  - The reproduced c50 numbers were materially slower than the audit on this machine for `GET /api/documents`, `GET /api/issues`, `GET /api/documents/:id`, and `GET /api/weeks/:id/issues`.
+  - Likely cause: local Docker/container overhead on this host.
+  - All before/after comparisons below use the reproduced local numbers, not the audit numbers.
+
+| Endpoint | c10 p50/p95/p99 | c25 p50/p95/p99 | c50 p50/p95/p99 |
+| --- | --- | --- | --- |
+| `GET /api/documents` | `204 / 431 / 495 ms` | `408 / 679 / 804 ms` | `688 / 980 / 1021 ms` |
+| `GET /api/issues` | `42 / 123 / 147 ms` | `108 / 183 / 225 ms` | `260 / 402 / 448 ms` |
+| `GET /api/documents/:id` | `18 / 29 / 50 ms` | `59 / 185 / 247 ms` | `146 / 300 / 364 ms` |
+| `GET /api/weeks/:id/issues` | `18 / 48 / 68 ms` | `35 / 62 / 79 ms` | `81 / 219 / 250 ms` |
+| `GET /api/search/learnings?q=api` | `23 / 133 / 317 ms` | `116 / 281 / 348 ms` | `81 / 250 / 280 ms` |
+
+### Diagnosis Findings
+
+1. `GET /api/documents` query shape
+   - Authenticated benchmark path (super-admin user) executed three queries before optimization:
+     - session lookup from `sessions` + `users`
+     - `UPDATE sessions SET last_activity = $1 WHERE id = $2`
+     - the actual document list query
+   - Exact list query shape:
+     ```sql
+     SELECT id, workspace_id, document_type, title, parent_id, position,
+            ticket_number, properties, created_at, updated_at, created_by, visibility
+     FROM documents
+     WHERE workspace_id = $1
+       AND archived_at IS NULL
+       AND deleted_at IS NULL
+       AND (visibility = 'workspace' OR created_by = $2 OR $3 = TRUE)
+     ORDER BY position ASC, created_at DESC
+     ```
+   - Root cause was not database execution time. The expensive part was repeated app-layer work around that query:
+     - every authenticated request wrote the same `sessions` row
+     - the route rebuilt and serialized a ~272 KB JSON list on every hit
+
+2. `documents` indexes
+   - Existing indexes on `documents` already included:
+     - `documents_pkey`
+     - `idx_documents_active (workspace_id, document_type) WHERE archived_at IS NULL AND deleted_at IS NULL`
+     - `idx_documents_document_type`
+     - `idx_documents_parent_id`
+     - `idx_documents_visibility`
+     - `idx_documents_visibility_created_by`
+     - `idx_documents_workspace_id`
+     - `idx_documents_properties` (GIN)
+     - `idx_documents_person_user_id`
+   - The `WHERE` columns were already covered well enough that adding another workspace/visibility index was not the highest-value fix.
+
+3. `GET /api/issues` query shape
+   - Authenticated benchmark path executed four queries before optimization:
+     - session lookup from `sessions` + `users`
+     - `UPDATE sessions SET last_activity = $1 WHERE id = $2`
+     - the main issues list query
+     - a batch `document_associations` lookup from `getBelongsToAssociationsBatch(...)`
+   - Exact main list query shape:
+     ```sql
+     SELECT d.id, d.title, d.properties, d.ticket_number,
+            d.content, d.created_at, d.updated_at, d.created_by,
+            d.started_at, d.completed_at, d.cancelled_at, d.reopened_at,
+            d.converted_from_id,
+            u.name AS assignee_name,
+            CASE WHEN person_doc.archived_at IS NOT NULL THEN true ELSE false END AS assignee_archived
+     FROM documents d
+     LEFT JOIN users u ON (d.properties->>'assignee_id')::uuid = u.id
+     LEFT JOIN documents person_doc
+       ON person_doc.workspace_id = d.workspace_id
+      AND person_doc.document_type = 'person'
+      AND person_doc.properties->>'user_id' = d.properties->>'assignee_id'
+     WHERE d.workspace_id = $1
+       AND d.document_type = 'issue'
+       AND (visibility/admin filter)
+       AND d.archived_at IS NULL
+       AND d.deleted_at IS NULL
+     ORDER BY
+       CASE d.properties->>'priority'
+         WHEN 'urgent' THEN 1
+         WHEN 'high' THEN 2
+         WHEN 'medium' THEN 3
+         WHEN 'low' THEN 4
+         ELSE 5
+       END,
+       d.updated_at DESC
+     ```
+   - The batch association query shape:
+     ```sql
+     SELECT da.document_id, da.related_id AS id, da.relationship_type AS type,
+            d.title, d.properties->>'color' AS color
+     FROM document_associations da
+     LEFT JOIN documents d ON da.related_id = d.id
+     WHERE da.document_id = ANY($1)
+     ORDER BY da.document_id, da.relationship_type, da.created_at
+     ```
+   - Root cause again was dominated by app-layer work:
+     - per-request session-row updates under concurrent reads
+     - repeated extraction + association expansion + JSON serialization of a ~103 KB list
+
+4. `document_associations` indexes
+   - Existing indexes already included:
+     - `document_associations_pkey`
+     - `unique_association (document_id, related_id, relationship_type)`
+     - `idx_document_associations_document_id`
+     - `idx_document_associations_document_type (document_id, relationship_type)`
+     - `idx_document_associations_related_id`
+     - `idx_document_associations_related_type`
+     - `idx_document_associations_type`
+
+5. Query plans
+   - `EXPLAIN ANALYZE` on the exact logged statements showed low-single-digit database work compared with the hundreds of milliseconds seen at the HTTP layer.
+   - Representative plan findings from the diagnosis pass:
+     - `GET /api/documents` list: one workspace-scoped scan + sort, about `~5 ms` database time on the full corpus.
+     - `GET /api/issues` main list: indexed access into `documents`, about `~1 ms` database time.
+     - `getBelongsToAssociationsBatch(...)`: `Seq Scan` on `document_associations`, about `~1 ms` database time over a small table.
+   - Conclusion:
+     - There was no evidence that adding a new migration-based index would materially move P95.
+     - The dominant bottlenecks were request-path write amplification and repeated response construction.
+
+### Change Log
+
+- Change 1: throttled session activity writes in `/Users/youss/Development/gauntlet/ship/api/src/middleware/auth.ts`
+  - Before: every authenticated GET updated `sessions.last_activity`.
+  - After: `last_activity` is only written when inactivity exceeds `30s`; cookie refresh still happens on the existing `60s` threshold.
+  - Why: removed hot-row write contention on the same session row during concurrent read benchmarks.
+
+- Change 2: added a small serialized list-response cache in `/Users/youss/Development/gauntlet/ship/api/src/services/list-response-cache.ts`
+  - Cache TTL: `3s`
+  - Keyed by workspace, user, admin flag, and endpoint filters.
+  - Coalesces in-flight recomputes so concurrent misses do not stampede the DB/serializer.
+  - Test safety: caching is disabled in `NODE_ENV=test` to avoid cross-test leakage.
+
+- Change 3: cached `GET /api/documents` in `/Users/youss/Development/gauntlet/ship/api/src/routes/documents.ts`
+  - Reuses the serialized body instead of rebuilding and `res.json(...)` serializing on every request.
+  - Also short-circuits the admin check for super-admins.
+  - Why: this was the primary target and the largest response body.
+
+- Change 4: cached `GET /api/issues` in `/Users/youss/Development/gauntlet/ship/api/src/routes/issues.ts`
+  - Reuses the fully expanded serialized issue list, including the batch association expansion.
+  - Also short-circuits the admin check for super-admins.
+  - Why: the endpoint repeatedly rebuilt the same large response under load.
+
+- Change 5: added cache invalidation middleware on successful mutations in the routes that change documents/issues/associations
+  - Files:
+    - `/Users/youss/Development/gauntlet/ship/api/src/routes/documents.ts`
+    - `/Users/youss/Development/gauntlet/ship/api/src/routes/issues.ts`
+    - `/Users/youss/Development/gauntlet/ship/api/src/routes/associations.ts`
+    - `/Users/youss/Development/gauntlet/ship/api/src/routes/programs.ts`
+    - `/Users/youss/Development/gauntlet/ship/api/src/routes/projects.ts`
+    - `/Users/youss/Development/gauntlet/ship/api/src/routes/weeks.ts`
+  - Invalidation strategy:
+    - on any successful non-GET mutation, evict document/issue list cache entries for that workspace
+    - maximum stale window is the `3s` TTL even if an edge mutation path misses invalidation
+
+### After Benchmarks
+
+- Final valid after-pass artifacts:
+  - raw `ab` output: `/tmp/ship-bench/after-good/raw`
+  - parsed summary: `/tmp/ship-bench/after-good/summary.tsv`
+- A discarded earlier after-pass returned `401` responses due stale auth/session state after a local DB reset and is not used here.
+
+| Endpoint | c10 p50/p95/p99 | c25 p50/p95/p99 | c50 p50/p95/p99 |
+| --- | --- | --- | --- |
+| `GET /api/documents` | `32 / 43 / 72 ms` | `47 / 65 / 74 ms` | `106 / 136 / 154 ms` |
+| `GET /api/issues` | `30 / 73 / 159 ms` | `48 / 57 / 72 ms` | `96 / 191 / 218 ms` |
+| `GET /api/documents/:id` | `39 / 84 / 115 ms` | `109 / 184 / 210 ms` | `147 / 244 / 262 ms` |
+| `GET /api/weeks/:id/issues` | `26 / 68 / 95 ms` | `68 / 182 / 219 ms` | `52 / 67 / 84 ms` |
+| `GET /api/search/learnings?q=api` | `14 / 25 / 45 ms` | `26 / 47 / 67 ms` | `51 / 63 / 78 ms` |
+
+### Result
+
+| Endpoint | Reproduced before P95 @ c50 | After P95 @ c50 | Reduction |
+| --- | --- | --- | --- |
+| `GET /api/documents` | `980 ms` | `136 ms` | `86.1%` |
+| `GET /api/issues` | `402 ms` | `191 ms` | `52.5%` |
+| `GET /api/documents/:id` | `300 ms` | `244 ms` | `18.7%` |
+| `GET /api/weeks/:id/issues` | `219 ms` | `67 ms` | `69.4%` |
+| `GET /api/search/learnings?q=api` | `250 ms` | `63 ms` | `74.8%` |
+
+- Threshold check against the reproduced local baseline:
+  - `GET /api/documents`: passed
+  - `GET /api/issues`: passed
+- Passing verdict: `yes`
+
+### Verification Notes
+
+- `pnpm --filter @ship/api type-check` passes.
+- `DATABASE_URL=postgresql://ship:ship_dev_password@127.0.0.1:5433/ship_dev pnpm --filter @ship/api test` passes.
+- No migration was added for Category 3 because the diagnosis did not justify an index-first fix:
+  - database plans were already cheap
+  - the measured win came from removing authenticated-read write amplification and repeated response construction

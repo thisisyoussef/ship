@@ -16,16 +16,24 @@ vi.mock('../middleware/visibility.js', () => ({
 // Mock auth middleware
 vi.mock('../middleware/auth.js', () => ({
   authMiddleware: vi.fn((req, res, next) => {
-    req.userId = 'user-123';
-    req.workspaceId = 'ws-123';
+    req.userId = '11111111-1111-4111-8111-111111111111';
+    req.workspaceId = '22222222-2222-4222-8222-222222222222';
     next();
   }),
+}));
+
+vi.mock('../services/list-response-cache.js', () => ({
+  listCacheInvalidationMiddleware: vi.fn((req, res, next) => next()),
 }));
 
 import { pool } from '../db/client.js';
 import express from 'express';
 import request from 'supertest';
 import projectsRouter from './projects.js';
+
+const TEST_PROJECT_ID = '33333333-3333-4333-8333-333333333333';
+const SECOND_PROJECT_ID = '55555555-5555-4555-8555-555555555555';
+const MISSING_PROJECT_ID = '44444444-4444-4444-8444-444444444444';
 
 describe('Projects API', () => {
   let app: express.Express;
@@ -42,7 +50,7 @@ describe('Projects API', () => {
     it('returns array with ice_score computed field', async () => {
       const mockProjects = [
         {
-          id: 'project-1',
+          id: TEST_PROJECT_ID,
           title: 'High Priority Project',
           properties: { impact: 5, confidence: 4, ease: 3, owner_id: 'owner-1', color: '#ff0000' },
           archived_at: null,
@@ -55,7 +63,7 @@ describe('Projects API', () => {
           issue_count: '5',
         },
         {
-          id: 'project-2',
+          id: SECOND_PROJECT_ID,
           title: 'Low Priority Project',
           properties: { impact: 2, confidence: 2, ease: 2, owner_id: 'owner-2', color: '#00ff00' },
           archived_at: null,
@@ -121,7 +129,7 @@ describe('Projects API', () => {
   describe('POST /api/projects', () => {
     it('creates project without owner_id (optional)', async () => {
       const mockProject = {
-        id: 'project-new',
+        id: TEST_PROJECT_ID,
         title: 'Test Project',
         properties: { impact: 4, confidence: 3, ease: 5, owner_id: null, color: '#6366f1' },
         archived_at: null,
@@ -149,7 +157,7 @@ describe('Projects API', () => {
     it('creates project with valid data including optional owner_id', async () => {
       const ownerId = '11111111-1111-1111-1111-111111111111';
       const mockProject = {
-        id: 'project-new',
+        id: TEST_PROJECT_ID,
         title: 'New Project',
         properties: { impact: 4, confidence: 3, ease: 5, owner_id: ownerId, color: '#6366f1' },
         archived_at: null,
@@ -184,7 +192,7 @@ describe('Projects API', () => {
 
     it('uses null ICE values when not provided', async () => {
       const mockProject = {
-        id: 'project-new',
+        id: TEST_PROJECT_ID,
         title: 'Untitled',
         properties: { impact: null, confidence: null, ease: null, owner_id: null, color: '#6366f1' },
         archived_at: null,
@@ -223,7 +231,7 @@ describe('Projects API', () => {
   describe('GET /api/projects/:id', () => {
     it('returns project with ice_score computed', async () => {
             const mockProject = {
-        id: 'project-123',
+        id: TEST_PROJECT_ID,
         title: 'My Project',
         properties: { impact: 5, confidence: 5, ease: 5, owner_id: 'owner-1', color: '#123456' },
         archived_at: null,
@@ -238,17 +246,17 @@ describe('Projects API', () => {
 
       vi.mocked(pool.query).mockResolvedValueOnce({ rows: [mockProject] } as any);
 
-      const res = await request(app).get('/api/projects/project-123');
+      const res = await request(app).get(`/api/projects/${TEST_PROJECT_ID}`);
 
       expect(res.status).toBe(200);
-      expect(res.body.id).toBe('project-123');
+      expect(res.body.id).toBe(TEST_PROJECT_ID);
       expect(res.body.ice_score).toBe(125); // 5 * 5 * 5 = max score
     });
 
     it('returns 404 for non-existent project', async () => {
             vi.mocked(pool.query).mockResolvedValueOnce({ rows: [] } as any);
 
-      const res = await request(app).get('/api/projects/nonexistent');
+      const res = await request(app).get(`/api/projects/${MISSING_PROJECT_ID}`);
 
       expect(res.status).toBe(404);
       expect(res.body.error).toBe('Project not found');
@@ -258,12 +266,12 @@ describe('Projects API', () => {
   describe('PATCH /api/projects/:id', () => {
     it('updates ICE properties', async () => {
             const existingProject = {
-        id: 'project-123',
+        id: TEST_PROJECT_ID,
         properties: { impact: 3, confidence: 3, ease: 3, owner_id: 'owner-1', color: '#6366f1' },
       };
 
       const updatedProject = {
-        id: 'project-123',
+        id: TEST_PROJECT_ID,
         title: 'Updated Project',
         properties: { impact: 5, confidence: 4, ease: 3, owner_id: 'owner-1', color: '#6366f1' },
         archived_at: null,
@@ -285,7 +293,7 @@ describe('Projects API', () => {
         .mockResolvedValueOnce({ rows: [updatedProject] } as any);
 
       const res = await request(app)
-        .patch('/api/projects/project-123')
+        .patch(`/api/projects/${TEST_PROJECT_ID}`)
         .send({ impact: 5, confidence: 4 });
 
       expect(res.status).toBe(200);
@@ -298,7 +306,7 @@ describe('Projects API', () => {
             vi.mocked(pool.query).mockResolvedValueOnce({ rows: [] } as any);
 
       const res = await request(app)
-        .patch('/api/projects/nonexistent')
+        .patch(`/api/projects/${MISSING_PROJECT_ID}`)
         .send({ title: 'New Title' });
 
       expect(res.status).toBe(404);
@@ -310,13 +318,13 @@ describe('Projects API', () => {
     it('deletes project and removes references', async () => {
       vi.mocked(pool.query)
         // Access check
-        .mockResolvedValueOnce({ rows: [{ id: 'project-123' }] } as any)
+        .mockResolvedValueOnce({ rows: [{ id: TEST_PROJECT_ID }] } as any)
         // Remove project_id from children
         .mockResolvedValueOnce({ rows: [] } as any)
         // Delete project
         .mockResolvedValueOnce({ rows: [] } as any);
 
-      const res = await request(app).delete('/api/projects/project-123');
+      const res = await request(app).delete(`/api/projects/${TEST_PROJECT_ID}`);
 
       expect(res.status).toBe(204);
     });
@@ -324,7 +332,7 @@ describe('Projects API', () => {
     it('returns 404 for non-existent project', async () => {
       vi.mocked(pool.query).mockResolvedValueOnce({ rows: [] } as any);
 
-      const res = await request(app).delete('/api/projects/nonexistent');
+      const res = await request(app).delete(`/api/projects/${MISSING_PROJECT_ID}`);
 
       expect(res.status).toBe(404);
       expect(res.body.error).toBe('Project not found');

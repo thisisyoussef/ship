@@ -13,6 +13,11 @@ import {
 } from '../utils/document-crud.js';
 import { broadcastToUser } from '../collaboration/index.js';
 import {
+  buildIssuesListCacheKey,
+  getCachedListResponse,
+  listCacheInvalidationMiddleware,
+} from '../services/list-response-cache.js';
+import {
   ensureUuidId,
   getAuthContext,
   parsePgBoolean,
@@ -28,6 +33,8 @@ import {
 
 type RouterType = ReturnType<typeof Router>;
 const router: RouterType = Router();
+
+router.use(listCacheInvalidationMiddleware);
 
 const issueStateSchema = z.enum(['triage', 'backlog', 'todo', 'in_progress', 'in_review', 'done', 'cancelled']);
 const issuePrioritySchema = z.enum(['urgent', 'high', 'medium', 'low', 'none']);
@@ -309,122 +316,141 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
     const states = stateParsed.data;
 
     // Get visibility context for filtering
-    const { isAdmin } = await getVisibilityContext(userId, workspaceId);
+    const isAdmin = req.isSuperAdmin === true
+      ? true
+      : (await getVisibilityContext(userId, workspaceId)).isAdmin;
 
-    let query = `
-      SELECT d.id, d.title, d.properties, d.ticket_number,
-             d.content,
-             d.created_at, d.updated_at, d.created_by,
-             d.started_at, d.completed_at, d.cancelled_at, d.reopened_at,
-             d.converted_from_id,
-             u.name as assignee_name,
-             CASE WHEN person_doc.archived_at IS NOT NULL THEN true ELSE false END as assignee_archived
-      FROM documents d
-      LEFT JOIN users u ON (d.properties->>'assignee_id')::uuid = u.id
-      LEFT JOIN documents person_doc ON person_doc.workspace_id = d.workspace_id
-        AND person_doc.document_type = 'person'
-        AND person_doc.properties->>'user_id' = d.properties->>'assignee_id'
-      WHERE d.workspace_id = $1 AND d.document_type = 'issue'
-        AND ${VISIBILITY_FILTER_SQL('d', '$2', '$3')}
-    `;
-    const params: unknown[] = [workspaceId, userId, isAdmin];
-
-    // Exclude archived and deleted issues by default
-    query += ` AND d.archived_at IS NULL AND d.deleted_at IS NULL`;
-
-    // Filter by source if specified (internal or external)
-    if (source) {
-      query += ` AND d.properties->>'source' = $${params.length + 1}`;
-      params.push(source);
-    }
-    // No default filtering - show all issues regardless of source
-
-    if (states.length > 0) {
-      query += ` AND d.properties->>'state' = ANY($${params.length + 1})`;
-      params.push(states);
-    }
-
-    if (priority) {
-      query += ` AND d.properties->>'priority' = $${params.length + 1}`;
-      params.push(priority);
-    }
-
-    if (assignee_id) {
-      if (assignee_id === 'null' || assignee_id === 'unassigned') {
-        query += ` AND (d.properties->>'assignee_id' IS NULL OR d.properties->>'assignee_id' = '')`;
-      } else {
-        query += ` AND d.properties->>'assignee_id' = $${params.length + 1}`;
-        params.push(assignee_id);
-      }
-    }
-
-    // Filter by program via junction table
-    if (program_id) {
-      query += ` AND EXISTS (
-        SELECT 1 FROM document_associations da
-        WHERE da.document_id = d.id AND da.related_id = $${params.length + 1} AND da.relationship_type = 'program'
-      )`;
-      params.push(program_id);
-    }
-
-    // Filter by sprint via junction table
-    if (sprint_id) {
-      query += ` AND EXISTS (
-        SELECT 1 FROM document_associations da
-        WHERE da.document_id = d.id AND da.related_id = $${params.length + 1} AND da.relationship_type = 'sprint'
-      )`;
-      params.push(sprint_id);
-    }
-
-    // Filter by parent/sub-issue status
-    if (parent_filter) {
-      if (parent_filter === 'top_level') {
-        // Issues that have NO parent (not a sub-issue)
-        query += ` AND NOT EXISTS (
-          SELECT 1 FROM document_associations da
-          WHERE da.document_id = d.id AND da.relationship_type = 'parent'
-        )`;
-      } else if (parent_filter === 'has_children') {
-        // Issues that HAVE at least one child (sub-issue)
-        query += ` AND EXISTS (
-          SELECT 1 FROM document_associations da
-          WHERE da.related_id = d.id AND da.relationship_type = 'parent'
-        )`;
-      } else if (parent_filter === 'is_sub_issue') {
-        // Issues that ARE sub-issues (have a parent)
-        query += ` AND EXISTS (
-          SELECT 1 FROM document_associations da
-          WHERE da.document_id = d.id AND da.relationship_type = 'parent'
-        )`;
-      }
-    }
-
-    query += ` ORDER BY
-      CASE d.properties->>'priority'
-        WHEN 'urgent' THEN 1
-        WHEN 'high' THEN 2
-        WHEN 'medium' THEN 3
-        WHEN 'low' THEN 4
-        ELSE 5
-      END,
-      d.updated_at DESC`;
-
-    const result = await pool.query<IssueRow>(query, params);
-
-    // Extract issues and batch-fetch associations to avoid N+1 queries
-    const issueIds = result.rows.map(row => row.id);
-    const associationsMap = await getBelongsToAssociationsBatch(issueIds);
-
-    const issues = result.rows.map((row) => {
-      const issue = extractIssueFromRow(row);
-      return {
-        ...issue,
-        display_id: `#${issue.ticket_number}`,
-        belongs_to: associationsMap.get(row.id) || [],
-      };
+    const cacheKey = buildIssuesListCacheKey({
+      workspaceId,
+      userId,
+      isAdmin,
+      state: queryParsed.data.state,
+      priority,
+      assigneeId: assignee_id,
+      programId: program_id,
+      sprintId: sprint_id,
+      source,
+      parentFilter: parent_filter,
     });
 
-    res.json(issues);
+    const body = await getCachedListResponse(cacheKey, async () => {
+      let query = `
+        SELECT d.id, d.title, d.properties, d.ticket_number,
+               d.content,
+               d.created_at, d.updated_at, d.created_by,
+               d.started_at, d.completed_at, d.cancelled_at, d.reopened_at,
+               d.converted_from_id,
+               u.name as assignee_name,
+               CASE WHEN person_doc.archived_at IS NOT NULL THEN true ELSE false END as assignee_archived
+        FROM documents d
+        LEFT JOIN users u ON (d.properties->>'assignee_id')::uuid = u.id
+        LEFT JOIN documents person_doc ON person_doc.workspace_id = d.workspace_id
+          AND person_doc.document_type = 'person'
+          AND person_doc.properties->>'user_id' = d.properties->>'assignee_id'
+        WHERE d.workspace_id = $1 AND d.document_type = 'issue'
+          AND ${VISIBILITY_FILTER_SQL('d', '$2', '$3')}
+      `;
+      const params: unknown[] = [workspaceId, userId, isAdmin];
+
+      // Exclude archived and deleted issues by default
+      query += ` AND d.archived_at IS NULL AND d.deleted_at IS NULL`;
+
+      // Filter by source if specified (internal or external)
+      if (source) {
+        query += ` AND d.properties->>'source' = $${params.length + 1}`;
+        params.push(source);
+      }
+      // No default filtering - show all issues regardless of source
+
+      if (states.length > 0) {
+        query += ` AND d.properties->>'state' = ANY($${params.length + 1})`;
+        params.push(states);
+      }
+
+      if (priority) {
+        query += ` AND d.properties->>'priority' = $${params.length + 1}`;
+        params.push(priority);
+      }
+
+      if (assignee_id) {
+        if (assignee_id === 'null' || assignee_id === 'unassigned') {
+          query += ` AND (d.properties->>'assignee_id' IS NULL OR d.properties->>'assignee_id' = '')`;
+        } else {
+          query += ` AND d.properties->>'assignee_id' = $${params.length + 1}`;
+          params.push(assignee_id);
+        }
+      }
+
+      // Filter by program via junction table
+      if (program_id) {
+        query += ` AND EXISTS (
+          SELECT 1 FROM document_associations da
+          WHERE da.document_id = d.id AND da.related_id = $${params.length + 1} AND da.relationship_type = 'program'
+        )`;
+        params.push(program_id);
+      }
+
+      // Filter by sprint via junction table
+      if (sprint_id) {
+        query += ` AND EXISTS (
+          SELECT 1 FROM document_associations da
+          WHERE da.document_id = d.id AND da.related_id = $${params.length + 1} AND da.relationship_type = 'sprint'
+        )`;
+        params.push(sprint_id);
+      }
+
+      // Filter by parent/sub-issue status
+      if (parent_filter) {
+        if (parent_filter === 'top_level') {
+          // Issues that have NO parent (not a sub-issue)
+          query += ` AND NOT EXISTS (
+            SELECT 1 FROM document_associations da
+            WHERE da.document_id = d.id AND da.relationship_type = 'parent'
+          )`;
+        } else if (parent_filter === 'has_children') {
+          // Issues that HAVE at least one child (sub-issue)
+          query += ` AND EXISTS (
+            SELECT 1 FROM document_associations da
+            WHERE da.related_id = d.id AND da.relationship_type = 'parent'
+          )`;
+        } else if (parent_filter === 'is_sub_issue') {
+          // Issues that ARE sub-issues (have a parent)
+          query += ` AND EXISTS (
+            SELECT 1 FROM document_associations da
+            WHERE da.document_id = d.id AND da.relationship_type = 'parent'
+          )`;
+        }
+      }
+
+      query += ` ORDER BY
+        CASE d.properties->>'priority'
+          WHEN 'urgent' THEN 1
+          WHEN 'high' THEN 2
+          WHEN 'medium' THEN 3
+          WHEN 'low' THEN 4
+          ELSE 5
+        END,
+        d.updated_at DESC`;
+
+      const result = await pool.query<IssueRow>(query, params);
+
+      // Extract issues and batch-fetch associations to avoid N+1 queries
+      const issueIds = result.rows.map(row => row.id);
+      const associationsMap = await getBelongsToAssociationsBatch(issueIds);
+
+      const issues = result.rows.map((row) => {
+        const issue = extractIssueFromRow(row);
+        return {
+          ...issue,
+          display_id: `#${issue.ticket_number}`,
+          belongs_to: associationsMap.get(row.id) || [],
+        };
+      });
+
+      return JSON.stringify(issues);
+    });
+
+    res.type('application/json').send(body);
   } catch (err) {
     console.error('List issues error:', err);
     res.status(500).json({ error: 'Internal server error' });

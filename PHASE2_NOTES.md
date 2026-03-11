@@ -83,6 +83,20 @@
 - Which skill pattern was applied: branded IDs and discriminated association unions from `typescript-advanced-patterns`; query/body narrowing from `typescript-ops`; raw-SQL row typing derived from selected columns per `managing-database-schemas`.
 - Tradeoff made: kept the issue-property type local to the route because the route currently accepts a `'none'` priority value that does not exist in `shared/`; widening `shared/` was deferred to avoid changing the shared contract during this targeted pass.
 
+- File path: `web/src/components/UnifiedEditor.tsx`
+- Violations before / after: 28 -> 28
+- What the any/as/! was actually modeling: the editor’s local document union was narrower than the runtime data already passed in from the page layer, specifically omitting `standup` documents and `action_items` issue sources.
+- What type replaced it and why: widened the local `DocumentType` and `IssueDocument['source']` unions so the page layer can narrow real API responses without casting unsupported-but-real values back into the editor.
+- Which skill pattern was applied: additive union widening based on the `typescript-ops` narrowing workflow.
+- Tradeoff made: this change improves downstream safety in the page transformer without yet reducing the editor file’s own assertion count; that cleanup is deferred as a separate follow-up.
+
+- File path: `web/src/pages/UnifiedDocumentPage.tsx`
+- Violations before / after: 37 -> 0
+- What the any/as/! was actually modeling: document-type discrimination, weekly-project context extraction, tab counts, standup author lookup, issue/project conversion source types, and transformation from a flexible API `DocumentResponse` into the stricter `UnifiedDocument` union.
+- What type replaced it and why: replaced every assertion with runtime guards and typed accessors (`isRecord`, string/number/array readers, document-type predicates, `BelongsTo` validation, owner parsing) so the page now constructs `UnifiedDocument` values from verified shapes instead of trusting ambient `Record<string, unknown>` data.
+- Which skill pattern was applied: Type Narrowing Decision Tree from `typescript-ops`; additive union widening from `typescript-advanced-patterns` where the page and editor contracts had drifted.
+- Tradeoff made: the page now drops malformed optional fields to `undefined`/`null` instead of forcing them into typed positions, which is safer but means obviously bad API payloads render with defaults rather than surfacing as casted values.
+
 ### Totals
 
 - Reproduced baseline total: 2962 (grep scan), 1291 (AST audit baseline)

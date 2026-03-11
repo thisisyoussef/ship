@@ -57,9 +57,9 @@
 
 - File path: `api/src/routes/route-helpers.ts`
 - Violations before / after: new file
-- What the any/as/! was actually modeling: repeated authenticated request context checks and Postgres scalar coercions were duplicated as ad hoc `req.userId!`, `req.workspaceId!`, and manual count/boolean parsing across route modules.
-- What type replaced it and why: added typed `AuthContext`, `JsonObject`, `getAuthContext`, `parsePgCount`, and `parsePgBoolean` helpers so route files can narrow auth/session state once and consume parsed PG values without local assertions.
-- Which skill pattern was applied: `typescript-ops` type narrowing decision tree; repo-grounded Express auth narrowing in place of the user’s stale Fastify instruction.
+- What the any/as/! was actually modeling: repeated authenticated request context checks, raw UUID strings crossing route boundaries, and Postgres scalar coercions were duplicated as ad hoc `req.userId!`, `req.workspaceId!`, and manual count/boolean parsing across route modules.
+- What type replaced it and why: added typed `AuthContext`, branded UUID aliases (`UserId`, `WorkspaceId`, `ProjectId`, `IssueId`, `WeekId`, `ProgramId`, `PersonId`), guard helpers, `getAuthContext`, `ensureUuidId`, `parsePgCount`, and `parsePgBoolean` so route files can narrow auth/session state and route params once and consume parsed PG values without local assertions.
+- Which skill pattern was applied: branded IDs from `typescript-advanced-patterns`; `typescript-ops` type narrowing decision tree; repo-grounded Express auth narrowing in place of the user’s stale Fastify instruction.
 - Tradeoff made: the helper returns a 401 fallback if auth context is unexpectedly missing after `authMiddleware`; this preserves safe runtime behavior without changing the middleware contract.
 
 - File path: `api/src/routes/weeks.ts`
@@ -68,6 +68,13 @@
 - What type replaced it and why: replaced non-null assertions with `getAuthContext`, query casts with Zod-parsed lookup schemas, row `any` with schema-derived local interfaces (`SprintRow`, `StandupRow`, `ReviewIssueRow`), and ad hoc `any[]` containers with concrete collection types or `unknown[]` SQL parameter arrays.
 - Which skill pattern was applied: Zod inference from `typescript-advanced-patterns`; type narrowing and utility typing from `typescript-ops`; DB-row typing derived from raw SQL selections per `managing-database-schemas`.
 - Tradeoff made: kept the route on Express instead of attempting Fastify-style generics because the repository runtime is Express and the Fastify instruction does not match the codebase.
+
+- File path: `api/src/routes/projects.ts`
+- Violations before / after: 51 -> 0
+- What the any/as/! was actually modeling: authenticated route context, project list query params, project/sprint/issue/retro SQL row shapes, retro issue summaries, raw UUID params, and synthetic TipTap retro content documents.
+- What type replaced it and why: replaced non-null assertions with `getAuthContext`, raw `id` strings with branded `ProjectId` narrowing, request query casts with Zod-parsed list params, row `any` with concrete SQL row interfaces passed through `pool.query<T>()`, retro document bodies with recursive `TipTapDocument` typing, and SQL `any[]` parameter bags with `unknown[]`.
+- Which skill pattern was applied: branded IDs and Zod inference from `typescript-advanced-patterns`; narrowing strategy from `typescript-ops`; raw-SQL row typing derived from the schema and selected columns per `managing-database-schemas`.
+- Tradeoff made: `program_id` remains structurally a UUID string in the create-project response path because that value originates from validated request input rather than a narrowed DB row, but all route-param and auth IDs in this module are now branded and guarded.
 
 ### Totals
 

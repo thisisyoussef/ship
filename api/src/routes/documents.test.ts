@@ -607,6 +607,124 @@ describe('Documents API - Delete', () => {
   })
 })
 
+describe('Documents API - Create and Immediate Retrieval', () => {
+  const app = createApp()
+  const testRunId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
+  const testEmail = `docs-create-read-${testRunId}@ship.local`
+  const testWorkspaceName = `Docs Create Read ${testRunId}`
+
+  let sessionCookie: string
+  let csrfToken: string
+  let testWorkspaceId: string
+  let testUserId: string
+
+  beforeAll(async () => {
+    const workspaceResult = await pool.query(
+      `INSERT INTO workspaces (name) VALUES ($1) RETURNING id`,
+      [testWorkspaceName]
+    )
+    testWorkspaceId = workspaceResult.rows[0].id
+
+    const userResult = await pool.query(
+      `INSERT INTO users (email, password_hash, name)
+       VALUES ($1, 'test-hash', 'Create Read User')
+       RETURNING id`,
+      [testEmail]
+    )
+    testUserId = userResult.rows[0].id
+
+    await pool.query(
+      `INSERT INTO workspace_memberships (workspace_id, user_id, role)
+       VALUES ($1, $2, 'member')`,
+      [testWorkspaceId, testUserId]
+    )
+
+    const sessionId = crypto.randomBytes(32).toString('hex')
+    await pool.query(
+      `INSERT INTO sessions (id, user_id, workspace_id, expires_at)
+       VALUES ($1, $2, $3, now() + interval '1 hour')`,
+      [sessionId, testUserId, testWorkspaceId]
+    )
+    sessionCookie = `session_id=${sessionId}`
+
+    const csrfRes = await request(app)
+      .get('/api/csrf-token')
+      .set('Cookie', sessionCookie)
+    csrfToken = csrfRes.body.token
+    const connectSidCookie = csrfRes.headers['set-cookie']?.[0]?.split(';')[0] || ''
+    if (connectSidCookie) {
+      sessionCookie = `${sessionCookie}; ${connectSidCookie}`
+    }
+  })
+
+  afterAll(async () => {
+    await pool.query('DELETE FROM sessions WHERE user_id = $1', [testUserId])
+    await pool.query('DELETE FROM documents WHERE workspace_id = $1', [testWorkspaceId])
+    await pool.query('DELETE FROM workspace_memberships WHERE user_id = $1', [testUserId])
+    await pool.query('DELETE FROM users WHERE id = $1', [testUserId])
+    await pool.query('DELETE FROM workspaces WHERE id = $1', [testWorkspaceId])
+  })
+
+  beforeEach(async () => {
+    await pool.query('DELETE FROM documents WHERE workspace_id = $1', [testWorkspaceId])
+  })
+
+  it('returns the newly created document with matching fields on immediate GET', async () => {
+    const uniqueTitle = `Immediate Retrieval ${Date.now()}`
+    const content = {
+      type: 'doc',
+      content: [
+        {
+          type: 'paragraph',
+          content: [{ type: 'text', text: 'Created via POST and verified via GET.' }],
+        },
+      ],
+    }
+    const properties = {
+      color: 'amber',
+      source: 'internal',
+      priority: 'high',
+    }
+
+    const createResponse = await request(app)
+      .post('/api/documents')
+      .set('Cookie', sessionCookie)
+      .set('x-csrf-token', csrfToken)
+      .send({
+        title: uniqueTitle,
+        document_type: 'wiki',
+        visibility: 'private',
+        properties,
+        content,
+      })
+
+    expect(createResponse.status).toBe(201)
+    expect(createResponse.body.id).toBeTruthy()
+    expect(createResponse.body.title).toBe(uniqueTitle)
+    expect(createResponse.body.document_type).toBe('wiki')
+    expect(createResponse.body.visibility).toBe('private')
+    expect(createResponse.body.properties).toEqual(properties)
+
+    const getResponse = await request(app)
+      .get(`/api/documents/${createResponse.body.id}`)
+      .set('Cookie', sessionCookie)
+
+    expect(getResponse.status).toBe(200)
+    expect(getResponse.body.id).toBe(createResponse.body.id)
+    expect(getResponse.body.workspace_id).toBe(testWorkspaceId)
+    expect(getResponse.body.created_by).toBe(testUserId)
+    expect(getResponse.body.title).toBe(uniqueTitle)
+    expect(getResponse.body.document_type).toBe('wiki')
+    expect(getResponse.body.visibility).toBe('private')
+    expect(getResponse.body.parent_id).toBeNull()
+    expect(getResponse.body.properties).toMatchObject(properties)
+    expect(getResponse.body.color).toBe('amber')
+    expect(getResponse.body.source).toBe('internal')
+    expect(getResponse.body.priority).toBe('high')
+    expect(getResponse.body.content).toEqual(content)
+  })
+})
+
 describe('Documents API - Conversion', () => {
   const app = createApp()
   const testRunId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6)

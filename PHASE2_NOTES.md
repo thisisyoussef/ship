@@ -48,11 +48,15 @@
   - Inside the `web` Docker container, Vite proxies relative `/api/*` calls to `127.0.0.1:3000`, which is not the API container.
   - The web container logs show `http proxy error: /api/auth/session` and `connect ECONNREFUSED 127.0.0.1:3000`.
 - Fix applied:
-  - Pending.
+  - `/Users/youss/Development/gauntlet/ship/web/src/hooks/useSessionTimeout.ts` now builds the session-info URL from `import.meta.env.VITE_API_URL` so the hook uses the same API origin as the rest of the frontend.
+  - The hook now treats `401` and `403` as expected unauthenticated responses for this best-effort timeout bootstrap and only warns for truly unexpected failures.
 - After behavior:
-  - Pending.
+  - Repeating the same login flow no longer produces `500` proxy noise for `GET /api/auth/session`.
+  - The hook still preserves inactivity timeout behavior, and the only remaining unauthenticated network response on `/login` is the expected `401` from `/api/auth/me`.
 - Evidence:
   - `/Users/youss/Development/gauntlet/ship/output/playwright/phase2/baseline/after-login.png`
+  - `/Users/youss/Development/gauntlet/ship/output/playwright/phase2/fixed/login-console.txt`
+  - `/Users/youss/Development/gauntlet/ship/output/playwright/phase2/fixed/after-login.png`
 
 #### Issue 2: Modal overlay blocking editor entry
 

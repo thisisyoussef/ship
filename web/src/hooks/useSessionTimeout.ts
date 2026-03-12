@@ -25,6 +25,11 @@ interface SessionInfo {
   lastActivity: string;
 }
 
+function getSessionInfoUrl(): string {
+  const apiBaseUrl = import.meta.env.VITE_API_URL ?? '';
+  return `${apiBaseUrl}/api/auth/session`;
+}
+
 export function useSessionTimeout(onTimeout: () => void): SessionTimeoutState {
   const [showWarning, setShowWarning] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
@@ -52,18 +57,32 @@ export function useSessionTimeout(onTimeout: () => void): SessionTimeoutState {
   useEffect(() => {
     async function fetchSessionInfo() {
       try {
-        const response = await fetch('/api/auth/session', {
+        const response = await fetch(getSessionInfoUrl(), {
           credentials: 'include',
         });
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.data) {
-            const info: SessionInfo = data.data;
-            setSessionCreatedAt(new Date(info.createdAt).getTime());
-          }
+        // Best-effort bootstrap for absolute-timeout tracking only.
+        // Missing/expired sessions are handled elsewhere by the protected app shell.
+        if (response.status === 401 || response.status === 403) {
+          return;
         }
-      } catch {
-        // Ignore errors - absolute timeout tracking won't work but inactivity still will
+
+        if (!response.ok) {
+          console.warn(
+            `[SessionTimeout] Failed to fetch session info (${response.status}); absolute timeout tracking is disabled for this page load.`
+          );
+          return;
+        }
+
+        const data = await response.json();
+        if (data.success && data.data) {
+          const info: SessionInfo = data.data;
+          setSessionCreatedAt(new Date(info.createdAt).getTime());
+        }
+      } catch (error) {
+        console.warn(
+          '[SessionTimeout] Failed to initialize absolute timeout tracking; falling back to inactivity-only tracking.',
+          error
+        );
       }
     }
     fetchSessionInfo();

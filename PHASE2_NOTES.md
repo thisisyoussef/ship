@@ -917,3 +917,197 @@ No critical or serious violations.
   - `/my-week`: pass
   - `/documents/:id`: pass
 - Passing verdict: yes
+
+## Category 5: Test Coverage
+
+### Reproduced baseline
+
+I reproduced the current workspace state before editing tests.
+
+- `pnpm test`
+  - Local discrepancy: this failed before running the API suite because `api/.env.local` points at `localhost:5432`, while the local Docker Postgres for this repo is on `localhost:5433`.
+  - Exact error: `role "ship" does not exist`
+  - I used `DATABASE_URL=postgres://ship:ship_dev_password@localhost:5433/ship_dev` for API verification after that.
+- `pnpm --filter @ship/web test`
+  - `133 passed`, `13 failed`
+- `PLAYWRIGHT_WORKERS=2 pnpm test:e2e`
+  - `853 passed`, `1 failed`, `11 flaky`, `4 did not run`
+- Audit baseline reference from the prompt:
+  - `1,397 passed`, `16 failed`, `6 flaky`, `47 not run`
+
+### Diagnosis
+
+1. Known failing tests run in isolation
+
+- `web/src/lib/document-tabs.test.ts:171`
+  - Failure before fix: `expected undefined to be 'Weeks (3)'`
+  - Deterministic.
+  - Cause: the test still expected the removed `sprints` tab id even though the current tab config uses `weeks` and status-aware sprint tabs.
+- `web/src/components/editor/DetailsExtension.test.ts:13`
+  - Failure before fix: `expected 'detailsSummary detailsContent' to be 'block+'`
+  - Deterministic.
+  - Cause: the test asserted the old TipTap schema after `DetailsExtension` moved to explicit `detailsSummary` + `detailsContent` children.
+- `e2e/drag-handle.spec.ts:300`
+  - Did not reproduce.
+  - `PLAYWRIGHT_WORKERS=1 pnpm exec playwright test e2e/drag-handle.spec.ts --workers=1 --repeat-each=3 --grep "drag preserves full paragraph content"` -> `3 passed`
+- `e2e/my-week-stale-data.spec.ts:65` and `e2e/my-week-stale-data.spec.ts:97`
+  - Failure before fix: intermittent timeout waiting for the edited plan/retro text to reappear on `/my-week` after navigating back.
+  - Reproduced with `PLAYWRIGHT_WORKERS=1`, so this was not a parallelism issue.
+  - Root cause category: `State leak`
+- `e2e/program-mode-week-ux.spec.ts:388`
+  - Failure before fix: clicking a week card timed out waiting for `/documents/:programId/sprints/:sprintId` because the page treated the `sprints` route segment as invalid and redirected back to the base document URL.
+  - Deterministic.
+  - Reproduced with `PLAYWRIGHT_WORKERS=1`, so this was not a parallelism issue.
+
+2. Critical gap feasibility
+
+- Most feasible with the existing infrastructure:
+  - collaboration disconnect/reconnect recovery
+  - multi-user concurrent editing
+  - document creation and immediate retrieval
+- Reason:
+  - the isolated Playwright environment already boots real API and WebSocket infrastructure and supports multiple browser contexts.
+  - keyboard and screen-reader workflows are valuable, but the audited E2E surface already has broader unrelated accessibility instability, so the collaboration and API retrieval paths gave higher-value regression coverage for this phase.
+
+### Deterministic failures fixed
+
+#### `web/src/lib/document-tabs.test.ts:171`
+
+- Error before fix:
+  - `expected undefined to be 'Weeks (3)'`
+- Root cause:
+  - stale tab expectations after the tab system moved from `sprints` to `weeks` and sprint tabs became status-aware.
+- What changed and why:
+  - updated assertions to the current tab ids and order and added status-aware sprint tab coverage via `getTabsForDocument(...)`.
+- Confirmation run results:
+  - `pnpm --filter @ship/web exec vitest run src/lib/document-tabs.test.ts --reporter=dot` -> `24 passed`
+  - repeated 3 times total, passed each time
+
+#### `web/src/components/editor/DetailsExtension.test.ts:13`
+
+- Error before fix:
+  - `expected 'detailsSummary detailsContent' to be 'block+'`
+- Root cause:
+  - stale schema assertion and incomplete editor setup for the current extension contract.
+- What changed and why:
+  - registered `DetailsSummary` and `DetailsContent`, asserted the current content model, and verified that `setDetails()` inserts the expected node tree.
+- Confirmation run results:
+  - `pnpm --filter @ship/web exec vitest run src/components/editor/DetailsExtension.test.ts --reporter=dot` -> `10 passed`
+  - repeated 3 times total, passed each time
+
+#### `e2e/program-mode-week-ux.spec.ts:388`
+
+- Error before fix:
+  - timeout waiting for `/documents/:programId/sprints/:sprintId` after clicking a week card.
+- Root cause:
+  - real product regression in `web/src/pages/UnifiedDocumentPage.tsx:203`; URL tab validation treated legacy `sprints` routes as invalid even when the document exposes a `weeks` tab.
+- What changed and why:
+  - normalized `urlTab === 'sprints'` to `weeks` before active-tab selection and invalid-tab redirect logic.
+  - updated the E2E assertions to wait for the actual route transition and visible `Week Progress` detail state instead of stale `data-selected` state.
+  - the full rerun also exposed two stale week-filter assertions in the same file; I updated them to match the current combobox contract (actual sprint titles plus dynamic `Week` column lookup) rather than old `"Week of ..."` labels and last-cell assumptions.
+- Confirmation run results:
+  - `PLAYWRIGHT_WORKERS=1 pnpm exec playwright test e2e/program-mode-week-ux.spec.ts --workers=1 --repeat-each=3 --grep "clicking sprint card selects it in the chart"` -> `3 passed`
+  - `PLAYWRIGHT_WORKERS=1 pnpm exec playwright test e2e/program-mode-week-ux.spec.ts --workers=1 --grep "sprint filter has specific sprint options|filtering by specific sprint shows only that sprint's issues"` -> `2 passed`
+
+### Flaky test fixed
+
+#### `e2e/my-week-stale-data.spec.ts:65` and `e2e/my-week-stale-data.spec.ts:97`
+
+- Failure mode:
+  - intermittent timeout waiting for edited plan/retro text to reappear on `/my-week` after navigation back from the editor.
+- Root cause category:
+  - `State leak`
+- What specifically caused the non-determinism:
+  - weekly plan and retro creation is idempotent by person plus week, so repeated test runs reused old documents
+  - the dashboard parser only surfaces list items, while the old test typed freeform content that the summary extractor ignored
+  - navigating back via the dashboard rail dropped the original `week_number`, so the assertion sometimes reopened a different week than the one that had just been edited
+- Fix applied:
+  - generated a unique `week_number` per test
+  - polled `/api/dashboard/my-week?week_number=...` until the persisted content appeared
+  - typed list-item content that the dashboard parser actually reads
+  - used `page.goBack()` to preserve the exact week context
+- Why the fix eliminates the non-determinism:
+  - each run now operates on isolated weekly documents and waits on the exact API state consumed by `/my-week` instead of relying on a fixed sleep after a local Yjs save indicator.
+- 5-run confirmation results:
+  - `PLAYWRIGHT_WORKERS=1 pnpm exec playwright test e2e/my-week-stale-data.spec.ts --workers=1 --repeat-each=5` -> `10 passed`
+
+### New critical-path coverage
+
+#### `api/src/routes/documents.test.ts:672`
+
+- What critical path it covers:
+  - document creation and immediate retrieval
+- What regression it would catch:
+  - `POST /api/documents` succeeds but the immediate `GET /api/documents/:id` returns `404` or omits persisted fields
+- Setup and teardown approach:
+  - isolated workspace, user, membership, session, and CSRF token created in `beforeAll`
+  - documents cleared in `beforeEach`
+  - workspace, user, membership, documents, and session deleted in `afterAll`
+- Assertions:
+  - verifies `id`, `workspace_id`, `created_by`, `title`, `document_type`, `visibility`, `parent_id`, `properties`, flattened `color`, `source`, `priority`, and `content`
+
+#### `e2e/collaboration-regression.spec.ts:128`
+
+- What critical path it covers:
+  - collaboration disconnect and reconnect recovery
+- What regression it would catch:
+  - an edit made while offline disappears after reconnect, does not sync to another collaborator, or is lost after reload
+- Setup and teardown approach:
+  - two isolated browser contexts against the real collaboration backend
+  - document created via API
+  - shared document deleted in `finally`
+
+#### `e2e/collaboration-regression.spec.ts:187`
+
+- What critical path it covers:
+  - multi-user concurrent editing
+- What regression it would catch:
+  - one collaborator overwrites the other or the two clients diverge after reload
+- Setup and teardown approach:
+  - two isolated browser contexts and users editing the same live document
+  - shared document deleted in `finally`
+
+### Additional known-failure rechecks
+
+- `e2e/drag-handle.spec.ts:300`
+  - `PLAYWRIGHT_WORKERS=1 pnpm exec playwright test e2e/drag-handle.spec.ts --workers=1 --repeat-each=3 --grep "drag preserves full paragraph content"` -> `3 passed`
+  - no code change made because the failure did not reproduce on the current source tree
+
+### Additional suite stabilization
+
+- `web/src/hooks/useSessionTimeout.test.ts:23`
+  - the broad web rerun exposed a deterministic test-harness mismatch after `apiPost()` started depending on response headers and the CSRF token flow.
+  - I updated the fetch mocks to return route-aware JSON responses for `/api/auth/session`, `/api/csrf-token`, and `/api/auth/extend-session`.
+  - `pnpm --filter @ship/web exec vitest run src/hooks/useSessionTimeout.test.ts --reporter=dot` -> `34 passed`
+- `web/src/styles/drag-handle.test.ts:1`
+  - updated the file to use ESM-safe Node builtins and derive `__dirname` from `import.meta.url`, which keeps the CSS file read stable under Vitest's ESM execution model.
+
+### Verification
+
+- `DATABASE_URL=postgres://ship:ship_dev_password@localhost:5433/ship_dev pnpm test`
+  - `452 passed`
+- `pnpm --filter @ship/web test`
+  - `153 passed`
+- `PLAYWRIGHT_WORKERS=2 pnpm test:e2e`
+  - `865 passed`, `6 flaky`
+
+### Final counts
+
+- Suite state before:
+  - API suite: blocked locally without `DATABASE_URL` override (`role "ship" does not exist`)
+  - web suite: `133 passed`, `13 failed`, `0 flaky`
+  - E2E suite: `853 passed`, `1 failed`, `11 flaky`, `4 did not run`
+- Suite state after:
+  - API suite: `452 passed`, `0 failed`, `0 flaky`
+  - web suite: `153 passed`, `0 failed`, `0 flaky`
+  - E2E suite: `865 passed`, `0 failed`, `6 flaky`
+  - total passed across the final verification runs: `1,470`
+- Residual flaky tests in the final E2E run:
+  - `e2e/accessibility-remediation.spec.ts:145`
+  - `e2e/inline-comments.spec.ts:118`
+  - `e2e/project-weeks.spec.ts:178`
+  - `e2e/session-timeout.spec.ts:629`
+  - `e2e/status-overview-heatmap.spec.ts:109`
+  - `e2e/team-mode.spec.ts:381`
+- Passing verdict:
+  - yes

@@ -80,17 +80,36 @@ async function navigateToProgram(page: Page, programName: string = 'Ship Core') 
 }
 
 async function clickSprintsTab(page: Page) {
-  // Tabs have role="tab", not role="button"
-  await page.getByRole('tab', { name: 'Weeks' }).click()
-  // Wait for sprints tab to be active
-  await expect(page.getByRole('tab', { name: 'Weeks' })).toHaveAttribute('data-state', 'active', { timeout: 5000 }).catch(() => {
-    // Fallback: just wait for content to load
-  })
+  const tab = page.locator('main').getByRole('tab', { name: 'Weeks' })
+  await tab.click()
+  await expect(tab).toHaveAttribute('aria-selected', 'true', { timeout: 10000 })
+  await expect(page.getByRole('heading', { name: 'Timeline' })).toBeVisible({ timeout: 10000 })
 }
 
 async function clickIssuesTab(page: Page) {
-  // Click the Issues tab inside the main content area (tabs have role="tab")
-  await page.locator('main').getByRole('tab', { name: 'Issues' }).click()
+  const tab = page.locator('main').getByRole('tab', { name: 'Issues' })
+  await tab.click()
+  await expect(tab).toHaveAttribute('aria-selected', 'true', { timeout: 10000 })
+}
+
+async function openWeekFilter(page: Page) {
+  const filter = page.getByRole('combobox', { name: 'Filter issues by week' })
+  const filterVisible = await filter.isVisible({ timeout: 5000 }).catch(() => false)
+
+  if (!filterVisible) {
+    return null
+  }
+
+  await filter.click()
+  const listbox = page.getByRole('listbox').last()
+  await expect(listbox).toBeVisible({ timeout: 5000 })
+
+  return { filter, listbox }
+}
+
+async function getIssuesTableColumnIndex(page: Page, headerName: string) {
+  const headers = await page.getByRole('columnheader').allTextContents()
+  return headers.findIndex(header => header.trim() === headerName)
 }
 
 // =============================================================================
@@ -370,16 +389,17 @@ test.describe('Phase 2: Weeks Tab UI', () => {
     await clickSprintsTab(page)
 
     // Sprint cards are buttons with data-active - only exist if sprint documents exist
-    const sprintCard = page.locator('button[data-active]').first()
+    const sprintCard = page.locator('button[data-active="true"]').first()
     const cardCount = await sprintCard.count()
 
     if (cardCount > 0) {
-      await sprintCard.click()
-      // Clicking a sprint card navigates to /documents/{id}/sprints/{sprintId}
-      // Wait for URL to update which indicates selection worked
-      await expect(page).toHaveURL(/\/documents\/[a-f0-9-]+\/sprints\/[a-f0-9-]+/, { timeout: 5000 })
-      // After navigation, verify a card shows as selected
-      await expect(page.locator('button[data-selected="true"]')).toBeVisible({ timeout: 5000 })
+      await expect(sprintCard).toBeVisible({ timeout: 10000 })
+      await Promise.all([
+        page.waitForURL(/\/documents\/[a-f0-9-]+\/sprints\/[a-f0-9-]+/, { timeout: 10000 }),
+        sprintCard.click(),
+      ])
+      // Current UX expresses selection by opening the week detail view below the timeline.
+      await expect(page.getByRole('heading', { name: 'Week Progress' })).toBeVisible({ timeout: 10000 })
     } else {
       // No sprint documents - timeline shows empty week windows (divs, not clickable)
       await expect(page.getByText(/Week of/).first()).toBeVisible()
@@ -1296,20 +1316,12 @@ test.describe('Phase 4 Continued: Filter Functionality', () => {
   test('sprint filter has specific sprint options', async ({ page }) => {
     await clickIssuesTab(page)
 
-    const selectElement = page.locator('select').first()
-    const selectExists = await selectElement.count().then(c => c > 0).catch(() => false)
-    if (selectExists) {
-      // Wait for sprints to load by checking for option elements with sprint names
-      const weekOption = page.locator('option').filter({ hasText: /Week of/ }).first()
-      const hasWeekOptions = await weekOption.count().then(c => c > 0).catch(() => false)
-      if (hasWeekOptions) {
-        // Should see individual sprint options in the dropdown
-        const options = await selectElement.locator('option').allTextContents()
-
-        // Should have specific sprint names beyond just the category filters
-        const sprintOptions = options.filter(opt => opt.match(/Week of/))
-        expect(sprintOptions.length).toBeGreaterThan(0)
-      }
+    const weekFilter = await openWeekFilter(page)
+    if (weekFilter) {
+      const options = (await weekFilter.listbox.getByRole('option').allTextContents())
+        .map(option => option.trim())
+      const sprintOptions = options.filter(option => option && option !== 'All Weeks')
+      expect(sprintOptions.length).toBeGreaterThan(0)
     }
     // Test passes if feature not implemented
   })
@@ -1317,30 +1329,25 @@ test.describe('Phase 4 Continued: Filter Functionality', () => {
   test('filtering by specific sprint shows only that sprint\'s issues', async ({ page }) => {
     await clickIssuesTab(page)
 
-    const selectElement = page.locator('select').first()
-    const selectExists = await selectElement.count().then(c => c > 0).catch(() => false)
-    if (selectExists) {
-      // Wait for sprints to load by checking for option elements with sprint names
-      const weekOption = page.locator('option').filter({ hasText: /Week of/ }).first()
-      const hasWeekOptions = await weekOption.count().then(c => c > 0).catch(() => false)
-      if (hasWeekOptions) {
-        // Get sprint options
-        const options = await selectElement.locator('option').allTextContents()
-        const sprintOption = options.find(opt => opt.match(/Week of/))
+    const weekFilter = await openWeekFilter(page)
+    if (weekFilter) {
+      const options = weekFilter.listbox.getByRole('option')
+      const optionCount = await options.count()
 
-        if (sprintOption) {
-          await selectElement.selectOption({ label: sprintOption })
-          await page.waitForTimeout(500)
+      if (optionCount > 1) {
+        const sprintOption = options.nth(1)
+        const sprintLabel = (await sprintOption.textContent())?.trim() ?? ''
+        await sprintOption.click()
+        await expect(weekFilter.filter).toContainText(sprintLabel, { timeout: 5000 })
 
-          const rows = page.locator('tbody tr')
-          const count = await rows.count()
+        const rows = page.locator('tbody tr')
+        const count = await rows.count()
+        const weekColumnIndex = await getIssuesTableColumnIndex(page, 'Week')
+        expect(weekColumnIndex).toBeGreaterThanOrEqual(0)
 
-          // All visible issues should be in that specific sprint
-          // Sprint column is second-to-last (before actions column)
-          for (let i = 0; i < Math.min(count, 3); i++) {
-            const sprintCell = rows.nth(i).locator('td:nth-last-child(2)')
-            await expect(sprintCell).toContainText(/Week of/)
-          }
+        for (let i = 0; i < Math.min(count, 3); i++) {
+          const sprintCell = rows.nth(i).locator('td').nth(weekColumnIndex)
+          await expect(sprintCell).toContainText(sprintLabel)
         }
       }
     }

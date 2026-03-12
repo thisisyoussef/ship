@@ -200,26 +200,32 @@ export function UnifiedDocumentPage() {
   // Set default active tab when document loads (status-aware for sprints)
   const tabConfig = document ? getTabsForDocument(document) : [];
   const hasTabs = document ? documentTypeHasTabs(document.document_type) : false;
+  const normalizedUrlTab = useMemo(() => {
+    if (urlTab === 'sprints' && tabConfig.some(t => t.id === 'weeks')) {
+      return 'weeks';
+    }
+    return urlTab;
+  }, [urlTab, tabConfig]);
 
   // Derive activeTab from URL - if valid tab in URL, use it; otherwise default to first tab
   const activeTab = useMemo(() => {
-    if (urlTab && tabConfig.some(t => t.id === urlTab)) {
-      return urlTab;
+    if (normalizedUrlTab && tabConfig.some(t => t.id === normalizedUrlTab)) {
+      return normalizedUrlTab;
     }
     return tabConfig[0]?.id || '';
-  }, [urlTab, tabConfig]);
+  }, [normalizedUrlTab, tabConfig]);
 
   // Redirect to clean URL if tab is invalid (prevents broken bookmarks and typos)
   useEffect(() => {
     if (!document || !id) return;
 
     // If URL has a tab but it's not valid for this document type, redirect to base URL
-    const isValidTab = tabConfig.some(t => t.id === urlTab);
+    const isValidTab = normalizedUrlTab ? tabConfig.some(t => t.id === normalizedUrlTab) : false;
     if (urlTab && !isValidTab) {
       console.warn(`Invalid tab "${urlTab}" for document type "${document.document_type}", redirecting to base URL`);
       navigate(`/documents/${id}`, { replace: true });
     }
-  }, [document, id, urlTab, tabConfig, navigate]);
+  }, [document, id, urlTab, normalizedUrlTab, tabConfig, navigate]);
 
   // Fetch team members for sidebar data
   const { data: teamMembersData = [] } = useAssignableMembersQuery();

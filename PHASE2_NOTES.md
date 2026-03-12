@@ -999,3 +999,64 @@ I reproduced the current workspace state before editing tests.
 - 3 fixes completed: Yes
 - At least one user-facing confusion scenario fixed: Yes
 - Passing verdict: Yes
+
+## Category 7: Accessibility
+
+### Baseline Reproduction
+
+- Reproduced on March 11, 2026 during the original Category 7 audit from `/Users/youss/Development/gauntlet/ship`.
+- The clean replay branch intentionally excludes the original generated Lighthouse and axe artifact dumps; the diagnosis below is carried forward from that reproduced audit, and the replay branch uses targeted Playwright regression coverage as the kept evidence.
+- Reproduced baseline issues:
+  - `/docs`: `aria-required-children` (`critical`) + `listitem` (`serious`)
+  - `/documents/:id`: `aria-required-children` (`critical`) + `listitem` (`serious`)
+  - `/my-week`: `color-contrast` (`serious`)
+
+### Diagnosis
+
+1. What caused the document-tree accessibility failures on `/docs` and `/documents/:id`?
+
+- In `/Users/youss/Development/gauntlet/ship/web/src/pages/App.tsx`, the workspace/private `N more...` overflow links lived inside `role="tree"` containers as plain list items.
+- That produced the reproduced `aria-required-children` and `listitem` violations because the tree roots contained descendants that were not `role="treeitem"`.
+
+2. What caused the `/my-week` color-contrast failures?
+
+- `/Users/youss/Development/gauntlet/ship/web/src/pages/MyWeekPage.tsx` combined low-contrast class choices on small text:
+  - `text-accent` on `bg-accent/20` for the `Current` chip
+  - `text-muted/50` on 11px list indices
+  - `text-accent` on the current-day label
+  - `opacity-40` on future rows, which dragged muted text below AA contrast
+
+3. Did the category reproduce a keyboard-navigation failure?
+
+- No additional keyboard-navigation regression was reproduced in the audited flows.
+- The actionable accessibility defects for this category were the document-tree semantics issue and the `/my-week` contrast issue.
+
+### Changes Made
+
+- `web/src/pages/App.tsx`
+  - moved the workspace/private `N more...` links out of the `role="tree"` lists so the trees contain only actual document tree items
+- `web/src/pages/MyWeekPage.tsx`
+  - changed the `Current` badge to a solid accent chip with white text
+  - changed weekly plan/retro list numerals from `text-muted/50` to `text-muted`
+  - removed `opacity-40` from future daily-update rows
+  - changed the current-day label from `text-accent` to `text-blue-300`
+- `e2e/category-7-accessibility.spec.ts`
+  - added focused regression coverage for docs tree semantics, document-detail tree semantics, and `/my-week` color contrast
+
+### Validation
+
+- `pnpm --filter @ship/shared build`
+  - Passed.
+- `pnpm --filter @ship/web test`
+  - Passed.
+  - Result: `18` files passed, `161` tests passed.
+- `PLAYWRIGHT_WORKERS=1 pnpm exec playwright test e2e/category-7-accessibility.spec.ts --workers=1`
+  - Passed.
+  - Result: `3` tests passed.
+
+### Final Summary
+
+- `/docs` tree semantics: fixed
+- `/documents/:id` tree semantics: fixed
+- `/my-week` contrast regressions: fixed
+- Passing verdict: Yes

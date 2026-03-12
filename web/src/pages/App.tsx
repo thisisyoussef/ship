@@ -36,6 +36,11 @@ import { SelectionPersistenceProvider } from '@/contexts/SelectionPersistenceCon
 import { ActionItemsModal } from '@/components/ActionItemsModal';
 import { AccountabilityBanner } from '@/components/AccountabilityBanner';
 import { ProjectContextSidebar } from '@/components/sidebars/ProjectContextSidebar';
+import {
+  ActionItemsModalOpenReason,
+  shouldAutoOpenActionItemsModal,
+  shouldCloseAutoOpenedActionItemsModal,
+} from '@/lib/actionItemsModal';
 
 type Mode = 'docs' | 'issues' | 'projects' | 'programs' | 'sprints' | 'team' | 'settings' | 'dashboard' | 'project-context';
 
@@ -55,6 +60,7 @@ export function AppLayout() {
   const [workspaceSwitcherOpen, setWorkspaceSwitcherOpen] = useState(false);
   const [projectSetupWizardOpen, setProjectSetupWizardOpen] = useState(false);
   const [actionItemsModalOpen, setActionItemsModalOpen] = useState(false);
+  const [actionItemsModalOpenReason, setActionItemsModalOpenReason] = useState<ActionItemsModalOpenReason>(null);
   const [actionItemsModalShownOnLoad, setActionItemsModalShownOnLoad] = useState(false);
 
   // Session timeout handling
@@ -83,6 +89,11 @@ export function AppLayout() {
   // Celebration state for when user completes an accountability item
   const [isCelebrating, setIsCelebrating] = useState(false);
   const celebrationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const closeActionItemsModal = useCallback(() => {
+    setActionItemsModalOpen(false);
+    setActionItemsModalOpenReason(null);
+  }, []);
 
   // Listen for realtime accountability updates
   const handleAccountabilityUpdate = useCallback(() => {
@@ -117,12 +128,31 @@ export function AppLayout() {
   // Show action items modal on initial load if there are pending items
   // Disabled when localStorage flag is set (used by E2E tests to avoid blocking interactions)
   useEffect(() => {
-    if (localStorage.getItem('ship:disableActionItemsModal') === 'true') return;
-    if (!actionItemsModalShownOnLoad && hasActionItems && actionItemsData?.items) {
+    const disabled = localStorage.getItem('ship:disableActionItemsModal') === 'true';
+    const hasItems = Boolean(actionItemsData?.items);
+
+    if (shouldAutoOpenActionItemsModal({
+      disabled,
+      alreadyShown: actionItemsModalShownOnLoad,
+      hasActionItems,
+      hasItems,
+      pathname: location.pathname,
+    })) {
       setActionItemsModalOpen(true);
+      setActionItemsModalOpenReason('auto');
       setActionItemsModalShownOnLoad(true);
     }
-  }, [actionItemsModalShownOnLoad, hasActionItems, actionItemsData?.items]);
+  }, [actionItemsModalShownOnLoad, hasActionItems, actionItemsData?.items, location.pathname]);
+
+  // Don't let an auto-opened accountability modal block direct entry into a document editor.
+  useEffect(() => {
+    if (actionItemsModalOpen && shouldCloseAutoOpenedActionItemsModal({
+      openReason: actionItemsModalOpenReason,
+      pathname: location.pathname,
+    })) {
+      closeActionItemsModal();
+    }
+  }, [actionItemsModalOpen, actionItemsModalOpenReason, closeActionItemsModal, location.pathname]);
 
   // Accessibility: focus management on navigation
   useFocusOnNavigate();
@@ -289,7 +319,10 @@ export function AppLayout() {
       {/* Accountability banner - persistent until all items complete */}
       <AccountabilityBanner
         itemCount={actionItemsData?.items?.length ?? 0}
-        onBannerClick={() => setActionItemsModalOpen(true)}
+        onBannerClick={() => {
+          setActionItemsModalOpen(true);
+          setActionItemsModalOpenReason('manual');
+        }}
         isCelebrating={isCelebrating}
         urgency={actionItemsData?.has_overdue ? 'overdue' : 'due_today'}
       />
@@ -573,7 +606,7 @@ export function AppLayout() {
       {/* Action Items Modal - shows on login when user has pending accountability tasks */}
       <ActionItemsModal
         open={actionItemsModalOpen}
-        onClose={() => setActionItemsModalOpen(false)}
+        onClose={closeActionItemsModal}
       />
     </div>
     </SelectionPersistenceProvider>

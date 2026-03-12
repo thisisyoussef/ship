@@ -1,3 +1,5 @@
+# Phase 2 Notes
+
 ## Category 1: Type Safety
 
 ### Baseline Reproduction
@@ -131,3 +133,111 @@
 - Final total after fixes: 902 (AST audit)
 - Percentage reduction achieved: 30.13% (389 / 1291)
 - Passing verdict: yes
+
+## Category 2: Bundle Size
+
+### Reproduced Baseline
+
+- Reproduced on March 11, 2026 from `/Users/youss/Development/gauntlet/ship` during the original category run.
+- Exact build command:
+  - `pnpm --filter @ship/web exec vite build --sourcemap`
+- Exact chunk listing command:
+  - `pnpm --filter @ship/web exec vite build --sourcemap 2>&1 | grep -E '\.(js|css)' | sort -k2 -rh | head -30`
+- Baseline totals:
+  - Total bundle size: `10,539.29 KB`
+  - Main chunk (raw): `2,025.10 KB`
+  - Main chunk (gzip): `587.62 KB`
+  - Number of chunks: `262`
+- Baseline discrepancy note:
+  - No material discrepancy from the audit. Total size matched exactly and the main chunk differed by `0.04 KB`, well below the allowed 5%.
+
+### Diagnosis Findings
+
+1. Which modules were dynamically imported before the fix?
+   - `web/vite.config.ts` did not define dynamic imports or manual chunking.
+   - Existing dynamic imports were limited to:
+     - `React.lazy()` tab modules in `web/src/lib/document-tabs.tsx`
+     - `import('@/services/upload')` and `import('./FileAttachment')` in `web/src/components/editor/SlashCommands.tsx`
+     - `import.meta.glob('/node_modules/@uswds/uswds/dist/img/usa-icons/*.svg', { query: '?react' })` in `web/src/components/icons/uswds/Icon.tsx`
+   - `web/src/main.tsx` still statically imported every route page, including editor-bearing routes.
+
+2. Were any dynamically imported modules also statically imported elsewhere?
+   - Yes. Vite reported two broken splits that still remain after this route-level work:
+     - `web/src/services/upload.ts` is dynamically imported by `web/src/components/editor/SlashCommands.tsx` but also statically imported by `web/src/components/editor/FileAttachment.tsx` and `web/src/components/editor/ImageUpload.tsx`.
+     - `web/src/components/editor/FileAttachment.tsx` is dynamically imported by `web/src/components/editor/SlashCommands.tsx` but also statically imported by `web/src/components/Editor.tsx`.
+   - More importantly, route-level splitting was missing entirely:
+     - `web/src/main.tsx` statically imported `UnifiedDocumentPage`, `PersonEditor`, and every other page.
+     - `UnifiedDocumentPage` statically imported the editor surface, which in turn pulled `yjs`, `lowlight`, TipTap, and ProseMirror into the initial app graph.
+
+3. Which top contributors could be deferred?
+   - `emoji-picker-react`: yes, only needed from editor-adjacent UI.
+   - `highlight.js` / `lowlight`: yes, only needed for editor code blocks.
+   - `yjs`: yes, only needed for collaborative editing routes.
+   - `prosemirror-view` and the rest of the TipTap/ProseMirror stack: yes, only needed when editor routes render.
+   - `react-router`: no meaningful defer opportunity; it is part of the SPA bootstrap path.
+
+4. Were the flagged unused dependencies actually unused?
+   - `@tanstack/query-sync-storage-persister`: yes, confirmed unused in `web/src`.
+     - Verification command:
+       - `grep -rn "@tanstack/query-sync-storage-persister" web/src --include="*.ts" --include="*.tsx"`
+     - Result: no matches.
+   - `@uswds/uswds`: no, confirmed used.
+     - Verification command:
+       - `grep -rn "@uswds/uswds" web/src --include="*.ts" --include="*.tsx"`
+     - Result: used indirectly by `web/src/components/icons/uswds/Icon.tsx` through `import.meta.glob()` against the USWDS SVG icon set.
+
+### Changes Made
+
+- Removed the verified-dead `@tanstack/query-sync-storage-persister` dependency from `web/package.json` and `pnpm-lock.yaml`.
+- Converted top-level page imports in `web/src/main.tsx` to `React.lazy()` route chunks, added a `Suspense` fallback around the route tree, and lazy-loaded React Query devtools only in development.
+
+### After Build Output
+
+```text
+dist/assets/PropertyRow-CzWzi-N4.js                  836.62 kB │ gzip: 261.18 kB │ map: 3,790.73 kB
+dist/assets/UnifiedDocumentPage-BTtMQph-.js          406.07 kB │ gzip: 100.17 kB │ map: 1,189.41 kB
+dist/assets/index-CPPNbq8d.js                        293.94 kB │ gzip:  91.71 kB │ map: 1,230.10 kB
+dist/assets/App-CCSqVuN2.js                           88.49 kB │ gzip:  19.38 kB │ map:   269.15 kB
+dist/assets/index-DuV_k7kB.js                         74.56 kB │ gzip:  25.91 kB │ map:   367.81 kB
+dist/assets/index-D_Rleic7.css                        65.10 kB │ gzip:  12.56 kB
+dist/assets/IssuesList-BpXCpLdo.js                    54.21 kB │ gzip:  15.85 kB │ map:   200.28 kB
+dist/assets/Login-BBu4DqUf.js                         52.05 kB │ gzip:  10.63 kB │ map:    37.64 kB
+dist/assets/core.esm-B4ST11IL.js                      43.78 kB │ gzip:  14.56 kB │ map:   192.02 kB
+dist/assets/ReviewsPage-FNCQSg0u.js                   28.44 kB │ gzip:   7.23 kB │ map:    85.42 kB
+```
+
+### Result
+
+- Post-change totals:
+  - Total bundle size: `10,622.89 KB`
+  - Main chunk (raw): `287.05 KB`
+    - Entry file: `web/dist/assets/index-CPPNbq8d.js`
+  - Main chunk (gzip): `91.71 KB`
+  - Number of chunks: `307`
+- Main chunk reduction:
+  - Before: `2,025.10 KB`
+  - After: `287.05 KB`
+  - Reduction: `1,738.05 KB` (`85.83%`)
+- Total bundle size change:
+  - Before: `10,539.29 KB`
+  - After: `10,622.89 KB`
+  - Change: `+83.60 KB`
+- Threshold result:
+  - Option A: no. Total bundle size increased slightly because route-splitting created more individual chunks and sourcemaps.
+  - Option B: yes. The initial entry chunk was reduced by `85.83%`.
+- Passing verdict: yes
+
+### Verification
+
+- `pnpm install` — pass
+- `pnpm --filter @ship/shared build` — pass
+- `pnpm --filter @ship/web exec vite build --sourcemap` — pass
+- `pnpm --filter @ship/web test` — fail
+- Pre-existing failing suites during verification:
+  - `src/lib/document-tabs.test.ts`
+  - `src/components/editor/DetailsExtension.test.ts`
+  - `src/hooks/useSessionTimeout.test.ts`
+- Current web test summary:
+  - `3` failed files, `13` failed tests, `138` passed tests
+- Remaining Vite warnings:
+  - `web/src/services/upload.ts` and `web/src/components/editor/FileAttachment.tsx` still have mixed dynamic/static import patterns outside this route-entrypoint split.

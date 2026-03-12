@@ -11,6 +11,7 @@ import {
 import { logDocumentChange, getLatestDocumentFieldHistory } from '../utils/document-crud.js';
 import { broadcastToUser } from '../collaboration/index.js';
 import { extractText } from '../utils/document-content.js';
+import { listCacheInvalidationMiddleware } from '../services/list-response-cache.js';
 import type { WeekProperties } from '@ship/shared';
 import {
   getAuthContext,
@@ -21,6 +22,8 @@ import {
 
 type RouterType = ReturnType<typeof Router>;
 const router: RouterType = Router();
+
+router.use(listCacheInvalidationMiddleware);
 
 type SprintProperties = Partial<WeekProperties> & JsonObject;
 

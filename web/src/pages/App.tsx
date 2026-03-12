@@ -681,17 +681,17 @@ function DocumentsTree({ documents, activeId, onSelect }: { documents: WikiDocum
           ) : (
             <li className="px-2 py-1 text-sm text-muted">No workspace documents</li>
           )}
-          {workspaceHiddenCount > 0 && (
-            <li>
-              <Link
-                to="/docs?filter=workspace"
-                className="block px-2 py-1.5 text-sm text-muted hover:text-foreground hover:bg-border/30 rounded-md transition-colors"
-              >
-                {workspaceHiddenCount} more...
-              </Link>
-            </li>
-          )}
         </ul>
+        {workspaceHiddenCount > 0 && (
+          <div className="px-2 pt-1">
+            <Link
+              to="/docs?filter=workspace"
+              className="block rounded-md px-2 py-1.5 text-sm text-muted transition-colors hover:bg-border/30 hover:text-foreground"
+            >
+              {workspaceHiddenCount} more...
+            </Link>
+          </div>
+        )}
       </div>
       {/* Private section - only show if user has private docs */}
       {privateTree.length > 0 && (
@@ -710,17 +710,17 @@ function DocumentsTree({ documents, activeId, onSelect }: { documents: WikiDocum
                 depth={0}
               />
             ))}
-            {privateHiddenCount > 0 && (
-              <li>
-                <Link
-                  to="/docs?filter=private"
-                  className="block px-2 py-1.5 text-sm text-muted hover:text-foreground hover:bg-border/30 rounded-md transition-colors"
-                >
-                  {privateHiddenCount} more...
-                </Link>
-              </li>
-            )}
           </ul>
+          {privateHiddenCount > 0 && (
+            <div className="px-2 pt-1">
+              <Link
+                to="/docs?filter=private"
+                className="block rounded-md px-2 py-1.5 text-sm text-muted transition-colors hover:bg-border/30 hover:text-foreground"
+              >
+                {privateHiddenCount} more...
+              </Link>
+            </div>
+          )}
         </div>
       )}
     </div>

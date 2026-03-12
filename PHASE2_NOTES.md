@@ -52,7 +52,6 @@
 - After behavior:
   - Pending.
 - Evidence:
-  - `/Users/youss/Development/gauntlet/ship/output/playwright/phase2/baseline/login-console.txt`
   - `/Users/youss/Development/gauntlet/ship/output/playwright/phase2/baseline/after-login.png`
 
 #### Issue 2: Modal overlay blocking editor entry
@@ -74,7 +73,6 @@
   - Pending.
 - Evidence:
   - `/Users/youss/Development/gauntlet/ship/output/playwright/phase2/baseline/issue2-document-overlay.png`
-  - `/Users/youss/Development/gauntlet/ship/output/playwright/phase2/baseline/issue2-click-log.txt`
 
 #### Issue 3: Error boundary recovery is incomplete
 

@@ -1,0 +1,3 @@
+ui:fallback=Something went wrong|button=Try Again
+app:fallback=Something went wrong|button=Try Again
+editor:fallback=Something went wrong|button=Try Again

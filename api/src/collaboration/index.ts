@@ -16,14 +16,16 @@ const messageAwareness = 1;
 const messageCustomEvent = 2;
 const messageClearCache = 3; // Tells browser to clear IndexedDB cache before sync
 
+const isE2ETest = process.env.E2E_TEST === '1';
+
 // Rate limiting configuration
 const RATE_LIMIT = {
   // Connection rate limiting: max connections per IP in time window
   CONNECTION_WINDOW_MS: 60_000,  // 1 minute window
-  MAX_CONNECTIONS_PER_IP: 30,    // 30 connections per minute per IP
+  MAX_CONNECTIONS_PER_IP: isE2ETest ? 1_000 : 30,
   // Message rate limiting: max messages per connection in time window
   MESSAGE_WINDOW_MS: 1_000,      // 1 second window
-  MAX_MESSAGES_PER_SECOND: 50,   // 50 messages per second per connection
+  MAX_MESSAGES_PER_SECOND: isE2ETest ? 500 : 50,
 };
 
 // Track connection attempts per IP (sliding window)

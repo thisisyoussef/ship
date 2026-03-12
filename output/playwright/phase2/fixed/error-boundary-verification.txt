@@ -1,0 +1,3 @@
+ui:fallback=Something went wrong|buttons=Reload Page|Try Again
+app:fallback=Something went wrong|buttons=Reload Page|Try Again
+editor:fallback=Something went wrong|buttons=Reload Page|Try Again

@@ -96,11 +96,14 @@
 - Root cause:
   - `/Users/youss/Development/gauntlet/ship/web/src/components/ui/ErrorBoundary.tsx` renders a minimal fallback with reset-only recovery.
 - Fix applied:
-  - Pending.
+  - `/Users/youss/Development/gauntlet/ship/web/src/components/ui/ErrorBoundary.tsx` now adds a `Reload Page` recovery action alongside `Try Again`.
+  - The shared fallback copy now tells the user they can reload or retry, which satisfies the minimum helpful recovery requirement for all existing boundary placements.
 - After behavior:
-  - Pending.
+  - Throwing children inside the shared boundary, App subtree boundary, and Editor subtree boundary now render the same fallback with both `Reload Page` and `Try Again`.
+  - Render failures still avoid a blank screen, and the fallback gives users an explicit full-page recovery path when retry is insufficient.
 - Evidence:
   - `/Users/youss/Development/gauntlet/ship/output/playwright/phase2/baseline/error-boundary-verification.txt`
+  - `/Users/youss/Development/gauntlet/ship/output/playwright/phase2/fixed/error-boundary-verification.txt`
 
 ### Initial Implementation Plan
 
@@ -110,9 +113,27 @@
 
 ### Final Summary
 
-- 3 fixes completed: Pending
-- At least one user-facing confusion scenario fixed: Pending
-- Passing verdict: Pending
+- 3 fixes completed: Yes
+- At least one user-facing confusion scenario fixed: Yes
+- Passing verdict: Yes
+
+### Validation
+
+- After-state Playwright captures were recorded against temporary local dev servers on `http://localhost:5174` and `http://localhost:3001` because another Ship stack was already bound to the default `5173` and `3000` ports on this machine.
+- `pnpm --filter @ship/web test -- src/hooks/useSessionTimeout.test.ts src/lib/actionItemsModal.test.ts src/components/ui/ErrorBoundary.test.tsx`
+  - Failed in this workspace because the `@ship/web` `test` script still executed unrelated suites.
+  - Result: `18` files run, `12` unrelated failures in `src/lib/document-tabs.test.ts` and `src/components/editor/DetailsExtension.test.ts`.
+- `pnpm --filter @ship/web exec vitest run src/hooks/useSessionTimeout.test.ts src/lib/actionItemsModal.test.ts src/components/ui/ErrorBoundary.test.tsx`
+  - Passed.
+  - Result: `3` files passed, `42` tests passed.
+- `DATABASE_URL=postgres://ship:ship_dev_password@localhost:6543/ship_dev pnpm test`
+  - Failed on pre-existing `origin/master` regressions outside this category.
+  - Result: `28` files run, `425` tests passed, `26` tests failed.
+  - Failing suites: `src/routes/issues-history.test.ts` and `src/routes/projects.test.ts`, both returning unexpected `401` responses instead of the statuses those tests expect.
+- `PLAYWRIGHT_WORKERS=2 pnpm test:e2e`
+  - Failed on a pre-existing accessibility remediation spec outside this category and was then stopped.
+  - First failing spec: `e2e/accessibility-remediation.spec.ts:145` (`combobox has required ARIA attributes`).
+  - Failure: expected `#issues-program-filter-listbox, [role="listbox"]` to become visible within `2000ms`.
 
 ## Category 2: Bundle Size
 

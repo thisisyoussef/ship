@@ -10,6 +10,10 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
+export function reloadPage(): void {
+  window.location.reload();
+}
+
 export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
@@ -29,6 +33,10 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     this.setState({ hasError: false, error: null });
   };
 
+  handleReload = (): void => {
+    reloadPage();
+  };
+
   render(): ReactNode {
     if (this.state.hasError) {
       if (this.props.fallback) {
@@ -40,14 +48,22 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
           <div className="flex flex-col items-center gap-4 text-center">
             <div className="text-sm font-medium text-foreground">Something went wrong</div>
             <p className="max-w-md text-xs text-muted">
-              An unexpected error occurred while rendering this section.
+              An unexpected error occurred while rendering this section. Reload the page or try this section again.
             </p>
-            <button
-              onClick={this.handleReset}
-              className="rounded-md border border-border bg-background px-3 py-1.5 text-xs text-foreground hover:bg-accent transition-colors"
-            >
-              Try Again
-            </button>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <button
+                onClick={this.handleReload}
+                className="rounded-md bg-accent px-3 py-1.5 text-xs text-white hover:bg-accent/90 transition-colors"
+              >
+                Reload Page
+              </button>
+              <button
+                onClick={this.handleReset}
+                className="rounded-md border border-border bg-background px-3 py-1.5 text-xs text-foreground hover:bg-accent transition-colors"
+              >
+                Try Again
+              </button>
+            </div>
           </div>
         </div>
       );

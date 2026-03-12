@@ -1,0 +1,116 @@
+{
+  "active_flights": [],
+  "created_at": "2026-03-05T05:05:26Z",
+  "execution_mode": "single",
+  "history": [
+    {
+      "branch": "",
+      "claimed_at": "2026-03-05T08:00:03Z",
+      "flight_id": "flight-agentic-template-01",
+      "lock_paths": [
+        ".ai/agents/claude.md",
+        ".ai/codex.md",
+        ".clauderc",
+        ".cursorrules",
+        "AGENTS.md"
+      ],
+      "notes": "Apply systematicls agentic engineering advice to workspace templates",
+      "owner": "codex",
+      "release_summary": "Applied agentic engineering guidance updates to workspace template docs",
+      "released_at": "2026-03-05T08:00:46Z",
+      "slot": "docs",
+      "status": "completed",
+      "story_ref": "TL-APPLY-SYCLS"
+    },
+    {
+      "branch": "",
+      "claimed_at": "2026-03-06T05:57:09Z",
+      "flight_id": "flight-eval-workflow-01",
+      "lock_paths": [
+        ".ai",
+        ".clauderc",
+        ".cursorrules",
+        "AGENTS.md",
+        "scripts/check_ai_wiring.sh",
+        "scripts/verify_agent_contract.py"
+      ],
+      "notes": "Add eval-driven workflow and wire it through agent contracts",
+      "owner": "codex",
+      "release_summary": "Added eval-driven workflow and wiring for AI-behavior changes",
+      "released_at": "2026-03-06T06:00:04Z",
+      "slot": "ai_arch",
+      "status": "completed",
+      "story_ref": "EVAL-WORKFLOW-01"
+    },
+    {
+      "branch": "",
+      "claimed_at": "2026-03-06T06:05:29Z",
+      "flight_id": "flight-frontend-design-skill-01",
+      "lock_paths": [
+        ".ai",
+        ".clauderc",
+        ".cursorrules",
+        "AGENTS.md",
+        "scripts/check_ai_wiring.sh"
+      ],
+      "notes": "Add frontend design skill and wire UI-specific prompting guidance into the template",
+      "owner": "codex",
+      "release_summary": "Added frontend design skill and UI-specific prompting constraints to the workflow",
+      "released_at": "2026-03-06T06:08:17Z",
+      "slot": "ai_arch",
+      "status": "completed",
+      "story_ref": "UI-DESIGN-WORKFLOW-01"
+    },
+    {
+      "branch": "",
+      "claimed_at": "2026-03-06T06:09:15Z",
+      "flight_id": "flight-wireframe-ui-prompting-01",
+      "lock_paths": [
+        ".ai",
+        ".clauderc",
+        ".cursorrules",
+        "AGENTS.md",
+        "scripts/check_ai_wiring.sh",
+        "scripts/verify_agent_contract.py"
+      ],
+      "notes": "Add WIRE+FRAME-style UI prompting structure and distilled aesthetics guidance",
+      "owner": "codex",
+      "release_summary": "Added WIRE+FRAME UI prompt brief and stronger frontend prompting guidance",
+      "released_at": "2026-03-06T06:13:53Z",
+      "slot": "ai_arch",
+      "status": "completed",
+      "story_ref": "UI-PROMPTING-02"
+    },
+    {
+      "branch": "",
+      "claimed_at": "2026-03-07T07:27:52Z",
+      "flight_id": "flight-stack-agnostic-01",
+      "lock_paths": [
+        ".ai",
+        ".clauderc",
+        ".cursorrules",
+        "AGENTS.md",
+        "README.md",
+        "scripts/check_ai_wiring.sh",
+        "scripts/verify_agent_contract.py"
+      ],
+      "notes": "Remove stack-specific assumptions and make template choose stack per project",
+      "owner": "codex",
+      "release_summary": "Removed baked-in stack assumptions and made the template stack-selected during setup",
+      "released_at": "2026-03-07T07:36:12Z",
+      "slot": "ai_arch",
+      "status": "completed",
+      "story_ref": "STACK-AGNOSTIC-01"
+    }
+  ],
+  "parallel_max_active_flights": 3,
+  "slot_limits": {
+    "ai_arch": 1,
+    "code": 2,
+    "deploy": 1,
+    "docs": 2,
+    "infra": 1
+  },
+  "updated_at": "2026-03-07T07:36:12Z",
+  "version": 1
+}

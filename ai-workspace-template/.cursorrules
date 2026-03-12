@@ -1,0 +1,93 @@
+# Cursor IDE Rules for {{PROJECT_NAME}}
+
+## Project Context
+This template is stack-agnostic by default. Choose the language, framework, runtime, data stores, and hosting targets during project setup based on product requirements.
+
+## File Organization
+- Source directories: choose during setup
+- Test directories: choose during setup
+- AI workspace: `.ai/` (orchestration, memory, skills)
+
+## Development Workflow
+1. **ALWAYS start** by reading `.ai/docs/SINGLE_SOURCE_OF_TRUTH.md`
+2. **ALWAYS read orchestrator**: `.ai/agents/claude.md`
+3. **If setup is incomplete, choose the stack first**: language, framework, runtime, package manager, deploy target, source dirs, test dirs, validation commands
+3. **ALWAYS run preflight for new stories**: `agent-preflight` brief before edits
+4. **ALWAYS run SDD scaffolding for features**: `.ai/workflows/spec-driven-delivery.md` + `.ai/docs/research/spec-driven-tdd-playbook.md` + `.ai/templates/spec/`
+5. **For UI scope, use design philosophy as tie-breaker**: `.ai/docs/design/DESIGN_PHILOSOPHY_AND_LANGUAGE.md`
+6. **For UI scope, apply the frontend design skill**: `.ai/skills/frontend-design.md`
+7. **For strategic or reusable UI prompting, create a UI prompt brief**: `.ai/templates/spec/UI_PROMPT_BRIEF_TEMPLATE.md`
+8. **ALWAYS run lookup before coding**: `.ai/workflows/story-lookup.md` (local docs + web best practices)
+9. **Coordinate flight slots before edits**: `.ai/workflows/parallel-flight.md` + `bash scripts/flight_slot.sh claim ...` (default mode is single)
+10. **For AI-behavior changes, run eval design first**: `.ai/workflows/eval-driven-development.md`
+11. **Before coding/review work**: read `.ai/docs/AGENTIC_ENGINEERING_PRINCIPLES.md`
+12. **Test-first**: Write tests before implementation (TDD)
+13. **Test prompt and review tasks neutrally**: ask for evidence, severity, and risk rather than assuming defects
+14. **File limits**: <250 lines max, target 150 lines
+15. **DRY principle**: Extract duplication into shared modules appropriate for the chosen stack
+
+## Code Standards
+- **Type hints**: Required on all functions
+- **Docstrings**: Required on public functions (Google style)
+- **Error handling**: Use explicit, project-appropriate error types
+- **Logging**: Use structured logging appropriate for the chosen stack; avoid ad hoc `print()`
+
+## Security
+- **No hardcoded secrets**: Use environment variables only
+- **Input validation**: Validate all external input
+- **Error messages**: Never leak secrets or internal paths
+
+## Testing
+- **Coverage target**: >90% line coverage
+- **Test structure**: Given-When-Then
+- **Test naming**: `test_<function>_<scenario>_<expected>`
+- **Run frequently**: the smallest focused test command for the chosen stack after each change
+
+## Before Committing
+Run the validation commands defined during setup:
+```bash
+<project-test-command>
+<project-typecheck-command>
+<project-lint-command>
+<project-coverage-command>
+<project-security-command>
+```
+
+All must pass before commit.
+
+## AI Architecture Changes Only
+If changes touch `.ai/`, `AGENTS.md`, `.clauderc`, `.cursorrules`, or agent-contract files, run:
+```bash
+bash scripts/check_ai_wiring.sh
+```
+
+## Flight Mode
+- Use `bash scripts/flight_slot.sh mode single` for normal one-flight development.
+- Use `bash scripts/flight_slot.sh mode parallel --max-active <N>` only when intentionally running multiple chats/agents.
+- Release each claimed flight at handoff with `bash scripts/flight_slot.sh release ...`.
+
+## End-of-Story Git Finalization (Required)
+- Run `.ai/workflows/git-finalization.md` before story handoff.
+- Ensure commit + push completed.
+- Run `bash scripts/git_finalize_guard.sh` and include its result in handoff.
+
+## AI Agent Delegation
+For specialized tasks, check:
+- `.ai/agents/tdd-agent.md` - Test design
+- `.ai/agents/architect-agent.md` - System design
+- `.ai/agents/security-agent.md` - Security audit
+- Project-specific domain agents under `.ai/agents/` - Created or replaced during setup
+
+## Reference Documentation
+Check `.ai/docs/references/` before searching online:
+- Chosen language/runtime docs
+- Chosen framework docs
+- Chosen datastore/provider docs
+- Chosen deployment platform docs
+
+## Memory Bank
+After completing work, update:
+- `.ai/docs/SINGLE_SOURCE_OF_TRUTH.md` - Current state
+- `.ai/memory/project/patterns.md` - What worked
+- `.ai/memory/project/anti-patterns.md` - What failed
+- `.ai/memory/codex/` - Reusable patterns

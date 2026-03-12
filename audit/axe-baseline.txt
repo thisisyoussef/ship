@@ -1,0 +1,57 @@
+=== /docs ===
+Critical: 1
+Serious: 1
+Total: 2
+[critical] aria-required-children: Ensure elements with an ARIA role that require child roles contain them
+  Element: <ul role="tree" aria-label="Workspace documents" aria-live="polite" class="space-y-0.5 px-2">
+  Failure: Fix any of the following: Element has children which are not allowed: li[tabindex]
+[serious] listitem: Ensure <li> elements are used semantically
+  Element: <li><a class="block px-2 py-1.5 text-sm text-muted hover:text-foreground hover:bg-border/30 rounded-md transition-colors" href="/docs?filter=workspace" data-discover="true">305 more...</a></li>
+  Failure: Fix any of the following: List item parent element has a role that is not role="list"
+
+=== /issues ===
+Critical: 0
+Serious: 0
+Total: 0
+No critical or serious violations.
+
+=== /my-week ===
+Critical: 0
+Serious: 1
+Total: 1
+[serious] color-contrast: Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds
+  Element: <span class="text-xs bg-accent/20 text-accent px-1.5 py-0.5 rounded">Current</span>
+  Failure: Fix any of the following: Element has insufficient color contrast of 2.55 (foreground color: #005ea2, background color: #0a1d2b, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1
+  Element: <span class="text-[11px] font-semibold text-muted/50 w-4 text-right shrink-0 mt-0.5">1.</span>
+  Failure: Fix any of the following: Element has insufficient color contrast of 2.26 (foreground color: #4c4c4c, background color: #0d0d0d, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1
+  Element: <span class="text-[11px] font-semibold text-muted/50 w-4 text-right shrink-0 mt-0.5">2.</span>
+  Failure: Fix any of the following: Element has insufficient color contrast of 2.26 (foreground color: #4c4c4c, background color: #0d0d0d, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1
+  Element: <span class="text-[11px] font-semibold text-muted/50 w-4 text-right shrink-0 mt-0.5">3.</span>
+  Failure: Fix any of the following: Element has insufficient color contrast of 2.26 (foreground color: #4c4c4c, background color: #0d0d0d, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1
+  Element: <span class="text-[11px] font-semibold text-muted/50 w-4 text-right shrink-0 mt-0.5">4.</span>
+  Failure: Fix any of the following: Element has insufficient color contrast of 2.26 (foreground color: #4c4c4c, background color: #0d0d0d, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1
+  Element: <span class="text-xs font-medium text-accent">Wed</span>
+  Failure: Fix any of the following: Element has insufficient color contrast of 2.82 (foreground color: #005ea2, background color: #0c1114, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1
+  Element: <span class="text-xs font-medium text-muted">Thu</span>
+  Failure: Fix any of the following: Element has insufficient color contrast of 1.84 (foreground color: #3f3f3f, background color: #0d0d0d, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1
+  Element: <span class="text-xs text-muted ml-1">3/12</span>
+  Failure: Fix any of the following: Element has insufficient color contrast of 1.84 (foreground color: #3f3f3f, background color: #0d0d0d, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1
+  Element: <span class="text-xs text-muted italic">Upcoming</span>
+  Failure: Fix any of the following: Element has insufficient color contrast of 1.84 (foreground color: #3f3f3f, background color: #0d0d0d, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1
+  Element: <span class="text-xs font-medium text-muted">Fri</span>
+  Failure: Fix any of the following: Element has insufficient color contrast of 1.84 (foreground color: #3f3f3f, background color: #0d0d0d, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1
+  Element: <span class="text-xs text-muted ml-1">3/13</span>
+  Failure: Fix any of the following: Element has insufficient color contrast of 1.84 (foreground color: #3f3f3f, background color: #0d0d0d, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1
+  Element: <span class="text-xs text-muted italic">Upcoming</span>
+  Failure: Fix any of the following: Element has insufficient color contrast of 1.84 (foreground color: #3f3f3f, background color: #0d0d0d, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1
+
+=== /documents/7071de1d-3ac4-43d4-9f86-dbea7d788f53 ===
+Critical: 1
+Serious: 1
+Total: 2
+[critical] aria-required-children: Ensure elements with an ARIA role that require child roles contain them
+  Element: <ul role="tree" aria-label="Workspace documents" aria-live="polite" class="space-y-0.5 px-2">
+  Failure: Fix any of the following: Element has children which are not allowed: li[tabindex]
+[serious] listitem: Ensure <li> elements are used semantically
+  Element: <li><a class="block px-2 py-1.5 text-sm text-muted hover:text-foreground hover:bg-border/30 rounded-md transition-colors" href="/docs?filter=workspace" data-discover="true">305 more...</a></li>
+  Failure: Fix any of the following: List item parent element has a role that is not role="list"

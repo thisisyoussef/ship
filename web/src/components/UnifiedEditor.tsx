@@ -20,7 +20,7 @@ import { useAutoSave } from '@/hooks/useAutoSave';
 import type { Person } from '@/components/PersonCombobox';
 import type { BelongsTo } from '@ship/shared';
 
-export type DocumentType = 'wiki' | 'issue' | 'project' | 'sprint' | 'program' | 'person' | 'weekly_plan' | 'weekly_retro';
+export type DocumentType = 'wiki' | 'issue' | 'project' | 'sprint' | 'program' | 'person' | 'weekly_plan' | 'weekly_retro' | 'standup';
 
 // Base document interface - common properties across all document types
 interface BaseDocument {
@@ -51,7 +51,7 @@ interface IssueDocument extends BaseDocument {
   assignee_archived?: boolean;
   program_id: string | null;
   sprint_id: string | null;
-  source?: 'internal' | 'external';
+  source?: 'internal' | 'external' | 'action_items';
   rejection_reason?: string | null;
   converted_from_id?: string | null;
   display_id?: string;

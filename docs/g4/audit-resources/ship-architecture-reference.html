@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Appendix: Codebase Orientation Checklist — Phase 1 Reference</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600;700&family=Fragment+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --font-body: 'Bricolage Grotesque', system-ui, sans-serif;
+    --font-mono: 'Fragment Mono', 'SF Mono', Consolas, monospace;
+    --bg: #f8fafc;
+    --surface: #ffffff;
+    --surface-2: #f3f8fd;
+    --surface-3: #eef5fb;
+    --border: rgba(0, 0, 0, 0.08);
+    --text: #16324f;
+    --text-dim: #5b7188;
+    --shadow: 0 22px 50px rgba(16, 36, 58, 0.08);
+    --accent: #1e3a5f;
+    --accent-dim: rgba(30, 58, 95, 0.08);
+    --teal: #0891b2;
+    --teal-dim: rgba(8, 145, 178, 0.08);
+    --gold: #d4a73a;
+    --gold-dim: rgba(212, 167, 58, 0.10);
+    --green: #059669;
+    --green-dim: rgba(5, 150, 105, 0.08);
+    --rose: #be123c;
+    --rose-dim: rgba(190, 18, 60, 0.08);
+    --orange: #b45309;
+    --orange-dim: rgba(180, 83, 9, 0.10);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0c1724;
+      --surface: #132234;
+      --surface-2: #17304c;
+      --surface-3: #1b3552;
+      --border: rgba(255, 255, 255, 0.10);
+      --text: #e8f0f8;
+      --text-dim: #9fb4c9;
+      --shadow: 0 22px 50px rgba(0, 0, 0, 0.28);
+      --accent: #8fb7e2;
+      --accent-dim: rgba(143, 183, 226, 0.10);
+      --teal: #67d1e8;
+      --teal-dim: rgba(103, 209, 232, 0.10);
+      --gold: #e7c86e;
+      --gold-dim: rgba(231, 200, 110, 0.12);
+      --green: #5fd1a8;
+      --green-dim: rgba(95, 209, 168, 0.12);
+      --rose: #fb7185;
+      --rose-dim: rgba(251, 113, 133, 0.10);
+      --orange: #f59e0b;
+      --orange-dim: rgba(245, 158, 11, 0.12);
+    }
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    min-height: 100vh;
+    padding: 32px 40px 48px;
+    color: var(--text);
+    font-family: var(--font-body);
+    background:
+      radial-gradient(circle at top left, var(--accent-dim), transparent 34%),
+      radial-gradient(circle at bottom right, var(--gold-dim), transparent 24%),
+      linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0)),
+      var(--bg);
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate {
+    animation: fadeUp 0.45s ease-out both;
+    animation-delay: calc(var(--i, 0) * 0.06s);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  .wrap {
+    max-width: 1440px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 0 40px;
+  }
+
+  .main { min-width: 0; }
+
+  .toc {
+    position: sticky;
+    top: 24px;
+    align-self: start;
+    padding: 14px 0;
+    grid-row: 1 / -1;
+    max-height: calc(100dvh - 48px);
+    overflow-y: auto;
+  }
+
+  .toc-title {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    padding: 0 0 10px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .toc a {
+    display: block;
+    font-size: 11px;
+    color: var(--text-dim);
+    text-decoration: none;
+    padding: 4px 8px;
+    border-radius: 5px;
+    border-left: 2px solid transparent;
+    transition: all 0.15s ease;
+    line-height: 1.4;
+    margin-bottom: 1px;
+  }
+
+  .toc a:hover { color: var(--text); background: var(--surface-2); }
+  .toc a.active { color: var(--text); border-left-color: var(--accent); }
+
+  .hero {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    box-shadow: var(--shadow);
+    padding: 28px 30px 30px;
+    margin-bottom: 18px;
+  }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+  }
+
+  h1 {
+    font-size: 42px;
+    line-height: 1.03;
+    letter-spacing: -1.1px;
+    margin-bottom: 10px;
+    max-width: 980px;
+  }
+
+  .subtitle {
+    max-width: 980px;
+    color: var(--text-dim);
+    font-size: 17px;
+    line-height: 1.7;
+    margin-bottom: 16px;
+  }
+
+  .hero-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--accent-dim);
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+    display: inline-block;
+  }
+
+  .status-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+
+  .status-card,
+  .section,
+  .callout,
+  .table-wrap,
+  .diagram-surface {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+  }
+
+  .status-card {
+    border-radius: 16px;
+    padding: 15px 16px;
+  }
+
+  .status-card .label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+  }
+
+  .status-card .value {
+    font-size: 19px;
+    line-height: 1.28;
+  }
+
+  .sec-head {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    margin: 18px 0 12px;
+  }
+
+  .section {
+    border-radius: 20px;
+    padding: 22px 22px 20px;
+    margin-bottom: 16px;
+  }
+
+  .section.overview { background: linear-gradient(180deg, var(--accent-dim), transparent 78%), var(--surface); }
+  .section.model { background: linear-gradient(180deg, var(--gold-dim), transparent 78%), var(--surface); }
+  .section.flow { background: linear-gradient(180deg, var(--teal-dim), transparent 78%), var(--surface); }
+  .section.future { background: linear-gradient(180deg, var(--rose-dim), transparent 78%), var(--surface); }
+
+  .section h2 {
+    font-size: 30px;
+    line-height: 1.12;
+    margin-bottom: 10px;
+  }
+
+  .section p {
+    color: var(--text-dim);
+    font-size: 15px;
+    line-height: 1.72;
+    margin-bottom: 14px;
+  }
+
+  .note-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .note-card {
+    background: rgba(255,255,255,0.44);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+  }
+
+  .note-card h3 {
+    font-size: 16px;
+    margin-bottom: 6px;
+  }
+
+  .note-card p {
+    font-size: 13px;
+    line-height: 1.62;
+    margin-bottom: 0;
+  }
+
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 2px;
+  }
+
+  .chip {
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 6px 10px;
+    background: rgba(255,255,255,0.5);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+
+  .packages {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-top: 8px;
+  }
+
+  .pkg {
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    background: var(--surface-2);
+  }
+
+  .pkg.web { border-top: 4px solid var(--teal); }
+  .pkg.api { border-top: 4px solid var(--accent); }
+  .pkg.shared { border-top: 4px solid var(--gold); }
+
+  .pkg .label,
+  .table-label,
+  .diagram-label,
+  .phase-card .phase-label,
+  .flow-step .step-num {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+  }
+
+  .pkg h3,
+  .flow-step h3,
+  .phase-card h3 {
+    font-size: 20px;
+    margin-bottom: 8px;
+  }
+
+  .pkg p,
+  .flow-step p,
+  .phase-card p {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-dim);
+    margin-bottom: 0;
+  }
+
+  .connector-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 12px;
+  }
+
+  .connector {
+    border: 1px dashed var(--border);
+    border-radius: 14px;
+    padding: 12px 14px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    background: var(--surface-2);
+  }
+
+  .diagram-surface {
+    border-radius: 18px;
+    padding: 18px;
+    margin-top: 10px;
+    overflow: auto;
+  }
+
+  .diagram-label {
+    margin-bottom: 12px;
+  }
+
+  .model-grid {
+    min-width: 980px;
+    display: grid;
+    grid-template-columns: 1fr 90px 1fr 90px 1fr;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  .model-card {
+    border-radius: 16px;
+    padding: 16px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+  }
+
+  .model-card.core { border-left: 4px solid var(--gold); }
+  .model-card.relations { border-left: 4px solid var(--teal); }
+  .model-card.runtime { border-left: 4px solid var(--accent); }
+
+  .model-card h3 {
+    font-size: 22px;
+    margin-bottom: 8px;
+  }
+
+  .model-card p {
+    font-size: 14px;
+    line-height: 1.62;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+  }
+
+  .arrow-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .arrow {
+    width: 90px;
+    height: 36px;
+  }
+
+  .arrow path {
+    stroke: var(--text-dim);
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .arrow text {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    fill: var(--text-dim);
+    text-anchor: middle;
+  }
+
+  .snippet {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    overflow: auto;
+    margin-top: 10px;
+  }
+
+  pre {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    color: var(--text);
+  }
+
+  .table-wrap {
+    border-radius: 18px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  thead {
+    background: var(--surface-2);
+  }
+
+  th, td {
+    text-align: left;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  th {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+  }
+
+  td {
+    font-size: 14px;
+    line-height: 1.58;
+    color: var(--text-dim);
+  }
+
+  td strong { color: var(--text); }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 9px;
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  .badge.complete { color: var(--green); background: var(--green-dim); }
+  .badge.partial { color: var(--orange); background: var(--orange-dim); }
+  .badge.pending { color: var(--rose); background: var(--rose-dim); }
+
+  .flow-strip {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .flow-step {
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 14px;
+    background: var(--surface-2);
+    min-height: 142px;
+  }
+
+  .phase-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .phase-card {
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    background: rgba(255,255,255,0.44);
+  }
+
+  .callout {
+    border-left: 4px solid var(--gold);
+    border-radius: 0 14px 14px 0;
+    padding: 16px 20px;
+    color: var(--text-dim);
+    font-size: 14px;
+    line-height: 1.68;
+  }
+
+  .callout strong { color: var(--text); }
+
+  @media (max-width: 1100px) {
+    .wrap { grid-template-columns: 1fr; gap: 0; }
+    body { padding-top: 0; }
+
+    .toc {
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      max-height: none;
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 0;
+      margin: 0 -40px 18px;
+      padding-left: 40px;
+      padding-right: 40px;
+      grid-row: auto;
+    }
+
+    .toc-title { display: none; }
+
+    .toc a {
+      white-space: nowrap;
+      flex-shrink: 0;
+      border-left: none;
+      border-bottom: 2px solid transparent;
+      border-radius: 4px 4px 0 0;
+      padding: 6px 10px;
+      font-size: 10px;
+    }
+
+    .toc a.active {
+      border-left: none;
+      border-bottom-color: var(--accent);
+      background: var(--surface);
+    }
+
+    .main { padding-top: 20px; }
+    .sec-head { scroll-margin-top: 52px; }
+  }
+
+  @media (max-width: 980px) {
+    .status-grid,
+    .note-grid,
+    .packages,
+    .connector-row,
+    .phase-grid,
+    .flow-strip,
+    .model-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .arrow-box { display: none; }
+  }
+
+  @media (max-width: 768px) {
+    body { padding: 0 16px 32px; }
+    .toc { margin: 0 -16px 18px; padding-left: 16px; padding-right: 16px; }
+    h1 { font-size: 30px; }
+    .hero { padding: 20px; }
+    .section { padding: 18px; }
+    .status-card .value { font-size: 17px; }
+    th, td { padding: 12px; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <nav class="toc animate" id="toc" style="--i:0">
+      <div class="toc-title">Contents</div>
+      <a href="#s1">Overview</a>
+      <a href="#s2">Repository</a>
+      <a href="#s3">Data model</a>
+      <a href="#s4">Request flow</a>
+      <a href="#s5">Phase 1 status</a>
+      <a href="#s6">Later phases</a>
+    </nav>
+
+    <div class="main">
+      <section class="hero animate" id="s1" style="--i:1">
+        <div class="eyebrow">Appendix: codebase orientation checklist</div>
+        <h1>Phase 1 reference: Ship’s intended architecture, now grounded in the actual schema and route layer for the data model section.</h1>
+        <p class="subtitle">
+          Ship is a government-oriented, Jira-like planning and execution system built on one hard premise: <strong>everything is a document</strong>. This page merges the earlier visual explainers into one Phase 1 reference page and now separates what is doc-level inference from what has been confirmed in the schema, migrations, shared types, and route queries.
+        </p>
+        <div class="hero-pill"><span class="dot"></span> Current coverage: Phase 1, with Section 2 now code-grounded</div>
+      </section>
+
+      <div class="status-grid animate" style="--i:2">
+        <div class="status-card">
+          <div class="label">Strongest confirmed finding</div>
+          <div class="value">`documents` plus `document_associations` is the current center of gravity.</div>
+        </div>
+        <div class="status-card">
+          <div class="label">Product framing</div>
+          <div class="value">Government-oriented Jira-like planning and execution system.</div>
+        </div>
+        <div class="status-card">
+          <div class="label">Enforcement idea</div>
+          <div class="value">TypeScript is what makes the philosophy practical.</div>
+        </div>
+        <div class="status-card">
+          <div class="label">Biggest remaining gap</div>
+          <div class="value">End-to-end request tracing and middleware/auth verification are still pending.</div>
+        </div>
+      </div>
+
+      <div class="sec-head animate" style="--i:3">1 — Repository Overview</div>
+      <section class="section overview animate" id="s2" style="--i:4">
+        <h2>Phase 1 repository overview: current package mental model</h2>
+        <p>
+          The repository is structured as a monorepo with three primary package boundaries: `web/`, `api/`, and `shared/`. The intended shape is consistent with the architecture docs: the web app renders and edits work, the API owns persistence and collaboration, and the shared package holds the type system that keeps one document model usable on both sides of the boundary.
+        </p>
+        <div class="packages">
+          <div class="pkg web">
+            <div class="label">Frontend package</div>
+            <h3>web/</h3>
+            <p>React application, page shell, editor UI, cached reads, and the client side of collaboration and work management flows.</p>
+          </div>
+          <div class="pkg api">
+            <div class="label">Backend package</div>
+            <h3>api/</h3>
+            <p>Express API, database access, relationship handling, visibility checks, and the server-authoritative source of truth.</p>
+          </div>
+          <div class="pkg shared">
+            <div class="label">Contract package</div>
+            <h3>shared/</h3>
+            <p>Shared document, relationship, and property types that let the product keep one model without losing all type-level structure.</p>
+          </div>
+        </div>
+        <div class="connector-row">
+          <div class="connector">`web/` talks to `api/` through HTTP plus real-time collaboration channels.</div>
+          <div class="connector">`web/` and `api/` both depend on `shared/` so the document model is not duplicated in two incompatible ways.</div>
+        </div>
+      </section>
+
+      <div class="sec-head animate" style="--i:5">2 — Data Model</div>
+      <section class="section model animate" id="s3" style="--i:6">
+        <h2>Data model: current implementation shape</h2>
+        <p>
+          The current schema is in `api/src/db/schema.sql`. The migration trail that explains the relationship model is in `api/src/db/migrations/020_document_associations.sql`, `027_drop_legacy_association_columns.sql`, `029_drop_program_id_column.sql`, `033_sprint_to_week_rename.sql`, and `037_week_dashboard_model.sql`. The application-level type mirror lives in `shared/src/types/document.ts`. Taken together, they show a clear design: a central `documents` table, a separate `document_associations` table for most membership-style relationships, and a TypeScript `belongs_to` shape that surfaces those relationships back to the client.
+        </p>
+
+        <div class="diagram-surface">
+          <div class="diagram-label">Current model at a glance</div>
+          <div class="model-grid">
+            <div class="model-card core">
+              <h3>`documents`</h3>
+              <p>Stores the core identity and content for wiki pages, issues, programs, projects, sprints, person docs, plans, retros, standups, and weekly reviews.</p>
+              <div class="chips">
+                <span class="chip">id</span>
+                <span class="chip">workspace_id</span>
+                <span class="chip">document_type</span>
+                <span class="chip">content</span>
+                <span class="chip">properties</span>
+                <span class="chip">parent_id</span>
+              </div>
+            </div>
+            <div class="arrow-box">
+              <svg class="arrow" viewBox="0 0 90 36" aria-hidden="true">
+                <path d="M6 18 H78"></path><path d="M68 10 L78 18 L68 26"></path><text x="43" y="12">typed by</text>
+              </svg>
+            </div>
+            <div class="model-card runtime">
+              <h3>`document_type`</h3>
+              <p>Acts as the discriminator for queries and behavior. Routes filter the same table by type instead of querying separate issue/project/week tables.</p>
+              <div class="chips">
+                <span class="chip">issue</span>
+                <span class="chip">project</span>
+                <span class="chip">sprint</span>
+                <span class="chip">weekly_plan</span>
+                <span class="chip">weekly_review</span>
+              </div>
+            </div>
+            <div class="arrow-box">
+              <svg class="arrow" viewBox="0 0 90 36" aria-hidden="true">
+                <path d="M6 18 H78"></path><path d="M68 10 L78 18 L68 26"></path><text x="43" y="12">relates via</text>
+              </svg>
+            </div>
+            <div class="model-card relations">
+              <h3>`document_associations`</h3>
+              <p>Handles program, project, sprint, and some parent relationships using `document_id`, `related_id`, and `relationship_type` rather than legacy direct FK columns.</p>
+              <div class="chips">
+                <span class="chip">program</span>
+                <span class="chip">project</span>
+                <span class="chip">sprint</span>
+                <span class="chip">parent</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-wrap" style="margin-top:16px;">
+          <table>
+            <thead>
+              <tr>
+                <th>Table</th>
+                <th>Purpose</th>
+                <th>Important relationships</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>workspaces</strong></td>
+                <td>Top-level tenant boundary and week cadence anchor (`sprint_start_date`).</td>
+                <td>Referenced by users, memberships, sessions, documents, tokens, files, comments, iterations, and audit logs.</td>
+              </tr>
+              <tr>
+                <td><strong>users</strong></td>
+                <td>Global identity records across workspaces.</td>
+                <td>Referenced by memberships, sessions, invites, tokens, documents (`created_by`), comments, iterations, and audit logs.</td>
+              </tr>
+              <tr>
+                <td><strong>workspace_memberships</strong></td>
+                <td>Authorization layer for who can access a workspace.</td>
+                <td>Links `users` to `workspaces`; explicitly separate from person documents.</td>
+              </tr>
+              <tr>
+                <td><strong>documents</strong></td>
+                <td>Core content and work table for nearly every first-class artifact in the product.</td>
+                <td>Self-references through `parent_id`; referenced by associations, history, snapshots, links, comments, and iterations.</td>
+              </tr>
+              <tr>
+                <td><strong>document_associations</strong></td>
+                <td>Junction table for membership-style document relationships.</td>
+                <td>Both `document_id` and `related_id` point to `documents`; typed by `relationship_type`.</td>
+              </tr>
+              <tr>
+                <td><strong>document_history</strong></td>
+                <td>Audit trail of field changes on documents.</td>
+                <td>`document_id -> documents.id`.</td>
+              </tr>
+              <tr>
+                <td><strong>document_snapshots</strong></td>
+                <td>Saved document state for conversions and undo-like flows.</td>
+                <td>`document_id -> documents.id`.</td>
+              </tr>
+              <tr>
+                <td><strong>document_links</strong></td>
+                <td>Backlink-style graph between documents.</td>
+                <td>`source_id` and `target_id` both reference `documents`.</td>
+              </tr>
+              <tr>
+                <td><strong>comments</strong></td>
+                <td>Threaded inline document comments.</td>
+                <td>`document_id -> documents.id`, optional self-reference via comment `parent_id`.</td>
+              </tr>
+              <tr>
+                <td><strong>sprint_iterations</strong> / <strong>issue_iterations</strong></td>
+                <td>Progress telemetry for weeks and issues.</td>
+                <td>Reference the relevant document row plus workspace and author.</td>
+              </tr>
+              <tr>
+                <td><strong>files</strong></td>
+                <td>Attachment metadata.</td>
+                <td>References workspace and uploader; file bytes live outside the DB.</td>
+              </tr>
+              <tr>
+                <td><strong>sessions</strong>, <strong>oauth_state</strong>, <strong>api_tokens</strong>, <strong>audit_logs</strong>, <strong>workspace_invites</strong></td>
+                <td>Security, auth, and compliance support tables.</td>
+                <td>Orbit around users and workspaces rather than the document graph.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="note-grid">
+          <div class="note-card">
+            <h3>How one table serves docs, issues, projects, and sprints</h3>
+            <p>All of them share the same base fields: workspace, title, content, collaboration state, lifecycle timestamps, and visibility. Type-specific data lives in `properties`, while the code branches on `document_type` to interpret that row as an issue, project, week, plan, or review.</p>
+          </div>
+          <div class="note-card">
+            <h3>What the discriminator is</h3>
+            <p>`document_type` is a PostgreSQL enum and a shared TypeScript union. The routes use it directly in queries like `WHERE d.document_type = 'issue'` or `WHERE d.document_type = 'sprint'` rather than reading from specialized tables.</p>
+          </div>
+          <div class="note-card">
+            <h3>How relationships actually work</h3>
+            <p>The current relationship mechanism is `document_associations`, exposed to the frontend as a `belongs_to` array with types `program`, `project`, `sprint`, and `parent`. Creation and update routes insert and delete association rows rather than mutating legacy foreign-key columns.</p>
+          </div>
+          <div class="note-card">
+            <h3>Important nuance</h3>
+            <p>`parent_id` still exists as a direct self-reference on `documents` and is used for true hierarchy and some child-content flows, while `document_associations` handles most membership and grouping relationships. The model is unified, but not reduced to one relationship mechanism.</p>
+          </div>
+        </div>
+
+        <div class="snippet">
+          <pre>-- From api/src/db/schema.sql
+CREATE TYPE document_type AS ENUM (
+  'wiki', 'issue', 'program', 'project', 'sprint',
+  'person', 'weekly_plan', 'weekly_retro', 'standup', 'weekly_review'
+);
+
+CREATE TABLE documents (
+  id UUID PRIMARY KEY,
+  workspace_id UUID NOT NULL,
+  document_type document_type NOT NULL,
+  title TEXT NOT NULL,
+  content JSONB,
+  yjs_state BYTEA,
+  parent_id UUID REFERENCES documents(id),
+  properties JSONB DEFAULT '{}'
+);
+
+CREATE TABLE document_associations (
+  document_id UUID NOT NULL REFERENCES documents(id),
+  related_id UUID NOT NULL REFERENCES documents(id),
+  relationship_type relationship_type NOT NULL
+);</pre>
+        </div>
+
+        <div class="snippet">
+          <pre>-- From api/src/routes/issues.ts and api/src/routes/documents.ts
+SELECT *
+FROM documents d
+WHERE d.workspace_id = $1
+  AND d.document_type = 'issue';
+
+INSERT INTO document_associations (document_id, related_id, relationship_type)
+VALUES ($1, $2, $3)
+ON CONFLICT (document_id, related_id, relationship_type) DO NOTHING;
+
+-- From shared/src/types/document.ts
+export type BelongsToType = 'program' | 'project' | 'sprint' | 'parent';</pre>
+        </div>
+
+        <div class="callout" style="margin-top:16px;">
+          <strong>Implementation note.</strong> The migration trail matters here. Migration `020` introduces `document_associations`; `027` and `029` remove legacy `sprint_id`, `project_id`, and `program_id` columns; `033` keeps `sprint` as the underlying DB type even as the product language shifts toward “week”; and `037` shows that some weekly-document properties still carry legacy shape even after the association model took over.
+        </div>
+
+        <div class="chips">
+          <span class="chip">schema-grounded</span>
+          <span class="chip">documents table</span>
+          <span class="chip">document_associations</span>
+          <span class="chip">belongs_to</span>
+          <span class="chip">document_type</span>
+        </div>
+      </section>
+
+      <div class="sec-head animate" style="--i:7">3 — Request Flow</div>
+      <section class="section flow animate" id="s4" style="--i:8">
+        <h2>High-level request and collaboration flow</h2>
+        <p>
+          The docs and route layer support a strong runtime model: the React app loads lists and metadata through REST and cached reads, opening a document restores local editor state first, the editor then rejoins live collaboration through WebSocket and Yjs, and the API persists both collaborative state and structured document data to PostgreSQL. Weekly accountability logic then sits on top of the same shared model.
+        </p>
+        <div class="flow-strip">
+          <div class="flow-step">
+            <div class="step-num">Step 1</div>
+            <h3>React app opens</h3>
+            <p>The user lands in the web application shell.</p>
+          </div>
+          <div class="flow-step">
+            <div class="step-num">Step 2</div>
+            <h3>REST + cache</h3>
+            <p>Lists and metadata come from REST endpoints and client cache.</p>
+          </div>
+          <div class="flow-step">
+            <div class="step-num">Step 3</div>
+            <h3>IndexedDB restore</h3>
+            <p>Document editing starts with local editor state for fast open.</p>
+          </div>
+          <div class="flow-step">
+            <div class="step-num">Step 4</div>
+            <h3>WebSocket + Yjs</h3>
+            <p>Realtime collaboration syncs and merges concurrent edits.</p>
+          </div>
+          <div class="flow-step">
+            <div class="step-num">Step 5</div>
+            <h3>API persistence</h3>
+            <p>The backend writes Yjs state, JSON content, and extracted properties.</p>
+          </div>
+          <div class="flow-step">
+            <div class="step-num">Step 6</div>
+            <h3>Workflow layer</h3>
+            <p>Planning and accountability logic evaluate the same document model.</p>
+          </div>
+        </div>
+        <div class="callout" style="margin-top:16px;">
+          <strong>Still pending.</strong> The rubric requires tracing one concrete user action through component, route, middleware, query, and response. That source-level request trace has not been completed yet.
+        </div>
+      </section>
+
+      <div class="sec-head animate" style="--i:9">4 — Phase 1 Rubric Status</div>
+      <section id="s5">
+        <div class="table-wrap animate" style="--i:10">
+          <table>
+            <thead>
+              <tr>
+                <th>Rubric item</th>
+                <th>Status</th>
+                <th>Current note</th>
+                <th>Next work</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Clone the repo and run it locally</strong></td>
+                <td><span class="badge pending">Pending</span></td>
+                <td>Not executed in this audit flow yet, so no setup notes have been captured.</td>
+                <td>Run the app from scratch and document missing or unclear steps.</td>
+              </tr>
+              <tr>
+                <td><strong>Read every file in `docs/` and summarize architectural decisions</strong></td>
+                <td><span class="badge complete">Complete</span></td>
+                <td>The docs corpus has been read and the major architectural decisions have been summarized in polished language.</td>
+                <td>None for Phase 1.</td>
+              </tr>
+              <tr>
+                <td><strong>Read the `shared/` package and map cross-package types</strong></td>
+                <td><span class="badge partial">Partial</span></td>
+                <td>`shared/src/types/document.ts` has been inspected and confirms the shared document and relationship types, but the broader `shared/` package is not fully mapped yet.</td>
+                <td>Read the rest of `shared/` and trace actual imports in `web/` and `api/`.</td>
+              </tr>
+              <tr>
+                <td><strong>Create a diagram of `web/`, `api/`, and `shared/`</strong></td>
+                <td><span class="badge partial">Partial</span></td>
+                <td>A high-level package relationship model is captured, but it is not yet backed by a full import graph.</td>
+                <td>Verify the package model against real imports.</td>
+              </tr>
+              <tr>
+                <td><strong>Find the schema and map tables and relationships</strong></td>
+                <td><span class="badge complete">Complete</span></td>
+                <td>The current schema and the key migrations that explain the relationship pattern have now been read directly.</td>
+                <td>None for Phase 1; the next step is deeper query tracing.</td>
+              </tr>
+              <tr>
+                <td><strong>Understand the unified document model</strong></td>
+                <td><span class="badge complete">Complete</span></td>
+                <td>The design is confirmed in both docs and schema: one core `documents` table serves many artifact types.</td>
+                <td>Keep cross-checking as request-flow tracing continues.</td>
+              </tr>
+              <tr>
+                <td><strong>Understand `document_type` and how queries use it</strong></td>
+                <td><span class="badge complete">Complete</span></td>
+                <td>The discriminator is confirmed in schema, shared types, and route queries.</td>
+                <td>None for this rubric item.</td>
+              </tr>
+              <tr>
+                <td><strong>Understand document relationships</strong></td>
+                <td><span class="badge complete">Complete</span></td>
+                <td>The current relationship pattern is now clear: `document_associations` for most memberships, `parent_id` for hierarchy, and `document_links` for backlinks.</td>
+                <td>Later, validate edge cases by tracing specific endpoints.</td>
+              </tr>
+              <tr>
+                <td><strong>Trace one user action end-to-end</strong></td>
+                <td><span class="badge pending">Pending</span></td>
+                <td>No source-level component-to-route-to-query trace has been completed yet.</td>
+                <td>Pick a concrete action like creating an issue and follow it end to end.</td>
+              </tr>
+              <tr>
+                <td><strong>Identify the middleware chain</strong></td>
+                <td><span class="badge pending">Pending</span></td>
+                <td>The docs suggest auth and visibility layers, but the actual chain has not been read yet.</td>
+                <td>Inspect API bootstrap and route registration.</td>
+              </tr>
+              <tr>
+                <td><strong>Understand auth and unauthenticated requests</strong></td>
+                <td><span class="badge pending">Pending</span></td>
+                <td>The docs describe session and token behavior, but the request path has not been traced through code.</td>
+                <td>Read auth middleware and route guards directly.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <div class="sec-head animate" style="--i:11">5 — Later Phases</div>
+      <section class="section future animate" id="s6" style="--i:12">
+        <h2>Phases 2 and 3 are still intentionally open</h2>
+        <p>
+          The rubric continues into real-time collaboration internals, TypeScript pattern analysis, testing infrastructure, build and deploy, and then architecture assessment. None of that should be backfilled from guesswork. The right move is to treat those sections as open investigation work until the actual code, tests, and infrastructure configs have been read directly.
+        </p>
+        <div class="phase-grid">
+          <div class="phase-card">
+            <div class="phase-label">Phase 2 — Deep Dive</div>
+            <h3>Still pending</h3>
+            <p>WebSocket establishment, Yjs persistence, strict TypeScript patterns, Playwright setup, test database lifecycle, Docker and compose, Terraform, and CI/CD all still need direct inspection.</p>
+          </div>
+          <div class="phase-card">
+            <div class="phase-label">Phase 3 — Synthesis</div>
+            <h3>Still pending</h3>
+            <p>Architecture strengths and weaknesses, scaling pressure points, onboarding advice, and 10x-user failure modes should wait until the deeper technical audit is complete.</p>
+          </div>
+        </div>
+      </section>
+
+      <div class="callout animate" style="--i:13; margin-top: 8px;">
+        <strong>Asterisk.</strong> This reference page reflects the current intended architecture and the actual code-grounded work completed so far in Phase 1. It is deliberately not pretending that later rubric items have already been verified in code.
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (function() {
+    const toc = document.getElementById('toc');
+    const links = toc.querySelectorAll('a');
+    const sections = [];
+
+    links.forEach(link => {
+      const id = link.getAttribute('href').slice(1);
+      const el = document.getElementById(id);
+      if (el) sections.push({ id, el, link });
+    });
+
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          links.forEach(l => l.classList.remove('active'));
+          const match = sections.find(s => s.el === entry.target);
+          if (match) {
+            match.link.classList.add('active');
+            if (window.innerWidth <= 1100) {
+              match.link.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            }
+          }
+        }
+      });
+    }, { rootMargin: '-10% 0px -80% 0px' });
+
+    sections.forEach(s => observer.observe(s.el));
+
+    links.forEach(link => {
+      link.addEventListener('click', e => {
+        e.preventDefault();
+        const id = link.getAttribute('href').slice(1);
+        const el = document.getElementById(id);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          history.replaceState(null, '', '#' + id);
+        }
+      });
+    });
+  })();
+  </script>
+</body>
+</html>

@@ -896,3 +896,106 @@ I reproduced the current workspace state before editing tests.
   - `e2e/data-integrity.spec.ts`
 - Passing verdict:
   - yes
+
+## Category 6: Runtime Error Handling
+
+### Diagnosis
+
+1. Why was `GET /api/auth/session` returning `500` noise?
+
+- The backend route in `/Users/youss/Development/gauntlet/ship/api/src/routes/auth.ts` is mounted behind `authMiddleware` from `/Users/youss/Development/gauntlet/ship/api/src/middleware/auth.ts`, which correctly returns `401` for missing or expired sessions.
+- The reproduced `500` was not coming from the Express handler. It was coming from the Dockerized Vite dev server in the `web` container trying to proxy a relative `/api/auth/session` request to `http://127.0.0.1:3000`, which is wrong inside that container.
+- Root cause: `/Users/youss/Development/gauntlet/ship/web/src/hooks/useSessionTimeout.ts` used `fetch('/api/auth/session', { credentials: 'include' })` instead of the same absolute `VITE_API_URL` path used by the rest of the app.
+
+2. What was the blocking overlay on the document page?
+
+- The blocking overlay was the global `ActionItemsModal` rendered from `/Users/youss/Development/gauntlet/ship/web/src/pages/App.tsx`.
+- It auto-opened on initial load when `!actionItemsModalShownOnLoad && hasActionItems && actionItemsData?.items`.
+- On a direct document visit after login, the editor was already visible behind the modal, but the modal still owned focus and pointer events, which made the document surface feel broken.
+
+3. Were the existing error boundaries actually configured with fallback UI?
+
+- Yes. `/Users/youss/Development/gauntlet/ship/web/src/pages/App.tsx` and `/Users/youss/Development/gauntlet/ship/web/src/components/Editor.tsx` both use `/Users/youss/Development/gauntlet/ship/web/src/components/ui/ErrorBoundary.tsx` without a custom fallback.
+- The default fallback prevented a blank screen, but it only offered `Try Again` and did not provide an explicit page reload path.
+
+4. Additional silent failures found during scan
+
+- I scanned `useEffect` async flows and `.then()` chains in `web/src`.
+- I did not find a second critical document-save or issue-update path that is fully silent. Most mutation failures are routed through React Query’s global mutation cache and surfaced by `/Users/youss/Development/gauntlet/ship/web/src/components/MutationErrorToast.tsx`.
+- I did find intentionally quiet background requests in `/Users/youss/Development/gauntlet/ship/web/src/components/PlanQualityBanner.tsx` and `/Users/youss/Development/gauntlet/ship/web/src/components/sidebars/QualityAssistant.tsx`; both files explicitly document that they are advisory/non-critical and should not redirect or spam the user.
+- The third actionable gap for this phase is the incomplete error-boundary recovery UI, not another hidden async failure.
+
+### Baseline Reproductions
+
+#### Issue 1: Auth session console noise
+
+- Severity: Medium
+- Reproduction steps:
+  1. Start the local Docker stack with `docker compose -f docker-compose.yml -f docker-compose.local.yml up -d`.
+  2. Open `http://localhost:5173/login`.
+  3. Sign in with `dev@ship.local / admin123`.
+  4. Wait on the first authenticated page load for the session-timeout hook to run.
+- Before behavior:
+  - The UI loads, but the console shows repeated `500` noise for `GET /api/auth/session`.
+  - Playwright also records `net::ERR_ABORTED` for the same request.
+- Fix applied:
+  - `/Users/youss/Development/gauntlet/ship/web/src/hooks/useSessionTimeout.ts` now builds the session-info URL from `import.meta.env.VITE_API_URL` so the hook uses the same API origin as the rest of the frontend.
+  - The hook now treats `401` and `403` as expected unauthenticated responses for this best-effort timeout bootstrap and only warns for truly unexpected failures.
+- After behavior:
+  - Repeating the same login flow no longer produces proxy `500` noise for `GET /api/auth/session`.
+  - The hook still preserves inactivity timeout behavior, and the only remaining unauthenticated network response on `/login` is the expected `401` from `/api/auth/me`.
+
+#### Issue 2: Modal overlay blocking editor entry
+
+- Severity: High
+- Reproduction steps:
+  1. Sign in with `dev@ship.local / admin123`.
+  2. Without dismissing the `Action Items` modal, navigate to a document detail page.
+  3. Try to click into the editor immediately.
+- Before behavior:
+  - The editor is visible, but clicks do not enter the editor.
+  - The dialog subtree intercepts pointer events instead of the editor receiving the click.
+- Fix applied:
+  - Extracted modal-route policy into `/Users/youss/Development/gauntlet/ship/web/src/lib/actionItemsModal.ts`.
+  - `/Users/youss/Development/gauntlet/ship/web/src/pages/App.tsx` now tracks whether the `ActionItemsModal` was opened automatically or manually.
+  - Automatic open is skipped on document detail routes, and an auto-opened modal is closed when navigation enters a document detail page. Manual opening from the accountability banner still works.
+- After behavior:
+  - Repeating the same flow leaves the document page immediately interactive.
+  - The editor receives focus on first click instead of the dialog overlay intercepting pointer events.
+
+#### Issue 3: Error boundary recovery is incomplete
+
+- Severity: Medium
+- Reproduction steps:
+  1. Render a throwing child inside the shared `ErrorBoundary`.
+  2. Repeat for the same default boundary wiring used by the App subtree and Editor subtree.
+- Before behavior:
+  - The boundary caught the render error and showed fallback UI.
+  - The fallback only offered `Try Again`; there was no explicit reload affordance.
+- Fix applied:
+  - `/Users/youss/Development/gauntlet/ship/web/src/components/ui/ErrorBoundary.tsx` now adds a `Reload Page` recovery action alongside `Try Again`.
+  - The shared fallback copy now tells the user they can reload or retry, which satisfies the minimum helpful recovery requirement for all existing boundary placements.
+- After behavior:
+  - Throwing children inside the shared boundary, App subtree boundary, and Editor subtree boundary now render the same fallback with both `Reload Page` and `Try Again`.
+  - Render failures still avoid a blank screen, and the fallback gives users an explicit full-page recovery path when retry is insufficient.
+
+### Initial Implementation Plan
+
+1. Fix the session-timeout hook so it uses the same API base path as the rest of the app and handles non-OK session responses explicitly.
+2. Change the action-items flow so the startup accountability prompt does not block initial document editing on document routes.
+3. Improve the shared error-boundary fallback to provide a clear reload path and verify the updated fallback in all three boundary placements.
+
+### Validation
+
+- `pnpm --filter @ship/web test`
+  - Passed.
+  - Result: `18` files passed, `161` tests passed.
+- `pnpm --filter @ship/web exec vitest run src/hooks/useSessionTimeout.test.ts src/lib/actionItemsModal.test.ts src/components/ui/ErrorBoundary.test.tsx`
+  - Passed.
+  - Result: `3` files passed, `42` tests passed.
+
+### Final Summary
+
+- 3 fixes completed: Yes
+- At least one user-facing confusion scenario fixed: Yes
+- Passing verdict: Yes

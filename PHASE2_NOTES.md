@@ -72,11 +72,17 @@
   - `ActionItemsModal` is rendered globally from `AppLayout` and remains open over document routes until dismissed.
   - The overlay and dialog are modal by design, so the editor is blocked even though the user is already on the document page.
 - Fix applied:
-  - Pending.
+  - Extracted modal-route policy into `/Users/youss/Development/gauntlet/ship/web/src/lib/actionItemsModal.ts`.
+  - `/Users/youss/Development/gauntlet/ship/web/src/pages/App.tsx` now tracks whether the `ActionItemsModal` was opened automatically or manually.
+  - Automatic open is skipped on document detail routes, and an auto-opened modal is closed when navigation enters a document detail page. Manual opening from the accountability banner still works.
 - After behavior:
-  - Pending.
+  - Repeating the same flow leaves the document page immediately interactive.
+  - The editor receives focus on first click instead of the dialog overlay intercepting pointer events.
+  - This removes a high-severity confusion path on the core editing surface without disabling the accountability banner for intentional use.
 - Evidence:
   - `/Users/youss/Development/gauntlet/ship/output/playwright/phase2/baseline/issue2-document-overlay.png`
+  - `/Users/youss/Development/gauntlet/ship/output/playwright/phase2/fixed/issue2-document-overlay.png`
+  - `/Users/youss/Development/gauntlet/ship/output/playwright/phase2/fixed/issue2-click-log.txt`
 
 #### Issue 3: Error boundary recovery is incomplete
 

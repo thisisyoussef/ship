@@ -4,9 +4,12 @@ import { z } from 'zod';
 import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { logAuditEvent } from '../services/audit.js';
+import { listCacheInvalidationMiddleware } from '../services/list-response-cache.js';
 
 type RouterType = ReturnType<typeof Router>;
 const router: RouterType = Router();
+
+router.use(listCacheInvalidationMiddleware);
 
 // Helper to extract program from row
 function extractProgramFromRow(row: any) {

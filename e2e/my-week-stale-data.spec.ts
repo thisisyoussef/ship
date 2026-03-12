@@ -7,14 +7,51 @@ import { test, expect } from './fixtures/isolated-env'
  * Yjs WebSocket (no client-side mutation), so navigating back showed stale data.
  * Fix: staleTime set to 0 so every mount refetches fresh data from the API.
  *
- * KNOWN FLAKY: The retro test fails on first attempt but passes on retry.
- * The retro document IS created (shows as a link), but its Yjs content isn't
- * persisted to the `content` column by the time the /my-week API reads it —
- * even with a 10s wait. The plan test (same pattern, runs first) always passes.
- * Root cause is likely in how the Yjs collaboration server handles JSON-to-Yjs
- * conversion for newly created documents (no yjs_state yet, only template JSON
- * in the content column). Needs investigation on a separate branch.
+ * Flake fix: wait for the dashboard API to reflect the persisted Yjs content
+ * instead of relying on a fixed sleep after the editor shows "Saved".
  */
+
+async function waitForMyWeekContent(
+  page: import('@playwright/test').Page,
+  kind: 'plan' | 'retro',
+  expectedText: string,
+  weekNumber?: number
+) {
+  await expect.poll(async () => {
+    const suffix = weekNumber ? `?week_number=${weekNumber}` : ''
+    const response = await page.request.get(`/api/dashboard/my-week${suffix}`)
+    if (!response.ok()) {
+      return ''
+    }
+
+    const data = await response.json()
+    const items = kind === 'plan'
+      ? (data.plan?.items ?? [])
+      : (data.retro?.items ?? [])
+
+    return items.map((item: { text: string }) => item.text).join('\n')
+  }, {
+    timeout: 20000,
+    message: `waiting for persisted ${kind} content to appear in /api/dashboard/my-week`,
+  }).toContain(expectedText)
+}
+
+function createIsolatedWeekNumber(offset: number) {
+  return 50_000 + (Math.floor(Date.now() / 1000) % 10_000) + offset
+}
+
+async function fillWeeklySummaryItem(
+  page: import('@playwright/test').Page,
+  text: string
+) {
+  const editor = page.locator('.ProseMirror')
+  await expect(editor).toBeVisible({ timeout: 10000 })
+
+  await editor.click()
+  await page.keyboard.type(`- ${text}`)
+
+  await expect(editor).toContainText(text)
+}
 
 test.describe('My Week - stale data after editing plan/retro', () => {
   test.beforeEach(async ({ page }) => {
@@ -26,8 +63,10 @@ test.describe('My Week - stale data after editing plan/retro', () => {
   })
 
   test('plan edits are visible on /my-week after navigating back', async ({ page }) => {
+    const weekNumber = createIsolatedWeekNumber(1)
+
     // 1. Navigate to /my-week
-    await page.goto('/my-week')
+    await page.goto(`/my-week?week_number=${weekNumber}`)
     await expect(page.getByRole('heading', { name: /^Week \d+$/ })).toBeVisible({ timeout: 10000 })
 
     // 2. Create a plan (click the create button)
@@ -36,33 +75,30 @@ test.describe('My Week - stale data after editing plan/retro', () => {
     // 3. Should navigate to the document editor
     await expect(page).toHaveURL(/\/documents\/[a-f0-9-]+/, { timeout: 10000 })
 
-    // 4. Wait for the TipTap editor to be ready
-    const editor = page.locator('.tiptap')
-    await expect(editor).toBeVisible({ timeout: 10000 })
+    // 4. Fill the first template list item so the dashboard summary parser sees it.
+    await fillWeeklySummaryItem(page, 'Ship the new dashboard feature')
 
-    // 5. Type a list item into the editor
-    // Use "1. " prefix to create a numbered list (orderedList with listItem nodes)
-    await editor.click()
-    await page.keyboard.type('1. Ship the new dashboard feature')
-
-    // 6. Wait for the collaboration server to persist the content
-    // "Saved" means WebSocket synced; add extra time for DB write completion
+    // 5. Wait for the collaboration server to persist the content
+    // "Saved" means WebSocket synced locally, but the dashboard reads the DB backup.
     await expect(page.getByText('Saved')).toBeVisible({ timeout: 10000 })
-    await page.waitForTimeout(3000)
+    await waitForMyWeekContent(page, 'plan', 'Ship the new dashboard feature', weekNumber)
 
-    // 7. Navigate back to /my-week using client-side navigation (Dashboard icon in rail)
-    await page.getByRole('button', { name: 'Dashboard' }).click()
-    await expect(page.getByRole('heading', { name: /^Week \d+$/ })).toBeVisible({ timeout: 10000 })
+    // 6. Navigate back to the same week using browser history.
+    await page.goBack()
+    await expect(page).toHaveURL(new RegExp(`/my-week\\?week_number=${weekNumber}`), { timeout: 10000 })
+    await expect(page.getByRole('heading', { name: `Week ${weekNumber}` })).toBeVisible({ timeout: 10000 })
 
-    // 8. Verify the plan content is visible on the my-week page
-    // The my-week API reads from the `content` column which is updated by the
-    // collaboration server's persistence layer (async from WebSocket edits)
+    // 7. Verify the plan content is visible on the my-week page
+    // The dashboard now refetches on mount; this asserts the persisted item
+    // survives navigation back into the API-backed summary view.
     await expect(page.getByText('Ship the new dashboard feature')).toBeVisible({ timeout: 15000 })
   })
 
   test('retro edits are visible on /my-week after navigating back', async ({ page }) => {
+    const weekNumber = createIsolatedWeekNumber(2)
+
     // 1. Navigate to /my-week
-    await page.goto('/my-week')
+    await page.goto(`/my-week?week_number=${weekNumber}`)
     await expect(page.getByRole('heading', { name: /^Week \d+$/ })).toBeVisible({ timeout: 10000 })
 
     // 2. Create a retro (click the main create button, not the nudge link)
@@ -71,23 +107,19 @@ test.describe('My Week - stale data after editing plan/retro', () => {
     // 3. Should navigate to the document editor
     await expect(page).toHaveURL(/\/documents\/[a-f0-9-]+/, { timeout: 10000 })
 
-    // 4. Wait for the TipTap editor to be ready
-    const editor = page.locator('.tiptap')
-    await expect(editor).toBeVisible({ timeout: 10000 })
+    // 4. Fill the first retro list item so the dashboard summary parser sees it.
+    await fillWeeklySummaryItem(page, 'Completed the API refactoring')
 
-    // 5. Type a list item into the editor
-    await editor.click()
-    await page.keyboard.type('1. Completed the API refactoring')
-
-    // 6. Wait for the collaboration server to persist the content
+    // 5. Wait for the collaboration server to persist the content
     await expect(page.getByText('Saved')).toBeVisible({ timeout: 10000 })
-    await page.waitForTimeout(3000)
+    await waitForMyWeekContent(page, 'retro', 'Completed the API refactoring', weekNumber)
 
-    // 7. Navigate back to /my-week using client-side navigation
-    await page.getByRole('button', { name: 'Dashboard' }).click()
-    await expect(page.getByRole('heading', { name: /^Week \d+$/ })).toBeVisible({ timeout: 10000 })
+    // 6. Navigate back to the same week using browser history.
+    await page.goBack()
+    await expect(page).toHaveURL(new RegExp(`/my-week\\?week_number=${weekNumber}`), { timeout: 10000 })
+    await expect(page.getByRole('heading', { name: `Week ${weekNumber}` })).toBeVisible({ timeout: 10000 })
 
-    // 8. Verify the retro content is visible on the my-week page
+    // 7. Verify the retro content is visible on the my-week page
     await expect(page.getByText('Completed the API refactoring')).toBeVisible({ timeout: 15000 })
   })
 })

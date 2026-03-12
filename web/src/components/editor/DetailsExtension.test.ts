@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { DetailsExtension } from './DetailsExtension';
+import { DetailsContent, DetailsExtension, DetailsSummary } from './DetailsExtension';
 import { Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 
@@ -13,7 +13,7 @@ describe('DetailsExtension', () => {
   it('should be configured as a block node with content', () => {
     const extension = DetailsExtension;
     expect(extension.config.group).toBe('block');
-    expect(extension.config.content).toBe('block+');
+    expect(extension.config.content).toBe('detailsSummary detailsContent');
     expect(extension.config.defining).toBe(true);
   });
 
@@ -55,25 +55,45 @@ describe('DetailsExtension', () => {
 
   it('should work in editor context', () => {
     const editor = new Editor({
-      extensions: [StarterKit, DetailsExtension],
+      extensions: [StarterKit, DetailsSummary, DetailsContent, DetailsExtension],
       content: '<p>Test content</p>',
     });
 
     expect(editor).toBeDefined();
     expect(editor.extensionManager.extensions.some(ext => ext.name === 'details')).toBe(true);
+    expect(editor.extensionManager.extensions.some(ext => ext.name === 'detailsSummary')).toBe(true);
+    expect(editor.extensionManager.extensions.some(ext => ext.name === 'detailsContent')).toBe(true);
 
     editor.destroy();
   });
 
-  it('should allow inserting details via command', () => {
+  it('should insert the expected details structure via command', () => {
     const editor = new Editor({
-      extensions: [StarterKit, DetailsExtension],
+      extensions: [StarterKit, DetailsSummary, DetailsContent, DetailsExtension],
       content: '<p>Test content</p>',
     });
 
-    // Check that the command exists
-    expect((editor.commands as any).setDetails).toBeDefined();
-    expect(typeof (editor.commands as any).setDetails).toBe('function');
+    expect(editor.commands.setDetails).toBeDefined();
+    expect(typeof editor.commands.setDetails).toBe('function');
+
+    editor.commands.setDetails();
+
+    const detailsNode = editor.getJSON().content?.find(node => node.type === 'details');
+
+    expect(detailsNode).toMatchObject({
+      type: 'details',
+      attrs: { open: true },
+      content: [
+        {
+          type: 'detailsSummary',
+          content: [{ type: 'text', text: 'Toggle' }],
+        },
+        {
+          type: 'detailsContent',
+          content: [{ type: 'paragraph' }],
+        },
+      ],
+    });
 
     editor.destroy();
   });

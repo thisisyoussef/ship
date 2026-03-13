@@ -1,250 +1,234 @@
 # Phase 2 Notes
 
-## Category 6: Runtime Error Handling
+All seven Phase 2 improvement tracks are merged on `codex/phase2-full-merge`.
 
-### Diagnosis
+- Baseline numbers come from `docs/g4/audit-report.md` and the checked-in audit data under `docs/g4/audit-resources/data/`.
+- After-state numbers for Categories 3 and 4 come from the remediation measurements recorded in the merged performance commits because this docs-only follow-up did not rerun load testing.
+- After-state numbers for Categories 1, 2, 5, 6, and 7 were rechecked on March 13, 2026 against the merged branch.
 
-1. Why is `GET /api/auth/session` returning 500?
+## Category 1: Type Safety
 
-- The backend route in `/Users/youss/Development/gauntlet/ship/api/src/routes/auth.ts` is mounted behind `authMiddleware` from `/Users/youss/Development/gauntlet/ship/api/src/middleware/auth.ts`, which correctly returns `401` for missing or expired sessions.
-- The reproduced `500` is not coming from the Express handler. It is coming from the Dockerized Vite dev server in the `web` container trying to proxy a relative `/api/auth/session` request to `http://127.0.0.1:3000`, which is wrong inside that container.
-- Root cause: `/Users/youss/Development/gauntlet/ship/web/src/hooks/useSessionTimeout.ts` uses `fetch('/api/auth/session', { credentials: 'include' })` instead of the same absolute `VITE_API_URL` path used by the rest of the app. `api.auth.me()` succeeds because `/Users/youss/Development/gauntlet/ship/web/src/lib/api.ts` already uses `import.meta.env.VITE_API_URL`.
+### Before measurement
 
-2. What is the modal overlay on the document page?
+- The audit baseline in `docs/g4/audit-report.md` found `273` explicit `any` types, `691` `as` assertions, `329` non-null assertions, and `1` `@ts-ignore` / `@ts-expect-error`, for `1294` total unsafe constructs.
+- Strict mode was already enabled, and package-local strict compiler runs were at `0` errors. The problem was local type-system bypasses, not disabled compiler settings.
+- The five densest production files were `api/src/routes/weeks.ts` (`85`), `api/src/routes/projects.ts` (`51`), `api/src/routes/issues.ts` (`49`), `web/src/pages/UnifiedDocumentPage.tsx` (`37`), and `api/src/db/seed.ts` (`35`).
 
-- The blocking overlay is the global `ActionItemsModal` rendered from `/Users/youss/Development/gauntlet/ship/web/src/pages/App.tsx`.
-- It auto-opens on initial load when `!actionItemsModalShownOnLoad && hasActionItems && actionItemsData?.items`.
-- The modal itself is implemented in `/Users/youss/Development/gauntlet/ship/web/src/components/ActionItemsModal.tsx` with a full-screen `Dialog.Overlay` and modal `Dialog.Content`, so it intentionally intercepts pointer events until dismissed.
-- On a direct document visit after login, the editor is already visible behind the modal, but the modal still owns focus and pointer events. That makes the main product surface feel broken if the user tries to click into the editor first.
+### Explanation of root cause
 
-3. Are the existing error boundaries actually configured with fallback UI?
+- Core route handlers were repeatedly overriding request context, UUID params, and query row shapes with local `!`, `as`, and `any` escapes.
+- `UnifiedDocumentPage` had to normalize flexible document payloads from the API, but it was doing that with assertions instead of guards.
+- Seed and helper code assumed lookups always existed, which hid invariant failures behind non-null assertions.
 
-- Yes. `/Users/youss/Development/gauntlet/ship/web/src/pages/App.tsx` and `/Users/youss/Development/gauntlet/ship/web/src/components/Editor.tsx` both use `/Users/youss/Development/gauntlet/ship/web/src/components/ui/ErrorBoundary.tsx` without a custom fallback.
-- Reproduced by rendering a throwing child inside the boundary. All three cases rendered the default fallback instead of a blank screen.
-- Current fallback text is `Something went wrong` with a single `Try Again` button. It is not blank, but it does not offer a page reload path, which is below the requested minimum recovery affordance.
+### Description of fix
 
-4. Additional silent failures found during scan
+- Added `api/src/routes/route-helpers.ts` to centralize typed auth context, branded UUID IDs, and Postgres scalar parsing.
+- Reworked `api/src/routes/weeks.ts`, `api/src/routes/projects.ts`, `api/src/routes/issues.ts`, `web/src/pages/UnifiedDocumentPage.tsx`, and `api/src/db/seed.ts` to use Zod parsing, typed query row interfaces, runtime guards, and explicit invariants.
+- Tightened `api/src/utils/transformIssueLinks.ts` and its tests so valid TipTap inputs keep their real types without downstream casts.
 
-- I scanned `useEffect` async flows and `.then()` chains in `web/src`.
-- I did not find a second critical document-save or issue-update path that is fully silent. Most mutation failures are routed through React Query’s global mutation cache and surfaced by `/Users/youss/Development/gauntlet/ship/web/src/components/MutationErrorToast.tsx`.
-- I did find intentionally quiet background requests in `/Users/youss/Development/gauntlet/ship/web/src/components/PlanQualityBanner.tsx` and `/Users/youss/Development/gauntlet/ship/web/src/components/sidebars/QualityAssistant.tsx`; both files explicitly document that they are advisory/non-critical and should not redirect or spam the user.
-- The third actionable gap for this phase is the incomplete error-boundary recovery UI, not another hidden async failure.
+### After measurement
 
-### Baseline Reproductions
+- A fresh March 13, 2026 AST rerun on the merged branch found `172` explicit `any` types, `547` `as` assertions, `181` non-null assertions, and `1` directive, for `901` total unsafe constructs.
+- That is a reduction of `393` unsafe constructs from the audit baseline, or `30.37%`.
+- The original hotspot files from the audit now each scan at `0`: `api/src/routes/weeks.ts`, `api/src/routes/projects.ts`, `api/src/routes/issues.ts`, `web/src/pages/UnifiedDocumentPage.tsx`, and `api/src/db/seed.ts`.
+- Package-local strict compiler checks still pass for `@ship/shared`, `@ship/api`, and `@ship/web`.
 
-#### Issue 1: Auth session console noise
+### Proof of reproducibility
 
-- Severity: Medium
-- Reproduction steps:
-  1. Start the local Docker stack with `docker compose -f docker-compose.yml -f docker-compose.local.yml up -d`.
-  2. Open `http://localhost:5173/login`.
-  3. Sign in with `dev@ship.local / admin123`.
-  4. Wait on the first authenticated page load for the session-timeout hook to run.
-- Before behavior:
-  - The UI loads, but the console shows repeated `500` noise for `GET /api/auth/session`.
-  - Playwright also records `net::ERR_ABORTED` for the same request.
-- Root cause:
-  - `/Users/youss/Development/gauntlet/ship/web/src/hooks/useSessionTimeout.ts` uses a relative `/api/auth/session` fetch.
-  - Inside the `web` Docker container, Vite proxies relative `/api/*` calls to `127.0.0.1:3000`, which is not the API container.
-  - The web container logs show `http proxy error: /api/auth/session` and `connect ECONNREFUSED 127.0.0.1:3000`.
-- Fix applied:
-  - Pending.
-- After behavior:
-  - Pending.
-- Evidence:
-  - `/Users/youss/Development/gauntlet/ship/output/playwright/phase2/baseline/login-console.txt`
-  - `/Users/youss/Development/gauntlet/ship/output/playwright/phase2/baseline/after-login.png`
-
-#### Issue 2: Modal overlay blocking editor entry
-
-- Severity: High
-- Reproduction steps:
-  1. Sign in with `dev@ship.local / admin123`.
-  2. Without dismissing the `Action Items` modal, navigate to a document detail page.
-  3. Try to click into the editor immediately.
-- Before behavior:
-  - The editor is visible, but clicks do not enter the editor.
-  - Playwright reports the dialog subtree intercepting pointer events instead of the editor receiving the click.
-- Root cause:
-  - `ActionItemsModal` is rendered globally from `AppLayout` and remains open over document routes until dismissed.
-  - The overlay and dialog are modal by design, so the editor is blocked even though the user is already on the document page.
-- Fix applied:
-  - Pending.
-- After behavior:
-  - Pending.
-- Evidence:
-  - `/Users/youss/Development/gauntlet/ship/output/playwright/phase2/baseline/issue2-document-overlay.png`
-  - `/Users/youss/Development/gauntlet/ship/output/playwright/phase2/baseline/issue2-click-log.txt`
-
-#### Issue 3: Error boundary recovery is incomplete
-
-- Severity: Medium
-- Reproduction steps:
-  1. Render a throwing child inside the shared `ErrorBoundary`.
-  2. Repeat for the same default boundary wiring used by the App subtree and Editor subtree.
-- Before behavior:
-  - The boundary does catch the render error and shows fallback UI.
-  - The fallback only offers `Try Again`; there is no explicit reload affordance.
-- Root cause:
-  - `/Users/youss/Development/gauntlet/ship/web/src/components/ui/ErrorBoundary.tsx` renders a minimal fallback with reset-only recovery.
-- Fix applied:
-  - Pending.
-- After behavior:
-  - Pending.
-- Evidence:
-  - `/Users/youss/Development/gauntlet/ship/output/playwright/phase2/baseline/error-boundary-verification.txt`
-
-### Initial Implementation Plan
-
-1. Fix the session-timeout hook so it uses the same API base path as the rest of the app and handles non-OK session responses explicitly.
-2. Change the action-items flow so the startup accountability prompt does not block initial document editing on document routes.
-3. Improve the shared error-boundary fallback to provide a clear reload path and verify the updated fallback in all three boundary placements.
-
-### Final Summary
-
-- 3 fixes completed: Pending
-- At least one user-facing confusion scenario fixed: Pending
-- Passing verdict: Pending
+- Re-run the strict compiler commands listed in `docs/g4/audit-resources/measurement-commands.md`.
+- Re-run the TypeScript AST scan over `web`, `api`, and `shared`, then verify the five original hotspot files above now scan at `0`.
+- Relevant merged commits: `ee3ec33`, `8c273e7`, `abf692b`, `9d57f21`, `a607f29`, `4ac80a1`.
 
 ## Category 2: Bundle Size
 
-### Reproduced Baseline
+### Before measurement
 
-- Reproduced on March 11, 2026 from `/Users/youss/Development/gauntlet/ship` on commit `55e2ee1`.
-- Exact build command run before edits:
-  - `pnpm --filter @ship/web exec vite build --sourcemap`
-- Exact chunk listing command run before edits:
-  - `pnpm --filter @ship/web exec vite build --sourcemap 2>&1 | grep -E '\.(js|css)' | sort -k2 -rh | head -30`
-- Reproduced baseline totals:
-  - Total bundle size: `10,539.29 KB`
-    - Measured as all files under `web/dist/assets`, including sourcemaps.
-  - Main chunk (raw): `2,025.10 KB`
-  - Main chunk (gzip): `587.62 KB`
-  - Number of chunks: `262`
-- Baseline discrepancy note:
-  - No material discrepancy.
-  - Total bundle size matches the audit baseline exactly.
-  - Main chunk raw differs by `0.04 KB`, well below the allowed 5%.
+- The audit baseline in `docs/g4/audit-report.md` recorded a total production bundle size of `10,539.29 KB`.
+- The main entry chunk was `2,025.14 KB` raw and `589.52 KB` gzip.
+- The build emitted `262` chunks, but the entry graph still front-loaded editor and collaboration code.
 
-### Baseline Build Output
+### Explanation of root cause
 
-```text
-dist/assets/index-DJeYp5na.css                          66.51 kB │ gzip:  12.93 kB
-dist/assets/ProgramWeeksTab-BzbUWlt4.js                 16.81 kB │ gzip:   5.56 kB │ map:    55.51 kB
-dist/assets/WeekReviewTab-DmxN07T1.js                   12.70 kB │ gzip:   3.71 kB │ map:    37.54 kB
-dist/assets/StandupFeed-BjJLDai5.js                      9.70 kB │ gzip:   2.92 kB │ map:    24.17 kB
-dist/assets/ProjectRetroTab-BV2rvgoM.js                  9.10 kB │ gzip:   2.44 kB │ map:    23.90 kB
-dist/assets/ProjectWeeksTab-oE3MioHn.js                  6.71 kB │ gzip:   2.34 kB │ map:    19.44 kB
-dist/assets/ProgramProjectsTab-eNNvrO8g.js               4.46 kB │ gzip:   1.58 kB │ map:    10.19 kB
-dist/assets/ProjectDetailsTab-gSyN3jFM.js                3.66 kB │ gzip:   1.52 kB │ map:    15.03 kB
-dist/assets/WeekPlanningTab-DWsXI-LK.js                  3.04 kB │ gzip:   1.51 kB │ map:     9.03 kB
-dist/assets/index-C2vAyoQ1.js                        2,073.74 kB │ gzip: 587.62 kB │ map: 8,003.97 kB
-```
+- `web/src/main.tsx` statically imported every top-level route, so document-editing routes pulled the editor stack into the initial entry chunk.
+- `web/src/pages/UnifiedDocumentPage.tsx`, `web/src/components/UnifiedEditor.tsx`, and `web/src/components/Editor.tsx` formed a static chain into TipTap, ProseMirror, `yjs`, `y-websocket`, `y-indexeddb`, and syntax-highlighting packages.
+- React Query Devtools were still reachable from the production entry graph, and one frontend dependency was confirmed dead weight.
 
-### Diagnosis Findings
+### Description of fix
 
-1. Which modules are dynamically imported in `vite.config` or route definitions?
-   - `web/vite.config.ts` does not define any dynamic imports or manual chunking.
-   - Top-level route definitions in `web/src/main.tsx` did not use dynamic imports before the fix; every page was statically imported.
-   - Existing dynamic imports before the fix were limited to:
-     - `React.lazy()` tab components in `web/src/lib/document-tabs.tsx`
-     - `import('@/services/upload')` and `import('./FileAttachment')` in `web/src/components/editor/SlashCommands.tsx`
-     - `import.meta.glob('/node_modules/@uswds/uswds/dist/img/usa-icons/*.svg', { query: '?react' })` in `web/src/components/icons/uswds/Icon.tsx`
+- Removed the unused `@tanstack/query-sync-storage-persister` dependency from `web/package.json`.
+- Converted top-level page imports in `web/src/main.tsx` to `React.lazy()` route chunks and wrapped the route tree in `Suspense`.
+- Gated React Query Devtools behind `import.meta.env.DEV` so production no longer ships them in the entry graph.
 
-2. Are any of those same modules also statically imported somewhere else in the codebase?
-   - Yes.
-   - Vite reported two broken splits during the reproduced baseline build:
-     - `web/src/services/upload.ts` is dynamically imported by `web/src/components/editor/SlashCommands.tsx` but also statically imported by `web/src/components/editor/FileAttachment.tsx` and `web/src/components/editor/ImageUpload.tsx`.
-     - `web/src/components/editor/FileAttachment.tsx` is dynamically imported by `web/src/components/editor/SlashCommands.tsx` but also statically imported by `web/src/components/Editor.tsx`.
-   - The larger route-level split was missing entirely:
-     - `web/src/main.tsx` statically imported `web/src/pages/UnifiedDocumentPage.tsx`, `web/src/pages/PersonEditor.tsx`, and every other route page.
-     - `web/src/pages/UnifiedDocumentPage.tsx` statically imported `web/src/components/UnifiedEditor.tsx`.
-     - `web/src/components/UnifiedEditor.tsx` statically imported `web/src/components/Editor.tsx`.
-     - `web/src/components/Editor.tsx` statically imported `yjs`, `y-websocket`, `y-indexeddb`, `lowlight`, and TipTap/ProseMirror packages.
-   - Net effect before the fix:
-     - editor and collaboration code was eligible to land in the initial `index-*.js` chunk even though only document/person editing routes need it.
+### After measurement
 
-3. Which of the top 5 contributors can be deferred to route-level or component-level load without breaking functionality?
-   - `emoji-picker-react`: yes. It is only used by `web/src/components/EmojiPicker.tsx`, which is reached from document-editing sidebars.
-   - `highlight.js` / `lowlight`: yes. It is only used by `web/src/components/Editor.tsx` for code block highlighting.
-   - `yjs`: yes. It is only used by `web/src/components/Editor.tsx` for collaborative editing.
-   - `prosemirror-view` and the rest of the TipTap/ProseMirror stack: yes. They are only needed when an editor route renders.
-   - `react-router`: no meaningful defer opportunity. It is part of the SPA bootstrap path.
+- A fresh `pnpm --filter @ship/web exec vite build --sourcemap` run on March 13, 2026 produced a total bundle size of `10,653.81 KB`.
+- The current main entry chunk is `287.05 KB` raw and `91.68 kB` gzip.
+- The build now emits `307` chunks.
+- The main entry chunk dropped by `1,738.09 KB`, an `85.83%` reduction from the audit baseline.
+- Total emitted size increased by `114.52 KB`, which is the tradeoff from more chunk metadata and sourcemaps. The initial-load target still passed because the entry chunk reduction was the actual bottleneck fix.
 
-4. Are the two unused dependencies actually unused?
-   - `@tanstack/query-sync-storage-persister`: confirmed unused in `web/src`.
-     - Verification command: `grep -rn "@tanstack/query-sync-storage-persister" web/src --include="*.ts" --include="*.tsx"`
-     - Result: no matches.
-   - `@uswds/uswds`: not unused.
-     - Verification command: `grep -rn "@uswds/uswds" web/src --include="*.ts" --include="*.tsx"`
-     - Result: used in `web/src/components/icons/uswds/Icon.tsx` through `import.meta.glob()` against the USWDS SVG icon set.
+### Proof of reproducibility
 
-### Change Log
+- Run `pnpm --filter @ship/web exec vite build --sourcemap`.
+- Inspect `web/dist/index.html` and verify it references one JS entry and one CSS file with no `modulepreload` links.
+- Inspect `web/dist/assets/index-*.js` and confirm the entry chunk is about `287 KB` raw while the large editor-heavy chunks are isolated behind route loads.
+- Relevant merged commit: `95eb937`.
 
-- Change 1: removed `@tanstack/query-sync-storage-persister` from `web/package.json` and refreshed the lockfile.
-  - Target: eliminate a verified-dead dependency from the frontend manifest.
-  - Result: no measurable production bundle reduction; the package was already tree-shaken out of the build.
-- Change 2: converted top-level page imports in `web/src/main.tsx` from static imports to `React.lazy()` route chunks and wrapped the route tree in `Suspense`.
-  - Target: stop editor-bearing routes from being pulled into the initial app entry.
-  - Affected routes: `AppLayout`, `Documents`, `Issues`, `Programs`, `TeamMode`, `TeamDirectory`, `PersonEditor`, `FeedbackEditor`, `PublicFeedback`, `Projects`, `Dashboard`, `MyWeekPage`, `AdminDashboard`, `AdminWorkspaceDetail`, `WorkspaceSettings`, `ConvertedDocuments`, `UnifiedDocumentPage`, `StatusOverviewPage`, `ReviewsPage`, `OrgChartPage`, `Login`, `InviteAccept`, and `Setup`.
-- Change 3: gated React Query Devtools behind `import.meta.env.DEV` and lazy-loaded them separately.
-  - Target: prevent production from shipping development-only tooling inside the entry graph.
+## Category 3: API Response Time
 
-### Split Verification
+### Before measurement
 
-- `web/dist/index.html` now references only:
-  - `/assets/index-CPPNbq8d.js`
-  - `/assets/index-D_Rleic7.css`
-- There are no `modulepreload` links in the generated HTML.
-- The new entry chunk contains dynamic preload metadata for route chunks, but no static JS imports.
-- The editor stack is isolated behind route chunks instead of the entry bundle:
-  - `UnifiedDocumentPage-BTtMQph-.js`: `406.07 kB`
-  - `PropertyRow-CzWzi-N4.js`: `836.62 kB`
+- The audit baseline in `docs/g4/audit-resources/data/api-latency.csv` showed the broad list endpoints as the main latency problem.
+- At concurrency `50`, `GET /api/documents` had `P50 612 ms`, `P95 719 ms`, and `P99 744 ms`.
+- At concurrency `50`, `GET /api/issues` had `P50 233 ms`, `P95 334 ms`, and `P99 354 ms`.
 
-### After Build Output
+### Explanation of root cause
 
-```text
-dist/assets/PropertyRow-CzWzi-N4.js                  836.62 kB │ gzip: 261.18 kB │ map: 3,790.73 kB
-dist/assets/UnifiedDocumentPage-BTtMQph-.js          406.07 kB │ gzip: 100.17 kB │ map: 1,189.41 kB
-dist/assets/index-CPPNbq8d.js                        293.94 kB │ gzip:  91.71 kB │ map: 1,229.96 kB
-dist/assets/App-CCSqVuN2.js                           88.49 kB │ gzip:  19.38 kB │ map:   269.15 kB
-dist/assets/index-DuV_k7kB.js                         74.56 kB │ gzip:  25.91 kB │ map:   367.81 kB
-dist/assets/index-D_Rleic7.css                        65.10 kB │ gzip:  12.56 kB
-dist/assets/IssuesList-BpXCpLdo.js                    54.21 kB │ gzip:  15.85 kB │ map:   200.28 kB
-dist/assets/Login-BBu4DqUf.js                         52.05 kB │ gzip:  10.63 kB │ map:    37.64 kB
-dist/assets/core.esm-B4ST11IL.js                      43.78 kB │ gzip:  14.56 kB │ map:   192.02 kB
-dist/assets/ReviewsPage-FNCQSg0u.js                   28.44 kB │ gzip:   7.23 kB │ map:    85.42 kB
-```
+- The auth middleware in `api/src/middleware/auth.ts` wrote `last_activity` on every authenticated request, which turned bursty list traffic into hot-row session churn.
+- `GET /api/documents` and `GET /api/issues` rebuilt and serialized the same list responses repeatedly even when the filter set and workspace state had not changed.
+- The routes had no short-lived in-memory list cache or in-flight dedupe for identical read traffic.
 
-### Rebuilt Metrics
+### Description of fix
 
-- Total bundle size: `10,622.76 KB`
-- Main chunk (raw): `287.05 KB`
-  - Entry file: `web/dist/assets/index-CPPNbq8d.js`
-- Main chunk (gzip): `91.71 kB` (Vite output)
-- Number of chunks: `307`
-- Main chunk reduction:
-  - Before: `2,025.10 KB`
-  - After: `287.05 KB`
-  - Reduction: `1,738.05 KB` (`85.83%`)
-- Total bundle size reduction:
-  - Before: `10,539.29 KB`
-  - After: `10,622.76 KB`
-  - Change: `+83.47 KB`
+- Throttled session-row writes in `api/src/middleware/auth.ts` so authenticated reads no longer update the session table on every GET.
+- Added `api/src/services/list-response-cache.ts` with a short TTL cache, in-flight dedupe, and write-side invalidation.
+- Wired that cache into `api/src/routes/documents.ts` and `api/src/routes/issues.ts`, plus the mutation routes that need invalidation.
 
-### Result
+### After measurement
 
-- Total reduction achieved:
-  - Option A: no. Total bundle size increased slightly because route-splitting created more individual sourcemaps and chunk metadata.
-  - Option B: yes. The initial entry chunk was reduced by `85.83%`.
-- Threshold met: `Option B`
-- Passing verdict: yes
+- The remediation benchmark recorded in merged commit `a8bf031` reduced `GET /api/documents` from `P95 980 ms` to `P95 136 ms`.
+- The remediation benchmark recorded in merged commit `13f0231` reduced `GET /api/issues` from `P95 402 ms` to `P95 191 ms`.
+- Those were the two list endpoints the audit identified as the most meaningful API tail-latency targets.
 
-### Verification Notes
+### Proof of reproducibility
 
-- `pnpm --filter @ship/web exec vite build --sourcemap` passes after the bundle changes.
-- `pnpm --filter @ship/web test` still fails, but the failures are pre-existing and unchanged by this work:
-  - `src/styles/drag-handle.test.ts`
-  - `src/lib/document-tabs.test.ts`
-  - `src/components/editor/DetailsExtension.test.ts`
-  - `src/hooks/useSessionTimeout.test.ts`
+- Follow the authenticated benchmark workflow described in `docs/g4/audit-resources/measurement-commands.md` and `docs/g4/audit-report.md`.
+- Benchmark `GET /api/documents` and `GET /api/issues` after logging in with the seeded credentials.
+- Inspect `api/src/middleware/auth.ts` and `api/src/services/list-response-cache.ts` to confirm the session-write throttle and list-response cache are both present on the merged branch.
+- Relevant merged commits: `a8bf031`, `13f0231`.
+
+## Category 4: Database Query Efficiency
+
+### Before measurement
+
+- The audit baseline in `docs/g4/audit-resources/data/db-query-flows.csv` showed `Load sprint board` at `5` SQL statements with a `0.750 ms` slowest query and no N+1 behavior.
+- Query count was not globally bad, but the sprint board path was the best candidate for a measurable round-trip reduction.
+
+### Explanation of root cause
+
+- The sprint board path in `api/src/routes/weeks.ts` split sprint-access checks and issue loading into separate trips across the same association-heavy document graph.
+- The unified document model was not suffering from classic N+1 behavior here, but the route still paid for redundant queries on a hot week-planning surface.
+
+### Description of fix
+
+- Reworked the sprint board load path in `api/src/routes/weeks.ts` so sprint access and issue fetch logic are combined more tightly.
+- Kept list-cache invalidation wired on the same route group so the lower query count does not return stale sprint board data after writes.
+
+### After measurement
+
+- The remediation benchmark recorded in merged commit `1799070` reduced sprint board query count from `5` to `3`.
+- That is a `40%` reduction in SQL round trips for the targeted flow, which clears the Phase 2 requirement for a database-efficiency improvement.
+
+### Proof of reproducibility
+
+- Enable PostgreSQL statement and duration logging with the commands in `docs/g4/audit-resources/measurement-commands.md`.
+- Exercise the sprint board flow through the real HTTP route, then count the emitted statements in the Postgres logs.
+- Inspect `api/src/routes/weeks.ts` to confirm the merged board-loading path is the current implementation.
+- Relevant merged commit: `1799070`.
+
+## Category 5: Test Coverage and Quality
+
+### Before measurement
+
+- The audit baseline in `docs/g4/audit-resources/data/test-suite-summary.csv` recorded `1466` discovered tests, with `1397` passed, `16` failed, `6` flaky, and `47` not run.
+- The audit also called out missing or weak coverage in the exact areas Ship depends on most: collaboration recovery, concurrent editing, accessibility workflows, and unstable frontend regressions.
+- Representative failing or unstable surfaces included `document-tabs`, `DetailsExtension`, `useSessionTimeout`, `drag-handle`, `my-week` stale data, and week-navigation E2E flows.
+
+### Explanation of root cause
+
+- Several frontend tests were coupled to brittle timing or route assumptions.
+- Collaboration reconnect/concurrent editing and accessibility checks existed as product risks but not as dedicated regression specs.
+- Legacy sprint navigation behavior made week-flow assertions harder to keep deterministic.
+
+### Description of fix
+
+- Stabilized the previously failing frontend regression cluster in `web/src/lib/document-tabs.test.ts`, `web/src/components/editor/DetailsExtension.test.ts`, `web/src/hooks/useSessionTimeout.test.ts`, and `web/src/styles/drag-handle.test.ts`.
+- Normalized legacy sprint route behavior in the week flow and made `e2e/my-week-stale-data.spec.ts` deterministic.
+- Added dedicated regression specs for collaboration recovery and concurrent editing in `e2e/collaboration-regression.spec.ts`.
+- Added dedicated accessibility regression coverage in `e2e/category-7-accessibility.spec.ts`.
+
+### After measurement
+
+- A fresh March 13, 2026 frontend regression rerun completed at `18` passing test files and `161` passing tests with `0` failures in the connected Vitest cluster that includes the stabilized web regressions.
+- A fresh March 13, 2026 targeted Playwright rerun completed at `5` passing tests in `31.2s` across `e2e/collaboration-regression.spec.ts` and `e2e/category-7-accessibility.spec.ts`.
+- The biggest audit gaps now have explicit regression files instead of being untested risk areas.
+
+### Proof of reproducibility
+
+- Run `pnpm --filter @ship/web test -- src/lib/document-tabs.test.ts src/components/editor/DetailsExtension.test.ts src/hooks/useSessionTimeout.test.ts src/styles/drag-handle.test.ts src/components/ui/ErrorBoundary.test.tsx src/lib/actionItemsModal.test.ts`.
+- Run `PLAYWRIGHT_WORKERS=1 pnpm exec playwright test e2e/collaboration-regression.spec.ts e2e/category-7-accessibility.spec.ts --project=chromium`.
+- Inspect the new regression files under `e2e/` to confirm collaboration recovery and accessibility now have dedicated coverage.
+- Relevant merged commits: `9103ef2`, `58cce7d`, `634c236`, `578e73f`, `ef28ec6`, `95c304a`.
+
+## Category 6: Runtime Error Handling
+
+### Before measurement
+
+- The runtime audit baseline in `docs/g4/audit-resources/data/runtime-summary.csv` recorded `2` repeated console errors per sampled page and `2` silent or confusing failures.
+- The most obvious issues were repeated `GET /api/auth/session` console noise, an action-items modal that could block direct editor entry, and a shared error-boundary fallback that only offered `Try Again`.
+
+### Explanation of root cause
+
+- `web/src/hooks/useSessionTimeout.ts` fetched `/api/auth/session` with a relative URL, which hit the wrong proxy target inside the Dockerized web container.
+- `ActionItemsModal` auto-opened globally from `web/src/pages/App.tsx`, even when the user landed directly on a document detail route where the editor should be immediately usable.
+- `web/src/components/ui/ErrorBoundary.tsx` did catch render failures, but the default fallback had no reload affordance.
+
+### Description of fix
+
+- Updated `web/src/hooks/useSessionTimeout.ts` to derive the session endpoint from `VITE_API_URL` and degrade cleanly when bootstrap info is unavailable.
+- Added `web/src/lib/actionItemsModal.ts` and changed `web/src/pages/App.tsx` so auto-opened accountability prompts do not block direct entry into `/documents/:id`.
+- Expanded the default `ErrorBoundary` fallback to include both `Reload Page` and `Try Again`.
+
+### After measurement
+
+- A fresh March 13, 2026 rerun of the targeted runtime regression files passed `42` tests: `36` in `useSessionTimeout.test.ts`, `4` in `actionItemsModal.test.ts`, and `2` in `ErrorBoundary.test.tsx`.
+- The merged code now prevents document-detail auto-open for the accountability modal and exposes both reload and retry recovery paths in the shared error boundary.
+- The session-timeout bootstrap path no longer depends on the broken relative `/api/auth/session` proxy behavior.
+
+### Proof of reproducibility
+
+- Run `pnpm --filter @ship/web test -- src/hooks/useSessionTimeout.test.ts src/lib/actionItemsModal.test.ts src/components/ui/ErrorBoundary.test.tsx`.
+- Start the local app, sign in, and verify there is no repeated `/api/auth/session` proxy noise and no auto-opened action-items modal blocking direct document entry.
+- Relevant merged commits: `965d164`, `6e3c8f9`, `a294550`.
+
+## Category 7: Accessibility Compliance
+
+### Before measurement
+
+- The audit baseline in `docs/g4/audit-report.md` recorded `2` critical and `20` serious axe violations across the four audited pages.
+- `/docs` and `/documents/:id` had broken tree/list semantics, and `/my-week` had `18` serious contrast failures.
+- Lighthouse accessibility scores were all `100`, which made the axe findings the real accessibility signal.
+
+### Explanation of root cause
+
+- The document-tree sidebar in `web/src/pages/App.tsx` rendered overflow links as invalid children under `role="tree"`, which triggered `aria-required-children` and `listitem` failures.
+- `web/src/pages/MyWeekPage.tsx` used muted visual tokens for chips and timeline labels that fell below WCAG 2.1 AA contrast thresholds.
+- The repo had audit artifacts, but it did not yet have a focused Playwright regression spec to keep those issues from coming back.
+
+### Description of fix
+
+- Updated the tree markup in `web/src/pages/App.tsx` so the audited document trees contain only valid `treeitem` children.
+- Adjusted the contrast-sensitive labels and chips in `web/src/pages/MyWeekPage.tsx`.
+- Added `scripts/axe-scan.js`, checked-in before/after audit artifacts under `audit/`, and the dedicated regression file `e2e/category-7-accessibility.spec.ts`.
+
+### After measurement
+
+- The checked-in `audit/axe-after.txt` report shows `0` critical and `0` serious violations on `/docs`, `/issues`, `/my-week`, and `/documents/:id`.
+- A fresh March 13, 2026 Playwright rerun passed all `3` tests in `e2e/category-7-accessibility.spec.ts`.
+- The after-state now matches what the audit expected: the originally failing semantic and contrast issues are gone, and they are covered by a dedicated regression spec.
+
+### Proof of reproducibility
+
+- Run `node scripts/axe-scan.js after` against the local app and inspect `audit/axe-after.json` or `audit/axe-after.txt`.
+- Run `PLAYWRIGHT_WORKERS=1 pnpm exec playwright test e2e/category-7-accessibility.spec.ts --project=chromium`.
+- Relevant merged commits: `d1f2cf9`, `95c304a`.

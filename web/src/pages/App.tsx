@@ -212,6 +212,10 @@ export function AppLayout() {
   const isWeeklyDoc = currentDocumentType === 'weekly_plan' || currentDocumentType === 'weekly_retro';
   const isStandup = currentDocumentType === 'standup';
   const hideLeftSidebar = isMyWeekPage || isWeeklyDoc || isStandup;
+  const actionItemsModalVisible = actionItemsModalOpen && !shouldCloseAutoOpenedActionItemsModal({
+    openReason: actionItemsModalOpenReason,
+    pathname: location.pathname,
+  });
 
   // Get the active document ID from URL - works for /documents/:id and legacy routes
   const getActiveDocumentId = (): string | undefined => {
@@ -605,7 +609,7 @@ export function AppLayout() {
 
       {/* Action Items Modal - shows on login when user has pending accountability tasks */}
       <ActionItemsModal
-        open={actionItemsModalOpen}
+        open={actionItemsModalVisible}
         onClose={closeActionItemsModal}
       />
     </div>

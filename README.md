@@ -29,6 +29,7 @@ For grading and review, the full submission packet is here:
 - [Phase 2 notes](PHASE2_NOTES.md)
 - [Phase 2 improvement documentation](PHASE2_IMPROVEMENT_DOCUMENTATION.md)
 - [Discovery write-up](discovery.md)
+- [Improvement verification guide](docs/g4/improvement-verification-guide.md)
 - [AI cost analysis](docs/gfa-week-4/ai-cost-log.md)
 
 Supporting audit evidence and charts are here:

@@ -2,9 +2,12 @@ import { Router, Request, Response } from 'express';
 import { pool } from '../db/client.js';
 import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.js';
+import { listCacheInvalidationMiddleware } from '../services/list-response-cache.js';
 
 type RouterType = ReturnType<typeof Router>;
 const router: RouterType = Router();
+
+router.use(listCacheInvalidationMiddleware);
 
 // Validation schemas
 const createAssociationSchema = z.object({

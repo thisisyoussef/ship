@@ -67,7 +67,6 @@ export function getAuthContext(req: Request, res: Response): AuthContext | null 
 
   return { userId, workspaceId };
 }
-
 export function ensureUuidId<T extends string>(
   value: string,
   res: Response,

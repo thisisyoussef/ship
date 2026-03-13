@@ -4,11 +4,19 @@ import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.js';
 import { isWorkspaceAdmin } from '../middleware/visibility.js';
 import { handleVisibilityChange, handleDocumentConversion, invalidateDocumentCache, broadcastToUser } from '../collaboration/index.js';
+import {
+  buildDocumentsListCacheKey,
+  getCachedListResponse,
+  getFirstQueryValue,
+  listCacheInvalidationMiddleware,
+} from '../services/list-response-cache.js';
 import { extractHypothesisFromContent, extractSuccessCriteriaFromContent, extractVisionFromContent, extractGoalsFromContent, checkDocumentCompleteness } from '../utils/extractHypothesis.js';
 import { loadContentFromYjsState } from '../utils/yjsConverter.js';
 
 type RouterType = ReturnType<typeof Router>;
 const router: RouterType = Router();
+
+router.use(listCacheInvalidationMiddleware);
 
 // Check if user can access a document (visibility check)
 async function canAccessDocument(
@@ -93,60 +101,75 @@ const updateDocumentSchema = z.object({
 // List documents
 router.get('/', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { type, parent_id } = req.query;
+    const type = getFirstQueryValue(req.query.type);
+    const parentId = getFirstQueryValue(req.query.parent_id);
     const userId = req.userId!;
     const workspaceId = req.workspaceId!;
 
     // Check if user is admin (admins can see all documents)
-    const isAdmin = await isWorkspaceAdmin(userId, workspaceId);
+    const isAdmin = req.isSuperAdmin === true
+      ? true
+      : await isWorkspaceAdmin(userId, workspaceId);
 
-    let query = `
-      SELECT id, workspace_id, document_type, title, parent_id, position,
-             ticket_number, properties,
-             created_at, updated_at, created_by, visibility
-      FROM documents
-      WHERE workspace_id = $1
-        AND archived_at IS NULL
-        AND deleted_at IS NULL
-        AND (visibility = 'workspace' OR created_by = $2 OR $3 = TRUE)
-    `;
-    const params: (string | boolean | null)[] = [workspaceId, userId, isAdmin];
-
-    if (type) {
-      query += ` AND document_type = $${params.length + 1}`;
-      params.push(type as string);
-    }
-
-    if (parent_id !== undefined) {
-      if (parent_id === 'null' || parent_id === '') {
-        query += ` AND parent_id IS NULL`;
-      } else {
-        query += ` AND parent_id = $${params.length + 1}`;
-        params.push(parent_id as string);
-      }
-    }
-
-    query += ` ORDER BY position ASC, created_at DESC`;
-
-    const result = await pool.query(query, params);
-
-    // Extract properties into flat fields for backwards compatibility
-    const documents = result.rows.map(row => {
-      const props = row.properties || {};
-      return {
-        ...row,
-        // Flatten common properties for backwards compatibility
-        state: props.state,
-        priority: props.priority,
-        estimate: props.estimate,
-        assignee_id: props.assignee_id,
-        source: props.source,
-        prefix: props.prefix,
-        color: props.color,
-      };
+    const cacheKey = buildDocumentsListCacheKey({
+      workspaceId,
+      userId,
+      isAdmin,
+      type,
+      parentId,
     });
 
-    res.json(documents);
+    const body = await getCachedListResponse(cacheKey, async () => {
+      let query = `
+        SELECT id, workspace_id, document_type, title, parent_id, position,
+               ticket_number, properties,
+               created_at, updated_at, created_by, visibility
+        FROM documents
+        WHERE workspace_id = $1
+          AND archived_at IS NULL
+          AND deleted_at IS NULL
+          AND (visibility = 'workspace' OR created_by = $2 OR $3 = TRUE)
+      `;
+      const params: (string | boolean | null)[] = [workspaceId, userId, isAdmin];
+
+      if (type) {
+        query += ` AND document_type = $${params.length + 1}`;
+        params.push(type);
+      }
+
+      if (parentId !== undefined) {
+        if (parentId === 'null' || parentId === '') {
+          query += ` AND parent_id IS NULL`;
+        } else {
+          query += ` AND parent_id = $${params.length + 1}`;
+          params.push(parentId);
+        }
+      }
+
+      query += ` ORDER BY position ASC, created_at DESC`;
+
+      const result = await pool.query(query, params);
+
+      // Extract properties into flat fields for backwards compatibility
+      const documents = result.rows.map(row => {
+        const props = row.properties || {};
+        return {
+          ...row,
+          // Flatten common properties for backwards compatibility
+          state: props.state,
+          priority: props.priority,
+          estimate: props.estimate,
+          assignee_id: props.assignee_id,
+          source: props.source,
+          prefix: props.prefix,
+          color: props.color,
+        };
+      });
+
+      return JSON.stringify(documents);
+    });
+
+    res.type('application/json').send(body);
   } catch (err) {
     console.error('List documents error:', err);
     res.status(500).json({ error: 'Internal server error' });

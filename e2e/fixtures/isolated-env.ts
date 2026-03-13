@@ -168,6 +168,7 @@ export const test = base.extend<
           PORT: String(port),
           DATABASE_URL: dbUrl,
           CORS_ORIGIN: '*', // Allow any origin during tests
+          E2E_TEST: '1',
           NODE_ENV: 'test',
           // Prevent dotenv from overriding our DATABASE_URL
           DOTENV_CONFIG_PATH: '/dev/null',

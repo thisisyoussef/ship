@@ -4,66 +4,66 @@ This write-up captures three things I learned directly from the Ship source code
 
 ## 1. Cache-first CRDT sync with explicit stale-cache invalidation
 
-### 10. Name the thing I discovered
+### Name the thing I discovered
 
 I discovered that the editor does not simply connect Yjs to a WebSocket. It stages collaboration in two steps: local IndexedDB hydration first, then network sync, with explicit stale-cache clearing when the server says local state is no longer trustworthy.
 
-### 11. Where I found it in the codebase
+### Where I found it in the codebase
 
 - `web/src/components/Editor.tsx`, lines 194-198
 - `web/src/components/Editor.tsx`, lines 285-503
 
-### 12. What it does and why it matters
+### What it does and why it matters
 
 The editor creates a fresh `Y.Doc` whenever `documentId` changes so the next document cannot inherit stale collaborative state from the previous one. It then waits briefly for `IndexeddbPersistence` to hydrate cached content before connecting `WebsocketProvider`, which gives fast local loads without skipping real-time sync. The same effect also listens for a custom cache-clear message and for close code `4101`, then wipes IndexedDB so old local content does not merge back into a freshly loaded server document.
 
 This matters because collaborative editors fail in ugly ways when cache, live sync, and navigation are not coordinated. The code here is solving three concrete problems at once: fast navigation, offline tolerance, and protection against cross-document contamination or stale-cache merges.
 
-### 13. How I would apply this knowledge in a future project
+### How I would apply this knowledge in a future project
 
 In a future project with collaborative editing, I would adopt the same cache-then-sync pattern instead of opening the network connection immediately. I would also include a server-driven invalidation path so local persistence can be cleared when the canonical document changes outside the editor.
 
 ## 2. Document relationships are handled through one junction-layer API, not ad hoc route SQL
 
-### 10. Name the thing I discovered
+### Name the thing I discovered
 
 I discovered that Ship treats document relationships as a first-class association layer with shared CRUD helpers, batching, and idempotent writes, rather than leaving each route to manage relationship SQL on its own.
 
-### 11. Where I found it in the codebase
+### Where I found it in the codebase
 
 - `api/src/db/schema.sql`, lines 105-131
 - `api/src/db/schema.sql`, lines 199-222
 - `api/src/utils/document-crud.ts`, lines 107-180
 - `api/src/utils/document-crud.ts`, lines 195-455
 
-### 12. What it does and why it matters
+### What it does and why it matters
 
 The schema shows that Ship keeps the core `documents` table generic and stores organizational links in `document_associations`. The helper layer in `document-crud.ts` then becomes the single way to read, batch-read, sync, add, remove, and replace those links. It also bakes in two useful safeguards: `ON CONFLICT DO NOTHING` for idempotent inserts and batch association fetches to avoid N+1 query patterns when listing documents.
 
 This matters because relationship bugs often come from split read/write paths. Here the code is pushing callers toward one shared abstraction, which makes association behavior more consistent and keeps the performance fix for list endpoints in one place instead of repeating it across route files.
 
-### 13. How I would apply this knowledge in a future project
+### How I would apply this knowledge in a future project
 
 In a future project with movable many-to-many relationships, I would put the junction-table logic behind a small shared utility layer early. I would also ship batch lookup helpers from the start so the default path for list views is already N+1-safe.
 
 ## 3. The repo pairs schema-less storage with discriminated TypeScript document variants
 
-### 10. Name the thing I discovered
+### Name the thing I discovered
 
 I discovered a pattern I like a lot: keep the database flexible with one `documents` table and JSONB properties, then recover strong application-level meaning through discriminated TypeScript document variants in the shared package.
 
-### 11. Where I found it in the codebase
+### Where I found it in the codebase
 
 - `api/src/db/schema.sql`, lines 105-131
 - `shared/src/types/document.ts`, lines 222-317
 
-### 12. What it does and why it matters
+### What it does and why it matters
 
 At the database level, Ship stores all document types in one table with shared `content`, `yjs_state`, and `properties` fields. In the shared TypeScript layer, that generic storage model becomes a base `Document` plus typed variants like `IssueDocument`, `ProjectDocument`, `WeekDocument`, and `WeeklyPlanDocument`, each with a fixed `document_type` discriminator and a typed `properties` shape.
 
 This matters because it gives the product one storage and editing model without forcing the application into weakly typed branching everywhere. The database stays simple, but the frontend and API can still write code that knows an issue has `IssueProperties` and a project has `ProjectProperties`.
 
-### 13. How I would apply this knowledge in a future project
+### How I would apply this knowledge in a future project
 
 I would use this pattern when several product entities share storage, editing, and lifecycle behavior but still need type-safe branching in code. I would keep the table generic, then put the discriminated union and typed property contracts in a shared package so both client and server narrow the same way.
 

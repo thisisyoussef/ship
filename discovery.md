@@ -1,61 +1,120 @@
 # Discovery Write-Up
 
-This write-up captures three things I learned from the audited baseline of the Ship codebase before the later improvement work. I drew each discovery from the audit findings and then traced it back to the code that revealed the pattern in practice.
+This write-up captures three things I learned directly from the Ship source code while reviewing the current audit baseline. I replaced audit-report-only references with implementation-level evidence so each discovery is tied to code that actually enforces the behavior.
 
-## 1. AST-based type-safety auditing instead of grep-based counting
+## 1. Cache-first CRDT sync with explicit stale-cache invalidation
 
-### 10. Name the thing I discovered
+### Name the thing I discovered
 
-I discovered a much more reliable way to audit TypeScript safety by using an AST-based scan instead of depending on plain text search.
+I discovered that the editor does not simply connect Yjs to a WebSocket. It stages collaboration in two steps: local IndexedDB hydration first, then network sync, with explicit stale-cache clearing when the server says local state is no longer trustworthy.
 
-### 11. Where I found it in the codebase
+### Where I found it in the codebase
 
-- `docs/g4/audit-report.md`, lines 75-92
+- `web/src/components/Editor.tsx`, lines 194-198
+- `web/src/components/Editor.tsx`, lines 285-499
 
-### 12. What it does and why it matters
+### What it does and why it matters
 
-The audit measured unsafe constructs such as `any`, type assertions, non-null assertions, and `@ts-ignore` comments by walking real TypeScript syntax across `web/`, `api/`, and `shared/`. That mattered because plain text search would have produced weaker results. It can overcount unrelated matches, miss context, and make the findings harder to defend. The AST-based approach gave a more trustworthy picture of where unsafe typing was actually concentrated, which made the type-safety section of the audit more precise and more useful.
+The editor creates a fresh `Y.Doc` whenever `documentId` changes so the next document cannot inherit stale collaborative state from the previous one. It then waits briefly for `IndexeddbPersistence` to hydrate cached content before connecting `WebsocketProvider`, which gives fast local loads without skipping real-time sync. The same effect also listens for a custom cache-clear message and for close code `4101`, then wipes IndexedDB so old local content does not merge back into a freshly loaded server document.
 
-### 13. How I would apply this knowledge in a future project
+This matters because collaborative editors fail in ugly ways when cache, live sync, and navigation are not coordinated. The code here is solving three concrete problems at once: fast navigation, offline tolerance, and protection against cross-document contamination or stale-cache merges.
 
-In a future project, I would use syntax-aware analysis for code-quality audits whenever I need to understand how a large TypeScript codebase is really behaving. That approach would help me find the real hotspots faster and make stronger recommendations based on actual code structure rather than noisy text matches.
+### How I would apply this knowledge in a future project
 
-## 2. A unified document model that treats many product entities as one underlying system
+In a future project with collaborative editing, I would adopt the same cache-then-sync pattern instead of opening the network connection immediately. I would also include a server-driven invalidation path so local persistence can be cleared when the canonical document changes outside the editor.
 
-### 10. Name the thing I discovered
+## 2. Document relationships are handled through one junction-layer API, not ad hoc route SQL
 
-I discovered that Ship is built around a unified document model rather than separate data models for each feature area.
+### Name the thing I discovered
 
-### 11. Where I found it in the codebase
+I discovered that Ship treats document relationships as a first-class association layer with shared CRUD helpers, batching, and idempotent writes, rather than leaving each route to manage relationship SQL on its own.
 
-- `docs/g4/audit-report.md`, lines 3-7
-- `api/src/db/schema.sql`, lines 98-120
-- `shared/src/types/document.ts`, lines 235-317
+### Where I found it in the codebase
 
-### 12. What it does and why it matters
+- `api/src/db/schema.sql`, lines 105-131
+- `api/src/db/schema.sql`, lines 199-222
+- `api/src/utils/document-crud.ts`, lines 107-180
+- `api/src/utils/document-crud.ts`, lines 195-455
 
-The audit report made it clear that Ship follows the principle that everything is a document. Programs, projects, weeks, issues, plans, and retros all share the same core model. The schema supports that decision with a single `documents` table and a `document_type` enum, while the shared TypeScript types narrow that base model into variants such as `IssueDocument`, `ProjectDocument`, and `WeeklyRetroDocument`. This matters because it keeps the architecture consistent across the stack. Instead of maintaining disconnected models for each product surface, the system can reuse shared behavior while still preserving type-specific logic where it is needed.
+### What it does and why it matters
 
-### 13. How I would apply this knowledge in a future project
+The schema shows that Ship keeps the core `documents` table generic and stores organizational links in `document_associations`. The helper layer in `document-crud.ts` then becomes the single way to read, batch-read, sync, add, remove, and replace those links. It also bakes in two useful safeguards: `ON CONFLICT DO NOTHING` for idempotent inserts and batch association fetches to avoid N+1 query patterns when listing documents.
 
-I would apply this pattern in a project where multiple entities share the same lifecycle, permissions, editing behavior, or relationships. I would keep the storage model simple and then use typed application-layer variants so the code remains both flexible and explicit.
+This matters because relationship bugs often come from split read/write paths. Here the code is pushing callers toward one shared abstraction, which makes association behavior more consistent and keeps the performance fix for list endpoints in one place instead of repeating it across route files.
 
-## 3. The biggest frontend bundle cost came from the editor and collaboration architecture
+### How I would apply this knowledge in a future project
 
-### 10. Name the thing I discovered
+In a future project with movable many-to-many relationships, I would put the junction-table logic behind a small shared utility layer early. I would also ship batch lookup helpers from the start so the default path for list views is already N+1-safe.
 
-I discovered that the heaviest frontend performance cost was tied to the editor and collaboration stack rather than ordinary interface code.
+## 3. The repo pairs schema-less storage with discriminated TypeScript document variants
 
-### 11. Where I found it in the codebase
+### Name the thing I discovered
 
-- `docs/g4/audit-report.md`, lines 217-229
-- `web/src/components/Editor.tsx`, lines 3-22
-- `web/package.json`
+I discovered a pattern I like a lot: keep the database flexible with one `documents` table and JSONB properties, then recover strong application-level meaning through discriminated TypeScript document variants in the shared package.
 
-### 12. What it does and why it matters
+### Where I found it in the codebase
 
-The audit showed that the main frontend bundle was large and that the editor and collaboration stack were a major reason why. Looking at the editor implementation explains that result. The editor pulls in TipTap, Yjs, collaboration extensions, syntax highlighting, tables, tasks, comments, and other rich editing capabilities. This mattered because it showed that the performance issue was connected to a deliberate product choice rather than random code bloat. The application's richest capability was also one of its most expensive technical costs.
+- `api/src/db/schema.sql`, lines 105-131
+- `shared/src/types/document.ts`, lines 222-317
 
-### 13. How I would apply this knowledge in a future project
+### What it does and why it matters
 
-In a future project, if I knew the product depended on a rich editor or collaboration stack, I would plan route-level loading and chunk boundaries much earlier. That would let me preserve advanced functionality without making every user pay the full cost on initial load.
+At the database level, Ship stores all document types in one table with shared `content`, `yjs_state`, and `properties` fields. In the shared TypeScript layer, that generic storage model becomes a base `Document` plus typed variants like `IssueDocument`, `ProjectDocument`, `WeekDocument`, and `WeeklyPlanDocument`, each with a fixed `document_type` discriminator and a typed `properties` shape.
+
+This matters because it gives the product one storage and editing model without forcing the application into weakly typed branching everywhere. The database stays simple, but the frontend and API can still write code that knows an issue has `IssueProperties` and a project has `ProjectProperties`.
+
+### How I would apply this knowledge in a future project
+
+I would use this pattern when several product entities share storage, editing, and lifecycle behavior but still need type-safe branching in code. I would keep the table generic, then put the discriminated union and typed property contracts in a shared package so both client and server narrow the same way.
+
+## AI Cost Analysis
+
+### Scope
+
+The numbers below cover this Codex Desktop discovery/comprehension session on March 13, 2026. I measured them from the local Codex session log at:
+
+- `/Users/youss/.codex/sessions/2026/03/13/rollout-2026-03-13T03-01-25-019ce636-e96c-7c20-9068-0a43165624c4.jsonl`
+
+### Development Costs
+
+- LLM API costs:
+  Exact USD cost is not available from the local session log. The log exposes `model_provider: openai` and cumulative token counts, but it does not expose the billable model SKU or a per-token price table for this session.
+- Total tokens consumed:
+  - Input tokens: `792,619`
+  - Cached input tokens: `699,008`
+  - Non-cached input tokens: `93,611`
+  - Output tokens: `8,386`
+  - Reasoning output tokens: `3,707`
+  - Total tokens: `801,005`
+- Number of API calls made:
+  The closest measurable proxy in the session log is `13` `token_count` checkpoints. I am treating that as `13` model-response events for this write-up session, but I cannot prove from the local log that it is a billing-grade API-call count.
+- Coding agent costs:
+  - Coding agent used: `Codex Desktop`
+  - Provider detected in session log: `OpenAI`
+  - Separate subscription or seat cost for Codex Desktop: not available from the repo or local session log
+  - Other coding agents used in this session: none detected
+
+## Reflection Questions
+
+### Which parts of the audit were AI tools most helpful for? Least helpful?
+
+AI tools were most helpful for breadth-first discovery: finding the repo instructions, locating the final deliverable file, scanning for the editor/collaboration path, and pulling exact line references across `web/`, `api/`, and `shared/`. They were least helpful for cost accounting, because the repo does not store vendor billing data and the local session log stops short of telling me the exact dollar cost.
+
+### Did AI tools help you understand the codebase, or did they shortcut understanding?
+
+They helped with the first pass, but only up to a point. The useful part was the speed of source discovery. The risky part was that the existing `discovery.md` already leaned on the audit report, which would have let me repeat conclusions without confirming how the code actually worked. I had to go back to the source files to avoid that shortcut.
+
+### Where did you have to override or correct AI suggestions? Why?
+
+I overrode the easiest path, which was to keep the original discovery framing based on `docs/g4/audit-report.md`. That would have produced a weaker submission because the question asks for discoveries in the codebase, not just discoveries in an audit narrative. I also avoided inventing an exact OpenAI dollar cost because the local log does not expose the billable model or pricing.
+
+### What percentage of your final code changes were AI-generated vs. hand-written?
+
+For this session's file changes, `100%` of the text was AI-generated. The manual part was verification: choosing which findings were worth keeping, checking the cited source lines, and rejecting unsupported cost claims.
+
+## Input I May Need From You
+
+I can finish the repo-side deliverable without more input, but I would need your help for any cost section that must show exact dollars or cross-tool totals beyond this Codex session. Specifically:
+
+- If you want an exact USD number, I need the billing export or pricing basis for the model SKU used by this session.
+- If you used other AI tools during the broader project outside this Codex session, I need those tool names and their usage totals to fold them into the same table.

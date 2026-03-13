@@ -35,6 +35,9 @@ import weeklyPlansRoutes, { weeklyRetrosRouter } from './routes/weekly-plans.js'
 import { documentCommentsRouter, commentsRouter } from './routes/comments.js';
 import { setupSwagger } from './swagger.js';
 import { initializeCAIA } from './services/caia.js';
+import { existsSync } from 'fs';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 
 // Validate SESSION_SECRET in production
 if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
@@ -42,6 +45,10 @@ if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
 }
 
 const sessionSecret = process.env.SESSION_SECRET || 'dev-only-secret-do-not-use-in-production';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const webDistPath = join(__dirname, '../../web/dist');
+const webIndexPath = join(webDistPath, 'index.html');
 
 // CSRF protection setup
 const { csrfSynchronisedProtection, generateToken } = csrfSync({
@@ -240,6 +247,19 @@ export function createApp(corsOrigin: string = 'http://localhost:5173'): express
   initializeCAIA().catch((err) => {
     console.warn('CAIA initialization failed:', err);
   });
+
+  if (process.env.NODE_ENV === 'production' && existsSync(webIndexPath)) {
+    app.use(express.static(webDistPath));
+
+    app.get('*', (req, res, next) => {
+      if (req.path.startsWith('/api/') || req.path === '/health') {
+        next();
+        return;
+      }
+
+      res.sendFile(webIndexPath);
+    });
+  }
 
   return app;
 }

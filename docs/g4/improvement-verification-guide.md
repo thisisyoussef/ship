@@ -15,10 +15,16 @@ Primary supporting documents:
 
 ## Quick Start
 
-If you want to verify locally:
+For UI-only verification, use the public deployment:
+
+- app: `https://ship-demo.onrender.com/`
+- login: `https://ship-demo.onrender.com/login`
+- health: `https://ship-demo.onrender.com/health`
+
+If you want to verify locally with commands:
 
 ```bash
-cd /Users/youss/Development/gauntlet/ship
+cd /path/to/ship
 pnpm install
 pnpm docker:up
 ```
@@ -50,11 +56,16 @@ Demo credentials:
 
 These steps cover the parts a grader can verify directly in the UI.
 
+Use the deployed app by default:
+
+- app: `https://ship-demo.onrender.com/`
+- if you are running locally instead, replace the base URLs below with `http://localhost:5173` for the web app and `http://localhost:3000` for API-only endpoints
+
 ### 1. Deployment and health
 
-1. Open `http://localhost:5173/login`.
+1. Open `https://ship-demo.onrender.com/login`.
 2. Confirm the app loads normally.
-3. Open `http://localhost:3000/health`.
+3. Open `https://ship-demo.onrender.com/health`.
 4. Expected result:
    - before: this step did not prove any phase work by itself
    - after: the app and API are up and the API returns `{"status":"ok"}`
@@ -69,7 +80,7 @@ These steps cover the parts a grader can verify directly in the UI.
 
 ### 3. My Week visual fixes
 
-1. Go to `http://localhost:5173/my-week`.
+1. Go to `https://ship-demo.onrender.com/my-week`.
 2. Verify:
    - the `Current` badge has white text on a blue accent background
    - today's day label is brighter
@@ -81,7 +92,7 @@ These steps cover the parts a grader can verify directly in the UI.
 
 ### 4. Docs and direct document entry
 
-1. Go to `http://localhost:5173/docs`.
+1. Go to `https://ship-demo.onrender.com/docs`.
 2. Use the sidebar and open a document.
 3. Copy the `/documents/:id` URL or open a different document directly in a new tab.
 4. Expected result:
@@ -114,7 +125,7 @@ After:
 Commands:
 
 ```bash
-cd /Users/youss/Development/gauntlet/ship
+cd /path/to/ship
 pnpm run build:shared
 pnpm --filter @ship/shared type-check
 pnpm --filter @ship/api type-check
@@ -148,7 +159,7 @@ After:
 Commands:
 
 ```bash
-cd /Users/youss/Development/gauntlet/ship
+cd /path/to/ship
 pnpm run build:shared
 pnpm --filter @ship/web exec vite build --sourcemap
 ```
@@ -191,7 +202,7 @@ Quick verification:
 Stronger local rerun:
 
 ```bash
-cd /Users/youss/Development/gauntlet/ship
+cd /path/to/ship
 BASE=http://localhost:3000
 COOKIE_JAR=/tmp/ship-cookies.txt
 CSRF=$(curl -s -c "$COOKIE_JAR" "$BASE/api/csrf-token" | node -e "process.stdin.once('data', d => console.log(JSON.parse(d).token))")
@@ -258,7 +269,7 @@ After:
 Commands:
 
 ```bash
-cd /Users/youss/Development/gauntlet/ship
+cd /path/to/ship
 DATABASE_URL=postgres://ship:ship_dev_password@localhost:5433/ship_dev pnpm test
 pnpm --filter @ship/web test
 PLAYWRIGHT_WORKERS=1 pnpm exec playwright test e2e/my-week-stale-data.spec.ts --workers=1 --repeat-each=5
@@ -293,7 +304,7 @@ After:
 Commands:
 
 ```bash
-cd /Users/youss/Development/gauntlet/ship
+cd /path/to/ship
 pnpm --filter @ship/web exec vitest run src/lib/actionItemsModal.test.ts src/hooks/useSessionTimeout.test.ts src/components/ui/ErrorBoundary.test.tsx
 ```
 
@@ -329,7 +340,7 @@ After:
 Commands:
 
 ```bash
-cd /Users/youss/Development/gauntlet/ship
+cd /path/to/ship
 PLAYWRIGHT_WORKERS=1 pnpm exec playwright test e2e/category-7-accessibility.spec.ts --workers=1
 ```
 
@@ -357,4 +368,3 @@ These are the follow-up checks run on March 13, 2026 after fixing the verificati
   - no extra `/api/auth/me` `401` on `/login`
   - direct document entry is not blocked by the Action Items modal
   - a fresh weekly plan created through the app now writes a non-null `yjs_state`
-

@@ -35,7 +35,6 @@ type RouterType = ReturnType<typeof Router>;
 const router: RouterType = Router();
 
 router.use(listCacheInvalidationMiddleware);
-
 const issueStateSchema = z.enum(['triage', 'backlog', 'todo', 'in_progress', 'in_review', 'done', 'cancelled']);
 const issuePrioritySchema = z.enum(['urgent', 'high', 'medium', 'low', 'none']);
 const issueSourceSchema = z.enum(['internal', 'external', 'action_items']);

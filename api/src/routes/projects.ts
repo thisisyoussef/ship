@@ -32,7 +32,6 @@ type RouterType = ReturnType<typeof Router>;
 const router: RouterType = Router();
 
 router.use(listCacheInvalidationMiddleware);
-
 type ProjectProperties = Partial<SharedProjectProperties>;
 type ProjectIssueProperties = Partial<SharedIssueProperties>;
 type SprintProperties = Partial<WeekProperties>;

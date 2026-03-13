@@ -24,7 +24,6 @@ type RouterType = ReturnType<typeof Router>;
 const router: RouterType = Router();
 
 router.use(listCacheInvalidationMiddleware);
-
 type SprintProperties = Partial<WeekProperties> & JsonObject;
 
 interface SprintRow {

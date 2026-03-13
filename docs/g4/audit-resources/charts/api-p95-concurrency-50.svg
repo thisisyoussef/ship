@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="420" viewBox="0 0 1100 420">
+<defs><linearGradient id="grad" x1="0" x2="1"><stop offset="0%" stop-color="#1e3a5f"/><stop offset="100%" stop-color="#d4a73a"/></linearGradient></defs>
+<rect width="100%" height="100%" fill="#fffdfa" rx="24"/>
+<text x="48" y="48" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="700" fill="#162033">API P95 latency at concurrency 50</text>
+<text x="48" y="72" font-family="Inter, Arial, sans-serif" font-size="14" fill="#5b6475">Representative endpoints selected from real frontend network traffic after login.</text>
+<text x="48" y="114" font-family="Inter, Arial, sans-serif" font-size="15" fill="#162033">GET /api/documents</text>
+<rect x="280" y="98" width="700" height="18" rx="9" fill="#edf0f4"/>
+<rect x="280" y="98" width="700.0" height="18" rx="9" fill="url(#grad)"/>
+<text x="996" y="113" font-family="JetBrains Mono, monospace" font-size="13" fill="#162033">719 ms</text>
+<text x="48" y="172" font-family="Inter, Arial, sans-serif" font-size="15" fill="#162033">GET /api/issues</text>
+<rect x="280" y="156" width="700" height="18" rx="9" fill="#edf0f4"/>
+<rect x="280" y="156" width="325.2" height="18" rx="9" fill="url(#grad)"/>
+<text x="996" y="171" font-family="JetBrains Mono, monospace" font-size="13" fill="#162033">334 ms</text>
+<text x="48" y="230" font-family="Inter, Arial, sans-serif" font-size="15" fill="#162033">GET /api/documents/:id</text>
+<rect x="280" y="214" width="700" height="18" rx="9" fill="#edf0f4"/>
+<rect x="280" y="214" width="130.5" height="18" rx="9" fill="url(#grad)"/>
+<text x="996" y="229" font-family="JetBrains Mono, monospace" font-size="13" fill="#162033">134 ms</text>
+<text x="48" y="288" font-family="Inter, Arial, sans-serif" font-size="15" fill="#162033">GET /api/weeks/:id/issues</text>
+<rect x="280" y="272" width="700" height="18" rx="9" fill="#edf0f4"/>
+<rect x="280" y="272" width="140.2" height="18" rx="9" fill="url(#grad)"/>
+<text x="996" y="287" font-family="JetBrains Mono, monospace" font-size="13" fill="#162033">144 ms</text>
+<text x="48" y="346" font-family="Inter, Arial, sans-serif" font-size="15" fill="#162033">GET /api/search/learnings?q=api</text>
+<rect x="280" y="330" width="700" height="18" rx="9" fill="#edf0f4"/>
+<rect x="280" y="330" width="99.3" height="18" rx="9" fill="url(#grad)"/>
+<text x="996" y="345" font-family="JetBrains Mono, monospace" font-size="13" fill="#162033">102 ms</text>
+</svg>

@@ -1,0 +1,6 @@
+flow,total_queries,slowest_ms,n_plus_one
+Load main page,4,2.441,No
+View a document,4,0.845,No
+List issues,5,0.527,No
+Load sprint board,5,0.75,No
+Search content,4,0.51,No

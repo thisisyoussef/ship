@@ -1,0 +1,5 @@
+metric,value
+console_errors_per_sampled_page,2
+unhandled_promise_rejections_server,0
+network_disconnect_recovery,Pass
+silent_failures_identified,2

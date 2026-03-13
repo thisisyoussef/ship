@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { HTTP_STATUS } from '@ship/shared';
+import { z } from 'zod';
 
 export type JsonObject = Record<string, unknown>;
 
@@ -18,32 +19,38 @@ export interface AuthContext {
   workspaceId: WorkspaceId;
 }
 
+const uuidSchema = z.string().uuid();
+
+function isUuidBrand<B extends string>(value: string): value is Brand<string, B> {
+  return uuidSchema.safeParse(value).success;
+}
+
 export function isUserId(value: string): value is UserId {
-  return value.length > 0;
+  return isUuidBrand<'UserId'>(value);
 }
 
 export function isWorkspaceId(value: string): value is WorkspaceId {
-  return value.length > 0;
+  return isUuidBrand<'WorkspaceId'>(value);
 }
 
 export function isProjectId(value: string): value is ProjectId {
-  return value.length > 0;
+  return isUuidBrand<'ProjectId'>(value);
 }
 
 export function isIssueId(value: string): value is IssueId {
-  return value.length > 0;
+  return isUuidBrand<'IssueId'>(value);
 }
 
 export function isWeekId(value: string): value is WeekId {
-  return value.length > 0;
+  return isUuidBrand<'WeekId'>(value);
 }
 
 export function isProgramId(value: string): value is ProgramId {
-  return value.length > 0;
+  return isUuidBrand<'ProgramId'>(value);
 }
 
 export function isPersonId(value: string): value is PersonId {
-  return value.length > 0;
+  return isUuidBrand<'PersonId'>(value);
 }
 
 export function getAuthContext(req: Request, res: Response): AuthContext | null {
@@ -58,11 +65,9 @@ export function getAuthContext(req: Request, res: Response): AuthContext | null 
     return null;
   }
 
-  return { userId: userId as UserId, workspaceId: workspaceId as WorkspaceId };
+  return { userId, workspaceId };
 }
 
-// Route params are still accepted with the same runtime semantics as before this type-safety pass.
-// This helper only centralizes the branded cast after a lightweight presence check.
 export function ensureUuidId<T extends string>(
   value: string,
   res: Response,
@@ -74,7 +79,7 @@ export function ensureUuidId<T extends string>(
     return null;
   }
 
-  return value as T;
+  return value;
 }
 
 export function isJsonObject(value: unknown): value is JsonObject {

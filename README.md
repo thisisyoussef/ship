@@ -26,6 +26,7 @@ For grading and review, the final audit deliverables are here:
 - [Written audit report](docs/g4/audit-report.md)
 - [Visual audit report](docs/g4/audit-report-visual.html) (https://bright-follow-5f2z.pagedrop.io)
 - [Discovery write-up](discovery.md)
+- [AI cost analysis](docs/gfa-week-4/ai-cost-log.md)
 
 Supporting audit evidence and charts are here:
 

@@ -19,18 +19,44 @@
 
 ---
 
-## Audit Submission
+## Final Submission
 
-For grading and review, the final audit deliverables are here:
+For grading and review, the full submission packet is here:
 
+- [Orientation / reference document](docs/gfa-week-4/reference-document.md)
 - [Written audit report](docs/g4/audit-report.md)
-- [Visual audit report](docs/g4/audit-report-visual.html) (https://bright-follow-5f2z.pagedrop.io)
+- [Visual audit report](docs/g4/audit-report-visual.html) ([hosted copy](https://bright-follow-5f2z.pagedrop.io))
+- [Phase 2 notes](PHASE2_NOTES.md)
+- [Phase 2 improvement documentation](PHASE2_IMPROVEMENT_DOCUMENTATION.md)
 - [Discovery write-up](discovery.md)
 - [AI cost analysis](docs/gfa-week-4/ai-cost-log.md)
 
 Supporting audit evidence and charts are here:
 
 - [Audit resources dashboard](docs/g4/audit-resources/index.html)
+
+External submission links still need to be filled with the public URLs used for the actual submission:
+
+- Deployment URL: add your public fork deployment link
+- Demo video: add your public video link
+- Social post: add your public X or LinkedIn post link
+
+### Reviewer Quick Start
+
+This is the local path used for the final verification pass:
+
+```bash
+pnpm install
+cp api/.env.example api/.env.local
+cp web/.env.example web/.env
+docker compose -f docker-compose.local.yml up --build -d
+pnpm type-check
+pnpm build
+DATABASE_URL=postgres://ship:ship_dev_password@localhost:5433/ship_dev pnpm test
+pnpm --filter @ship/web test
+```
+
+When you use `docker-compose.local.yml`, PostgreSQL is exposed on `localhost:5433`. The API example env file below matches that host-side port.
 
 ---
 
@@ -114,17 +140,15 @@ pnpm install
 cp api/.env.example api/.env.local
 cp web/.env.example web/.env
 
-# 4. Start the database
-docker-compose up -d
+# 4. Start the full local stack
+docker compose -f docker-compose.local.yml up --build -d
+```
 
-# 5. Create sample data
-pnpm db:seed
+If you prefer to run the API and web app from your host instead of the Dockerized services, keep the same env files and use:
 
-# 6. Run database migrations
-pnpm db:migrate
-
-# 7. Start the application
-pnpm dev
+```bash
+pnpm dev:api
+pnpm dev:web
 ```
 
 ### Open the App
@@ -145,7 +169,7 @@ Log in with the demo account:
 | API server | http://localhost:3000 | Backend services |
 | Swagger UI | http://localhost:3000/api/docs | Interactive API documentation |
 | OpenAPI spec | http://localhost:3000/api/openapi.json | OpenAPI 3.0 specification |
-| PostgreSQL | localhost:5432 | Database (via Docker) |
+| PostgreSQL | localhost:5433 | Database (via `docker-compose.local.yml`) |
 
 ### Common Commands
 

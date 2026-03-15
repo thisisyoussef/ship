@@ -156,7 +156,6 @@ jobs:
   measure-category:
     name: ${{ matrix.label }}
     needs: kickoff
-    if: ${{ inputs.mode == 'full' || inputs.category == matrix.category_id }}
     runs-on: ubuntu-latest
     timeout-minutes: ${{ matrix.timeout_minutes }}
     strategy:
@@ -226,6 +225,7 @@ jobs:
           ref: codex/submission-clean
 
       - name: Publish category scope
+        if: ${{ inputs.mode == 'full' || inputs.category == matrix.category_id }}
         run: |
           {
             echo "# ${{ matrix.label }}"
@@ -246,14 +246,17 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Initialize category output directory
+        if: ${{ inputs.mode == 'full' || inputs.category == matrix.category_id }}
         run: mkdir -p "$AUDIT_OUTPUT_DIR/diagnostics"
 
       - name: Setup pnpm
+        if: ${{ inputs.mode == 'full' || inputs.category == matrix.category_id }}
         uses: pnpm/action-setup@v4
         with:
           version: 10.27.0
 
       - name: Setup Node.js
+        if: ${{ inputs.mode == 'full' || inputs.category == matrix.category_id }}
         uses: actions/setup-node@v6
         with:
           node-version: 20
@@ -261,7 +264,7 @@ jobs:
           package-manager-cache: false
 
       - name: Notify category start
-        if: ${{ needs.kickoff.outputs.callbacks_enabled == 'true' }}
+        if: ${{ (inputs.mode == 'full' || inputs.category == matrix.category_id) && needs.kickoff.outputs.callbacks_enabled == 'true' }}
         env:
           AUDIT_CALLBACK_BASE_URL: ${{ inputs.callback_base_url }}
           AUDIT_CALLBACK_SECRET: ${{ secrets.AUDIT_CALLBACK_SECRET }}
@@ -272,20 +275,22 @@ jobs:
         run: node scripts/audit/github-actions-post-event.mjs
 
       - name: Install workspace dependencies
+        if: ${{ inputs.mode == 'full' || inputs.category == matrix.category_id }}
         run: pnpm install --frozen-lockfile
 
       - name: Install Playwright browser dependencies
-        if: ${{ matrix.needs_playwright }}
+        if: ${{ (inputs.mode == 'full' || inputs.category == matrix.category_id) && matrix.needs_playwright }}
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Measure ${{ matrix.label }}
+        if: ${{ inputs.mode == 'full' || inputs.category == matrix.category_id }}
         run: node scripts/audit/github-actions-runner.mjs
         env:
           AUDIT_CALLBACK_BASE_URL: ''
           AUDIT_CALLBACK_SECRET: ''
 
       - name: Publish category result
-        if: always()
+        if: ${{ always() && (inputs.mode == 'full' || inputs.category == matrix.category_id) }}
         run: |
           node <<'NODE'
           const fs = require('node:fs');
@@ -322,7 +327,7 @@ jobs:
           AUDIT_CATEGORY_LABEL: ${{ matrix.label }}
 
       - name: Fail category job on measurement errors
-        if: always()
+        if: ${{ always() && (inputs.mode == 'full' || inputs.category == matrix.category_id) }}
         run: |
           node <<'NODE'
           const fs = require('node:fs');
@@ -343,7 +348,7 @@ jobs:
           NODE
 
       - name: Notify category completion
-        if: ${{ always() && needs.kickoff.outputs.callbacks_enabled == 'true' }}
+        if: ${{ always() && (inputs.mode == 'full' || inputs.category == matrix.category_id) && needs.kickoff.outputs.callbacks_enabled == 'true' }}
         env:
           AUDIT_CALLBACK_BASE_URL: ${{ inputs.callback_base_url }}
           AUDIT_CALLBACK_SECRET: ${{ secrets.AUDIT_CALLBACK_SECRET }}
@@ -354,7 +359,7 @@ jobs:
         run: node scripts/audit/github-actions-post-event.mjs
 
       - name: Upload category evidence bundle
-        if: always()
+        if: ${{ always() && (inputs.mode == 'full' || inputs.category == matrix.category_id) }}
         id: upload_category_artifact
         uses: actions/upload-artifact@v6
         with:
@@ -364,7 +369,7 @@ jobs:
           retention-days: 30
 
       - name: Publish category artifact link
-        if: always() && steps.upload_category_artifact.outputs.artifact-url != ''
+        if: ${{ always() && (inputs.mode == 'full' || inputs.category == matrix.category_id) && steps.upload_category_artifact.outputs.artifact-url != '' }}
         env:
           AUDIT_ARTIFACT_URL: ${{ steps.upload_category_artifact.outputs.artifact-url }}
         run: |
@@ -374,6 +379,16 @@ jobs:
             echo
             echo "- [Download category evidence]($AUDIT_ARTIFACT_URL)"
             echo "- Includes \`comparison.json\`, \`baseline/summary.json\`, \`submission/summary.json\`, and \`diagnostics/report.md\`"
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Mark category as skipped
+        if: ${{ inputs.mode == 'category' && inputs.category != matrix.category_id }}
+        run: |
+          {
+            echo "# ${{ matrix.label }}"
+            echo
+            echo "- Skipped because this workflow dispatch requested only \`${{ inputs.category }}\`."
             echo
           } >> "$GITHUB_STEP_SUMMARY"
 

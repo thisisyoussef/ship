@@ -111,10 +111,22 @@ jobs:
       - name: Validate workflow inputs
         shell: bash
         run: |
+          for value in "${{ inputs.baseline_repo }}" "${{ inputs.baseline_ref }}" "${{ inputs.submission_repo }}" "${{ inputs.submission_ref }}"; do
+            if [ -z "$value" ]; then
+              echo "baseline_repo, baseline_ref, submission_repo, and submission_ref are required" >&2
+              exit 1
+            fi
+          done
+
           if [ "${{ inputs.mode }}" = "category" ] && [ -z "${{ inputs.category }}" ]; then
             echo "category is required when mode=category" >&2
             exit 1
           fi
+
+      - name: Initialize audit output directory
+        shell: bash
+        run: |
+          mkdir -p "$AUDIT_OUTPUT_DIR/diagnostics"
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -155,7 +167,7 @@ jobs:
         run: node scripts/audit/github-actions-runner.mjs
 
       - name: Upload raw audit artifacts
-        if: always() && hashFiles(format('{0}/comparison.json', env.AUDIT_OUTPUT_DIR)) != ''
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: audit-run-${{ steps.meta.outputs.run_id }}
@@ -163,5 +175,5 @@ jobs:
           if-no-files-found: ignore
 
       - name: Report workflow failure
-        if: ${{ failure() && steps.meta.outputs.callbacks_enabled == 'true' }}
+        if: ${{ failure() }}
         run: node scripts/audit/github-actions-notify-failure.mjs

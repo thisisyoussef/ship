@@ -11,23 +11,26 @@ The analysis below is based on the repo-scoped local Codex logs for `/Users/yous
 - Provider: `OpenAI`
 - Tool: `Codex Desktop`
 - Model labels observed in the project logs: `gpt-5.4` and `gpt-5.3-codex-spark`
-- Token-based cost estimate for the project work: `$204.976673*`
+- Approximate API-equivalent list-price cost for the project work: `$216.06*`
+- Estimated pricing breakdown:
+  - `gpt-5.4`: `$211.45` across `26` sessions, using public GPT-5.4 standard rates of `$2.50 / 1M` uncached input tokens, `$0.25 / 1M` cached input tokens, and `$15.00 / 1M` output tokens
+  - `gpt-5.3-codex-spark`: `$4.61` across `6` sessions, estimated using the public GPT-5.3 Codex rates of `$1.75 / 1M` uncached input tokens, `$0.175 / 1M` cached input tokens, and `$14.00 / 1M` output tokens because Spark does not expose a public standalone rate card
 - Actual billed incremental cost: `$0*`
 
-I used the Codex Max plan, so the real billed cost for this project work was effectively `$0`. The dollar figure above is a token-price estimate only, included as a reference point for how expensive this amount of usage would be outside the plan.
+I used the Codex Max plan, so the real billed cost for this project work was effectively `$0`. The dollar figure above is an API-equivalent estimate based on the frozen project log snapshot and OpenAI's public pricing as of `2026-03-15`, not an invoice-grade billed amount.
 
 ### Total tokens consumed
 
 | Metric | Total |
 | --- | ---: |
-| Input tokens | 498,039,771 |
-| Cached input tokens | 474,747,520 |
-| Non-cached input tokens | 23,292,251 |
-| Output tokens | 2,656,666 |
-| Reasoning output tokens | 1,222,629 |
-| Total tokens | 500,696,437 |
+| Input tokens | 501,274,949 |
+| Cached input tokens | 477,973,632 |
+| Non-cached input tokens | 23,301,317 |
+| Output tokens | 2,661,037 |
+| Reasoning output tokens | 1,225,410 |
+| Total tokens | 503,935,986 |
 
-These totals come from the latest local `token_count` snapshot in each included session log.
+These totals come from the latest local `token_count` snapshot in each included session log, frozen at `2026-03-13T14:59:19Z`. In the Codex logs, `reasoning_output_tokens` is a subset of `output_tokens`, not an extra billed bucket.
 
 ### Number of API calls made
 
@@ -84,6 +87,6 @@ This document is based on local project-scoped Codex evidence, including:
 - `~/.codex/archived_sessions/...`
 - `npx @ccusage/codex@latest session -s 2026-03-09 -u 2026-03-13 -j`
 
-No local billing export, invoice, or seat-pricing record was available, which is why the exact billed USD values beyond the Codex Max note could not be recovered from local evidence alone.
+No local billing export, invoice, or seat-pricing record was available, which is why the exact billed USD values beyond the Codex Max note could not be recovered from local evidence alone. The `$216.06` figure above is the closest defensible API-equivalent estimate from the local evidence plus public pricing.
 
-* I used the Codex Max plan, so actual billed incremental cost for this project work was effectively `$0`. Dollar figures in this document are token-price estimates for reference only.
+* I used the Codex Max plan, so actual billed incremental cost for this project work was effectively `$0`. Dollar figures in this document are API-equivalent pricing estimates for reference only.

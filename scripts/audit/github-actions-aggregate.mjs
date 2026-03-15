@@ -197,42 +197,57 @@ async function aggregateCategoryArtifacts(config) {
 async function loadCategoryArtifacts(config) {
   const entries = await readdir(config.categoryResultsDir, { withFileTypes: true }).catch(() => []);
   const artifacts = [];
+  const rootArtifact = await loadArtifactDirectory(config.categoryResultsDir, 'root');
+  if (rootArtifact) {
+    artifacts.push(rootArtifact);
+  }
 
   for (const entry of entries) {
     if (!entry.isDirectory()) {
       continue;
     }
 
-    const artifactDir = join(config.categoryResultsDir, entry.name);
-    const comparison = await maybeReadJson(join(artifactDir, 'comparison.json'));
-    const baselineSummary = await maybeReadJson(join(artifactDir, 'baseline', 'summary.json'));
-    const submissionSummary = await maybeReadJson(join(artifactDir, 'submission', 'summary.json'));
-    const runContext = await maybeReadJson(join(artifactDir, 'diagnostics', 'run-context.json'));
-    const failure = await maybeReadJson(join(artifactDir, 'diagnostics', 'failure.json'));
-
-    const categoryId =
-      runContext?.selectedCategories?.[0]?.id ??
-      Object.keys(comparison?.categories ?? {})[0] ??
-      inferCategoryIdFromArtifactName(entry.name);
-
-    if (!categoryId) {
+    const artifact = await loadArtifactDirectory(join(config.categoryResultsDir, entry.name), entry.name);
+    if (!artifact) {
       continue;
     }
-
-    artifacts.push({
-      artifactName: entry.name,
-      artifactDir,
-      categoryId,
-      comparison,
-      baselineSummary,
-      submissionSummary,
-      runContext,
-      failure,
-    });
+    artifacts.push(artifact);
   }
 
   artifacts.sort((left, right) => CATEGORY_IDS.indexOf(left.categoryId) - CATEGORY_IDS.indexOf(right.categoryId));
   return artifacts;
+}
+
+async function loadArtifactDirectory(artifactDir, artifactName) {
+  const comparison = await maybeReadJson(join(artifactDir, 'comparison.json'));
+  const baselineSummary = await maybeReadJson(join(artifactDir, 'baseline', 'summary.json'));
+  const submissionSummary = await maybeReadJson(join(artifactDir, 'submission', 'summary.json'));
+  const runContext = await maybeReadJson(join(artifactDir, 'diagnostics', 'run-context.json'));
+  const failure = await maybeReadJson(join(artifactDir, 'diagnostics', 'failure.json'));
+
+  if (!comparison && !baselineSummary && !submissionSummary && !runContext && !failure) {
+    return null;
+  }
+
+  const categoryId =
+    runContext?.selectedCategories?.[0]?.id ??
+    Object.keys(comparison?.categories ?? {})[0] ??
+    inferCategoryIdFromArtifactName(artifactName);
+
+  if (!categoryId) {
+    return null;
+  }
+
+  return {
+    artifactName,
+    artifactDir,
+    categoryId,
+    comparison,
+    baselineSummary,
+    submissionSummary,
+    runContext,
+    failure,
+  };
 }
 
 function buildComparison({ config, baselineSummary, submissionSummary, comparisonCategories, incompleteCategories }) {

@@ -21,6 +21,14 @@
 
 ## Audit Submission
 
+Start here for the reproducible audit workflow:
+
+- Workflow page: [Audit Runner](https://github.com/thisisyoussef/ship/actions/workflows/audit-runner.yml)
+- Actions runs: [All workflow runs](https://github.com/thisisyoussef/ship/actions/workflows/audit-runner.yml?query=event%3Aworkflow_dispatch)
+- Latest full verified run: [Audit Runner / full-suite / master -> codex/submission-clean](https://github.com/thisisyoussef/ship/actions/runs/23117196287)
+- Submission branch measured by the workflow: [`codex/submission-clean`](https://github.com/thisisyoussef/ship/tree/codex/submission-clean)
+- Baseline repo used by default: [US-Department-of-the-Treasury/ship](https://github.com/US-Department-of-the-Treasury/ship)
+
 The final audit deliverables and reproducibility entrypoints are here.
 
 - [Written audit report](docs/g4/audit-report.md)
@@ -32,14 +40,7 @@ Supporting audit evidence and charts are here:
 
 - [Audit resources dashboard](docs/g4/audit-resources/index.html)
 
-The reproducible audit harness runs in GitHub Actions.
-
-- Workflow page: [Audit Runner](https://github.com/thisisyoussef/ship/actions/workflows/audit-runner.yml)
-- Actions runs: [All workflow runs](https://github.com/thisisyoussef/ship/actions/workflows/audit-runner.yml?query=event%3Aworkflow_dispatch)
-- Latest full verified run: [Audit Runner / full-suite / master -> codex/submission-clean](https://github.com/thisisyoussef/ship/actions/runs/23117196287)
-- Submission branch measured by the workflow: [`codex/submission-clean`](https://github.com/thisisyoussef/ship/tree/codex/submission-clean)
-- Baseline repo used by default: [US-Department-of-the-Treasury/ship](https://github.com/US-Department-of-the-Treasury/ship)
-- The `Run workflow` form is prefilled for the default baseline-vs-submission comparison. Leave `run_id` and `callback_base_url` blank for a direct GitHub-only run.
+The reproducible audit harness runs in GitHub Actions. The `Run workflow` form is prefilled for the default baseline-vs-submission comparison. Leave `run_id` and `callback_base_url` blank for a direct GitHub-only run.
 
 ### Audit Commit Tree
 

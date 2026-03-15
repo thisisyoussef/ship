@@ -35,7 +35,8 @@ The final audit deliverables and reproducibility entrypoints are here.
 - [Written audit report](docs/g4/audit-report.md)
 - [Visual audit report](docs/g4/audit-report-visual.html) (https://bright-follow-5f2z.pagedrop.io)
 - [GitHub Actions demo script](docs/g4/final-demo-script-actions.md)
-- [Discovery write-up](discovery.md)
+- [Discovery write-up](discovery.md) (discovery requirement)
+- [AI cost analysis and reflection](docs/gfa-week-4/ai-cost-log.md) (discovery requirement)
 - [Improvement verification guide](docs/g4/improvement-verification-guide.md)
 
 Supporting audit evidence and charts are here:

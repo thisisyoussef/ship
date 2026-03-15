@@ -272,7 +272,16 @@ What the workflow does:
 - immediately checks out `codex/submission-clean` for the actual audit harness code
 - clones Treasury `master` and the submission branch
 - runs the same reproducible harness used by `pnpm audit:grade`
-- uploads raw artifacts and, when callback fields are provided, posts the same results back into the hosted dashboard
+- prints category-labelled progress in the live GitHub Actions log and writes category results into the job summary
+- uploads the full evidence bundle, including `diagnostics/report.md`, `comparison.json`, and both per-target summaries
+
+What the grader can use directly:
+
+- open the workflow page and inspect run logs, job steps, and uploaded artifacts
+- open the GitHub Actions job summary for the readable before/after table
+- open `diagnostics/report.md` inside the uploaded artifact for the full reproduction-oriented report
+- use the hosted dashboard for the latest stored comparison output
+- run the harness locally with `pnpm audit:grade`
 
 Important note:
 

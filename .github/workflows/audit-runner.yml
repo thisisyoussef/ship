@@ -1,4 +1,14 @@
 name: Audit Runner
+run-name: >-
+  Audit Runner / ${{ inputs.mode == 'category' && inputs.category || 'full-suite' }} /
+  ${{ inputs.baseline_ref }} -> ${{ inputs.submission_ref }}
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
 
 on:
   workflow_dispatch:
@@ -47,12 +57,9 @@ on:
         default: ''
         type: string
 
-concurrency:
-  group: ship-audit-runner
-  cancel-in-progress: false
-
 jobs:
   run-audit:
+    name: Measure and report audit evidence
     runs-on: ubuntu-latest
     timeout-minutes: 120
     services:
@@ -70,6 +77,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
+      CI: true
       AUDIT_MODE: ${{ inputs.mode }}
       AUDIT_CATEGORY: ${{ inputs.category }}
       AUDIT_BASELINE_REPO: ${{ inputs.baseline_repo }}
@@ -83,7 +91,7 @@ jobs:
       RUNNER_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/ship_audit
     steps:
       - name: Checkout audit app repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: codex/submission-clean
 
@@ -124,9 +132,56 @@ jobs:
           fi
 
       - name: Initialize audit output directory
-        shell: bash
         run: |
           mkdir -p "$AUDIT_OUTPUT_DIR/diagnostics"
+
+      - name: Publish requested audit scope
+        run: |
+          set -euo pipefail
+
+          category_label() {
+            case "$1" in
+              type-safety) echo "Category 1: Type Safety" ;;
+              bundle-size) echo "Category 2: Bundle Size" ;;
+              api-response) echo "Category 3: API Response Time" ;;
+              db-efficiency) echo "Category 4: Database Query Efficiency" ;;
+              test-quality) echo "Category 5: Test Coverage And Quality" ;;
+              runtime-handling) echo "Category 6: Runtime Handling" ;;
+              accessibility) echo "Category 7: Accessibility" ;;
+              *) echo "$1" ;;
+            esac
+          }
+
+          {
+            echo "# Requested audit scope"
+            echo
+            echo "- Mode: ${{ inputs.mode }}"
+            echo "- Baseline: ${{ inputs.baseline_repo }}@${{ inputs.baseline_ref }}"
+            echo "- Submission: ${{ inputs.submission_repo }}@${{ inputs.submission_ref }}"
+            echo "- Canonical runtime corpus: 580 docs / 105 issues / 35 weeks / 23 users"
+            echo
+            echo "## Categories requested"
+            if [ "${{ inputs.mode }}" = "category" ]; then
+              echo "- $(category_label "${{ inputs.category }}")"
+            else
+              echo "- $(category_label "type-safety")"
+              echo "- $(category_label "bundle-size")"
+              echo "- $(category_label "api-response")"
+              echo "- $(category_label "db-efficiency")"
+              echo "- $(category_label "test-quality")"
+              echo "- $(category_label "runtime-handling")"
+              echo "- $(category_label "accessibility")"
+            fi
+            echo
+            echo "## Workflow contract"
+            echo "- Clone baseline and submission refs"
+            echo "- Install with pnpm and a frozen lockfile"
+            echo "- Build shared package"
+            echo "- Install Playwright browser dependencies when needed"
+            echo "- Run the repo-owned audit harness"
+            echo "- Upload summaries, dashboard, diagnostics, and report artifacts"
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -134,10 +189,11 @@ jobs:
           version: 10.27.0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: pnpm
+          package-manager-cache: false
 
       - name: Notify runner start
         if: ${{ steps.meta.outputs.callbacks_enabled == 'true' }}
@@ -163,16 +219,33 @@ jobs:
           AUDIT_EVENT_PHASE: setup
           AUDIT_EVENT_MESSAGE: GitHub Actions runner is ready. Starting the audit harness.
 
-      - name: Run audit harness
+      - name: Measure categories and generate readable report
         run: node scripts/audit/github-actions-runner.mjs
 
-      - name: Upload raw audit artifacts
+      - name: Upload audit evidence bundle
         if: always()
-        uses: actions/upload-artifact@v4
+        id: upload_artifact
+        uses: actions/upload-artifact@v6
         with:
           name: audit-run-${{ steps.meta.outputs.run_id }}
           path: ${{ env.AUDIT_OUTPUT_DIR }}
           if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Publish artifact link
+        if: always() && steps.upload_artifact.outputs.artifact-url != ''
+        env:
+          AUDIT_ARTIFACT_URL: ${{ steps.upload_artifact.outputs.artifact-url }}
+        run: |
+          {
+            echo "## Workflow artifact"
+            echo
+            echo "- [Download the full audit evidence bundle]($AUDIT_ARTIFACT_URL)"
+            echo "- Human-readable report: \`diagnostics/report.md\`"
+            echo "- Workflow summary: \`diagnostics/github-summary.md\`"
+            echo "- Raw event stream: \`diagnostics/events.jsonl\`"
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Report workflow failure
         if: ${{ failure() }}

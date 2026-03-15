@@ -56,6 +56,7 @@ export async function startApiServer({
     CORS_ORIGIN: webOrigin,
     SESSION_SECRET: 'audit-session-secret',
     NODE_ENV: 'development',
+    AWS_EC2_METADATA_DISABLED: 'true',
   };
 
   const bootstrapImport = traceFile

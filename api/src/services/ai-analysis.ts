@@ -19,6 +19,10 @@ const REGION = 'us-east-1';
 // Lazy-initialize client (fails gracefully if AWS credentials unavailable)
 let bedrockClient: BedrockRuntimeClient | null = null;
 let clientInitFailed = false;
+let availabilityCheckedAt = 0;
+let availabilityCached: boolean | null = null;
+let availabilityProbe: Promise<boolean> | null = null;
+const AVAILABILITY_CACHE_MS = 5 * 60 * 1000;
 
 function getClient(): BedrockRuntimeClient | null {
   if (clientInitFailed) return null;
@@ -31,6 +35,82 @@ function getClient(): BedrockRuntimeClient | null {
     console.warn('Failed to initialize Bedrock client:', err);
     clientInitFailed = true;
     return null;
+  }
+}
+
+function getCachedAvailability(): boolean | null {
+  if (availabilityCached === null) {
+    return null;
+  }
+
+  if (Date.now() - availabilityCheckedAt > AVAILABILITY_CACHE_MS) {
+    availabilityCached = null;
+    return null;
+  }
+
+  return availabilityCached;
+}
+
+function updateAvailability(value: boolean): boolean {
+  availabilityCached = value;
+  availabilityCheckedAt = Date.now();
+  return value;
+}
+
+function isCredentialsResolutionError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  return (
+    error.name === 'CredentialsProviderError' ||
+    error.name === 'CredentialProviderError' ||
+    error.message.includes('Could not load credentials from any providers')
+  );
+}
+
+async function resolveBedrockAvailability(): Promise<boolean> {
+  const cached = getCachedAvailability();
+  if (cached !== null) {
+    return cached;
+  }
+
+  if (availabilityProbe) {
+    return availabilityProbe;
+  }
+
+  availabilityProbe = (async () => {
+    const client = getClient();
+    if (!client) {
+      return updateAvailability(false);
+    }
+
+    try {
+      const credentialsProvider = client.config.credentials;
+      if (!credentialsProvider) {
+        return updateAvailability(false);
+      }
+
+      const credentials =
+        typeof credentialsProvider === 'function'
+          ? await credentialsProvider()
+          : await credentialsProvider;
+
+      return updateAvailability(
+        Boolean(credentials?.accessKeyId && credentials?.secretAccessKey)
+      );
+    } catch (error) {
+      if (!isCredentialsResolutionError(error)) {
+        console.warn('Bedrock availability check failed:', error);
+      }
+      return updateAvailability(false);
+    }
+  })();
+
+  try {
+    return await availabilityProbe;
+  } finally {
+    availabilityProbe = null;
   }
 }
 
@@ -226,8 +306,14 @@ Respond ONLY with valid JSON matching this exact structure:
 }`;
 
 async function callBedrock(systemPrompt: string, userPrompt: string): Promise<string | null> {
+  if (!(await resolveBedrockAvailability())) {
+    return null;
+  }
+
   const client = getClient();
-  if (!client) return null;
+  if (!client) {
+    return null;
+  }
 
   const body = JSON.stringify({
     anthropic_version: 'bedrock-2023-05-31',
@@ -245,14 +331,22 @@ async function callBedrock(systemPrompt: string, userPrompt: string): Promise<st
     body: new TextEncoder().encode(body),
   });
 
-  const response = await client.send(command);
-  const responseBody = JSON.parse(new TextDecoder().decode(response.body));
+  try {
+    const response = await client.send(command);
+    const responseBody = JSON.parse(new TextDecoder().decode(response.body));
 
-  if (responseBody.content && responseBody.content[0]?.text) {
-    return responseBody.content[0].text;
+    if (responseBody.content && responseBody.content[0]?.text) {
+      return responseBody.content[0].text;
+    }
+
+    return null;
+  } catch (error) {
+    if (isCredentialsResolutionError(error)) {
+      updateAvailability(false);
+      return null;
+    }
+    throw error;
   }
-
-  return null;
 }
 
 /**
@@ -370,9 +464,9 @@ export async function analyzeRetro(
   }
 }
 
-/** Check if Bedrock client is available (for UI to decide whether to render quality assistant) */
-export function isAiAvailable(): boolean {
-  return getClient() !== null;
+/** Check if Bedrock credentials are actually available before showing the UI assistant. */
+export async function isAiAvailable(): Promise<boolean> {
+  return resolveBedrockAvailability();
 }
 
 export { checkRateLimit };

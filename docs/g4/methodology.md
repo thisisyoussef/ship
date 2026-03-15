@@ -13,6 +13,8 @@ This submission now treats the audit harness as the source of truth. The same co
 - Most recently verified Treasury `master` SHA for this submission: `076a18371da0a09f88b5329bd59611c4bc9536bb`
 - Submission repo: `https://github.com/thisisyoussef/ship.git`
 - Submission ref: `codex/submission-clean`
+- Most recently verified submission SHA for this submission: `563581aad8ec5e445c79faa0dbc1d97869df629e`
+- Latest fully verified GitHub Actions run: `https://github.com/thisisyoussef/ship/actions/runs/23119211004`
 - Hosted dashboard: `https://audit-dashboard-yner.onrender.com`
 
 The local CLI defaults to `Treasury master` versus the current checkout. The hosted dashboard defaults to `Treasury master` versus `thisisyoussef/ship@codex/submission-clean`. The hosted dashboard is password-gated; the credential is supplied with the submission rather than committed into the repo.
@@ -107,7 +109,7 @@ pnpm --filter @ship/api exec tsx src/index.ts
 pnpm exec playwright test scripts/audit/playwright/test-quality.spec.mjs --config scripts/audit/playwright.config.mjs --workers=1 --repeat-each=10 --reporter=json
 ```
 
-The authoritative percentage for Category 5 is the built-in API/web suite pass rate. The repeated Playwright run is stored as supplemental stability evidence in the raw artifacts so the grader can see whether the focused stale-data regression is still brittle.
+The authoritative percentage for Category 5 is the built-in API/web suite pass rate. The repeated Playwright run is stored as supplemental stability evidence in the raw artifacts so a reviewer can see whether the focused stale-data regression is still brittle.
 
 Category 6 `runtime-handling`:
 

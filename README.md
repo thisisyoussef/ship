@@ -25,14 +25,16 @@ Start here for the reproducible audit workflow:
 
 - Workflow page: [Audit Runner](https://github.com/thisisyoussef/ship/actions/workflows/audit-runner.yml)
 - Actions runs: [All workflow runs](https://github.com/thisisyoussef/ship/actions/workflows/audit-runner.yml?query=event%3Aworkflow_dispatch)
-- Latest full verified run: [Audit Runner / full-suite / master -> codex/submission-clean](https://github.com/thisisyoussef/ship/actions/runs/23117196287)
+- Latest full verified run: [Audit Runner / full-suite / master -> codex/submission-clean](https://github.com/thisisyoussef/ship/actions/runs/23119211004)
 - Submission branch measured by the workflow: [`codex/submission-clean`](https://github.com/thisisyoussef/ship/tree/codex/submission-clean)
 - Baseline repo used by default: [US-Department-of-the-Treasury/ship](https://github.com/US-Department-of-the-Treasury/ship)
+- Latest measured SHAs: baseline `076a18371da0a09f88b5329bd59611c4bc9536bb`, submission `563581aad8ec5e445c79faa0dbc1d97869df629e`
 
 The final audit deliverables and reproducibility entrypoints are here.
 
 - [Written audit report](docs/g4/audit-report.md)
 - [Visual audit report](docs/g4/audit-report-visual.html) (https://bright-follow-5f2z.pagedrop.io)
+- [GitHub Actions demo script](docs/g4/final-demo-script-actions.md)
 - [Discovery write-up](discovery.md)
 - [Improvement verification guide](docs/g4/improvement-verification-guide.md)
 

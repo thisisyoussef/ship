@@ -131,6 +131,8 @@ Minimum required outcome:
 - merge completed only after checks pass and the branch is current,
 - `bash scripts/git_finalize_guard.sh` passes.
 
+Do not commit, push, open a PR, or merge until the user has completed the User Audit Checklist and explicitly approved finalization.
+
 Do not mark story handoff complete without this gate.
 
 ---
@@ -207,6 +209,12 @@ Minimum required content:
 - changed behavior vs unchanged behavior.
 
 Run `bash scripts/check_ai_wiring.sh` only when AI-architecture files are changed (per `.ai/workflows/ai-architecture-change.md`), not for every story.
+
+After the audit, pause and wait for explicit user permission before:
+- creating the final commit,
+- pushing the branch,
+- opening or updating the PR,
+- merging the PR.
 
 Do not begin the next story until the user audits and says to proceed.
 

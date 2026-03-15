@@ -401,6 +401,12 @@ a {
   color: var(--bad);
 }
 
+.status-pill--warn,
+.status-pill--warning {
+  background: rgba(199, 91, 18, 0.14);
+  color: var(--signal);
+}
+
 label {
   display: grid;
   gap: 8px;
@@ -669,6 +675,10 @@ textarea {
   border-color: rgba(179, 40, 40, 0.22);
 }
 
+.signal-card--warn {
+  border-color: rgba(199, 91, 18, 0.22);
+}
+
 .signal-card__head {
   display: flex;
   justify-content: space-between;
@@ -781,6 +791,10 @@ textarea {
   color: #ffc0c0;
 }
 
+.terminal-line--warn .terminal-line__message {
+  color: #f2d49a;
+}
+
 .terminal-line--success .terminal-line__message {
   color: #a8ecc5;
 }
@@ -822,6 +836,12 @@ textarea {
   background: rgba(255, 192, 192, 0.12);
   color: #ffc0c0;
   border-color: rgba(255, 192, 192, 0.14);
+}
+
+.event-badge--warn {
+  background: rgba(242, 212, 154, 0.12);
+  color: #f2d49a;
+  border-color: rgba(242, 212, 154, 0.14);
 }
 
 .terminal-view__end {

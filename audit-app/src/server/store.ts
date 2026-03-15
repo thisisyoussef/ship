@@ -173,15 +173,7 @@ export async function finishRun({
       [runId, baselineSha, submissionSha, JSON.stringify(summaryJson), JSON.stringify(comparisonJson)]
     );
 
-    for (const artifact of artifacts) {
-      await client.query(
-        `INSERT INTO audit_artifacts (run_id, name, content_type, body)
-         VALUES ($1, $2, $3, $4)
-         ON CONFLICT (run_id, name)
-         DO UPDATE SET content_type = EXCLUDED.content_type, body = EXCLUDED.body`,
-        [runId, artifact.name, artifact.contentType, artifact.body]
-      );
-    }
+    await upsertArtifacts(client, runId, artifacts);
 
     await client.query('COMMIT');
   } catch (error) {
@@ -192,13 +184,54 @@ export async function finishRun({
   }
 }
 
-export async function failRun(runId: string, errorMessage: string) {
-  await pool.query(
-    `UPDATE audit_runs
-     SET status = 'failed', finished_at = NOW(), updated_at = NOW(), error = $2
-     WHERE id = $1`,
-    [runId, errorMessage]
-  );
+export async function failRun({
+  runId,
+  errorMessage,
+  baselineSha = null,
+  submissionSha = null,
+  summaryJson = null,
+  comparisonJson = null,
+  artifacts = [],
+}: {
+  runId: string;
+  errorMessage: string;
+  baselineSha?: string | null;
+  submissionSha?: string | null;
+  summaryJson?: unknown;
+  comparisonJson?: unknown;
+  artifacts?: RunArtifacts;
+}) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query(
+      `UPDATE audit_runs
+       SET status = 'failed',
+           finished_at = NOW(),
+           updated_at = NOW(),
+           error = $2,
+           baseline_sha = COALESCE($3, baseline_sha),
+           submission_sha = COALESCE($4, submission_sha),
+           summary_json = COALESCE($5::jsonb, summary_json),
+           comparison_json = COALESCE($6::jsonb, comparison_json)
+       WHERE id = $1`,
+      [
+        runId,
+        errorMessage,
+        baselineSha,
+        submissionSha,
+        summaryJson ? JSON.stringify(summaryJson) : null,
+        comparisonJson ? JSON.stringify(comparisonJson) : null,
+      ]
+    );
+    await upsertArtifacts(client, runId, artifacts);
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 export async function updateRunProgress(runId: string, progress: ProgressSnapshot) {
@@ -324,4 +357,20 @@ function mapRun(row: Record<string, unknown>) {
     progressJson: row.progress_json ?? null,
     artifactNames: Array.isArray(row.artifact_names) ? row.artifact_names.map(String) : [],
   };
+}
+
+async function upsertArtifacts(
+  client: Pick<typeof pool, 'query'>,
+  runId: string,
+  artifacts: RunArtifacts
+) {
+  for (const artifact of artifacts) {
+    await client.query(
+      `INSERT INTO audit_artifacts (run_id, name, content_type, body)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (run_id, name)
+       DO UPDATE SET content_type = EXCLUDED.content_type, body = EXCLUDED.body`,
+      [runId, artifact.name, artifact.contentType, artifact.body]
+    );
+  }
 }

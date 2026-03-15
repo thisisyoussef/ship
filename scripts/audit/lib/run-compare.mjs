@@ -55,179 +55,213 @@ export async function runComparison(options = {}) {
     options.databaseUrl ?? process.env.AUDIT_DATABASE_URL ?? ''
   );
 
-  const baselineSpec = normalizeTargetSpec('baseline', options.baseline ?? {});
-  const submissionSpec = normalizeTargetSpec('submission', options.submission ?? {});
+  try {
+    const baselineSpec = normalizeTargetSpec('baseline', options.baseline ?? {});
+    const submissionSpec = normalizeTargetSpec('submission', options.submission ?? {});
 
-  const baselineTarget = await resolveTargetWorkspace({
-    label: 'baseline',
-    spec: baselineSpec,
-    runRoot: workingRoot,
-    outputDir: join(outputDir, 'baseline'),
-    timeoutMs,
-    reportEvent: emitEvent,
-  });
-  emitEvent({
-    type: 'target-resolved',
-    targetLabel: 'baseline',
-    phase: 'setup',
-    message: `Resolved baseline ${baselineTarget.repoUrl}@${baselineTarget.ref}`,
-    payload: {
-      repoUrl: baselineTarget.repoUrl,
-      ref: baselineTarget.ref,
-      sha: baselineTarget.sha,
-    },
-  });
-  const submissionTarget = await resolveTargetWorkspace({
-    label: 'submission',
-    spec: submissionSpec,
-    runRoot: workingRoot,
-    outputDir: join(outputDir, 'submission'),
-    timeoutMs,
-    reportEvent: emitEvent,
-  });
-  emitEvent({
-    type: 'target-resolved',
-    targetLabel: 'submission',
-    phase: 'setup',
-    message: `Resolved submission ${submissionTarget.repoUrl}@${submissionTarget.ref}`,
-    payload: {
-      repoUrl: submissionTarget.repoUrl,
-      ref: submissionTarget.ref,
-      sha: submissionTarget.sha,
-    },
-  });
-
-  emitEvent({
-    type: 'target-prepare-start',
-    targetLabel: 'baseline',
-    phase: 'setup',
-    message: 'Preparing baseline workspace',
-  });
-  await prepareTargetWorkspace(baselineTarget, timeoutMs, emitEvent);
-  emitEvent({
-    type: 'target-prepare-end',
-    targetLabel: 'baseline',
-    phase: 'setup',
-    message: 'Baseline workspace ready',
-  });
-
-  emitEvent({
-    type: 'target-prepare-start',
-    targetLabel: 'submission',
-    phase: 'setup',
-    message: 'Preparing submission workspace',
-  });
-  await prepareTargetWorkspace(submissionTarget, timeoutMs, emitEvent);
-  emitEvent({
-    type: 'target-prepare-end',
-    targetLabel: 'submission',
-    phase: 'setup',
-    message: 'Submission workspace ready',
-  });
-
-  if (selectedCategories.some((categoryId) => PLAYWRIGHT_CATEGORIES.has(categoryId))) {
-    await runLoggedCommand({
-      commandId: 'playwright-install',
-      command: 'pnpm exec playwright install chromium',
-      cwd: projectRoot,
-      outputDir: join(outputDir, '.setup'),
+    const baselineTarget = await resolveTargetWorkspace({
+      label: 'baseline',
+      spec: baselineSpec,
+      runRoot: workingRoot,
+      outputDir: join(outputDir, 'baseline'),
       timeoutMs,
-      ...createCommandCallbacks(emitEvent, {
-        phase: 'setup',
-      }),
+      reportEvent: emitEvent,
     });
-  }
+    emitEvent({
+      type: 'target-resolved',
+      targetLabel: 'baseline',
+      phase: 'setup',
+      message: `Resolved baseline ${baselineTarget.repoUrl}@${baselineTarget.ref}`,
+      payload: {
+        repoUrl: baselineTarget.repoUrl,
+        ref: baselineTarget.ref,
+        sha: baselineTarget.sha,
+      },
+    });
+    const submissionTarget = await resolveTargetWorkspace({
+      label: 'submission',
+      spec: submissionSpec,
+      runRoot: workingRoot,
+      outputDir: join(outputDir, 'submission'),
+      timeoutMs,
+      reportEvent: emitEvent,
+    });
+    emitEvent({
+      type: 'target-resolved',
+      targetLabel: 'submission',
+      phase: 'setup',
+      message: `Resolved submission ${submissionTarget.repoUrl}@${submissionTarget.ref}`,
+      payload: {
+        repoUrl: submissionTarget.repoUrl,
+        ref: submissionTarget.ref,
+        sha: submissionTarget.sha,
+      },
+    });
 
-  const baselineSummary = createTargetSummary(baselineTarget);
-  const submissionSummary = createTargetSummary(submissionTarget);
+    emitEvent({
+      type: 'target-prepare-start',
+      targetLabel: 'baseline',
+      phase: 'setup',
+      message: 'Preparing baseline workspace',
+    });
+    await prepareTargetWorkspace(baselineTarget, timeoutMs, emitEvent);
+    emitEvent({
+      type: 'target-prepare-end',
+      targetLabel: 'baseline',
+      phase: 'setup',
+      message: 'Baseline workspace ready',
+    });
 
-  emitEvent({
-    type: 'target-measure-start',
-    targetLabel: 'baseline',
-    phase: 'measure',
-    message: 'Running baseline measurements',
-  });
-  await measureTarget({
-    target: baselineTarget,
-    summary: baselineSummary,
-    baseConnectionString: databaseHarness.baseConnectionString,
-    categories: selectedCategories,
-    timeoutMs,
-    emitEvent,
-  });
-  emitEvent({
-    type: 'target-measure-end',
-    targetLabel: 'baseline',
-    phase: 'measure',
-    message: 'Baseline measurements finished',
-  });
-  emitEvent({
-    type: 'target-measure-start',
-    targetLabel: 'submission',
-    phase: 'measure',
-    message: 'Running submission measurements',
-  });
-  await measureTarget({
-    target: submissionTarget,
-    summary: submissionSummary,
-    baseConnectionString: databaseHarness.baseConnectionString,
-    categories: selectedCategories,
-    timeoutMs,
-    emitEvent,
-  });
-  emitEvent({
-    type: 'target-measure-end',
-    targetLabel: 'submission',
-    phase: 'measure',
-    message: 'Submission measurements finished',
-  });
+    emitEvent({
+      type: 'target-prepare-start',
+      targetLabel: 'submission',
+      phase: 'setup',
+      message: 'Preparing submission workspace',
+    });
+    await prepareTargetWorkspace(submissionTarget, timeoutMs, emitEvent);
+    emitEvent({
+      type: 'target-prepare-end',
+      targetLabel: 'submission',
+      phase: 'setup',
+      message: 'Submission workspace ready',
+    });
 
-  baselineSummary.measuredAt = new Date().toISOString();
-  submissionSummary.measuredAt = new Date().toISOString();
+    if (selectedCategories.some((categoryId) => PLAYWRIGHT_CATEGORIES.has(categoryId))) {
+      await runLoggedCommand({
+        commandId: 'playwright-install',
+        command: 'pnpm exec playwright install chromium',
+        cwd: projectRoot,
+        outputDir: join(outputDir, '.setup'),
+        timeoutMs,
+        ...createCommandCallbacks(emitEvent, {
+          phase: 'setup',
+        }),
+      });
+    }
 
-  await writeJson(join(outputDir, 'baseline', 'summary.json'), baselineSummary);
-  await writeJson(join(outputDir, 'submission', 'summary.json'), submissionSummary);
+    const baselineSummary = createTargetSummary(baselineTarget);
+    const submissionSummary = createTargetSummary(submissionTarget);
 
-  const recipes = buildRecipes({
-    baseline: baselineSummary,
-    submission: submissionSummary,
-  });
-  const comparison = buildComparison({
-    runId,
-    baselineSummary,
-    submissionSummary,
-  });
-  await writeJson(join(outputDir, 'comparison.json'), comparison);
-
-  const dashboardHtml = renderDashboard({
-    comparison,
-    baselineSummary,
-    submissionSummary,
-    recipes,
-  });
-  await writeText(join(outputDir, 'dashboard.html'), dashboardHtml);
-
-  await databaseHarness.stop();
-  emitEvent({
-    type: 'run-finished',
-    phase: 'finalize',
-    level: 'success',
-    message: 'Comparison artifacts written',
-    payload: {
-      outputDir,
+    emitEvent({
+      type: 'target-measure-start',
+      targetLabel: 'baseline',
+      phase: 'measure',
+      message: 'Running baseline measurements',
+    });
+    await measureTarget({
+      target: baselineTarget,
+      summary: baselineSummary,
+      baseConnectionString: databaseHarness.baseConnectionString,
       categories: selectedCategories,
-    },
-  });
+      timeoutMs,
+      emitEvent,
+    });
+    emitEvent({
+      type: 'target-measure-end',
+      targetLabel: 'baseline',
+      phase: 'measure',
+      message: 'Baseline measurements finished',
+    });
+    emitEvent({
+      type: 'target-measure-start',
+      targetLabel: 'submission',
+      phase: 'measure',
+      message: 'Running submission measurements',
+    });
+    await measureTarget({
+      target: submissionTarget,
+      summary: submissionSummary,
+      baseConnectionString: databaseHarness.baseConnectionString,
+      categories: selectedCategories,
+      timeoutMs,
+      emitEvent,
+    });
+    emitEvent({
+      type: 'target-measure-end',
+      targetLabel: 'submission',
+      phase: 'measure',
+      message: 'Submission measurements finished',
+    });
 
-  return {
-    runId,
-    outputDir,
-    baselineSummary,
-    submissionSummary,
-    comparison,
-    dashboardPath: join(outputDir, 'dashboard.html'),
-    recipes,
-  };
+    baselineSummary.measuredAt = new Date().toISOString();
+    submissionSummary.measuredAt = new Date().toISOString();
+
+    await writeJson(join(outputDir, 'baseline', 'summary.json'), baselineSummary);
+    await writeJson(join(outputDir, 'submission', 'summary.json'), submissionSummary);
+
+    const recipes = buildRecipes({
+      baseline: baselineSummary,
+      submission: submissionSummary,
+    });
+    const comparison = buildComparison({
+      runId,
+      baselineSummary,
+      submissionSummary,
+    });
+    await writeJson(join(outputDir, 'comparison.json'), comparison);
+
+    const dashboardHtml = renderDashboard({
+      comparison,
+      baselineSummary,
+      submissionSummary,
+      recipes,
+    });
+    await writeText(join(outputDir, 'dashboard.html'), dashboardHtml);
+
+    if (comparison.summary.failedCategoryCount > 0) {
+      emitEvent({
+        type: 'workflow-note',
+        phase: 'finalize',
+        level: 'warn',
+        message: `Comparison completed with ${comparison.summary.failedCategoryCount} failed category measurements.`,
+        payload: comparison.summary,
+      });
+    }
+
+    emitEvent({
+      type: 'run-finished',
+      phase: 'finalize',
+      level: 'success',
+      message: 'Comparison artifacts written',
+      payload: {
+        outputDir,
+        categories: selectedCategories,
+      },
+    });
+
+    return {
+      runId,
+      outputDir,
+      baselineSummary,
+      submissionSummary,
+      comparison,
+      dashboardPath: join(outputDir, 'dashboard.html'),
+      recipes,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    emitEvent({
+      type: 'run-error',
+      phase: 'failed',
+      level: 'error',
+      message,
+      payload: {
+        outputDir,
+      },
+    });
+    throw error;
+  } finally {
+    try {
+      await databaseHarness.stop();
+    } catch (error) {
+      emitEvent({
+        type: 'workflow-note',
+        phase: 'finalize',
+        level: 'warn',
+        message: `Database harness cleanup failed: ${error instanceof Error ? error.message : String(error)}`,
+      });
+    }
+  }
 }
 
 async function measureTarget({
@@ -381,6 +415,10 @@ function buildComparison({ runId, baselineSummary, submissionSummary }) {
     };
   }
 
+  const baselineFailedCategories = collectFailedCategories(baselineSummary);
+  const submissionFailedCategories = collectFailedCategories(submissionSummary);
+  const warningCount = baselineFailedCategories.length + submissionFailedCategories.length;
+
   return {
     runId,
     generatedAt: new Date().toISOString(),
@@ -393,6 +431,13 @@ function buildComparison({ runId, baselineSummary, submissionSummary }) {
       repoUrl: submissionSummary.repoUrl,
       ref: submissionSummary.ref,
       sha: submissionSummary.sha,
+    },
+    summary: {
+      overallStatus: warningCount > 0 ? 'warning' : 'passed',
+      failedCategoryCount: warningCount,
+      baselineFailedCategories,
+      submissionFailedCategories,
+      comparedCategoryCount: Object.keys(categories).length,
     },
     categories,
   };
@@ -429,15 +474,30 @@ function normalizeTargetSpec(label, spec) {
 }
 
 function normalizeCategories(rawCategories) {
-  if (!rawCategories || rawCategories.length === 0) {
-    return CATEGORY_IDS;
-  }
-  return rawCategories
+  const normalized = (!rawCategories || rawCategories.length === 0 ? CATEGORY_IDS : rawCategories)
     .flatMap((value) => String(value).split(','))
     .map((value) => value.trim())
     .filter(Boolean);
+
+  const unique = Array.from(new Set(normalized));
+  const invalid = unique.filter((value) => !CATEGORY_LOOKUP[value]);
+  if (invalid.length > 0) {
+    throw new Error(
+      `Unknown audit category${invalid.length === 1 ? '' : 'ies'}: ${invalid.join(', ')}. Expected one of ${CATEGORY_IDS.join(', ')}.`
+    );
+  }
+  return unique;
 }
 
 function createRunId() {
   return `${new Date().toISOString().replace(/[:.]/g, '-')}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function collectFailedCategories(summary) {
+  return Object.entries(summary.categories)
+    .filter(([, category]) => category?.status === 'failed')
+    .map(([categoryId, category]) => ({
+      categoryId,
+      error: category?.error ?? null,
+    }));
 }

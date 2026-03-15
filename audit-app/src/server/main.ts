@@ -106,7 +106,10 @@ app.post('/api/runs', async (request, response) => {
         payload: { error: message },
       },
     ]);
-    await failRun(run.id, message);
+    await failRun({
+      runId: run.id,
+      errorMessage: message,
+    });
     const failedRun = await getRun(run.id);
     response.status(502).json({
       error: message,
@@ -307,7 +310,27 @@ app.post('/api/internal/runs/:id/fail', requireInternalAuth, async (request, res
       payload: isObject(request.body?.details) ? request.body.details : { error: message },
     },
   ]);
-  await failRun(runId, message);
+  const artifacts = Array.isArray(request.body?.artifacts)
+    ? request.body.artifacts
+        .filter(
+          (artifact: unknown): artifact is Record<string, unknown> => Boolean(artifact && typeof artifact === 'object')
+        )
+        .map((artifact: Record<string, unknown>) => ({
+          name: String(artifact.name ?? 'artifact.bin'),
+          contentType: String(artifact.contentType ?? 'application/octet-stream'),
+          body: Buffer.from(String(artifact.bodyBase64 ?? ''), 'base64'),
+        }))
+    : [];
+
+  await failRun({
+    runId,
+    errorMessage: message,
+    baselineSha: stringOrNull(request.body?.baselineSha),
+    submissionSha: stringOrNull(request.body?.submissionSha),
+    summaryJson: request.body?.summaryJson ?? null,
+    comparisonJson: request.body?.comparisonJson ?? null,
+    artifacts,
+  });
   response.status(204).end();
 });
 

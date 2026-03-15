@@ -62,6 +62,13 @@ type ComparisonCategory = {
 type Comparison = {
   runId: string;
   generatedAt: string;
+  summary?: {
+    overallStatus: string;
+    failedCategoryCount: number;
+    baselineFailedCategories: Array<{ categoryId: string; error: string | null }>;
+    submissionFailedCategories: Array<{ categoryId: string; error: string | null }>;
+    comparedCategoryCount: number;
+  };
   categories: Record<string, ComparisonCategory>;
 };
 
@@ -122,6 +129,13 @@ type MetricEntry = {
   key: string;
   label: string;
   value: string;
+};
+
+type RunIssue = {
+  id: string;
+  level: 'error' | 'warn' | 'info';
+  title: string;
+  detail: string;
 };
 
 const DEFAULT_FORM = {
@@ -254,6 +268,10 @@ export function App() {
   const signalEvents = useMemo(
     () => buildSignalEvents(liveEvents),
     [liveEvents]
+  );
+  const runIssues = useMemo(
+    () => buildRunIssues(selectedRun, progress, signalEvents),
+    [progress, selectedRun, signalEvents]
   );
   const rawTerminalEvents = useMemo(
     () => liveEvents.slice(-320),
@@ -531,6 +549,11 @@ export function App() {
                   value={String(selectedRun.artifactNames.length)}
                   detail={selectedRun.artifactNames.length > 0 ? selectedRun.artifactNames.join(', ') : 'Will appear when the run finishes.'}
                 />
+                <TelemetryCard
+                  label="Alerts"
+                  value={String(runIssues.length)}
+                  detail={runIssues[0]?.title ?? 'No unexpected errors surfaced yet.'}
+                />
               </div>
             </>
           ) : (
@@ -619,6 +642,11 @@ export function App() {
                   label="Progress"
                   value={`${progressPercent}%`}
                   detail={`${progress?.completedSteps ?? 0}/${progress?.totalSteps ?? 0} measured steps`}
+                />
+                <TelemetryCard
+                  label="Signals"
+                  value={`${countSignalLevels(signalEvents, 'error')}/${countSignalLevels(signalEvents, 'warn')}`}
+                  detail="Errors / warnings in the recent operator feed"
                 />
               </div>
               <div className="category-lane">
@@ -781,6 +809,33 @@ export function App() {
               </div>
 
               <aside className="ops-stack">
+                <section className="signal-panel">
+                  <div className="signal-panel__head">
+                    <div>
+                      <p className="eyebrow">Alerts</p>
+                      <h3>Unexpected conditions, failed categories, and workflow-level warnings.</h3>
+                    </div>
+                    <span className="meta-line">{runIssues.length} active</span>
+                  </div>
+                  <div className="signal-list">
+                    {runIssues.length > 0 ? (
+                      runIssues.map((issue) => (
+                        <article key={issue.id} className={`signal-card signal-card--${issue.level}`}>
+                          <div className="signal-card__head">
+                            <span className={`event-badge event-badge--${issue.level}`}>{issue.level}</span>
+                          </div>
+                          <p className="signal-card__context">{issue.title}</p>
+                          <p className="signal-card__message">{issue.detail}</p>
+                        </article>
+                      ))
+                    ) : (
+                      <div className="signal-card signal-card--empty">
+                        <p className="meta-line">No unexpected failures or warnings are currently surfaced for this run.</p>
+                      </div>
+                    )}
+                  </div>
+                </section>
+
                 <section className="signal-panel">
                   <div className="signal-panel__head">
                     <div>
@@ -1135,7 +1190,13 @@ function buildPhaseNodes(run: RunSummary | null, progress: ProgressSnapshot | nu
 
 function buildSignalEvents(events: RunEvent[]): SignalEvent[] {
   return events
-    .filter((event) => event.type !== 'command-output' || event.level === 'stderr' || event.level === 'error')
+    .filter(
+      (event) =>
+        event.type !== 'command-output' ||
+        event.level === 'stderr' ||
+        event.level === 'error' ||
+        event.level === 'warn'
+    )
     .slice(-10)
     .reverse()
     .map((event) => ({
@@ -1197,6 +1258,76 @@ function formatMetricKey(value: string) {
     .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
     .replace(/_/g, ' ')
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function buildRunIssues(
+  run: RunSummary | null,
+  progress: ProgressSnapshot | null,
+  signalEvents: SignalEvent[]
+): RunIssue[] {
+  if (!run) {
+    return [];
+  }
+
+  const issues: RunIssue[] = [];
+
+  if (run.error) {
+    issues.push({
+      id: 'run-error',
+      level: 'error',
+      title: 'Workflow failure',
+      detail: run.error,
+    });
+  }
+
+  const comparisonSummary = run.comparisonJson?.summary;
+  if (comparisonSummary?.failedCategoryCount) {
+    for (const failure of comparisonSummary.baselineFailedCategories) {
+      issues.push({
+        id: `baseline-${failure.categoryId}`,
+        level: 'warn',
+        title: `Baseline ${CATEGORY_GUIDES[failure.categoryId as keyof typeof CATEGORY_GUIDES]?.label ?? failure.categoryId} failed`,
+        detail: failure.error ?? 'This category did not produce a comparable result. Open the terminal or artifacts for details.',
+      });
+    }
+    for (const failure of comparisonSummary.submissionFailedCategories) {
+      issues.push({
+        id: `submission-${failure.categoryId}`,
+        level: 'warn',
+        title: `Submission ${CATEGORY_GUIDES[failure.categoryId as keyof typeof CATEGORY_GUIDES]?.label ?? failure.categoryId} failed`,
+        detail: failure.error ?? 'This category did not produce a comparable result. Open the terminal or artifacts for details.',
+      });
+    }
+  }
+
+  if (progress) {
+    for (const [targetLabel, target] of Object.entries(progress.targets)) {
+      for (const [categoryId, category] of Object.entries(target.categories)) {
+        if (category.status === 'failed' && category.error) {
+          issues.push({
+            id: `${targetLabel}-${categoryId}-progress`,
+            level: 'warn',
+            title: `${capitalize(targetLabel)} ${CATEGORY_GUIDES[categoryId as keyof typeof CATEGORY_GUIDES]?.label ?? categoryId} reported a failure`,
+            detail: category.error,
+          });
+        }
+      }
+    }
+  }
+
+  for (const event of signalEvents) {
+    if (event.level !== 'error' && event.level !== 'warn') {
+      continue;
+    }
+    issues.push({
+      id: `signal-${event.id}`,
+      level: event.level === 'error' ? 'error' : 'warn',
+      title: event.context,
+      detail: event.message,
+    });
+  }
+
+  return dedupeIssues(issues).slice(0, 8);
 }
 
 function formatTarget(target?: ProgressTarget | null) {
@@ -1320,4 +1451,24 @@ function formatEventContext(event: RunEvent) {
 
 function shortSha(value: string | null) {
   return value ? value.slice(0, 7) : 'pending';
+}
+
+function dedupeIssues(issues: RunIssue[]) {
+  const seen = new Set<string>();
+  return issues.filter((issue) => {
+    const key = `${issue.level}:${issue.title}:${issue.detail}`;
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
+}
+
+function countSignalLevels(events: SignalEvent[], level: 'error' | 'warn') {
+  return events.filter((event) => event.level === level).length;
+}
+
+function capitalize(value: string) {
+  return value.length > 0 ? `${value.slice(0, 1).toUpperCase()}${value.slice(1)}` : value;
 }

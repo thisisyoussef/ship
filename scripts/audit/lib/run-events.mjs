@@ -13,8 +13,11 @@ export function createAuditEmitter(reportEvent) {
 }
 
 export function createCommandCallbacks(emitEvent, context) {
+  let activeCommandId = context.commandId ?? null;
+
   return {
     onStart(record) {
+      activeCommandId = record.id;
       emitEvent({
         type: 'command-start',
         targetLabel: context.targetLabel ?? null,
@@ -32,6 +35,7 @@ export function createCommandCallbacks(emitEvent, context) {
       emitStreamChunk({
         emitEvent,
         context,
+        commandId: activeCommandId,
         stream: 'stdout',
         level: 'stdout',
         chunk,
@@ -41,6 +45,7 @@ export function createCommandCallbacks(emitEvent, context) {
       emitStreamChunk({
         emitEvent,
         context,
+        commandId: activeCommandId,
         stream: 'stderr',
         level: 'stderr',
         chunk,
@@ -102,6 +107,7 @@ export function createCommandCallbacks(emitEvent, context) {
 function emitStreamChunk({
   emitEvent,
   context,
+  commandId,
   stream,
   level,
   chunk,
@@ -116,7 +122,7 @@ function emitStreamChunk({
     targetLabel: context.targetLabel ?? null,
     categoryId: context.categoryId ?? null,
     phase: context.phase ?? 'command',
-    commandId: context.commandId ?? null,
+    commandId: commandId ?? context.commandId ?? null,
     stream,
     level,
     message,

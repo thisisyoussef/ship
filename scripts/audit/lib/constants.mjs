@@ -57,8 +57,8 @@ export const CATEGORY_DEFINITIONS = Object.freeze([
   {
     id: 'accessibility',
     label: 'Category 7: Accessibility Compliance',
-    summaryMetricLabel: 'Critical or serious accessibility violations',
-    unit: 'violations',
+    summaryMetricLabel: 'Accessibility issues across tree semantics and contrast',
+    unit: 'issues',
   },
 ]);
 

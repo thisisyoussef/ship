@@ -50,6 +50,8 @@ type ComparisonCategory = {
   unit: string;
   baselineStatus: string;
   submissionStatus: string;
+  baselineMetrics?: Record<string, unknown>;
+  submissionMetrics?: Record<string, unknown>;
   rootCause: {
     title: string;
     baselineProblem: string;
@@ -104,6 +106,24 @@ type SessionState = {
   authenticated: boolean;
 };
 
+type PhaseNode = {
+  id: string;
+  label: string;
+  status: string;
+  detail: string;
+};
+
+type SignalEvent = RunEvent & {
+  badge: string;
+  context: string;
+};
+
+type MetricEntry = {
+  key: string;
+  label: string;
+  value: string;
+};
+
 const DEFAULT_FORM = {
   baselineRepo: 'https://github.com/US-Department-of-the-Treasury/ship.git',
   baselineRef: 'master',
@@ -131,7 +151,7 @@ const CATEGORY_GUIDES: Record<
 > = {
   'type-safety': {
     label: 'Type safety',
-    intro: 'Runs package type-checks, then scans the TypeScript AST for `any`, `as`, non-null assertions, and ts-ignore directives.',
+    intro: 'Runs package type-checks, then scans the TypeScript AST for any, as, non-null assertions, and ts-ignore directives.',
     commands: [
       'pnpm --filter @ship/shared type-check',
       'pnpm --filter @ship/api type-check',
@@ -172,7 +192,7 @@ const CATEGORY_GUIDES: Record<
   },
   'test-quality': {
     label: 'Test quality',
-    intro: 'Runs the API and web suites, then launches the regression Playwright flow with `--repeat-each=10` on a fresh seeded runtime.',
+    intro: 'Runs the API and web suites, then launches the regression Playwright flow with --repeat-each=10 on a fresh seeded runtime.',
     commands: [
       'pnpm --filter @ship/api test',
       'pnpm --filter @ship/web test',
@@ -192,7 +212,7 @@ const CATEGORY_GUIDES: Record<
   },
   accessibility: {
     label: 'Accessibility',
-    intro: 'Runs the docs tree and /my-week flows with Playwright + axe against the same canonical dataset.',
+    intro: 'Runs the docs tree and /my-week flows with Playwright plus axe against the same canonical dataset, including structure checks that used to fail before the axe counts were even recorded.',
     commands: [
       'pnpm db:migrate',
       'pnpm db:seed',
@@ -220,6 +240,24 @@ export function App() {
   const selectedRun = useMemo(
     () => runs.find((run) => run.id === selectedRunId) ?? runs[0] ?? null,
     [runs, selectedRunId]
+  );
+
+  const progress = selectedRun?.progressJson ?? null;
+  const progressPercent = progress
+    ? Math.round((progress.completedSteps / Math.max(progress.totalSteps, 1)) * 100)
+    : 0;
+  const selectedCategoryIds = progress?.selectedCategories ?? getRunCategoryIds(selectedRun);
+  const phaseNodes = useMemo(
+    () => buildPhaseNodes(selectedRun, progress),
+    [progress, selectedRun]
+  );
+  const signalEvents = useMemo(
+    () => buildSignalEvents(liveEvents),
+    [liveEvents]
+  );
+  const rawTerminalEvents = useMemo(
+    () => liveEvents.slice(-320),
+    [liveEvents]
   );
 
   useEffect(() => {
@@ -263,9 +301,12 @@ export function App() {
     const currentRunId = selectedRun.id;
 
     async function sync(after: number, reset = false) {
-      const response = await fetch(`/api/runs/${currentRunId}/events?after=${after}&limit=${reset ? 400 : 200}`, {
-        credentials: 'include',
-      });
+      const response = await fetch(
+        `/api/runs/${currentRunId}/events?after=${after}&limit=${reset ? 400 : 200}`,
+        {
+          credentials: 'include',
+        }
+      );
       if (!response.ok || disposed) {
         return;
       }
@@ -319,7 +360,7 @@ export function App() {
       });
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [liveEvents.length, terminalAutoFollow]);
+  }, [rawTerminalEvents.length, terminalAutoFollow]);
 
   async function refreshSession() {
     const response = await fetch('/api/session', { credentials: 'include' });
@@ -422,10 +463,12 @@ export function App() {
     return (
       <main className="shell shell--login">
         <section className="login-panel">
-          <p className="eyebrow">Render-hosted Ship audit</p>
-          <h1>Run the full reproducible comparison or walk it category by category.</h1>
+          <div className="login-panel__glow" />
+          <p className="eyebrow">Ship audit mission control</p>
+          <h1>Run the full reproducible comparison or inspect each category with live execution telemetry.</h1>
           <p className="lede">
-            The hosted runner now shows setup, active category progress, and terminal-style output while GitHub Actions is still running.
+            The hosted view now behaves like an operator console: GitHub Actions status, setup milestones,
+            category progress, signal feed, and raw terminal output all stay visible while the run is still moving.
           </p>
           <form onSubmit={handleLogin} className="login-form">
             <label>
@@ -437,7 +480,7 @@ export function App() {
                 placeholder="Enter the audit app password"
               />
             </label>
-            <button type="submit">Open dashboard</button>
+            <button type="submit">Open mission control</button>
           </form>
           {loginError ? <p className="error-text">{loginError}</p> : null}
         </section>
@@ -445,27 +488,66 @@ export function App() {
     );
   }
 
-  const progress = selectedRun?.progressJson ?? null;
-  const progressPercent = progress ? Math.round((progress.completedSteps / Math.max(progress.totalSteps, 1)) * 100) : 0;
-
   return (
     <main className="shell">
       <section className="hero">
-        <div>
+        <div className="hero__copy">
           <p className="eyebrow">Virtual audit runner</p>
-          <h1>One click for the full compare, or a notebook flow for each category.</h1>
+          <h1>See exactly what the grader would see, while the run is still happening.</h1>
           <p className="lede">
-            The dashboard now shows the live GitHub Actions message, exact command stream, and per-category progress so long runs stay inspectable the whole way through.
+            Each run now shows phase choreography, target resolution, command ownership, and the latest operator signals
+            before you ever need to open the raw GitHub Actions page.
           </p>
         </div>
-        <button className="ghost-button" onClick={handleLogout}>
-          Log out
-        </button>
+        <div className="hero__status-card">
+          <div className="hero__status-head">
+            <div>
+              <p className="eyebrow">Current run</p>
+              <h2>{getRunTitle(selectedRun)}</h2>
+            </div>
+            <button className="ghost-button" onClick={handleLogout}>
+              Log out
+            </button>
+          </div>
+          {selectedRun ? (
+            <>
+              <div className="hero__status-strip">
+                <StatusPill status={selectedRun.status} label={selectedRun.status} />
+                <span className="hero__executor">Executor: GitHub Actions</span>
+              </div>
+              <div className="hero__status-grid">
+                <TelemetryCard
+                  label="Elapsed"
+                  value={formatElapsed(selectedRun)}
+                  detail={progress?.message ?? 'Waiting for GitHub Actions updates.'}
+                />
+                <TelemetryCard
+                  label="Refs"
+                  value={`${selectedRun.baselineRef} -> ${selectedRun.submissionRef}`}
+                  detail={`${shortSha(selectedRun.baselineSha)} -> ${shortSha(selectedRun.submissionSha)}`}
+                />
+                <TelemetryCard
+                  label="Artifacts"
+                  value={String(selectedRun.artifactNames.length)}
+                  detail={selectedRun.artifactNames.length > 0 ? selectedRun.artifactNames.join(', ') : 'Will appear when the run finishes.'}
+                />
+              </div>
+            </>
+          ) : (
+            <p className="empty-state">Queue a run to start the hosted comparison.</p>
+          )}
+        </div>
       </section>
 
       <section className="grid grid--controls">
-        <article className="panel">
-          <p className="eyebrow">Targets</p>
+        <article className="panel panel--launch">
+          <div className="panel__head">
+            <div>
+              <p className="eyebrow">Launch control</p>
+              <h2>Choose the exact repos and refs to compare.</h2>
+            </div>
+            <div className="panel__pulse" />
+          </div>
           <div className="field-grid">
             <label>
               Baseline repo
@@ -502,52 +584,53 @@ export function App() {
             </button>
           </div>
           <p className="meta-line">
-            Use the full run for the grader path, or drop into the notebook below and run an individual category in isolation.
+            The full run is the grader path. Individual category buttons below are for focused reruns and debugging.
           </p>
         </article>
 
-        <article className="panel">
-          <p className="eyebrow">Live run</p>
+        <article className="panel panel--telemetry">
+          <div className="panel__head">
+            <div>
+              <p className="eyebrow">Mission telemetry</p>
+              <h2>Track the workflow before the raw logs become noisy.</h2>
+            </div>
+          </div>
           {selectedRun ? (
             <>
-              <div className="status-row">
-                <h2>{selectedRun.mode === 'full' ? 'Full comparison' : CATEGORY_GUIDES[selectedRun.category as keyof typeof CATEGORY_GUIDES]?.label ?? selectedRun.category}</h2>
-                <p className={`status-pill status-pill--${selectedRun.status}`}>{selectedRun.status}</p>
+              <PhaseRail nodes={phaseNodes} />
+              <div className="telemetry-grid">
+                <TelemetryCard
+                  label="Active phase"
+                  value={formatPhase(progress?.phase ?? selectedRun.status)}
+                  detail={progress?.updatedAt ? `Updated ${formatClock(progress.updatedAt)}` : 'No updates yet.'}
+                />
+                <TelemetryCard
+                  label="Active target"
+                  value={progress?.activeTarget ?? 'idle'}
+                  detail={progress?.activeCategory ?? 'No active category'}
+                />
+                <TelemetryCard
+                  label="GitHub run"
+                  value={selectedRun.githubRunId ? `#${selectedRun.githubRunId}` : 'pending'}
+                  detail={selectedRun.githubRunAttempt ? `Attempt ${selectedRun.githubRunAttempt}` : 'Waiting for dispatch'}
+                  href={selectedRun.githubRunUrl}
+                />
+                <TelemetryCard
+                  label="Progress"
+                  value={`${progressPercent}%`}
+                  detail={`${progress?.completedSteps ?? 0}/${progress?.totalSteps ?? 0} measured steps`}
+                />
               </div>
-              <p className="meta-line">{progress?.message ?? 'Waiting for GitHub Actions updates.'}</p>
-              <div className="progress-block">
-                <div className="progress-track">
-                  <span className="progress-fill" style={{ width: `${progressPercent}%` }} />
-                </div>
-                <div className="progress-meta">
-                  <span>{progressPercent}% complete</span>
-                  <span>
-                    {progress?.completedSteps ?? 0}/{progress?.totalSteps ?? 0} steps
-                  </span>
-                </div>
+              <div className="category-lane">
+                {selectedCategoryIds.map((categoryId) => (
+                  <CategoryLaneCard
+                    key={categoryId}
+                    categoryId={categoryId}
+                    baselineStatus={progress?.targets.baseline.categories[categoryId]?.status ?? 'pending'}
+                    submissionStatus={progress?.targets.submission.categories[categoryId]?.status ?? 'pending'}
+                  />
+                ))}
               </div>
-              <p className="meta-line">
-                {selectedRun.baselineRepo}@{selectedRun.baselineRef}
-              </p>
-              <p className="meta-line">
-                {selectedRun.submissionRepo}@{selectedRun.submissionRef}
-              </p>
-              <p className="meta-line">
-                {selectedRun.baselineSha ?? 'pending'} -&gt; {selectedRun.submissionSha ?? 'pending'}
-              </p>
-              <p className="meta-line">
-                Elapsed {formatElapsed(selectedRun)}
-              </p>
-              {selectedRun.githubRunUrl ? (
-                <p className="meta-line">
-                  <a href={selectedRun.githubRunUrl} target="_blank" rel="noreferrer">
-                    Open GitHub Actions run
-                  </a>
-                  {selectedRun.githubRunAttempt ? ` (attempt ${selectedRun.githubRunAttempt})` : ''}
-                </p>
-              ) : (
-                <p className="meta-line">Queued with GitHub Actions. Waiting for the workflow to start.</p>
-              )}
               {progress?.activeCommand ? (
                 <div className="active-command">
                   <span className="eyebrow">Active command</span>
@@ -556,13 +639,13 @@ export function App() {
               ) : null}
             </>
           ) : (
-            <p className="empty-state">No runs yet.</p>
+            <p className="empty-state">No run selected.</p>
           )}
         </article>
       </section>
 
       <section className="grid grid--main">
-        <article className="panel">
+        <article className="panel panel--history">
           <p className="eyebrow">History</p>
           <div className="history-list">
             {runs.map((run) => (
@@ -572,24 +655,24 @@ export function App() {
                 onClick={() => setSelectedRunId(run.id)}
               >
                 <div>
-                  <strong>{run.mode === 'full' ? 'Full comparison' : CATEGORY_GUIDES[run.category as keyof typeof CATEGORY_GUIDES]?.label ?? run.category}</strong>
+                  <strong>{getRunTitle(run)}</strong>
                   <p>{new Date(run.requestedAt).toLocaleString()}</p>
                 </div>
-                <span className={`status-pill status-pill--${run.status}`}>{run.status}</span>
+                <StatusPill status={run.status} label={run.status} />
               </button>
             ))}
           </div>
         </article>
 
         <article className="panel panel--detail">
-          <p className="eyebrow">Notebook</p>
+          <p className="eyebrow">Operator notebook</p>
           {selectedRun ? (
             <div className="detail-layout">
               <div className="notebook-stack">
-                <section className="notebook-section">
+                <section className="notebook-section notebook-section--setup">
                   <div className="section-head">
                     <div>
-                      <p className="eyebrow">Setup</p>
+                      <p className="eyebrow">Setup contract</p>
                       <h3>Clone, install, build shared, and seed the canonical corpus.</h3>
                     </div>
                     <button onClick={() => queueRun('full', null)} disabled={Boolean(submitting)}>
@@ -597,7 +680,8 @@ export function App() {
                     </button>
                   </div>
                   <p className="meta-line">
-                    The GitHub Actions runner always runs the same setup contract first: clone the requested refs, install with a frozen lockfile, build shared, then prepare the canonical corpus before the measured category logic starts.
+                    GitHub Actions runs the same preparation contract every time: clone the requested refs, install with a frozen lockfile,
+                    build shared, migrate, seed, and expand to the canonical corpus before any measured category logic begins.
                   </p>
                   <div className="step-status-grid">
                     <StatusCard
@@ -662,24 +746,7 @@ export function App() {
                       <CodeBlock value={categoryGuide.commands.join('\n')} />
 
                       {comparisonCategory ? (
-                        <div className="result-card">
-                          <div className="result-card__head">
-                            <div>
-                              <p className="eyebrow">{comparisonCategory.label}</p>
-                              <h3>{comparisonCategory.rootCause.title}</h3>
-                            </div>
-                            <div className="result-metric">
-                              <span>Before</span>
-                              <strong>{formatMetric(comparisonCategory.before, comparisonCategory.unit)}</strong>
-                              <span>After {formatMetric(comparisonCategory.after, comparisonCategory.unit)}</span>
-                            </div>
-                          </div>
-                          <p className="meta-line">{comparisonCategory.rootCause.baselineProblem}</p>
-                          <p className="meta-line meta-line--strong">{comparisonCategory.rootCause.whyFixWorks}</p>
-                          <p className="meta-line">
-                            Delta {formatMetric(comparisonCategory.delta, comparisonCategory.unit)} ({comparisonCategory.percentChange}%)
-                          </p>
-                        </div>
+                        <ComparisonOutcome category={comparisonCategory} />
                       ) : null}
                     </section>
                   );
@@ -689,7 +756,7 @@ export function App() {
                   <div className="section-head">
                     <div>
                       <p className="eyebrow">Reproduce locally</p>
-                      <h3>Use the same refs and rerun the harness yourself.</h3>
+                      <h3>Use the same refs and rerun the harness on your own machine.</h3>
                     </div>
                   </div>
                   <div className="recipe-grid">
@@ -699,7 +766,11 @@ export function App() {
                   {selectedRun.artifactNames.length > 0 ? (
                     <div className="artifact-row">
                       {selectedRun.artifactNames.map((artifactName) => (
-                        <a key={artifactName} href={`/api/runs/${selectedRun.id}/artifacts/${artifactName}`} className="ghost-button">
+                        <a
+                          key={artifactName}
+                          href={`/api/runs/${selectedRun.id}/artifacts/${artifactName}`}
+                          className="ghost-button"
+                        >
                           Download {artifactName}
                         </a>
                       ))}
@@ -709,49 +780,69 @@ export function App() {
                 </section>
               </div>
 
-              <aside className="terminal-panel">
-                <div className="terminal-panel__head">
-                  <div>
-                    <p className="eyebrow">Live terminal</p>
-                    <h3>{progress?.message ?? 'Waiting for GitHub Actions output'}</h3>
-                  </div>
-                  <div className="terminal-panel__controls">
-                    {!terminalAutoFollow ? (
-                      <button className="ghost-button ghost-button--terminal" onClick={jumpToLatest}>
-                        Jump to latest
-                      </button>
-                    ) : null}
-                    <span className="meta-line">Cursor {liveCursor}</span>
-                  </div>
-                </div>
-                <div className="terminal-meta">
-                  <span>Phase: {progress?.phase ?? selectedRun.status}</span>
-                  <span>Target: {progress?.activeTarget ?? 'idle'}</span>
-                  <span>Category: {progress?.activeCategory ?? 'idle'}</span>
-                </div>
-                <div className="terminal-view" ref={terminalRef} onScroll={handleTerminalScroll}>
-                  {liveEvents.length > 0 ? (
-                    <>
-                      {liveEvents.map((event) => (
-                        <div key={event.id} className={`terminal-line terminal-line--${event.level}`}>
-                          <span className="terminal-line__prefix">
-                            [{formatClock(event.createdAt)}]
-                            {event.targetLabel ? ` ${event.targetLabel}` : ''}
-                            {event.categoryId ? `/${event.categoryId}` : ''}
-                            {event.stream ? ` ${event.stream}` : ''}
-                          </span>
-                          <span>{event.message}</span>
-                        </div>
-                      ))}
-                      <div ref={terminalEndRef} className="terminal-view__end" />
-                    </>
-                  ) : (
-                    <div className="terminal-line terminal-line--info">
-                      <span className="terminal-line__prefix">[idle]</span>
-                      <span>GitHub Actions will stream events here as soon as the run starts writing progress.</span>
+              <aside className="ops-stack">
+                <section className="signal-panel">
+                  <div className="signal-panel__head">
+                    <div>
+                      <p className="eyebrow">Signal feed</p>
+                      <h3>Human-readable state changes and risks.</h3>
                     </div>
-                  )}
-                </div>
+                    <span className="meta-line">{signalEvents.length} recent signals</span>
+                  </div>
+                  <div className="signal-list">
+                    {signalEvents.length > 0 ? (
+                      signalEvents.map((event) => (
+                        <SignalCard key={event.id} event={event} />
+                      ))
+                    ) : (
+                      <div className="signal-card signal-card--empty">
+                        <p className="meta-line">Signals will appear here as soon as the run starts reporting setup or measurement milestones.</p>
+                      </div>
+                    )}
+                  </div>
+                </section>
+
+                <section className="terminal-panel">
+                  <div className="terminal-panel__head">
+                    <div>
+                      <p className="eyebrow">Raw terminal</p>
+                      <h3>{progress?.message ?? 'Waiting for GitHub Actions output'}</h3>
+                    </div>
+                    <div className="terminal-panel__controls">
+                      {!terminalAutoFollow ? (
+                        <button className="ghost-button ghost-button--terminal" onClick={jumpToLatest}>
+                          Jump to latest
+                        </button>
+                      ) : null}
+                      <span className="meta-line">Cursor {liveCursor}</span>
+                    </div>
+                  </div>
+                  <div className="terminal-meta">
+                    <span>Phase: {formatPhase(progress?.phase ?? selectedRun.status)}</span>
+                    <span>Target: {progress?.activeTarget ?? 'idle'}</span>
+                    <span>Category: {progress?.activeCategory ?? 'idle'}</span>
+                  </div>
+                  <div className="terminal-view" ref={terminalRef} onScroll={handleTerminalScroll}>
+                    {rawTerminalEvents.length > 0 ? (
+                      <>
+                        {rawTerminalEvents.map((event) => (
+                          <TerminalLine key={event.id} event={event} />
+                        ))}
+                        <div ref={terminalEndRef} className="terminal-view__end" />
+                      </>
+                    ) : (
+                      <div className="terminal-line terminal-line--info">
+                        <div className="terminal-line__meta">
+                          <span className="event-badge event-badge--info">idle</span>
+                          <span className="terminal-line__prefix">GitHub Actions has not emitted any events yet.</span>
+                        </div>
+                        <span className="terminal-line__message">
+                          As soon as the workflow starts, command ownership, stream source, target, and category context will appear here.
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </section>
               </aside>
             </div>
           ) : (
@@ -760,6 +851,152 @@ export function App() {
         </article>
       </section>
     </main>
+  );
+}
+
+function PhaseRail({ nodes }: { nodes: PhaseNode[] }) {
+  return (
+    <div className="phase-rail">
+      {nodes.map((node, index) => (
+        <div key={node.id} className={`phase-node phase-node--${node.status}`}>
+          <div className="phase-node__indicator">
+            <span>{index + 1}</span>
+          </div>
+          <div>
+            <strong>{node.label}</strong>
+            <p>{node.detail}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function TelemetryCard({
+  label,
+  value,
+  detail,
+  href,
+}: {
+  label: string;
+  value: string;
+  detail: string;
+  href?: string | null;
+}) {
+  const content = (
+    <>
+      <span className="telemetry-card__label">{label}</span>
+      <strong>{value}</strong>
+      <p>{detail}</p>
+    </>
+  );
+
+  if (href) {
+    return (
+      <a className="telemetry-card telemetry-card--link" href={href} target="_blank" rel="noreferrer">
+        {content}
+      </a>
+    );
+  }
+
+  return <div className="telemetry-card">{content}</div>;
+}
+
+function CategoryLaneCard({
+  categoryId,
+  baselineStatus,
+  submissionStatus,
+}: {
+  categoryId: string;
+  baselineStatus: string;
+  submissionStatus: string;
+}) {
+  const guide = CATEGORY_GUIDES[categoryId as keyof typeof CATEGORY_GUIDES];
+  return (
+    <div className="category-lane__item">
+      <span>{guide?.label ?? categoryId}</span>
+      <div className="category-lane__status">
+        <StatusPill status={baselineStatus} label={`B ${baselineStatus}`} compact />
+        <StatusPill status={submissionStatus} label={`S ${submissionStatus}`} compact />
+      </div>
+    </div>
+  );
+}
+
+function ComparisonOutcome({ category }: { category: ComparisonCategory }) {
+  const baselineEntries = toMetricEntries(category.baselineMetrics);
+  const submissionEntries = toMetricEntries(category.submissionMetrics);
+
+  return (
+    <div className="result-card">
+      <div className="result-card__head">
+        <div>
+          <p className="eyebrow">{category.label}</p>
+          <h3>{category.rootCause.title}</h3>
+        </div>
+        <div className="result-metric">
+          <span>Before</span>
+          <strong>{formatMetric(category.before, category.unit)}</strong>
+          <span>After {formatMetric(category.after, category.unit)}</span>
+        </div>
+      </div>
+      <div className="result-card__status-row">
+        <StatusPill status={category.baselineStatus} label={`Baseline ${category.baselineStatus}`} />
+        <StatusPill status={category.submissionStatus} label={`Submission ${category.submissionStatus}`} />
+      </div>
+      <p className="meta-line">{category.rootCause.baselineProblem}</p>
+      <p className="meta-line meta-line--strong">{category.rootCause.whyFixWorks}</p>
+      <p className="meta-line">
+        Delta {formatMetric(category.delta, category.unit)} ({category.percentChange}%)
+      </p>
+      {(baselineEntries.length > 0 || submissionEntries.length > 0) ? (
+        <div className="metric-cluster">
+          {baselineEntries.length > 0 ? <MetricPanel title="Baseline breakdown" entries={baselineEntries} /> : null}
+          {submissionEntries.length > 0 ? <MetricPanel title="Submission breakdown" entries={submissionEntries} /> : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function MetricPanel({ title, entries }: { title: string; entries: MetricEntry[] }) {
+  return (
+    <div className="metric-panel">
+      <p className="eyebrow">{title}</p>
+      <div className="metric-panel__grid">
+        {entries.map((entry) => (
+          <div key={entry.key} className="metric-chip">
+            <span>{entry.label}</span>
+            <strong>{entry.value}</strong>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SignalCard({ event }: { event: SignalEvent }) {
+  return (
+    <article className={`signal-card signal-card--${event.level}`}>
+      <div className="signal-card__head">
+        <span className={`event-badge event-badge--${event.level}`}>{event.badge}</span>
+        <span className="signal-card__time">{formatClock(event.createdAt)}</span>
+      </div>
+      <p className="signal-card__context">{event.context}</p>
+      <p className="signal-card__message">{event.message}</p>
+    </article>
+  );
+}
+
+function TerminalLine({ event }: { event: RunEvent }) {
+  return (
+    <div key={event.id} className={`terminal-line terminal-line--${event.level}`}>
+      <div className="terminal-line__meta">
+        <span className={`event-badge event-badge--${event.level}`}>{formatEventBadge(event)}</span>
+        <span className="terminal-line__prefix">{formatEventContext(event)}</span>
+      </div>
+      <span className="terminal-line__message">{event.message}</span>
+    </div>
   );
 }
 
@@ -776,10 +1013,26 @@ function StatusCard({
     <div className="status-card">
       <div className="status-row">
         <strong>{title}</strong>
-        <span className={`status-pill status-pill--${status}`}>{status}</span>
+        <StatusPill status={status} label={status} />
       </div>
       <p className="meta-line">{detail}</p>
     </div>
+  );
+}
+
+function StatusPill({
+  status,
+  label,
+  compact = false,
+}: {
+  status: string;
+  label: string;
+  compact?: boolean;
+}) {
+  return (
+    <span className={`status-pill status-pill--${status} ${compact ? 'status-pill--compact' : ''}`}>
+      {label}
+    </span>
   );
 }
 
@@ -815,6 +1068,135 @@ function CodeBlock({ value }: { value: string }) {
       <pre>{value}</pre>
     </div>
   );
+}
+
+function getRunTitle(run: RunSummary | null) {
+  if (!run) {
+    return 'No run selected';
+  }
+  if (run.mode === 'full') {
+    return 'Full comparison';
+  }
+  return CATEGORY_GUIDES[run.category as keyof typeof CATEGORY_GUIDES]?.label ?? run.category ?? 'Category run';
+}
+
+function getRunCategoryIds(run: RunSummary | null) {
+  if (!run) {
+    return Array.from(CATEGORY_ORDER);
+  }
+  if (run.mode === 'category' && run.category) {
+    return [run.category];
+  }
+  return Array.from(CATEGORY_ORDER);
+}
+
+function buildPhaseNodes(run: RunSummary | null, progress: ProgressSnapshot | null): PhaseNode[] {
+  const setupDone = Boolean(
+    progress &&
+      ['passed', 'failed'].includes(progress.targets.baseline.setupStatus) &&
+      ['passed', 'failed'].includes(progress.targets.submission.setupStatus)
+  );
+  const measureDone = Boolean(
+    progress &&
+      progress.selectedCategories.every((categoryId) => {
+        const baselineStatus = progress.targets.baseline.categories[categoryId]?.status;
+        const submissionStatus = progress.targets.submission.categories[categoryId]?.status;
+        return ['passed', 'failed'].includes(baselineStatus ?? '') && ['passed', 'failed'].includes(submissionStatus ?? '');
+      })
+  );
+
+  return [
+    {
+      id: 'queue',
+      label: 'Queue',
+      status: run?.startedAt ? 'passed' : run?.status === 'running' ? 'running' : run?.status ?? 'pending',
+      detail: run?.githubRunUrl ? 'Workflow dispatched.' : 'Waiting for GitHub Actions dispatch.',
+    },
+    {
+      id: 'setup',
+      label: 'Setup',
+      status: setupDone ? 'passed' : progress?.phase === 'setup' ? 'running' : 'pending',
+      detail: setupDone ? 'Both targets cloned and prepared.' : 'Clone, install, build, and seed.',
+    },
+    {
+      id: 'measure',
+      label: 'Measure',
+      status: measureDone ? 'passed' : progress?.phase === 'measure' ? 'running' : 'pending',
+      detail: progress?.activeCategory ? `Active: ${CATEGORY_GUIDES[progress.activeCategory as keyof typeof CATEGORY_GUIDES]?.label ?? progress.activeCategory}` : 'Category metrics and regression flows.',
+    },
+    {
+      id: 'finalize',
+      label: 'Finalize',
+      status: run?.status === 'finished' ? 'passed' : run?.status === 'failed' ? 'failed' : progress?.phase === 'finalize' ? 'running' : 'pending',
+      detail: run?.status === 'finished' ? 'Artifacts stored and dashboard ready.' : 'Bundle artifacts and store the result.',
+    },
+  ];
+}
+
+function buildSignalEvents(events: RunEvent[]): SignalEvent[] {
+  return events
+    .filter((event) => event.type !== 'command-output' || event.level === 'stderr' || event.level === 'error')
+    .slice(-10)
+    .reverse()
+    .map((event) => ({
+      ...event,
+      badge: formatEventBadge(event),
+      context: formatEventContext(event),
+    }));
+}
+
+function toMetricEntries(metrics?: Record<string, unknown>) {
+  if (!metrics) {
+    return [];
+  }
+
+  return Object.entries(metrics)
+    .map(([key, value]) => {
+      const rendered = renderMetricValue(value);
+      if (!rendered) {
+        return null;
+      }
+      return {
+        key,
+        label: formatMetricKey(key),
+        value: rendered,
+      };
+    })
+    .filter((entry): entry is MetricEntry => Boolean(entry))
+    .slice(0, 8);
+}
+
+function renderMetricValue(value: unknown) {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return String(value);
+  }
+  if (typeof value === 'string' && value.length > 0) {
+    return value;
+  }
+  if (Array.isArray(value) && value.length > 0) {
+    return value
+      .flat()
+      .map((item) => {
+        if (typeof item === 'string' || typeof item === 'number') {
+          return String(item);
+        }
+        if (item && typeof item === 'object') {
+          return JSON.stringify(item);
+        }
+        return null;
+      })
+      .filter(Boolean)
+      .slice(0, 3)
+      .join(', ');
+  }
+  return null;
+}
+
+function formatMetricKey(value: string) {
+  return value
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function formatTarget(target?: ProgressTarget | null) {
@@ -864,4 +1246,78 @@ function formatElapsed(run: RunSummary) {
 
 function formatClock(value: string) {
   return new Date(value).toLocaleTimeString();
+}
+
+function formatPhase(value: string) {
+  switch (value) {
+    case 'queue':
+      return 'Queue';
+    case 'setup':
+      return 'Setup';
+    case 'measure':
+      return 'Measure';
+    case 'finalize':
+      return 'Finalize';
+    case 'finished':
+      return 'Finished';
+    case 'failed':
+      return 'Failed';
+    default:
+      return value;
+  }
+}
+
+function formatEventBadge(event: RunEvent) {
+  switch (event.type) {
+    case 'run-start':
+      return 'run';
+    case 'run-finished':
+      return 'done';
+    case 'run-error':
+      return 'fail';
+    case 'target-resolved':
+      return 'repo';
+    case 'target-prepare-start':
+      return 'prep';
+    case 'target-prepare-end':
+      return 'ready';
+    case 'category-start':
+      return 'step';
+    case 'category-end':
+      return event.level === 'error' ? 'step fail' : 'step done';
+    case 'command-start':
+      return 'cmd';
+    case 'command-end':
+      return event.level === 'error' ? 'cmd fail' : 'cmd done';
+    case 'command-output':
+      return event.stream === 'stderr' ? 'stderr' : 'stdout';
+    case 'workflow-note':
+      return 'note';
+    default:
+      return event.type;
+  }
+}
+
+function formatEventContext(event: RunEvent) {
+  const parts = [formatClock(event.createdAt)];
+  if (event.phase) {
+    parts.push(formatPhase(event.phase));
+  }
+  if (event.targetLabel) {
+    parts.push(event.targetLabel);
+  }
+  if (event.categoryId) {
+    parts.push(CATEGORY_GUIDES[event.categoryId as keyof typeof CATEGORY_GUIDES]?.label ?? event.categoryId);
+  }
+  if (event.commandId) {
+    parts.push(event.commandId);
+  }
+  if (event.stream) {
+    parts.push(event.stream);
+  }
+  return parts.join(' / ');
+}
+
+function shortSha(value: string | null) {
+  return value ? value.slice(0, 7) : 'pending';
 }

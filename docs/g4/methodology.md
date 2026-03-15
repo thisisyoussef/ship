@@ -128,6 +128,14 @@ pnpm --filter @ship/api exec tsx src/index.ts
 pnpm exec playwright test scripts/audit/playwright/accessibility.spec.mjs --config scripts/audit/playwright.config.mjs --workers=1 --repeat-each=1 --reporter=json
 ```
 
+The accessibility summary value is the combined issue count across:
+
+- docs tree structural children rendered inside the tree widget
+- docs tree axe node hits for `aria-required-children` and `listitem`
+- my-week axe node hits for `color-contrast`
+
+This avoids the old false-zero case where the baseline failed the structural assertion before the axe counts were written.
+
 ## Artifact Layout
 
 Every run writes:

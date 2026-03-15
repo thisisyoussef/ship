@@ -46,18 +46,29 @@ export async function measureAccessibility({
       apiUrl: apiServer.apiUrl,
     });
 
+    const docsTreeStructureIssues = Number(playwright.metrics.docsTreeStructureIssues ?? 0);
     const docsTreeViolations = Number(playwright.metrics.docsTreeViolations ?? 0);
+    const docsTreeRuleViolations = Number(playwright.metrics.docsTreeRuleViolations ?? 0);
+    const docsTreeTotalAxeViolations = Number(playwright.metrics.docsTreeTotalAxeViolations ?? 0);
     const myWeekContrastViolations = Number(playwright.metrics.myWeekContrastViolations ?? 0);
-    const totalViolations = docsTreeViolations + myWeekContrastViolations;
+    const myWeekContrastRuleViolations = Number(
+      playwright.metrics.myWeekContrastRuleViolations ?? 0
+    );
+    const totalIssues =
+      docsTreeStructureIssues + docsTreeViolations + myWeekContrastViolations;
 
     return {
-      status: playwright.succeeded && playwright.totals.failed === 0 && totalViolations === 0 ? 'passed' : 'failed',
+      status: playwright.succeeded && playwright.totals.failed === 0 && totalIssues === 0 ? 'passed' : 'failed',
       corpus: runtime.counts,
-      summaryValue: totalViolations,
+      summaryValue: totalIssues,
       metrics: {
+        docsTreeStructureIssues,
         docsTreeViolations,
+        docsTreeRuleViolations,
+        docsTreeTotalAxeViolations,
         myWeekContrastViolations,
-        totalViolations,
+        myWeekContrastRuleViolations,
+        totalIssues,
       },
       playwright,
     };

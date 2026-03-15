@@ -256,6 +256,38 @@ Ship uses Playwright for end-to-end testing with 73+ tests covering all major fu
 
 ---
 
+## Grader Workflow
+
+The reproducible audit harness runs in GitHub Actions.
+
+- Workflow page: [Audit Runner](https://github.com/thisisyoussef/ship/actions/workflows/audit-runner.yml)
+- Actions runs: [All workflow runs](https://github.com/thisisyoussef/ship/actions/workflows/audit-runner.yml?query=event%3Aworkflow_dispatch)
+- Submission branch measured by the workflow: [`codex/submission-clean`](https://github.com/thisisyoussef/ship/tree/codex/submission-clean)
+- Baseline repo used by default: [US-Department-of-the-Treasury/ship](https://github.com/US-Department-of-the-Treasury/ship)
+- The `Run workflow` form is prefilled for the official comparison. Leave `run_id` and `callback_base_url` blank for a direct GitHub-only run.
+
+What the workflow does:
+
+- checks out the workflow entrypoint on `master`
+- immediately checks out `codex/submission-clean` for the actual audit harness code
+- clones Treasury `master` and the submission branch
+- runs the same reproducible harness used by `pnpm audit:grade`
+- uploads raw artifacts and, when callback fields are provided, posts the same results back into the hosted dashboard
+
+Important note:
+
+- viewing Actions runs and artifacts works without changing the repo
+- manually clicking `Run workflow` requires repository permission on GitHub
+- if direct workflow execution is not available, the local fallback remains:
+
+```bash
+pnpm audit:grade
+```
+
+See [docs/g4/improvement-verification-guide.md](./docs/g4/improvement-verification-guide.md) for the exact command contract and reproduction paths.
+
+---
+
 ## Deployment
 
 Ship supports multiple deployment patterns:

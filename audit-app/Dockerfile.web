@@ -4,6 +4,7 @@ WORKDIR /app
 
 RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
 RUN corepack enable && corepack prepare pnpm@10.27.0 --activate
+ENV AUDIT_SKIP_GIT_CONFIG=1
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json ./
 COPY api/package.json ./api/

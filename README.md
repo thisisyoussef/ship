@@ -231,7 +231,7 @@ Ship uses Playwright for end-to-end testing with 73+ tests covering all major fu
 
 ---
 
-## Grader Workflow
+## Reproducer Workflow
 
 The reproducible audit harness now runs reliably in GitHub Actions.
 
@@ -240,33 +240,7 @@ The reproducible audit harness now runs reliably in GitHub Actions.
 - Latest full verified run: [Audit Runner / full-suite / master -> codex/submission-clean](https://github.com/thisisyoussef/ship/actions/runs/23117196287)
 - Submission branch measured by the workflow: [`codex/submission-clean`](https://github.com/thisisyoussef/ship/tree/codex/submission-clean)
 - Baseline repo used by default: [US-Department-of-the-Treasury/ship](https://github.com/US-Department-of-the-Treasury/ship)
-- The `Run workflow` form is prefilled for the official comparison. Leave `run_id` and `callback_base_url` blank for a direct GitHub-only run.
-
-What the workflow does:
-
-- checks out the fork workflow entrypoint on `master`
-- immediately checks out `codex/submission-clean` for the actual audit harness code
-- runs each audit category as its own labeled GitHub Actions job
-- gives every category its own logs, partial evidence bundle, and job summary
-- finishes with one aggregate report job that merges all category outputs into a single readable artifact
-- uploads the full evidence bundle, including `diagnostics/report.md`, `comparison.json`, `dashboard.html`, and both per-target summaries
-
-What the grader should look at inside a completed run:
-
-1. `Audit scope and kickoff`
-   Confirms the exact baseline repo/ref, submission repo/ref, and canonical corpus.
-2. `Category 1` through `Category 7`
-   Each job shows that category only, with the exact commands, logs, warnings, and uploaded evidence bundle.
-3. `Aggregate final audit report`
-   This job publishes the readable before/after table, the reproduction commands, `diagnostics/report.md`, `comparison.json`, and `dashboard.html`.
-
-What the aggregate report includes:
-
-- resolved baseline and submission SHAs
-- before/after metrics for all seven categories
-- exact per-category commands, not just `pnpm audit:grade`
-- category-specific breakdowns such as exact failed tests for Category 5
-- local reproduction commands using direct `git clone`, `pnpm install`, `pnpm build:shared`, `pnpm exec playwright install`, and `node ./scripts/audit/cli.mjs`
+- The `Run workflow` form is prefilled for the default baseline-vs-submission comparison. Leave `run_id` and `callback_base_url` blank for a direct GitHub-only run.
 
 ## Audit Commit Tree
 
@@ -296,10 +270,36 @@ flowchart TD
 Quick reading guide:
 
 - Categories `1` through `7` are the product and test improvements.
-- The audit-harness and workflow commits make those improvements reproducible for the grader.
+- The audit-harness and workflow commits make those improvements reproducible.
 - The last three fixes are post-submission hardening for reliability and reporting clarity after live GitHub Actions validation.
 
-What the grader can use directly:
+What the workflow does:
+
+- checks out the fork workflow entrypoint on `master`
+- immediately checks out `codex/submission-clean` for the actual audit harness code
+- runs each audit category as its own labeled GitHub Actions job
+- gives every category its own logs, partial evidence bundle, and job summary
+- finishes with one aggregate report job that merges all category outputs into a single readable artifact
+- uploads the full evidence bundle, including `diagnostics/report.md`, `comparison.json`, `dashboard.html`, and both per-target summaries
+
+What to look at inside a completed run:
+
+1. `Audit scope and kickoff`
+   Confirms the exact baseline repo/ref, submission repo/ref, and canonical corpus.
+2. `Category 1` through `Category 7`
+   Each job shows that category only, with the exact commands, logs, warnings, and uploaded evidence bundle.
+3. `Aggregate final audit report`
+   This job publishes the readable before/after table, the reproduction commands, `diagnostics/report.md`, `comparison.json`, and `dashboard.html`.
+
+What the aggregate report includes:
+
+- resolved baseline and submission SHAs
+- before/after metrics for all seven categories
+- exact per-category commands, not just `pnpm audit:grade`
+- category-specific breakdowns such as exact failed tests for Category 5
+- local reproduction commands using direct `git clone`, `pnpm install`, `pnpm build:shared`, `pnpm exec playwright install`, and `node ./scripts/audit/cli.mjs`
+
+What you can use directly:
 
 - open the workflow page and inspect run logs, job steps, and uploaded artifacts
 - open the final aggregate job summary for the readable before/after table
@@ -312,7 +312,7 @@ Important note:
 
 - viewing Actions runs and artifacts works without changing the repo
 - manually clicking `Run workflow` requires repository permission on GitHub
-- if direct workflow execution is not available to the grader, the local one-shot command remains:
+- if you cannot trigger the workflow directly, the local one-shot command remains:
 
 ```bash
 pnpm audit:grade

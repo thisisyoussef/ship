@@ -410,6 +410,10 @@ textarea {
 .terminal-panel {
   position: sticky;
   top: 22px;
+  max-height: calc(100vh - 44px);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   border: 1px solid rgba(16, 24, 34, 0.18);
   background: linear-gradient(180deg, rgba(19, 29, 40, 0.96), rgba(11, 18, 26, 0.98));
   color: var(--terminal-ink);
@@ -434,6 +438,18 @@ textarea {
   align-items: flex-start;
 }
 
+.terminal-panel__controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ghost-button--terminal {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: var(--terminal-ink);
+}
+
 .terminal-meta {
   display: flex;
   flex-wrap: wrap;
@@ -445,8 +461,14 @@ textarea {
 
 .terminal-view {
   margin-top: 14px;
-  max-height: 920px;
-  overflow: auto;
+  flex: 1 1 auto;
+  min-height: 280px;
+  max-height: none;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
+  overflow-anchor: none;
   border-radius: 18px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(8, 13, 20, 0.8);
@@ -493,6 +515,10 @@ textarea {
   color: #f0d6a5;
 }
 
+.terminal-view__end {
+  height: 1px;
+}
+
 @media (max-width: 980px) {
   .grid--controls,
   .grid--main,
@@ -504,5 +530,6 @@ textarea {
 
   .terminal-panel {
     position: static;
+    max-height: none;
   }
 }

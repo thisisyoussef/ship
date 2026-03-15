@@ -208,8 +208,10 @@ export function App() {
   const [recipes, setRecipes] = useState<{ easy: string; manual: string } | null>(null);
   const [liveEvents, setLiveEvents] = useState<RunEvent[]>([]);
   const [liveCursor, setLiveCursor] = useState(0);
+  const [terminalAutoFollow, setTerminalAutoFollow] = useState(true);
   const liveCursorRef = useRef(0);
   const terminalRef = useRef<HTMLDivElement | null>(null);
+  const terminalEndRef = useRef<HTMLDivElement | null>(null);
 
   const selectedRun = useMemo(
     () => runs.find((run) => run.id === selectedRunId) ?? runs[0] ?? null,
@@ -248,6 +250,7 @@ export function App() {
     if (!session?.authenticated || !selectedRun) {
       setLiveEvents([]);
       setLiveCursor(0);
+      setTerminalAutoFollow(true);
       liveCursorRef.current = 0;
       return;
     }
@@ -282,6 +285,7 @@ export function App() {
 
     setLiveEvents([]);
     setLiveCursor(0);
+    setTerminalAutoFollow(true);
     liveCursorRef.current = 0;
     void sync(0, true);
 
@@ -302,12 +306,16 @@ export function App() {
   }, [session?.authenticated, selectedRun?.id, selectedRun?.status]);
 
   useEffect(() => {
-    const element = terminalRef.current;
-    if (!element) {
+    if (!terminalAutoFollow) {
       return;
     }
-    element.scrollTop = element.scrollHeight;
-  }, [liveEvents.length]);
+    const frame = window.requestAnimationFrame(() => {
+      terminalEndRef.current?.scrollIntoView({
+        block: 'end',
+      });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [liveEvents.length, terminalAutoFollow]);
 
   async function refreshSession() {
     const response = await fetch('/api/session', { credentials: 'include' });
@@ -386,6 +394,24 @@ export function App() {
     const payload = await response.json();
     mergeRun(payload.run);
     setSelectedRunId(payload.run.id);
+  }
+
+  function handleTerminalScroll() {
+    const element = terminalRef.current;
+    if (!element) {
+      return;
+    }
+
+    const distanceFromBottom = element.scrollHeight - element.scrollTop - element.clientHeight;
+    setTerminalAutoFollow(distanceFromBottom < 48);
+  }
+
+  function jumpToLatest() {
+    setTerminalAutoFollow(true);
+    terminalEndRef.current?.scrollIntoView({
+      block: 'end',
+      behavior: 'smooth',
+    });
   }
 
   if (!session?.authenticated) {
@@ -675,26 +701,36 @@ export function App() {
                     <p className="eyebrow">Live terminal</p>
                     <h3>{progress?.message ?? 'Waiting for worker output'}</h3>
                   </div>
-                  <span className="meta-line">Cursor {liveCursor}</span>
+                  <div className="terminal-panel__controls">
+                    {!terminalAutoFollow ? (
+                      <button className="ghost-button ghost-button--terminal" onClick={jumpToLatest}>
+                        Jump to latest
+                      </button>
+                    ) : null}
+                    <span className="meta-line">Cursor {liveCursor}</span>
+                  </div>
                 </div>
                 <div className="terminal-meta">
                   <span>Phase: {progress?.phase ?? selectedRun.status}</span>
                   <span>Target: {progress?.activeTarget ?? 'idle'}</span>
                   <span>Category: {progress?.activeCategory ?? 'idle'}</span>
                 </div>
-                <div className="terminal-view" ref={terminalRef}>
+                <div className="terminal-view" ref={terminalRef} onScroll={handleTerminalScroll}>
                   {liveEvents.length > 0 ? (
-                    liveEvents.map((event) => (
-                      <div key={event.id} className={`terminal-line terminal-line--${event.level}`}>
-                        <span className="terminal-line__prefix">
-                          [{formatClock(event.createdAt)}]
-                          {event.targetLabel ? ` ${event.targetLabel}` : ''}
-                          {event.categoryId ? `/${event.categoryId}` : ''}
-                          {event.stream ? ` ${event.stream}` : ''}
-                        </span>
-                        <span>{event.message}</span>
-                      </div>
-                    ))
+                    <>
+                      {liveEvents.map((event) => (
+                        <div key={event.id} className={`terminal-line terminal-line--${event.level}`}>
+                          <span className="terminal-line__prefix">
+                            [{formatClock(event.createdAt)}]
+                            {event.targetLabel ? ` ${event.targetLabel}` : ''}
+                            {event.categoryId ? `/${event.categoryId}` : ''}
+                            {event.stream ? ` ${event.stream}` : ''}
+                          </span>
+                          <span>{event.message}</span>
+                        </div>
+                      ))}
+                      <div ref={terminalEndRef} className="terminal-view__end" />
+                    </>
                   ) : (
                     <div className="terminal-line terminal-line--info">
                       <span className="terminal-line__prefix">[idle]</span>

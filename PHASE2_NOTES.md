@@ -410,9 +410,9 @@ dist/assets/ReviewsPage-FNCQSg0u.js                   28.44 kB │ gzip:   7.23 
 
 ### After Benchmarks
 
-- Final valid after-pass artifacts:
-  - raw `ab` output: `/tmp/ship-bench/after-good/raw`
-  - parsed summary: `/tmp/ship-bench/after-good/summary.tsv`
+- Final authoritative artifacts now come from the repo-owned harness:
+  - local runs: `artifacts/g4-repro/<run-id>/`
+  - hosted runs: the same files stored in the Render audit dashboard plus `bundle.tgz`
 - A discarded earlier after-pass returned `401` responses due stale auth/session state after a local DB reset and is not used here.
 
 | Endpoint | c10 p50/p95/p99 | c25 p50/p95/p99 | c50 p50/p95/p99 |
@@ -896,6 +896,7 @@ I reproduced the current workspace state before editing tests.
   - `e2e/data-integrity.spec.ts`
 - Passing verdict:
   - yes
+
 ## Category 6: Runtime Error Handling
 
 ### Diagnosis
@@ -983,6 +984,7 @@ I reproduced the current workspace state before editing tests.
 1. Fix the session-timeout hook so it uses the same API base path as the rest of the app and handles non-OK session responses explicitly.
 2. Change the action-items flow so the startup accountability prompt does not block initial document editing on document routes.
 3. Improve the shared error-boundary fallback to provide a clear reload path and verify the updated fallback in all three boundary placements.
+
 ### Validation
 
 - `pnpm --filter @ship/web test`

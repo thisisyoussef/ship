@@ -19,48 +19,6 @@
 
 ---
 
-## Final Submission
-
-For grading and review, the full submission packet is here:
-
-- [Orientation / reference document](docs/gfa-week-4/reference-document.md)
-- [Written audit report](docs/g4/audit-report.md)
-- [Visual audit report](docs/g4/audit-report-visual.html) ([hosted copy](https://bright-follow-5f2z.pagedrop.io))
-- [Phase 2 notes](PHASE2_NOTES.md)
-- [Phase 2 improvement documentation](PHASE2_IMPROVEMENT_DOCUMENTATION.md)
-- [Discovery write-up](discovery.md)
-- [Improvement verification guide](docs/g4/improvement-verification-guide.md)
-- [AI cost analysis](docs/gfa-week-4/ai-cost-log.md)
-
-Supporting audit evidence and charts are here:
-
-- [Audit resources dashboard](docs/g4/audit-resources/index.html)
-
-External submission links still need to be filled with the public URLs used for the actual submission:
-
-- Deployment URL: add your public fork deployment link
-- Demo video: add your public video link
-- Social post: add your public X or LinkedIn post link
-
-### Reviewer Quick Start
-
-This is the local path used for the final verification pass:
-
-```bash
-pnpm install
-cp api/.env.example api/.env.local
-cp web/.env.example web/.env
-docker compose -f docker-compose.local.yml up --build -d
-pnpm type-check
-pnpm build
-DATABASE_URL=postgres://ship:ship_dev_password@localhost:5433/ship_dev pnpm test
-pnpm --filter @ship/web test
-```
-
-When you use `docker-compose.local.yml`, PostgreSQL is exposed on `localhost:5433`. The API example env file below matches that host-side port.
-
----
-
 ## What is Ship?
 
 Ship is a project management tool that combines documentation, issue tracking, and plan-driven weekly workflows in one place. Instead of switching between a wiki, a task tracker, and a spreadsheet, everything lives together.
@@ -141,15 +99,17 @@ pnpm install
 cp api/.env.example api/.env.local
 cp web/.env.example web/.env
 
-# 4. Start the full local stack
-docker compose -f docker-compose.local.yml up --build -d
-```
+# 4. Start the database
+docker-compose up -d
 
-If you prefer to run the API and web app from your host instead of the Dockerized services, keep the same env files and use:
+# 5. Create sample data
+pnpm db:seed
 
-```bash
-pnpm dev:api
-pnpm dev:web
+# 6. Run database migrations
+pnpm db:migrate
+
+# 7. Start the application
+pnpm dev
 ```
 
 ### Open the App
@@ -170,7 +130,7 @@ Log in with the demo account:
 | API server | http://localhost:3000 | Backend services |
 | Swagger UI | http://localhost:3000/api/docs | Interactive API documentation |
 | OpenAPI spec | http://localhost:3000/api/openapi.json | OpenAPI 3.0 specification |
-| PostgreSQL | localhost:5433 | Database (via `docker-compose.local.yml`) |
+| PostgreSQL | localhost:5432 | Database (via Docker) |
 
 ### Common Commands
 
@@ -258,7 +218,7 @@ Ship uses Playwright for end-to-end testing with 73+ tests covering all major fu
 
 ## Grader Workflow
 
-The reproducible audit harness runs in GitHub Actions.
+The reproducible audit harness now runs reliably in GitHub Actions.
 
 - Workflow page: [Audit Runner](https://github.com/thisisyoussef/ship/actions/workflows/audit-runner.yml)
 - Actions runs: [All workflow runs](https://github.com/thisisyoussef/ship/actions/workflows/audit-runner.yml?query=event%3Aworkflow_dispatch)
@@ -268,17 +228,18 @@ The reproducible audit harness runs in GitHub Actions.
 
 What the workflow does:
 
-- checks out the workflow entrypoint on `master`
+- checks out the fork workflow entrypoint on `master`
 - immediately checks out `codex/submission-clean` for the actual audit harness code
-- clones Treasury `master` and the submission branch
-- runs the same reproducible harness used by `pnpm audit:grade`
-- prints category-labelled progress in the live GitHub Actions log and writes category results into the job summary
-- uploads the full evidence bundle, including `diagnostics/report.md`, `comparison.json`, and both per-target summaries
+- runs each audit category as its own labeled GitHub Actions job
+- gives every category its own logs, partial evidence bundle, and job summary
+- finishes with one aggregate report job that merges all category outputs into a single readable artifact
+- uploads the full evidence bundle, including `diagnostics/report.md`, `comparison.json`, `dashboard.html`, and both per-target summaries
 
 What the grader can use directly:
 
 - open the workflow page and inspect run logs, job steps, and uploaded artifacts
-- open the GitHub Actions job summary for the readable before/after table
+- open the final aggregate job summary for the readable before/after table
+- inspect any category job directly to see only that category’s commands, logs, and result
 - open `diagnostics/report.md` inside the uploaded artifact for the full reproduction-oriented report
 - use the hosted dashboard for the latest stored comparison output
 - run the harness locally with `pnpm audit:grade`
@@ -287,7 +248,7 @@ Important note:
 
 - viewing Actions runs and artifacts works without changing the repo
 - manually clicking `Run workflow` requires repository permission on GitHub
-- if direct workflow execution is not available, the local fallback remains:
+- if direct workflow execution is not available to the grader, the local one-shot command remains:
 
 ```bash
 pnpm audit:grade

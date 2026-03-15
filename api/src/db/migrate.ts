@@ -36,6 +36,35 @@ async function migrate() {
   try {
     console.log('Running database migrations...');
 
+    // Ensure enum types exist before schema.sql runs. The schema file references
+    // these enums later in the same batch, so creating them up front keeps fresh
+    // schema installs reproducible for the audit harness and normal local setup.
+    await pool.query(`
+      DO $$ BEGIN
+        CREATE TYPE document_type AS ENUM (
+          'wiki',
+          'issue',
+          'program',
+          'project',
+          'sprint',
+          'person',
+          'weekly_plan',
+          'weekly_retro',
+          'standup',
+          'weekly_review'
+        );
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+    await pool.query(`
+      DO $$ BEGIN
+        CREATE TYPE relationship_type AS ENUM ('parent', 'project', 'sprint', 'program');
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+
     // Step 1: Run schema.sql for initial setup
     const schemaPath = join(__dirname, 'schema.sql');
     const schema = readFileSync(schemaPath, 'utf-8');

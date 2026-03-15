@@ -95,6 +95,8 @@ api/uploads/
 # Research notes
 research/
 .research/
+!.ai/docs/research/
+!.ai/docs/research/**
 .claude/deploy-logs/
 **/deploy-logs/
 .claude/deploy-config.json

@@ -1,6 +1,13 @@
 # Improvement Verification Guide
 
-Start here:
+GitHub Actions workflow:
+
+- `https://github.com/thisisyoussef/ship/actions/workflows/audit-runner.yml`
+- the workflow checks out `codex/submission-clean` before running the harness
+- viewing logs and artifacts is the primary hosted verification path
+- manually clicking `Run workflow` requires repository permission
+
+Local fallback:
 
 ```bash
 pnpm audit:grade
@@ -45,6 +52,7 @@ pnpm audit:grade --baseline-dir ../ship-audit-baseline --submission-dir .
 - canonical corpus counts for runtime-backed categories
 - raw per-target summaries plus one comparison artifact
 - a generated HTML dashboard with before/after metrics and root-cause notes
+- GitHub Actions job steps, command logs, and uploaded workflow artifacts
 
 ## Fast Category Reruns
 
@@ -58,7 +66,15 @@ pnpm audit:grade --category runtime-handling
 pnpm audit:grade --category accessibility
 ```
 
-## Render Dashboard Flow
+## Hosted Flow
+
+GitHub Actions is the execution plane. The hosted app is the read and control surface.
+
+GitHub Actions exposes:
+
+- the `Audit Runner` workflow page
+- step-level logs for clone, install, Playwright setup, and harness execution
+- uploaded raw output artifacts for completed runs
 
 The hosted app is password-gated and exposes:
 
@@ -69,4 +85,4 @@ The hosted app is password-gated and exposes:
 
 The GitHub Actions runner posts the exact same artifacts the local CLI writes back into the dashboard, so the hosted result and the local reproduction path stay aligned.
 
-For the official grading path, start with `pnpm audit:grade` locally. Use the hosted dashboard when you want to trigger the same comparison virtually or inspect the latest generated `summary.json`, `comparison.json`, and `dashboard.html` artifacts without rerunning everything on your own machine.
+For the official grading path, start with the Actions workflow page and the latest hosted artifacts. If the grader cannot manually trigger the workflow, the fallback remains `pnpm audit:grade` locally.

@@ -78,6 +78,8 @@ jobs:
     steps:
       - name: Checkout audit app repo
         uses: actions/checkout@v4
+        with:
+          ref: codex/submission-clean
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4

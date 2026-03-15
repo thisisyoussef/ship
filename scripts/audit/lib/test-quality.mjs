@@ -1,8 +1,8 @@
-import { readFile } from 'node:fs/promises';
 import { buildAndStartWeb, startApiServer } from './service-runtime.mjs';
 import { runPlaywrightSuite } from './playwright-runner.mjs';
 import { expandCorpus } from './corpus.mjs';
 import { resetSchema, schemaNameForTarget } from './postgres.mjs';
+import { runVitestSuite } from './vitest-runner.mjs';
 import getPort from 'get-port';
 
 export async function measureTestQuality({
@@ -20,13 +20,21 @@ export async function measureTestQuality({
     DATABASE_URL: testSchema.connectionString,
   });
 
-  const apiSuite = await runCommand(
-    `${target.label}-test-quality-api`,
-    'pnpm --filter @ship/api test',
-    { DATABASE_URL: testSchema.connectionString },
-    true
-  );
-  const webSuite = await runCommand(`${target.label}-test-quality-web`, 'pnpm --filter @ship/web test', {}, true);
+  const apiSuite = await runVitestSuite({
+    target,
+    runCommand,
+    categoryId: 'test-quality',
+    commandId: `${target.label}-test-quality-api`,
+    workspace: 'api',
+    env: { DATABASE_URL: testSchema.connectionString },
+  });
+  const webSuite = await runVitestSuite({
+    target,
+    runCommand,
+    categoryId: 'test-quality',
+    commandId: `${target.label}-test-quality-web`,
+    workspace: 'web',
+  });
 
   await runCommand(`${target.label}-test-quality-db-seed`, 'pnpm db:seed', {
     DATABASE_URL: testSchema.connectionString,
@@ -67,33 +75,36 @@ export async function measureTestQuality({
       repeatEach: 10,
     });
     const primarySuitePassRate = Number(
-      (((apiSuite.exitCode === 0 ? 1 : 0) + (webSuite.exitCode === 0 ? 1 : 0)) / 2 * 100).toFixed(2)
+      (((apiSuite.succeeded ? 1 : 0) + (webSuite.succeeded ? 1 : 0)) / 2 * 100).toFixed(2)
     );
 
     return {
-      status: apiSuite.exitCode === 0 && webSuite.exitCode === 0 ? 'passed' : 'failed',
+      status: apiSuite.succeeded && webSuite.succeeded ? 'passed' : 'failed',
       corpus: runtime.counts,
       summaryValue: primarySuitePassRate,
       metrics: {
-        apiSuitePassed: apiSuite.exitCode === 0,
-        apiSuitePassedCount: extractPassedCount(await readFile(apiSuite.stdoutPath, 'utf8')),
-        webSuitePassed: webSuite.exitCode === 0,
-        webSuitePassedCount: extractPassedCount(await readFile(webSuite.stdoutPath, 'utf8')),
+        apiSuitePassed: apiSuite.succeeded,
+        apiPassedTests: apiSuite.totals.passed,
+        apiFailedTests: apiSuite.totals.failed,
+        apiTotalTests: apiSuite.totals.total,
+        webSuitePassed: webSuite.succeeded,
+        webPassedTests: webSuite.totals.passed,
+        webFailedTests: webSuite.totals.failed,
+        webTotalTests: webSuite.totals.total,
         primarySuitePassRate,
         playwrightPassed: playwright.totals.passed,
         playwrightFailed: playwright.totals.failed,
+        playwrightFlaky: playwright.totals.flaky,
         playwrightPassRate: playwright.totals.passRate,
+        playwrightAttemptPassRate: playwright.totals.attemptPassRate,
         playwrightSucceeded: playwright.succeeded,
       },
+      apiSuite,
+      webSuite,
       playwright,
     };
   } finally {
     await webServer.stop();
     await apiServer.stop();
   }
-}
-
-function extractPassedCount(output) {
-  const match = output.match(/(\d+)\s+passed/i);
-  return match ? Number(match[1]) : 0;
 }

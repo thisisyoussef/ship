@@ -2,7 +2,7 @@
 
 Use this page as the canonical git-history key for the seven improvement categories.
 
-If a grader wants the cleanest possible answer to "which commit or merge belongs to which category," use this rule set:
+If a reviewer wants the cleanest possible answer to "which commit or merge belongs to which category," use this rule set:
 
 - use the first-parent `master` merge trail to verify that each category landed in its own dedicated PR
 - use `codex/submission-clean` for the reproducible audit harness, the GitHub Actions workflow execution path, and the final audit-report hardening commits
@@ -45,7 +45,8 @@ This is the authoritative sequence for category attribution on `master`.
 Latest fully verified GitHub Actions run:
 
 - workflow: [Audit Runner](https://github.com/thisisyoussef/ship/actions/workflows/audit-runner.yml)
-- full suite run: [23117196287](https://github.com/thisisyoussef/ship/actions/runs/23117196287)
+- full suite run: [23119211004](https://github.com/thisisyoussef/ship/actions/runs/23119211004)
+- measured submission SHA: `563581aad8ec5e445c79faa0dbc1d97869df629e`
 
 ## Detailed Commit Graph
 
@@ -113,7 +114,7 @@ flowchart TD
 
 ## Submission Hardening Commits
 
-These are the non-category commits that make the audit reproducible and readable for the grader.
+These are the non-category commits that make the audit reproducible and readable for a reviewer.
 
 The hashes below are the original submission-branch commits. `master` now contains them through the final merge, even where earlier cherry-picked master equivalents also exist.
 
@@ -313,6 +314,6 @@ git log --reverse --oneline upstream/master..codex/submission-clean
 ## Reading The History
 
 - The category sections above are the graded product changes.
-- `Submission Hardening Commits` are the reproducibility, CI, and reporting commits that make the grader workflow trustworthy.
+- `Submission Hardening Commits` are the reproducibility, CI, and reporting commits that make the review workflow trustworthy.
 - The GitHub Actions workflow runs against `master` for dispatch, then checks out `codex/submission-clean` for the actual harness and measured code path.
 - After validation, the submission branch was merged back into `master` so the default branch now contains the full audit history, not just cherry-picked copies of the later fixes.

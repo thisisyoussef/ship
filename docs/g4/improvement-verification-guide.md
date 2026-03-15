@@ -1,8 +1,12 @@
 # Improvement Verification Guide
 
+If you want the exact commit and merge lineage for Categories 1-7, start with [docs/g4/commit-map.md](./commit-map.md). That page labels the canonical `master` merge for each category, the clean `codex/submission-clean` replay commits used by the audit harness, and the later aggregate or submission-only merges that should not be used for category attribution.
+
 GitHub Actions workflow:
 
 - `https://github.com/thisisyoussef/ship/actions/workflows/audit-runner.yml`
+- latest fully verified full-suite run: `https://github.com/thisisyoussef/ship/actions/runs/23119211004`
+- latest measured SHAs: baseline `076a18371da0a09f88b5329bd59611c4bc9536bb`, submission `563581aad8ec5e445c79faa0dbc1d97869df629e`
 - the workflow checks out `codex/submission-clean` before running the harness
 - the workflow form is prefilled with the canonical baseline and submission repos/refs
 - leave `run_id` and `callback_base_url` blank when running directly from GitHub Actions
@@ -50,7 +54,7 @@ pnpm install --frozen-lockfile
 pnpm audit:grade --baseline-dir ../ship-audit-baseline --submission-dir .
 ```
 
-## What The Grader Sees
+## What A Reviewer Sees
 
 - exact commands run for every category
 - resolved repo URLs, refs, and SHAs
@@ -92,4 +96,4 @@ The hosted app is password-gated and exposes:
 
 The GitHub Actions runner posts the exact same artifacts the local CLI writes back into the dashboard, so the hosted result and the local reproduction path stay aligned.
 
-For the official grading path, start with the Actions workflow page and the latest hosted artifacts. If the grader cannot manually trigger the workflow, the fallback remains `pnpm audit:grade` locally.
+For the primary review path, start with the Actions workflow page and the latest hosted artifacts. If the workflow cannot be triggered from GitHub, the fallback remains `pnpm audit:grade` locally.

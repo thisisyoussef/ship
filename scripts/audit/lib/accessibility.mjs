@@ -7,12 +7,14 @@ export async function measureAccessibility({
   baseConnectionString,
   runCommand,
   registerCommand,
+  reportEvent,
 }) {
   const runtime = await prepareSeededSchema({
     baseConnectionString,
     target,
     categoryId: 'accessibility',
     runCommand,
+    reportEvent,
   });
   const webPort = await getPort({ port: 4173 });
   const apiServer = await startApiServer({
@@ -20,6 +22,7 @@ export async function measureAccessibility({
     categoryId: 'accessibility',
     connectionString: runtime.connectionString,
     webOrigin: `http://127.0.0.1:${webPort}`,
+    reportEvent,
   });
   registerCommand(apiServer.record);
 
@@ -29,6 +32,7 @@ export async function measureAccessibility({
     apiUrl: apiServer.apiUrl,
     runCommand,
     port: webPort,
+    reportEvent,
   });
   registerCommand(webServer.record);
 

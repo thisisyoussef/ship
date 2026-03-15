@@ -1,6 +1,7 @@
 import { join } from 'node:path';
 import { ensureDir, sanitizeName } from './fs.mjs';
 import { runLoggedCommand } from './exec.mjs';
+import { createCommandCallbacks } from './run-events.mjs';
 import { execFileSync } from 'node:child_process';
 
 function runGit(args, cwd) {
@@ -17,6 +18,7 @@ export async function resolveTargetWorkspace({
   runRoot,
   outputDir,
   timeoutMs,
+  reportEvent,
 }) {
   await ensureDir(outputDir);
 
@@ -34,6 +36,10 @@ export async function resolveTargetWorkspace({
       cwd: runRoot,
       outputDir: commandsDir,
       timeoutMs,
+      ...createCommandCallbacks(reportEvent, {
+        targetLabel: label,
+        phase: 'setup',
+      }),
     });
     commands.push(cloneRecord);
   }
@@ -54,7 +60,7 @@ export async function resolveTargetWorkspace({
   };
 }
 
-export async function prepareTargetWorkspace(target, timeoutMs) {
+export async function prepareTargetWorkspace(target, timeoutMs, reportEvent) {
   const installRecord = await runLoggedCommand({
     commandId: `${target.label}-install`,
     command: 'pnpm install --frozen-lockfile',
@@ -62,6 +68,10 @@ export async function prepareTargetWorkspace(target, timeoutMs) {
     env: { AUDIT_SKIP_GIT_CONFIG: '1', HUSKY: '0' },
     outputDir: target.commandsDir,
     timeoutMs,
+    ...createCommandCallbacks(reportEvent, {
+      targetLabel: target.label,
+      phase: 'setup',
+    }),
   });
   target.commands.push(installRecord);
 
@@ -71,6 +81,10 @@ export async function prepareTargetWorkspace(target, timeoutMs) {
     cwd: target.dir,
     outputDir: target.commandsDir,
     timeoutMs,
+    ...createCommandCallbacks(reportEvent, {
+      targetLabel: target.label,
+      phase: 'setup',
+    }),
   });
   target.commands.push(buildSharedRecord);
 

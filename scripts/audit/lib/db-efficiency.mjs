@@ -12,12 +12,14 @@ export async function measureDbEfficiency({
   target,
   baseConnectionString,
   runCommand,
+  reportEvent,
 }) {
   const runtime = await prepareSeededSchema({
     baseConnectionString,
     target,
     categoryId: 'db-efficiency',
     runCommand,
+    reportEvent,
   });
 
   const traceFile = join(target.outputDir, 'raw', `${target.label}-db-efficiency-trace.jsonl`);
@@ -29,11 +31,19 @@ export async function measureDbEfficiency({
     connectionString: runtime.connectionString,
     webOrigin: 'http://127.0.0.1:5173',
     traceFile,
+    reportEvent,
   });
 
   try {
     const auth = await loginToApi(apiServer.apiUrl);
     const traceBefore = await readTraceLength(traceFile);
+    reportEvent?.({
+      type: 'category-note',
+      targetLabel: target.label,
+      categoryId: 'db-efficiency',
+      phase: 'measure',
+      message: 'Tracing GET /api/weeks/:id/issues',
+    });
     const response = await fetch(`${apiServer.apiUrl}/api/weeks/${auth.firstWeekId}/issues`, {
       headers: { cookie: auth.cookieHeader },
     });

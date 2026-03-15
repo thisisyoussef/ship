@@ -4,12 +4,14 @@ import { spawn } from 'node:child_process';
 import getPort from 'get-port';
 import { expandCorpus } from './corpus.mjs';
 import { resetSchema, schemaNameForTarget } from './postgres.mjs';
+import { createCommandCallbacks } from './run-events.mjs';
 
 export async function prepareSeededSchema({
   baseConnectionString,
   target,
   categoryId,
   runCommand,
+  reportEvent,
 }) {
   const schema = await resetSchema(
     baseConnectionString,
@@ -24,6 +26,14 @@ export async function prepareSeededSchema({
   });
 
   const counts = await expandCorpus(schema.connectionString);
+  reportEvent?.({
+    type: 'corpus-ready',
+    targetLabel: target.label,
+    categoryId,
+    phase: 'seed',
+    message: `Canonical corpus ready: ${counts.documents} docs / ${counts.issues} issues / ${counts.weeks} weeks / ${counts.users} users`,
+    payload: counts,
+  });
   return {
     ...schema,
     counts,
@@ -36,6 +46,7 @@ export async function startApiServer({
   connectionString,
   webOrigin,
   traceFile,
+  reportEvent,
 }) {
   const port = await getPort();
   const command = 'pnpm --filter @ship/api exec tsx src/index.ts';
@@ -61,6 +72,11 @@ export async function startApiServer({
     cwd: target.dir,
     env,
     outputDir: target.commandsDir,
+    ...createCommandCallbacks(reportEvent, {
+      targetLabel: target.label,
+      categoryId,
+      phase: 'runtime',
+    }),
     waitFor: async () => {
       const response = await fetch(`http://127.0.0.1:${port}/health`);
       return response.ok;
@@ -79,6 +95,7 @@ export async function buildAndStartWeb({
   apiUrl,
   runCommand,
   port: preferredPort,
+  reportEvent,
 }) {
   const port = preferredPort ?? await getPort();
   await runCommand(
@@ -95,6 +112,11 @@ export async function buildAndStartWeb({
     cwd: target.dir,
     env: {},
     outputDir: target.commandsDir,
+    ...createCommandCallbacks(reportEvent, {
+      targetLabel: target.label,
+      categoryId,
+      phase: 'runtime',
+    }),
     waitFor: async () => {
       const response = await fetch(`http://127.0.0.1:${port}/login`);
       return response.ok;
@@ -154,11 +176,14 @@ export async function runLoadTest({
   cookieHeader,
   totalRequests,
   concurrency,
+  onProgress,
 }) {
   const durations = [];
   let successCount = 0;
   let failureCount = 0;
   let cursor = 0;
+  let completedCount = 0;
+  let lastReportedCount = 0;
 
   async function worker() {
     while (true) {
@@ -184,6 +209,20 @@ export async function runLoadTest({
         const elapsed = performance.now() - startedAt;
         durations.push(elapsed);
         failureCount += 1;
+      } finally {
+        completedCount += 1;
+        if (
+          completedCount === totalRequests ||
+          completedCount - lastReportedCount >= Math.max(10, Math.floor(totalRequests / 4))
+        ) {
+          lastReportedCount = completedCount;
+          onProgress?.({
+            completedCount,
+            totalRequests,
+            concurrency,
+            percent: Number(((completedCount / totalRequests) * 100).toFixed(2)),
+          });
+        }
       }
     }
   }
@@ -297,29 +336,15 @@ async function startBackgroundProcess({
   env,
   outputDir,
   waitFor,
+  onStart,
+  onStdout,
+  onStderr,
+  onReady,
+  onStop,
 }) {
   const stdoutPath = join(outputDir, `${commandId}.stdout.log`);
   const stderrPath = join(outputDir, `${commandId}.stderr.log`);
   const startedAt = new Date().toISOString();
-
-  const child = spawn('bash', ['-c', command], {
-    cwd,
-    env: { ...process.env, ...env },
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
-  const exitPromise = new Promise((resolve) => {
-    child.once('close', (code, signal) => resolve({ code, signal }));
-  });
-
-  child.stdout.on('data', async (chunk) => {
-    await appendFile(stdoutPath, chunk);
-  });
-  child.stderr.on('data', async (chunk) => {
-    await appendFile(stderrPath, chunk);
-  });
-
-  await waitForReady(waitFor, 30_000);
-
   const record = {
     id: commandId,
     command,
@@ -332,6 +357,28 @@ async function startBackgroundProcess({
     stdoutPath,
     stderrPath,
   };
+  onStart?.(record);
+
+  const child = spawn('bash', ['-c', command], {
+    cwd,
+    env: { ...process.env, ...env },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  const exitPromise = new Promise((resolve) => {
+    child.once('close', (code, signal) => resolve({ code, signal }));
+  });
+
+  child.stdout.on('data', async (chunk) => {
+    await appendFile(stdoutPath, chunk);
+    onStdout?.(chunk.toString('utf8'));
+  });
+  child.stderr.on('data', async (chunk) => {
+    await appendFile(stderrPath, chunk);
+    onStderr?.(chunk.toString('utf8'));
+  });
+
+  await waitForReady(waitFor, 30_000);
+  onReady?.(record);
 
   return {
     record,
@@ -343,6 +390,7 @@ async function startBackgroundProcess({
       record.finishedAt = new Date().toISOString();
       record.exitCode = result.code;
       record.signal = result.signal;
+      onStop?.(record);
     },
   };
 }

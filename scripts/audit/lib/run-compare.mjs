@@ -7,6 +7,7 @@ import { createDatabaseHarness } from './postgres.mjs';
 import { resolveTargetWorkspace, prepareTargetWorkspace, createTargetSummary } from './repo.mjs';
 import { ensureDir, sanitizeName, writeJson, writeText } from './fs.mjs';
 import { runLoggedCommand } from './exec.mjs';
+import { createAuditEmitter, createCommandCallbacks } from './run-events.mjs';
 import { measureTypeSafety } from './type-safety.mjs';
 import { measureBundleSize } from './bundle-size.mjs';
 import { measureApiResponse } from './api-response.mjs';
@@ -27,6 +28,7 @@ const CATEGORY_RUNNERS = {
 };
 
 const PLAYWRIGHT_CATEGORIES = new Set(['test-quality', 'runtime-handling', 'accessibility']);
+const CATEGORY_LOOKUP = Object.fromEntries(CATEGORY_DEFINITIONS.map((category) => [category.id, category]));
 
 export async function runComparison(options = {}) {
   const projectRoot = resolve(fileURLToPath(new URL('../../../', import.meta.url)));
@@ -37,6 +39,17 @@ export async function runComparison(options = {}) {
   const workingRoot = await mkdtemp(join(os.tmpdir(), `ship-audit-${sanitizeName(runId)}-`));
   const timeoutMs = options.timeoutMs ?? DEFAULT_RUN_TIMEOUT_MS;
   const selectedCategories = normalizeCategories(options.category ? [options.category] : options.categories);
+  const emitEvent = createAuditEmitter(options.onEvent);
+
+  emitEvent({
+    type: 'run-start',
+    phase: 'queue',
+    message: `Starting ${selectedCategories.length === CATEGORY_IDS.length ? 'full' : 'category'} audit run`,
+    payload: {
+      runId,
+      categories: selectedCategories,
+    },
+  });
 
   const databaseHarness = await createDatabaseHarness(
     options.databaseUrl ?? process.env.AUDIT_DATABASE_URL ?? ''
@@ -51,6 +64,18 @@ export async function runComparison(options = {}) {
     runRoot: workingRoot,
     outputDir: join(outputDir, 'baseline'),
     timeoutMs,
+    reportEvent: emitEvent,
+  });
+  emitEvent({
+    type: 'target-resolved',
+    targetLabel: 'baseline',
+    phase: 'setup',
+    message: `Resolved baseline ${baselineTarget.repoUrl}@${baselineTarget.ref}`,
+    payload: {
+      repoUrl: baselineTarget.repoUrl,
+      ref: baselineTarget.ref,
+      sha: baselineTarget.sha,
+    },
   });
   const submissionTarget = await resolveTargetWorkspace({
     label: 'submission',
@@ -58,10 +83,47 @@ export async function runComparison(options = {}) {
     runRoot: workingRoot,
     outputDir: join(outputDir, 'submission'),
     timeoutMs,
+    reportEvent: emitEvent,
+  });
+  emitEvent({
+    type: 'target-resolved',
+    targetLabel: 'submission',
+    phase: 'setup',
+    message: `Resolved submission ${submissionTarget.repoUrl}@${submissionTarget.ref}`,
+    payload: {
+      repoUrl: submissionTarget.repoUrl,
+      ref: submissionTarget.ref,
+      sha: submissionTarget.sha,
+    },
   });
 
-  await prepareTargetWorkspace(baselineTarget, timeoutMs);
-  await prepareTargetWorkspace(submissionTarget, timeoutMs);
+  emitEvent({
+    type: 'target-prepare-start',
+    targetLabel: 'baseline',
+    phase: 'setup',
+    message: 'Preparing baseline workspace',
+  });
+  await prepareTargetWorkspace(baselineTarget, timeoutMs, emitEvent);
+  emitEvent({
+    type: 'target-prepare-end',
+    targetLabel: 'baseline',
+    phase: 'setup',
+    message: 'Baseline workspace ready',
+  });
+
+  emitEvent({
+    type: 'target-prepare-start',
+    targetLabel: 'submission',
+    phase: 'setup',
+    message: 'Preparing submission workspace',
+  });
+  await prepareTargetWorkspace(submissionTarget, timeoutMs, emitEvent);
+  emitEvent({
+    type: 'target-prepare-end',
+    targetLabel: 'submission',
+    phase: 'setup',
+    message: 'Submission workspace ready',
+  });
 
   if (selectedCategories.some((categoryId) => PLAYWRIGHT_CATEGORIES.has(categoryId))) {
     await runLoggedCommand({
@@ -70,18 +132,40 @@ export async function runComparison(options = {}) {
       cwd: projectRoot,
       outputDir: join(outputDir, '.setup'),
       timeoutMs,
+      ...createCommandCallbacks(emitEvent, {
+        phase: 'setup',
+      }),
     });
   }
 
   const baselineSummary = createTargetSummary(baselineTarget);
   const submissionSummary = createTargetSummary(submissionTarget);
 
+  emitEvent({
+    type: 'target-measure-start',
+    targetLabel: 'baseline',
+    phase: 'measure',
+    message: 'Running baseline measurements',
+  });
   await measureTarget({
     target: baselineTarget,
     summary: baselineSummary,
     baseConnectionString: databaseHarness.baseConnectionString,
     categories: selectedCategories,
     timeoutMs,
+    emitEvent,
+  });
+  emitEvent({
+    type: 'target-measure-end',
+    targetLabel: 'baseline',
+    phase: 'measure',
+    message: 'Baseline measurements finished',
+  });
+  emitEvent({
+    type: 'target-measure-start',
+    targetLabel: 'submission',
+    phase: 'measure',
+    message: 'Running submission measurements',
   });
   await measureTarget({
     target: submissionTarget,
@@ -89,6 +173,13 @@ export async function runComparison(options = {}) {
     baseConnectionString: databaseHarness.baseConnectionString,
     categories: selectedCategories,
     timeoutMs,
+    emitEvent,
+  });
+  emitEvent({
+    type: 'target-measure-end',
+    targetLabel: 'submission',
+    phase: 'measure',
+    message: 'Submission measurements finished',
   });
 
   baselineSummary.measuredAt = new Date().toISOString();
@@ -117,6 +208,16 @@ export async function runComparison(options = {}) {
   await writeText(join(outputDir, 'dashboard.html'), dashboardHtml);
 
   await databaseHarness.stop();
+  emitEvent({
+    type: 'run-finished',
+    phase: 'finalize',
+    level: 'success',
+    message: 'Comparison artifacts written',
+    payload: {
+      outputDir,
+      categories: selectedCategories,
+    },
+  });
 
   return {
     runId,
@@ -135,27 +236,8 @@ async function measureTarget({
   baseConnectionString,
   categories,
   timeoutMs,
+  emitEvent,
 }) {
-  const runCommand = async (
-    commandId,
-    command,
-    env = {},
-    allowFailure = false,
-    options = {}
-  ) => {
-    const record = await runLoggedCommand({
-      commandId,
-      command,
-      cwd: options.cwd ?? target.dir,
-      env,
-      outputDir: target.commandsDir,
-      timeoutMs,
-      allowFailure,
-    });
-    summary.commands.push(record);
-    return record;
-  };
-
   const registerCommand = (record) => {
     summary.commands.push(record);
   };
@@ -166,6 +248,44 @@ async function measureTarget({
       continue;
     }
 
+    const category = CATEGORY_LOOKUP[categoryId];
+    emitEvent?.({
+      type: 'category-start',
+      targetLabel: target.label,
+      categoryId,
+      phase: 'measure',
+      message: `Starting ${category?.label ?? categoryId}`,
+      payload: {
+        label: category?.label ?? categoryId,
+        unit: category?.unit ?? '',
+      },
+    });
+
+    const runCommand = async (
+      commandId,
+      command,
+      env = {},
+      allowFailure = false,
+      options = {}
+    ) => {
+      const record = await runLoggedCommand({
+        commandId,
+        command,
+        cwd: options.cwd ?? target.dir,
+        env,
+        outputDir: target.commandsDir,
+        timeoutMs,
+        allowFailure,
+        ...createCommandCallbacks(emitEvent, {
+          targetLabel: target.label,
+          categoryId,
+          phase: 'measure',
+        }),
+      });
+      summary.commands.push(record);
+      return record;
+    };
+
     const commandCountBefore = summary.commands.length;
     try {
       const result = await runner({
@@ -173,6 +293,7 @@ async function measureTarget({
         baseConnectionString,
         runCommand,
         registerCommand,
+        reportEvent: emitEvent,
       });
       summary.categories[categoryId] = {
         ...result,
@@ -181,12 +302,45 @@ async function measureTarget({
       if (result.corpus) {
         summary.corpus = result.corpus;
       }
+      emitEvent?.({
+        type: 'category-end',
+        targetLabel: target.label,
+        categoryId,
+        phase: 'measure',
+        level: result.status === 'passed' ? 'success' : 'error',
+        message:
+          result.status === 'passed'
+            ? `Finished ${category?.label ?? categoryId}`
+            : `Finished ${category?.label ?? categoryId} with failures`,
+        payload: {
+          label: category?.label ?? categoryId,
+          unit: category?.unit ?? '',
+          status: result.status,
+          summaryValue: result.summaryValue ?? null,
+          metrics: result.metrics ?? {},
+          corpus: result.corpus ?? null,
+        },
+      });
     } catch (error) {
       summary.categories[categoryId] = {
         status: 'failed',
         error: error instanceof Error ? error.message : String(error),
         commandIds: summary.commands.slice(commandCountBefore).map((command) => command.id),
       };
+      emitEvent?.({
+        type: 'category-end',
+        targetLabel: target.label,
+        categoryId,
+        phase: 'measure',
+        level: 'error',
+        message: `Failed ${category?.label ?? categoryId}`,
+        payload: {
+          label: category?.label ?? categoryId,
+          unit: category?.unit ?? '',
+          status: 'failed',
+          error: error instanceof Error ? error.message : String(error),
+        },
+      });
     }
   }
 }

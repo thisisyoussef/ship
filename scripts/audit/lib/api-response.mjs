@@ -7,18 +7,21 @@ export async function measureApiResponse({
   target,
   baseConnectionString,
   runCommand,
+  reportEvent,
 }) {
   const runtime = await prepareSeededSchema({
     baseConnectionString,
     target,
     categoryId: 'api-response',
     runCommand,
+    reportEvent,
   });
   const apiServer = await startApiServer({
     target,
     categoryId: 'api-response',
     connectionString: runtime.connectionString,
     webOrigin: 'http://127.0.0.1:5173',
+    reportEvent,
   });
 
   try {
@@ -33,6 +36,13 @@ export async function measureApiResponse({
 
     const results = {};
     for (const endpoint of endpoints) {
+      reportEvent?.({
+        type: 'category-note',
+        targetLabel: target.label,
+        categoryId: 'api-response',
+        phase: 'measure',
+        message: `Benchmarking ${endpoint.name}`,
+      });
       results[endpoint.name] = [];
       for (const concurrency of CONCURRENCY_LEVELS) {
         results[endpoint.name].push(
@@ -41,6 +51,22 @@ export async function measureApiResponse({
             cookieHeader: auth.cookieHeader,
             totalRequests: REQUESTS_PER_BAND,
             concurrency,
+            onProgress: ({ completedCount, totalRequests, percent }) => {
+              reportEvent?.({
+                type: 'load-progress',
+                targetLabel: target.label,
+                categoryId: 'api-response',
+                phase: 'measure',
+                message: `${endpoint.name} @ c${concurrency}: ${completedCount}/${totalRequests} requests (${percent}%)`,
+                payload: {
+                  endpoint: endpoint.name,
+                  concurrency,
+                  completedCount,
+                  totalRequests,
+                  percent,
+                },
+              });
+            },
           })
         );
       }

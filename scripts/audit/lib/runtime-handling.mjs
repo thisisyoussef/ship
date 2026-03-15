@@ -7,6 +7,7 @@ export async function measureRuntimeHandling({
   baseConnectionString,
   runCommand,
   registerCommand,
+  reportEvent,
 }) {
   const errorBoundaryTest = await runCommand(
     `${target.label}-runtime-error-boundary`,
@@ -20,6 +21,7 @@ export async function measureRuntimeHandling({
     target,
     categoryId: 'runtime-handling',
     runCommand,
+    reportEvent,
   });
   const webPort = await getPort({ port: 4173 });
   const apiServer = await startApiServer({
@@ -27,6 +29,7 @@ export async function measureRuntimeHandling({
     categoryId: 'runtime-handling',
     connectionString: runtime.connectionString,
     webOrigin: `http://127.0.0.1:${webPort}`,
+    reportEvent,
   });
   registerCommand(apiServer.record);
 
@@ -36,6 +39,7 @@ export async function measureRuntimeHandling({
     apiUrl: apiServer.apiUrl,
     runCommand,
     port: webPort,
+    reportEvent,
   });
   registerCommand(webServer.record);
 

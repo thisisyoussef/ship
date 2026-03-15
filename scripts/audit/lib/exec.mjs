@@ -12,6 +12,10 @@ export async function runLoggedCommand({
   outputDir,
   timeoutMs,
   allowFailure = false,
+  onStart,
+  onStdout,
+  onStderr,
+  onFinish,
 }) {
   await ensureDir(outputDir);
 
@@ -21,6 +25,19 @@ export async function runLoggedCommand({
   const stderrStream = createWriteStream(stderrPath, { flags: 'w' });
 
   const startedAt = new Date().toISOString();
+  const runningRecord = {
+    id: commandId,
+    command,
+    cwd,
+    env: Object.keys(env).sort(),
+    startedAt,
+    finishedAt: null,
+    exitCode: null,
+    signal: null,
+    stdoutPath,
+    stderrPath,
+  };
+  onStart?.(runningRecord);
 
   const child = spawn('bash', ['-c', command], {
     cwd,
@@ -34,8 +51,14 @@ export async function runLoggedCommand({
       }, timeoutMs)
     : null;
 
-  child.stdout.on('data', (chunk) => stdoutStream.write(chunk));
-  child.stderr.on('data', (chunk) => stderrStream.write(chunk));
+  child.stdout.on('data', (chunk) => {
+    stdoutStream.write(chunk);
+    onStdout?.(chunk.toString('utf8'));
+  });
+  child.stderr.on('data', (chunk) => {
+    stderrStream.write(chunk);
+    onStderr?.(chunk.toString('utf8'));
+  });
 
   const result = await new Promise((resolve, reject) => {
     child.once('error', reject);
@@ -52,17 +75,12 @@ export async function runLoggedCommand({
 
   const finishedAt = new Date().toISOString();
   const record = {
-    id: commandId,
-    command,
-    cwd,
-    env: Object.keys(env).sort(),
-    startedAt,
+    ...runningRecord,
     finishedAt,
     exitCode: result.code,
     signal: result.signal,
-    stdoutPath,
-    stderrPath,
   };
+  onFinish?.(record);
 
   if (!allowFailure && result.code !== 0) {
     const error = new Error(`Command failed (${result.code ?? 'null'}): ${command}`);

@@ -1,4 +1,67 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+
+type ProgressCategory = {
+  id: string;
+  label: string;
+  status: string;
+  startedAt: string | null;
+  finishedAt: string | null;
+  summaryValue: number | null;
+  unit: string | null;
+  error: string | null;
+};
+
+type ProgressTarget = {
+  repoUrl: string | null;
+  ref: string | null;
+  sha: string | null;
+  setupStatus: string;
+  categories: Record<string, ProgressCategory>;
+};
+
+type ProgressSnapshot = {
+  status: string;
+  mode: 'full' | 'category';
+  selectedCategories: string[];
+  message: string;
+  phase: string;
+  activeTarget: string | null;
+  activeCategory: string | null;
+  activeCommand: {
+    id: string;
+    command: string;
+    startedAt: string;
+  } | null;
+  completedSteps: number;
+  totalSteps: number;
+  targets: {
+    baseline: ProgressTarget;
+    submission: ProgressTarget;
+  };
+  updatedAt: string;
+};
+
+type ComparisonCategory = {
+  label: string;
+  before: number | null;
+  after: number | null;
+  delta: number | null;
+  percentChange: number;
+  unit: string;
+  baselineStatus: string;
+  submissionStatus: string;
+  rootCause: {
+    title: string;
+    baselineProblem: string;
+    whyFixWorks: string;
+  };
+};
+
+type Comparison = {
+  runId: string;
+  generatedAt: string;
+  categories: Record<string, ComparisonCategory>;
+};
 
 type RunSummary = {
   id: string;
@@ -16,28 +79,21 @@ type RunSummary = {
   submissionRef: string;
   submissionSha: string | null;
   comparisonJson: Comparison | null;
+  progressJson: ProgressSnapshot | null;
   artifactNames: string[];
 };
 
-type Comparison = {
-  runId: string;
-  generatedAt: string;
-  categories: Record<
-    string,
-    {
-      label: string;
-      before: number;
-      after: number;
-      delta: number;
-      percentChange: number;
-      unit: string;
-      rootCause: {
-        title: string;
-        baselineProblem: string;
-        whyFixWorks: string;
-      };
-    }
-  >;
+type RunEvent = {
+  id: number;
+  type: string;
+  level: string;
+  phase: string | null;
+  targetLabel: string | null;
+  categoryId: string | null;
+  commandId: string | null;
+  stream: string | null;
+  message: string;
+  createdAt: string;
 };
 
 type SessionState = {
@@ -51,15 +107,95 @@ const DEFAULT_FORM = {
   submissionRef: 'codex/submission-clean',
 };
 
-const CATEGORY_BUTTONS = [
-  ['type-safety', 'Type safety'],
-  ['bundle-size', 'Bundle size'],
-  ['api-response', 'API response'],
-  ['db-efficiency', 'DB efficiency'],
-  ['test-quality', 'Test quality'],
-  ['runtime-handling', 'Runtime handling'],
-  ['accessibility', 'Accessibility'],
+const CATEGORY_ORDER = [
+  'type-safety',
+  'bundle-size',
+  'api-response',
+  'db-efficiency',
+  'test-quality',
+  'runtime-handling',
+  'accessibility',
 ] as const;
+
+const CATEGORY_GUIDES: Record<
+  (typeof CATEGORY_ORDER)[number],
+  {
+    label: string;
+    intro: string;
+    commands: string[];
+  }
+> = {
+  'type-safety': {
+    label: 'Type safety',
+    intro: 'Runs package type-checks, then scans the TypeScript AST for `any`, `as`, non-null assertions, and ts-ignore directives.',
+    commands: [
+      'pnpm --filter @ship/shared type-check',
+      'pnpm --filter @ship/api type-check',
+      'pnpm --filter @ship/web exec tsc --noEmit',
+      'node scripts/audit/lib/type-safety.mjs',
+    ],
+  },
+  'bundle-size': {
+    label: 'Bundle size',
+    intro: 'Builds the web app with sourcemaps, then parses the emitted entry chunk, gzip size, total bundle size, and chunk count.',
+    commands: [
+      'pnpm --filter @ship/web exec vite build --sourcemap',
+      'node scripts/audit/lib/bundle-size.mjs',
+    ],
+  },
+  'api-response': {
+    label: 'API response',
+    intro: 'Migrates, seeds, expands the canonical corpus, starts the API, authenticates, then runs the load harness across the five documented endpoints.',
+    commands: [
+      'pnpm db:migrate',
+      'pnpm db:seed',
+      'node scripts/audit/lib/corpus.mjs',
+      'pnpm --filter @ship/api exec tsx src/index.ts',
+      'node scripts/audit/lib/api-response.mjs',
+      'Concurrency bands: 10, 25, 50 with 200 requests each',
+    ],
+  },
+  'db-efficiency': {
+    label: 'DB efficiency',
+    intro: 'Starts the API with a pg trace hook, hits GET /api/weeks/:id/issues once, and records statement count plus total DB time.',
+    commands: [
+      'pnpm db:migrate',
+      'pnpm db:seed',
+      'node scripts/audit/lib/corpus.mjs',
+      'NODE_OPTIONS=--import=<pg-trace-bootstrap> pnpm --filter @ship/api exec tsx src/index.ts',
+      'node scripts/audit/lib/db-efficiency.mjs',
+    ],
+  },
+  'test-quality': {
+    label: 'Test quality',
+    intro: 'Runs the API and web suites, then launches the regression Playwright flow with `--repeat-each=10` on a fresh seeded runtime.',
+    commands: [
+      'pnpm --filter @ship/api test',
+      'pnpm --filter @ship/web test',
+      'pnpm db:seed',
+      'pnpm exec playwright test scripts/audit/playwright/test-quality.spec.mjs --repeat-each=10',
+    ],
+  },
+  'runtime-handling': {
+    label: 'Runtime handling',
+    intro: 'Exercises login/bootstrap noise, direct document entry, and error-boundary recovery on a live seeded stack.',
+    commands: [
+      'pnpm --filter @ship/web test -- web/src/components/ui/ErrorBoundary.test.tsx',
+      'pnpm db:migrate',
+      'pnpm db:seed',
+      'pnpm exec playwright test scripts/audit/playwright/runtime-handling.spec.mjs',
+    ],
+  },
+  accessibility: {
+    label: 'Accessibility',
+    intro: 'Runs the docs tree and /my-week flows with Playwright + axe against the same canonical dataset.',
+    commands: [
+      'pnpm db:migrate',
+      'pnpm db:seed',
+      'pnpm exec playwright test scripts/audit/playwright/accessibility.spec.mjs',
+    ],
+  },
+};
 
 export function App() {
   const [session, setSession] = useState<SessionState | null>(null);
@@ -70,6 +206,10 @@ export function App() {
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [recipes, setRecipes] = useState<{ easy: string; manual: string } | null>(null);
+  const [liveEvents, setLiveEvents] = useState<RunEvent[]>([]);
+  const [liveCursor, setLiveCursor] = useState(0);
+  const liveCursorRef = useRef(0);
+  const terminalRef = useRef<HTMLDivElement | null>(null);
 
   const selectedRun = useMemo(
     () => runs.find((run) => run.id === selectedRunId) ?? runs[0] ?? null,
@@ -88,7 +228,7 @@ export function App() {
     void refreshRuns();
     const interval = window.setInterval(() => {
       void refreshRuns();
-    }, 10_000);
+    }, 4_000);
     return () => window.clearInterval(interval);
   }, [session?.authenticated]);
 
@@ -104,6 +244,71 @@ export function App() {
       .catch(() => setRecipes(null));
   }, [selectedRun?.id]);
 
+  useEffect(() => {
+    if (!session?.authenticated || !selectedRun) {
+      setLiveEvents([]);
+      setLiveCursor(0);
+      liveCursorRef.current = 0;
+      return;
+    }
+
+    let disposed = false;
+    const currentRunId = selectedRun.id;
+
+    async function sync(after: number, reset = false) {
+      const response = await fetch(`/api/runs/${currentRunId}/events?after=${after}&limit=${reset ? 400 : 200}`, {
+        credentials: 'include',
+      });
+      if (!response.ok || disposed) {
+        return;
+      }
+
+      const payload = await response.json();
+      if (disposed) {
+        return;
+      }
+
+      mergeRun(payload.run as RunSummary);
+      setLiveEvents((current) => {
+        if (reset) {
+          return payload.events;
+        }
+        return [...current, ...payload.events].slice(-500);
+      });
+      const nextCursor = Number(payload.nextCursor ?? after);
+      liveCursorRef.current = nextCursor;
+      setLiveCursor(nextCursor);
+    }
+
+    setLiveEvents([]);
+    setLiveCursor(0);
+    liveCursorRef.current = 0;
+    void sync(0, true);
+
+    if (selectedRun.status !== 'queued' && selectedRun.status !== 'running') {
+      return () => {
+        disposed = true;
+      };
+    }
+
+    const interval = window.setInterval(() => {
+      void sync(liveCursorRef.current, false);
+    }, 1_500);
+
+    return () => {
+      disposed = true;
+      window.clearInterval(interval);
+    };
+  }, [session?.authenticated, selectedRun?.id, selectedRun?.status]);
+
+  useEffect(() => {
+    const element = terminalRef.current;
+    if (!element) {
+      return;
+    }
+    element.scrollTop = element.scrollHeight;
+  }, [liveEvents.length]);
+
   async function refreshSession() {
     const response = await fetch('/api/session', { credentials: 'include' });
     const payload = await response.json();
@@ -118,6 +323,19 @@ export function App() {
     const payload = await response.json();
     setRuns(payload.runs);
     setSelectedRunId((current) => current ?? payload.runs[0]?.id ?? null);
+  }
+
+  function mergeRun(run: RunSummary) {
+    setRuns((current) => {
+      const existingIndex = current.findIndex((entry) => entry.id === run.id);
+      if (existingIndex === -1) {
+        return [run, ...current];
+      }
+
+      const next = current.slice();
+      next[existingIndex] = run;
+      return next;
+    });
   }
 
   async function handleLogin(event: React.FormEvent) {
@@ -166,7 +384,7 @@ export function App() {
       return;
     }
     const payload = await response.json();
-    await refreshRuns();
+    mergeRun(payload.run);
     setSelectedRunId(payload.run.id);
   }
 
@@ -175,9 +393,9 @@ export function App() {
       <main className="shell shell--login">
         <section className="login-panel">
           <p className="eyebrow">Render-hosted Ship audit</p>
-          <h1>Run the same reproducible comparison the grader can run locally.</h1>
+          <h1>Run the full reproducible comparison or walk it category by category.</h1>
           <p className="lede">
-            This dashboard queues a real baseline-vs-submission compare, stores the artifacts, and shows the exact commands and reproduction recipes for every run.
+            The hosted runner now shows setup, active category progress, and terminal-style output while the worker is still running.
           </p>
           <form onSubmit={handleLogin} className="login-form">
             <label>
@@ -197,14 +415,17 @@ export function App() {
     );
   }
 
+  const progress = selectedRun?.progressJson ?? null;
+  const progressPercent = progress ? Math.round((progress.completedSteps / Math.max(progress.totalSteps, 1)) * 100) : 0;
+
   return (
     <main className="shell">
       <section className="hero">
         <div>
           <p className="eyebrow">Virtual audit runner</p>
-          <h1>One click to compare Treasury’s baseline against the clean submission branch.</h1>
+          <h1>One click for the full compare, or a notebook flow for each category.</h1>
           <p className="lede">
-            Every run records the resolved SHAs, canonical corpus counts, exact commands, and downloadable artifacts. The local and hosted paths are intentionally the same.
+            The dashboard now shows the live worker message, exact command stream, and per-category progress so long runs stay inspectable the whole way through.
           </p>
         </div>
         <button className="ghost-button" onClick={handleLogout}>
@@ -247,29 +468,34 @@ export function App() {
           </div>
           <div className="button-row">
             <button onClick={() => queueRun('full', null)} disabled={Boolean(submitting)}>
-              {submitting === 'full' ? 'Queueing…' : 'Run full comparison'}
+              {submitting === 'full' ? 'Queueing...' : 'Run full comparison'}
             </button>
           </div>
-          <div className="category-grid">
-            {CATEGORY_BUTTONS.map(([categoryId, label]) => (
-              <button
-                key={categoryId}
-                className="ghost-button"
-                onClick={() => queueRun('category', categoryId)}
-                disabled={Boolean(submitting)}
-              >
-                {submitting === categoryId ? 'Queueing…' : label}
-              </button>
-            ))}
-          </div>
+          <p className="meta-line">
+            Use the full run for the grader path, or drop into the notebook below and run an individual category in isolation.
+          </p>
         </article>
 
         <article className="panel">
-          <p className="eyebrow">Latest result</p>
+          <p className="eyebrow">Live run</p>
           {selectedRun ? (
             <>
-              <h2>{selectedRun.mode === 'full' ? 'Full comparison' : selectedRun.category}</h2>
-              <p className={`status-pill status-pill--${selectedRun.status}`}>{selectedRun.status}</p>
+              <div className="status-row">
+                <h2>{selectedRun.mode === 'full' ? 'Full comparison' : CATEGORY_GUIDES[selectedRun.category as keyof typeof CATEGORY_GUIDES]?.label ?? selectedRun.category}</h2>
+                <p className={`status-pill status-pill--${selectedRun.status}`}>{selectedRun.status}</p>
+              </div>
+              <p className="meta-line">{progress?.message ?? 'Waiting for worker updates.'}</p>
+              <div className="progress-block">
+                <div className="progress-track">
+                  <span className="progress-fill" style={{ width: `${progressPercent}%` }} />
+                </div>
+                <div className="progress-meta">
+                  <span>{progressPercent}% complete</span>
+                  <span>
+                    {progress?.completedSteps ?? 0}/{progress?.totalSteps ?? 0} steps
+                  </span>
+                </div>
+              </div>
               <p className="meta-line">
                 {selectedRun.baselineRepo}@{selectedRun.baselineRef}
               </p>
@@ -277,8 +503,17 @@ export function App() {
                 {selectedRun.submissionRepo}@{selectedRun.submissionRef}
               </p>
               <p className="meta-line">
-                {selectedRun.baselineSha ?? 'pending'} → {selectedRun.submissionSha ?? 'pending'}
+                {selectedRun.baselineSha ?? 'pending'} -&gt; {selectedRun.submissionSha ?? 'pending'}
               </p>
+              <p className="meta-line">
+                Elapsed {formatElapsed(selectedRun)}
+              </p>
+              {progress?.activeCommand ? (
+                <div className="active-command">
+                  <span className="eyebrow">Active command</span>
+                  <code>{progress.activeCommand.command}</code>
+                </div>
+              ) : null}
             </>
           ) : (
             <p className="empty-state">No runs yet.</p>
@@ -297,7 +532,7 @@ export function App() {
                 onClick={() => setSelectedRunId(run.id)}
               >
                 <div>
-                  <strong>{run.mode === 'full' ? 'Full comparison' : run.category}</strong>
+                  <strong>{run.mode === 'full' ? 'Full comparison' : CATEGORY_GUIDES[run.category as keyof typeof CATEGORY_GUIDES]?.label ?? run.category}</strong>
                   <p>{new Date(run.requestedAt).toLocaleString()}</p>
                 </div>
                 <span className={`status-pill status-pill--${run.status}`}>{run.status}</span>
@@ -307,57 +542,194 @@ export function App() {
         </article>
 
         <article className="panel panel--detail">
-          <p className="eyebrow">Run detail</p>
-          {selectedRun?.comparisonJson ? (
-            <>
-              <div className="recipe-grid">
-                <RecipeCard title="Easy mode" value={recipes?.easy ?? 'Loading…'} />
-                <RecipeCard title="Manual mode" value={recipes?.manual ?? 'Loading…'} />
-              </div>
-
-              <div className="category-results">
-                {Object.entries(selectedRun.comparisonJson.categories).map(([categoryId, category]) => (
-                  <section key={categoryId} className="result-card">
-                    <div className="result-card__head">
-                      <div>
-                        <p className="eyebrow">{category.label}</p>
-                        <h3>{category.rootCause.title}</h3>
-                      </div>
-                      <div className="result-metric">
-                        <span>Before</span>
-                        <strong>{category.before} {category.unit}</strong>
-                        <span>After {category.after} {category.unit}</span>
-                      </div>
+          <p className="eyebrow">Notebook</p>
+          {selectedRun ? (
+            <div className="detail-layout">
+              <div className="notebook-stack">
+                <section className="notebook-section">
+                  <div className="section-head">
+                    <div>
+                      <p className="eyebrow">Setup</p>
+                      <h3>Clone, install, build shared, and seed the canonical corpus.</h3>
                     </div>
-                    <p className="meta-line">{category.rootCause.baselineProblem}</p>
-                    <p className="meta-line meta-line--strong">{category.rootCause.whyFixWorks}</p>
-                    <p className="meta-line">
-                      Delta {category.delta} {category.unit} ({category.percentChange}%)
-                    </p>
-                  </section>
-                ))}
+                    <button onClick={() => queueRun('full', null)} disabled={Boolean(submitting)}>
+                      {submitting === 'full' ? 'Queueing...' : 'Run all steps'}
+                    </button>
+                  </div>
+                  <p className="meta-line">
+                    The hosted worker always runs the same setup contract first: clone the requested refs, install with a frozen lockfile, build shared, then prepare the canonical corpus before the measured category logic starts.
+                  </p>
+                  <div className="step-status-grid">
+                    <StatusCard
+                      title="Baseline setup"
+                      status={progress?.targets.baseline.setupStatus ?? 'pending'}
+                      detail={formatTarget(progress?.targets.baseline)}
+                    />
+                    <StatusCard
+                      title="Submission setup"
+                      status={progress?.targets.submission.setupStatus ?? 'pending'}
+                      detail={formatTarget(progress?.targets.submission)}
+                    />
+                  </div>
+                  <CodeBlock
+                    value={[
+                      'git clone --depth 1 --branch <ref> <repo-url> <workdir>',
+                      'pnpm install --frozen-lockfile',
+                      'pnpm build:shared',
+                      'pnpm db:migrate',
+                      'pnpm db:seed',
+                      'Expand canonical corpus to 580 docs / 105 issues / 35 weeks / 23 users',
+                    ].join('\n')}
+                  />
+                </section>
+
+                {CATEGORY_ORDER.map((categoryId, index) => {
+                  const categoryGuide = CATEGORY_GUIDES[categoryId];
+                  const comparisonCategory = selectedRun.comparisonJson?.categories[categoryId] ?? null;
+                  const baselineProgress = progress?.targets.baseline.categories[categoryId] ?? null;
+                  const submissionProgress = progress?.targets.submission.categories[categoryId] ?? null;
+
+                  return (
+                    <section key={categoryId} className="notebook-section">
+                      <div className="section-head">
+                        <div>
+                          <p className="eyebrow">Step {index + 1}</p>
+                          <h3>{categoryGuide.label}</h3>
+                        </div>
+                        <button
+                          className="ghost-button"
+                          onClick={() => queueRun('category', categoryId)}
+                          disabled={Boolean(submitting)}
+                        >
+                          {submitting === categoryId ? 'Queueing...' : 'Run this category'}
+                        </button>
+                      </div>
+
+                      <p className="meta-line">{categoryGuide.intro}</p>
+                      <div className="step-status-grid">
+                        <StatusCard
+                          title="Baseline"
+                          status={comparisonCategory?.baselineStatus ?? baselineProgress?.status ?? 'pending'}
+                          detail={renderStatusDetail(baselineProgress)}
+                        />
+                        <StatusCard
+                          title="Submission"
+                          status={comparisonCategory?.submissionStatus ?? submissionProgress?.status ?? 'pending'}
+                          detail={renderStatusDetail(submissionProgress)}
+                        />
+                      </div>
+
+                      <CodeBlock value={categoryGuide.commands.join('\n')} />
+
+                      {comparisonCategory ? (
+                        <div className="result-card">
+                          <div className="result-card__head">
+                            <div>
+                              <p className="eyebrow">{comparisonCategory.label}</p>
+                              <h3>{comparisonCategory.rootCause.title}</h3>
+                            </div>
+                            <div className="result-metric">
+                              <span>Before</span>
+                              <strong>{formatMetric(comparisonCategory.before, comparisonCategory.unit)}</strong>
+                              <span>After {formatMetric(comparisonCategory.after, comparisonCategory.unit)}</span>
+                            </div>
+                          </div>
+                          <p className="meta-line">{comparisonCategory.rootCause.baselineProblem}</p>
+                          <p className="meta-line meta-line--strong">{comparisonCategory.rootCause.whyFixWorks}</p>
+                          <p className="meta-line">
+                            Delta {formatMetric(comparisonCategory.delta, comparisonCategory.unit)} ({comparisonCategory.percentChange}%)
+                          </p>
+                        </div>
+                      ) : null}
+                    </section>
+                  );
+                })}
+
+                <section className="notebook-section">
+                  <div className="section-head">
+                    <div>
+                      <p className="eyebrow">Reproduce locally</p>
+                      <h3>Use the same refs and rerun the harness yourself.</h3>
+                    </div>
+                  </div>
+                  <div className="recipe-grid">
+                    <RecipeCard title="Easy mode" value={recipes?.easy ?? 'Loading...'} />
+                    <RecipeCard title="Manual mode" value={recipes?.manual ?? 'Loading...'} />
+                  </div>
+                  {selectedRun.artifactNames.length > 0 ? (
+                    <div className="artifact-row">
+                      {selectedRun.artifactNames.map((artifactName) => (
+                        <a key={artifactName} href={`/api/runs/${selectedRun.id}/artifacts/${artifactName}`} className="ghost-button">
+                          Download {artifactName}
+                        </a>
+                      ))}
+                    </div>
+                  ) : null}
+                  {selectedRun.error ? <p className="error-text">{selectedRun.error}</p> : null}
+                </section>
               </div>
 
-              <div className="artifact-row">
-                {selectedRun.artifactNames.map((artifactName) => (
-                  <a key={artifactName} href={`/api/runs/${selectedRun.id}/artifacts/${artifactName}`} className="ghost-button">
-                    Download {artifactName}
-                  </a>
-                ))}
-              </div>
-            </>
-          ) : selectedRun ? (
-            <>
-              <p className="meta-line">Status: {selectedRun.status}</p>
-              {selectedRun.error ? <p className="error-text">{selectedRun.error}</p> : null}
-              <p className="empty-state">The worker will attach comparison details here when the run finishes.</p>
-            </>
+              <aside className="terminal-panel">
+                <div className="terminal-panel__head">
+                  <div>
+                    <p className="eyebrow">Live terminal</p>
+                    <h3>{progress?.message ?? 'Waiting for worker output'}</h3>
+                  </div>
+                  <span className="meta-line">Cursor {liveCursor}</span>
+                </div>
+                <div className="terminal-meta">
+                  <span>Phase: {progress?.phase ?? selectedRun.status}</span>
+                  <span>Target: {progress?.activeTarget ?? 'idle'}</span>
+                  <span>Category: {progress?.activeCategory ?? 'idle'}</span>
+                </div>
+                <div className="terminal-view" ref={terminalRef}>
+                  {liveEvents.length > 0 ? (
+                    liveEvents.map((event) => (
+                      <div key={event.id} className={`terminal-line terminal-line--${event.level}`}>
+                        <span className="terminal-line__prefix">
+                          [{formatClock(event.createdAt)}]
+                          {event.targetLabel ? ` ${event.targetLabel}` : ''}
+                          {event.categoryId ? `/${event.categoryId}` : ''}
+                          {event.stream ? ` ${event.stream}` : ''}
+                        </span>
+                        <span>{event.message}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="terminal-line terminal-line--info">
+                      <span className="terminal-line__prefix">[idle]</span>
+                      <span>The worker will stream events here as soon as the run starts writing progress.</span>
+                    </div>
+                  )}
+                </div>
+              </aside>
+            </div>
           ) : (
             <p className="empty-state">Choose a run to inspect.</p>
           )}
         </article>
       </section>
     </main>
+  );
+}
+
+function StatusCard({
+  title,
+  status,
+  detail,
+}: {
+  title: string;
+  status: string;
+  detail: string;
+}) {
+  return (
+    <div className="status-card">
+      <div className="status-row">
+        <strong>{title}</strong>
+        <span className={`status-pill status-pill--${status}`}>{status}</span>
+      </div>
+      <p className="meta-line">{detail}</p>
+    </div>
   );
 }
 
@@ -377,4 +749,69 @@ function RecipeCard({ title, value }: { title: string; value: string }) {
       <textarea readOnly value={value} />
     </article>
   );
+}
+
+function CodeBlock({ value }: { value: string }) {
+  async function copy() {
+    await navigator.clipboard.writeText(value);
+  }
+
+  return (
+    <div className="code-block">
+      <div className="status-row">
+        <span className="eyebrow">Exact commands</span>
+        <button className="ghost-button" onClick={copy}>Copy</button>
+      </div>
+      <pre>{value}</pre>
+    </div>
+  );
+}
+
+function formatTarget(target?: ProgressTarget | null) {
+  if (!target) {
+    return 'Waiting for worker.';
+  }
+  if (target.sha) {
+    return `${target.repoUrl ?? 'repo'}@${target.ref ?? 'ref'} (${target.sha.slice(0, 7)})`;
+  }
+  if (target.repoUrl && target.ref) {
+    return `${target.repoUrl}@${target.ref}`;
+  }
+  return 'Waiting for resolution.';
+}
+
+function renderStatusDetail(category?: ProgressCategory | null) {
+  if (!category) {
+    return 'Queued for this run.';
+  }
+  if (category.summaryValue !== null) {
+    return `${category.summaryValue} ${category.unit ?? ''}`.trim();
+  }
+  if (category.error) {
+    return category.error;
+  }
+  if (category.startedAt) {
+    return `Started ${new Date(category.startedAt).toLocaleTimeString()}`;
+  }
+  return 'Queued for this run.';
+}
+
+function formatMetric(value: number | null, unit: string) {
+  if (value === null || value === undefined) {
+    return `n/a ${unit}`.trim();
+  }
+  return `${value} ${unit}`.trim();
+}
+
+function formatElapsed(run: RunSummary) {
+  const started = run.startedAt ? new Date(run.startedAt).getTime() : new Date(run.requestedAt).getTime();
+  const finished = run.finishedAt ? new Date(run.finishedAt).getTime() : Date.now();
+  const seconds = Math.max(0, Math.round((finished - started) / 1000));
+  const minutes = Math.floor(seconds / 60);
+  const remainder = seconds % 60;
+  return `${minutes}m ${remainder}s`;
+}
+
+function formatClock(value: string) {
+  return new Date(value).toLocaleTimeString();
 }

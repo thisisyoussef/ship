@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { ensureAuditTables } from './db.js';
-import { createRun, getArtifact, getRun, listRuns } from './store.js';
+import { createRun, getArtifact, getRun, listRunEvents, listRuns } from './store.js';
 import { buildRecipes } from './recipes.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -84,6 +84,27 @@ app.get('/api/runs/:id', async (request, response) => {
     return;
   }
   response.json({ run });
+});
+
+app.get('/api/runs/:id/events', async (request, response) => {
+  const run = await getRun(request.params.id);
+  if (!run) {
+    response.status(404).json({ error: 'Run not found' });
+    return;
+  }
+
+  const after = Number.parseInt(String(request.query.after ?? '0'), 10);
+  const limit = Number.parseInt(String(request.query.limit ?? '300'), 10);
+  const events = await listRunEvents(
+    request.params.id,
+    Number.isFinite(after) ? after : 0,
+    Number.isFinite(limit) ? limit : 300
+  );
+  response.json({
+    run,
+    events,
+    nextCursor: events.at(-1)?.id ?? after ?? 0,
+  });
 });
 
 app.get('/api/runs/:id/recipe', async (request, response) => {

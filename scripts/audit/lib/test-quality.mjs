@@ -10,6 +10,7 @@ export async function measureTestQuality({
   baseConnectionString,
   runCommand,
   registerCommand,
+  reportEvent,
 }) {
   const testSchema = await resetSchema(
     baseConnectionString,
@@ -41,6 +42,7 @@ export async function measureTestQuality({
     categoryId: 'test-quality',
     connectionString: runtime.connectionString,
     webOrigin: `http://127.0.0.1:${webPort}`,
+    reportEvent,
   });
   registerCommand(apiServer.record);
 
@@ -50,6 +52,7 @@ export async function measureTestQuality({
     apiUrl: apiServer.apiUrl,
     runCommand,
     port: webPort,
+    reportEvent,
   });
   registerCommand(webServer.record);
 

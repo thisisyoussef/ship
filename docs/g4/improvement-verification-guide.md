@@ -7,8 +7,9 @@ GitHub Actions workflow:
 - the workflow form is prefilled with the canonical baseline and submission repos/refs
 - leave `run_id` and `callback_base_url` blank when running directly from GitHub Actions
 - viewing logs and artifacts is the primary hosted verification path
-- the GitHub job summary renders a readable before/after category table
-- the uploaded artifact includes `diagnostics/report.md` with exact commands, SHAs, reproduction recipes, and per-category detail
+- each category runs as its own labeled GitHub Actions job
+- the final aggregate job renders the readable before/after category table
+- the uploaded aggregate artifact includes `diagnostics/report.md` with exact commands, SHAs, reproduction recipes, and per-category detail
 - manually clicking `Run workflow` requires repository permission
 
 Local fallback:
@@ -78,8 +79,9 @@ GitHub Actions is the execution plane. The hosted app is the read and control su
 GitHub Actions exposes:
 
 - the `Audit Runner` workflow page
-- step-level logs for clone, install, Playwright setup, and harness execution
-- uploaded raw output artifacts for completed runs
+- one visible job per category, with category-specific logs and evidence
+- one final aggregate report job that merges category outputs into the final report
+- uploaded raw output artifacts for each category plus the aggregate report
 
 The hosted app is password-gated and exposes:
 

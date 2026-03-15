@@ -135,16 +135,20 @@ async function aggregateCategoryArtifacts(config) {
       });
     }
 
-    baselineSummary.categories[categoryId] = baselineCategory ?? {
-      status: 'failed',
-      error: fallbackError,
-      commandIds: [],
-    };
-    submissionSummary.categories[categoryId] = submissionCategory ?? {
-      status: 'failed',
-      error: fallbackError,
-      commandIds: [],
-    };
+    baselineSummary.categories[categoryId] = baselineCategory
+      ? prefixCategoryCommandIds(baselineCategory, categoryId)
+      : {
+          status: 'failed',
+          error: fallbackError,
+          commandIds: [],
+        };
+    submissionSummary.categories[categoryId] = submissionCategory
+      ? prefixCategoryCommandIds(submissionCategory, categoryId)
+      : {
+          status: 'failed',
+          error: fallbackError,
+          commandIds: [],
+        };
 
     baselineSummary.commands.push(...prefixCommands(artifact?.baselineSummary?.commands ?? [], categoryId));
     submissionSummary.commands.push(...prefixCommands(artifact?.submissionSummary?.commands ?? [], categoryId));
@@ -454,6 +458,13 @@ function prefixCommands(commands, categoryId) {
     ...command,
     id: `${categoryId}:${command.id ?? `command-${index + 1}`}`,
   }));
+}
+
+function prefixCategoryCommandIds(category, categoryId) {
+  return {
+    ...category,
+    commandIds: (category.commandIds ?? []).map((commandId) => `${categoryId}:${commandId}`),
+  };
 }
 
 function collectFailedCategories(summary) {

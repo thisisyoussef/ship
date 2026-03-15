@@ -16,7 +16,7 @@ export async function measureRuntimeHandling({
     categoryId: 'runtime-handling',
     commandId: `${target.label}-runtime-error-boundary`,
     workspace: 'web',
-    extraArgs: 'web/src/components/ui/ErrorBoundary.test.tsx',
+    extraArgs: 'src/components/ui/ErrorBoundary.test.tsx',
   });
 
   const runtime = await prepareSeededSchema({

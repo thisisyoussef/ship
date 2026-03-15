@@ -17,6 +17,7 @@ export async function ensureAuditTables(): Promise<void> {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS audit_runs (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      executor TEXT NOT NULL DEFAULT 'github-actions',
       mode TEXT NOT NULL CHECK (mode IN ('full', 'category')),
       category TEXT,
       status TEXT NOT NULL DEFAULT 'queued',
@@ -26,6 +27,9 @@ export async function ensureAuditTables(): Promise<void> {
       submission_repo TEXT NOT NULL,
       submission_ref TEXT NOT NULL,
       submission_sha TEXT,
+      github_workflow_run_id BIGINT,
+      github_workflow_attempt INTEGER,
+      github_workflow_url TEXT,
       summary_json JSONB,
       comparison_json JSONB,
       progress_json JSONB,
@@ -36,8 +40,12 @@ export async function ensureAuditTables(): Promise<void> {
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
+  await pool.query(`ALTER TABLE audit_runs ADD COLUMN IF NOT EXISTS executor TEXT NOT NULL DEFAULT 'github-actions'`);
   await pool.query('ALTER TABLE audit_runs ADD COLUMN IF NOT EXISTS progress_json JSONB');
   await pool.query('ALTER TABLE audit_runs ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()');
+  await pool.query('ALTER TABLE audit_runs ADD COLUMN IF NOT EXISTS github_workflow_run_id BIGINT');
+  await pool.query('ALTER TABLE audit_runs ADD COLUMN IF NOT EXISTS github_workflow_attempt INTEGER');
+  await pool.query('ALTER TABLE audit_runs ADD COLUMN IF NOT EXISTS github_workflow_url TEXT');
   await pool.query(`
     CREATE TABLE IF NOT EXISTS audit_artifacts (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

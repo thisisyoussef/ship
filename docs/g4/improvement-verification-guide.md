@@ -67,6 +67,6 @@ The hosted app is password-gated and exposes:
 - latest result plus short history
 - direct artifact downloads for `baseline-summary.json`, `submission-summary.json`, `comparison.json`, `dashboard.html`, and `bundle.tgz`
 
-The worker stores the exact same artifacts the local CLI writes, so the hosted result and the local reproduction path stay aligned.
+The GitHub Actions runner posts the exact same artifacts the local CLI writes back into the dashboard, so the hosted result and the local reproduction path stay aligned.
 
 For the official grading path, start with `pnpm audit:grade` locally. Use the hosted dashboard when you want to trigger the same comparison virtually or inspect the latest generated `summary.json`, `comparison.json`, and `dashboard.html` artifacts without rerunning everything on your own machine.

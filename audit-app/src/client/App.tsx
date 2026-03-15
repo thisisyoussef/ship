@@ -65,6 +65,7 @@ type Comparison = {
 
 type RunSummary = {
   id: string;
+  executor: string;
   mode: 'full' | 'category';
   category: string | null;
   status: string;
@@ -78,6 +79,9 @@ type RunSummary = {
   submissionRepo: string;
   submissionRef: string;
   submissionSha: string | null;
+  githubRunId: number | null;
+  githubRunAttempt: number | null;
+  githubRunUrl: string | null;
   comparisonJson: Comparison | null;
   progressJson: ProgressSnapshot | null;
   artifactNames: string[];
@@ -421,7 +425,7 @@ export function App() {
           <p className="eyebrow">Render-hosted Ship audit</p>
           <h1>Run the full reproducible comparison or walk it category by category.</h1>
           <p className="lede">
-            The hosted runner now shows setup, active category progress, and terminal-style output while the worker is still running.
+            The hosted runner now shows setup, active category progress, and terminal-style output while GitHub Actions is still running.
           </p>
           <form onSubmit={handleLogin} className="login-form">
             <label>
@@ -451,7 +455,7 @@ export function App() {
           <p className="eyebrow">Virtual audit runner</p>
           <h1>One click for the full compare, or a notebook flow for each category.</h1>
           <p className="lede">
-            The dashboard now shows the live worker message, exact command stream, and per-category progress so long runs stay inspectable the whole way through.
+            The dashboard now shows the live GitHub Actions message, exact command stream, and per-category progress so long runs stay inspectable the whole way through.
           </p>
         </div>
         <button className="ghost-button" onClick={handleLogout}>
@@ -510,7 +514,7 @@ export function App() {
                 <h2>{selectedRun.mode === 'full' ? 'Full comparison' : CATEGORY_GUIDES[selectedRun.category as keyof typeof CATEGORY_GUIDES]?.label ?? selectedRun.category}</h2>
                 <p className={`status-pill status-pill--${selectedRun.status}`}>{selectedRun.status}</p>
               </div>
-              <p className="meta-line">{progress?.message ?? 'Waiting for worker updates.'}</p>
+              <p className="meta-line">{progress?.message ?? 'Waiting for GitHub Actions updates.'}</p>
               <div className="progress-block">
                 <div className="progress-track">
                   <span className="progress-fill" style={{ width: `${progressPercent}%` }} />
@@ -534,6 +538,16 @@ export function App() {
               <p className="meta-line">
                 Elapsed {formatElapsed(selectedRun)}
               </p>
+              {selectedRun.githubRunUrl ? (
+                <p className="meta-line">
+                  <a href={selectedRun.githubRunUrl} target="_blank" rel="noreferrer">
+                    Open GitHub Actions run
+                  </a>
+                  {selectedRun.githubRunAttempt ? ` (attempt ${selectedRun.githubRunAttempt})` : ''}
+                </p>
+              ) : (
+                <p className="meta-line">Queued with GitHub Actions. Waiting for the workflow to start.</p>
+              )}
               {progress?.activeCommand ? (
                 <div className="active-command">
                   <span className="eyebrow">Active command</span>
@@ -583,7 +597,7 @@ export function App() {
                     </button>
                   </div>
                   <p className="meta-line">
-                    The hosted worker always runs the same setup contract first: clone the requested refs, install with a frozen lockfile, build shared, then prepare the canonical corpus before the measured category logic starts.
+                    The GitHub Actions runner always runs the same setup contract first: clone the requested refs, install with a frozen lockfile, build shared, then prepare the canonical corpus before the measured category logic starts.
                   </p>
                   <div className="step-status-grid">
                     <StatusCard
@@ -699,7 +713,7 @@ export function App() {
                 <div className="terminal-panel__head">
                   <div>
                     <p className="eyebrow">Live terminal</p>
-                    <h3>{progress?.message ?? 'Waiting for worker output'}</h3>
+                    <h3>{progress?.message ?? 'Waiting for GitHub Actions output'}</h3>
                   </div>
                   <div className="terminal-panel__controls">
                     {!terminalAutoFollow ? (
@@ -734,7 +748,7 @@ export function App() {
                   ) : (
                     <div className="terminal-line terminal-line--info">
                       <span className="terminal-line__prefix">[idle]</span>
-                      <span>The worker will stream events here as soon as the run starts writing progress.</span>
+                      <span>GitHub Actions will stream events here as soon as the run starts writing progress.</span>
                     </div>
                   )}
                 </div>
@@ -805,7 +819,7 @@ function CodeBlock({ value }: { value: string }) {
 
 function formatTarget(target?: ProgressTarget | null) {
   if (!target) {
-    return 'Waiting for worker.';
+    return 'Waiting for GitHub Actions.';
   }
   if (target.sha) {
     return `${target.repoUrl ?? 'repo'}@${target.ref ?? 'ref'} (${target.sha.slice(0, 7)})`;

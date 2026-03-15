@@ -32,8 +32,8 @@ type RunEventRowInput = {
 export async function createRun(input: CreateRunInput) {
   const progress = createInitialProgress(input.mode, input.category);
   const result = await pool.query(
-    `INSERT INTO audit_runs (mode, category, baseline_repo, baseline_ref, submission_repo, submission_ref, progress_json)
-     VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb)
+    `INSERT INTO audit_runs (executor, mode, category, baseline_repo, baseline_ref, submission_repo, submission_ref, progress_json)
+     VALUES ('github-actions', $1, $2, $3, $4, $5, $6, $7::jsonb)
      RETURNING *`,
     [
       input.mode,
@@ -113,6 +113,32 @@ export async function claimNextRun() {
   } finally {
     client.release();
   }
+}
+
+export async function markRunStarted({
+  runId,
+  githubRunId,
+  githubRunAttempt,
+  githubRunUrl,
+}: {
+  runId: string;
+  githubRunId?: number | null;
+  githubRunAttempt?: number | null;
+  githubRunUrl?: string | null;
+}) {
+  const result = await pool.query(
+    `UPDATE audit_runs
+     SET status = CASE WHEN status = 'finished' THEN status ELSE 'running' END,
+         started_at = COALESCE(started_at, NOW()),
+         updated_at = NOW(),
+         github_workflow_run_id = COALESCE($2, github_workflow_run_id),
+         github_workflow_attempt = COALESCE($3, github_workflow_attempt),
+         github_workflow_url = COALESCE($4, github_workflow_url)
+     WHERE id = $1
+     RETURNING *`,
+    [runId, githubRunId ?? null, githubRunAttempt ?? null, githubRunUrl ?? null]
+  );
+  return result.rows[0] ? mapRun(result.rows[0]) : null;
 }
 
 export async function finishRun({
@@ -266,6 +292,7 @@ export async function listRunEvents(runId: string, afterId = 0, limit = 300) {
 function mapRun(row: Record<string, unknown>) {
   return {
     id: String(row.id),
+    executor: row.executor ? String(row.executor) : 'github-actions',
     mode: row.mode,
     category: row.category ? String(row.category) : null,
     status: String(row.status),
@@ -279,6 +306,19 @@ function mapRun(row: Record<string, unknown>) {
     submissionRepo: String(row.submission_repo),
     submissionRef: String(row.submission_ref),
     submissionSha: row.submission_sha ? String(row.submission_sha) : null,
+    githubRunId:
+      typeof row.github_workflow_run_id === 'number' || typeof row.github_workflow_run_id === 'bigint'
+        ? Number(row.github_workflow_run_id)
+        : row.github_workflow_run_id
+          ? Number(row.github_workflow_run_id)
+          : null,
+    githubRunAttempt:
+      typeof row.github_workflow_attempt === 'number'
+        ? Number(row.github_workflow_attempt)
+        : row.github_workflow_attempt
+          ? Number(row.github_workflow_attempt)
+          : null,
+    githubRunUrl: row.github_workflow_url ? String(row.github_workflow_url) : null,
     summaryJson: row.summary_json ?? null,
     comparisonJson: row.comparison_json ?? null,
     progressJson: row.progress_json ?? null,

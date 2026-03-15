@@ -1,0 +1,112 @@
+name: Audit Runner
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Audit app run UUID
+        required: true
+        type: string
+      mode:
+        description: full or category
+        required: true
+        type: choice
+        options:
+          - full
+          - category
+      category:
+        description: Category id when mode is category
+        required: false
+        type: string
+      baseline_repo:
+        description: Baseline repository clone URL
+        required: true
+        type: string
+      baseline_ref:
+        description: Baseline repository ref
+        required: true
+        type: string
+      submission_repo:
+        description: Submission repository clone URL
+        required: true
+        type: string
+      submission_ref:
+        description: Submission repository ref
+        required: true
+        type: string
+      callback_base_url:
+        description: Audit dashboard callback base URL
+        required: true
+        type: string
+
+concurrency:
+  group: ship-audit-runner
+  cancel-in-progress: false
+
+jobs:
+  run-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: ship_audit
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d ship_audit"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      AUDIT_RUN_ID: ${{ inputs.run_id }}
+      AUDIT_MODE: ${{ inputs.mode }}
+      AUDIT_CATEGORY: ${{ inputs.category }}
+      AUDIT_BASELINE_REPO: ${{ inputs.baseline_repo }}
+      AUDIT_BASELINE_REF: ${{ inputs.baseline_ref }}
+      AUDIT_SUBMISSION_REPO: ${{ inputs.submission_repo }}
+      AUDIT_SUBMISSION_REF: ${{ inputs.submission_ref }}
+      AUDIT_CALLBACK_BASE_URL: ${{ inputs.callback_base_url }}
+      AUDIT_CALLBACK_SECRET: ${{ secrets.AUDIT_CALLBACK_SECRET }}
+      AUDIT_OUTPUT_DIR: ${{ github.workspace }}/artifacts/g4-repro/actions-${{ inputs.run_id }}
+      HUSKY: 0
+      AUDIT_SKIP_GIT_CONFIG: 1
+      RUNNER_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/ship_audit
+    steps:
+      - name: Checkout audit app repo
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.27.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browser dependencies
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run audit harness
+        run: node scripts/audit/github-actions-runner.mjs
+
+      - name: Upload raw audit artifacts
+        if: always() && hashFiles(format('{0}/comparison.json', env.AUDIT_OUTPUT_DIR)) != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-run-${{ inputs.run_id }}
+          path: ${{ env.AUDIT_OUTPUT_DIR }}
+          if-no-files-found: ignore
+
+      - name: Report workflow failure
+        if: failure()
+        run: node scripts/audit/github-actions-notify-failure.mjs

@@ -80,7 +80,7 @@ export function createInitialProgress(mode: RunMode, category: string | null): P
     status: 'queued',
     mode,
     selectedCategories,
-    message: 'Queued. Waiting for the worker to claim this run.',
+    message: 'Queued. Waiting for GitHub Actions to pick up this run.',
     phase: 'queue',
     activeTarget: null,
     activeCategory: null,

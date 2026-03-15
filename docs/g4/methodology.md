@@ -3,7 +3,7 @@
 This submission now treats the audit harness as the source of truth. The same code path powers:
 
 - local grading via `pnpm audit:grade`
-- the Render-hosted audit dashboard and worker
+- the Render-hosted audit dashboard plus GitHub Actions runner
 - generated artifacts under `artifacts/g4-repro/<run-id>/`
 
 ## Canonical Targets
@@ -138,7 +138,7 @@ artifacts/g4-repro/<run-id>/
   dashboard.html
 ```
 
-The Render worker stores the same files in Postgres and additionally stores a `bundle.tgz` containing the whole artifact tree.
+The GitHub Actions run posts the same files back into the Render app and additionally uploads the raw output directory as a GitHub Actions artifact. The dashboard stores `baseline-summary.json`, `submission-summary.json`, `comparison.json`, `dashboard.html`, and `bundle.tgz` in Postgres so the hosted result and local CLI stay aligned.
 
 ## Prerequisites
 

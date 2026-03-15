@@ -92,11 +92,26 @@ jobs:
           node-version: 20
           cache: pnpm
 
+      - name: Notify runner start
+        run: node scripts/audit/github-actions-notify-start.mjs
+
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Report dependency install progress
+        run: node scripts/audit/github-actions-post-event.mjs
+        env:
+          AUDIT_EVENT_PHASE: setup
+          AUDIT_EVENT_MESSAGE: Workspace dependencies installed. Installing Playwright browser dependencies.
+
       - name: Install Playwright browser dependencies
         run: pnpm exec playwright install --with-deps chromium
+
+      - name: Report harness start
+        run: node scripts/audit/github-actions-post-event.mjs
+        env:
+          AUDIT_EVENT_PHASE: setup
+          AUDIT_EVENT_MESSAGE: GitHub Actions runner is ready. Starting the audit harness.
 
       - name: Run audit harness
         run: node scripts/audit/github-actions-runner.mjs

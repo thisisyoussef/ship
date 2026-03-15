@@ -237,6 +237,7 @@ The reproducible audit harness now runs reliably in GitHub Actions.
 
 - Workflow page: [Audit Runner](https://github.com/thisisyoussef/ship/actions/workflows/audit-runner.yml)
 - Actions runs: [All workflow runs](https://github.com/thisisyoussef/ship/actions/workflows/audit-runner.yml?query=event%3Aworkflow_dispatch)
+- Latest full verified run: [Audit Runner / full-suite / master -> codex/submission-clean](https://github.com/thisisyoussef/ship/actions/runs/23117196287)
 - Submission branch measured by the workflow: [`codex/submission-clean`](https://github.com/thisisyoussef/ship/tree/codex/submission-clean)
 - Baseline repo used by default: [US-Department-of-the-Treasury/ship](https://github.com/US-Department-of-the-Treasury/ship)
 - The `Run workflow` form is prefilled for the official comparison. Leave `run_id` and `callback_base_url` blank for a direct GitHub-only run.
@@ -249,6 +250,54 @@ What the workflow does:
 - gives every category its own logs, partial evidence bundle, and job summary
 - finishes with one aggregate report job that merges all category outputs into a single readable artifact
 - uploads the full evidence bundle, including `diagnostics/report.md`, `comparison.json`, `dashboard.html`, and both per-target summaries
+
+What the grader should look at inside a completed run:
+
+1. `Audit scope and kickoff`
+   Confirms the exact baseline repo/ref, submission repo/ref, and canonical corpus.
+2. `Category 1` through `Category 7`
+   Each job shows that category only, with the exact commands, logs, warnings, and uploaded evidence bundle.
+3. `Aggregate final audit report`
+   This job publishes the readable before/after table, the reproduction commands, `diagnostics/report.md`, `comparison.json`, and `dashboard.html`.
+
+What the aggregate report includes:
+
+- resolved baseline and submission SHAs
+- before/after metrics for all seven categories
+- exact per-category commands, not just `pnpm audit:grade`
+- category-specific breakdowns such as exact failed tests for Category 5
+- local reproduction commands using direct `git clone`, `pnpm install`, `pnpm build:shared`, `pnpm exec playwright install`, and `node ./scripts/audit/cli.mjs`
+
+## Audit Commit Tree
+
+The audit work was intentionally split into category commits first, then reproducibility and CI/reporting commits on top. The full detailed map lives in [docs/g4/commit-map.md](./docs/g4/commit-map.md).
+
+```mermaid
+flowchart TD
+  A["Treasury baseline / upstream master"] --> B["Category 1: Type Safety<br/>7 commits"]
+  B --> C["Category 2: Bundle Size<br/>2 commits"]
+  C --> D["Category 3: API Response Time<br/>2 commits"]
+  D --> E["Category 4: DB Query Efficiency<br/>1 commit"]
+  E --> F["Category 5: Test Quality<br/>5 commits"]
+  F --> G["Category 6: Runtime Handling<br/>3 commits"]
+  G --> H["Category 7: Accessibility<br/>3 commits"]
+  H --> I["Audit harness + corpus expander"]
+  I --> J["Render-hosted dashboard app"]
+  J --> K["Methodology + commit map + verification docs"]
+  K --> L["GitHub Actions category gating"]
+  L --> M["GitHub Actions dynamic matrix"]
+  M --> N["AI availability / Bedrock credential fix"]
+  N --> O["Deeper category reporting"]
+  O --> P["Aggregate flat-artifact fix"]
+  P --> Q["Runtime harness + aggregate command mapping fix"]
+  Q --> R["Merged into master"]
+```
+
+Quick reading guide:
+
+- Categories `1` through `7` are the product and test improvements.
+- The audit-harness and workflow commits make those improvements reproducible for the grader.
+- The last three fixes are post-submission hardening for reliability and reporting clarity after live GitHub Actions validation.
 
 What the grader can use directly:
 
@@ -269,8 +318,7 @@ Important note:
 pnpm audit:grade
 ```
 
-See [docs/g4/improvement-verification-guide.md](./docs/g4/improvement-verification-guide.md) for the exact command contract and reproduction paths.
-See [docs/g4/commit-map.md](./docs/g4/commit-map.md) for the exact Category 1-7 commit and merge attribution.
+See [docs/g4/improvement-verification-guide.md](./docs/g4/improvement-verification-guide.md) for the exact command contract and reproduction paths, and [docs/g4/commit-map.md](./docs/g4/commit-map.md) for the full commit-by-commit audit history.
 
 ---
 

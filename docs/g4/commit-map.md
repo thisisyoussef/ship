@@ -5,8 +5,10 @@ Use this page as the canonical git-history key for the seven improvement categor
 If a grader wants the cleanest possible answer to "which commit or merge belongs to which category," use this rule set:
 
 - use the first-parent `master` merge trail to verify that each category landed in its own dedicated PR
-- use `codex/submission-clean` only for the reproducible audit harness and hosted grading flow
+- use `codex/submission-clean` for the reproducible audit harness, the GitHub Actions workflow execution path, and the final audit-report hardening commits
 - do not use the later aggregate Phase 2 merge or the submission-workflow commits as proof that the category work was isolated
+
+This document also explains the post-category reproducibility and reporting commits that were merged after the original category PRs landed.
 
 Baseline reference used for the verified Treasury comparison:
 
@@ -39,6 +41,52 @@ This is the authoritative sequence for category attribution on `master`.
 | 10 | 2026-03-13 | `ebd1dc9` | PR `#13` / `codex/discovery-writeup` | categories 1-7 documentation only | notes and summary docs, not the original implementation commits |
 | 11 | 2026-03-15 | `b5e8b5c` | PR `#14` / `codex/discovery-heading-cleanup` | not a category improvement | AI workspace and workflow docs only |
 | 12 | 2026-03-15 | `21d1d5a` | merge `origin/codex/submission-clean` | not a category improvement | submission harness and audit workflow integration |
+
+Latest fully verified GitHub Actions run:
+
+- workflow: [Audit Runner](https://github.com/thisisyoussef/ship/actions/workflows/audit-runner.yml)
+- full suite run: [23117196287](https://github.com/thisisyoussef/ship/actions/runs/23117196287)
+
+## Commit Tree
+
+```text
+Treasury / upstream master
+├─ Category 1: Type Safety
+├─ Category 2: Bundle Size
+├─ Category 3: API Response Time
+├─ Category 4: Database Query Efficiency
+├─ Category 5: Test Coverage and Quality
+├─ Category 6: Runtime Error and Edge Case Handling
+├─ Category 7: Accessibility Compliance
+├─ Audit harness + corpus expander
+├─ Hosted dashboard app + worker
+├─ Methodology + commit map + verification docs
+├─ GitHub Actions workflow hardening
+├─ AI availability / Bedrock credential gating
+├─ Deeper category reporting
+├─ Flat artifact aggregation fix
+├─ Runtime-handling harness + aggregate command mapping fix
+└─ Merge into master (`21d1d5a`)
+```
+
+## Submission Hardening Commits
+
+These are the non-category commits that make the audit reproducible and readable for the grader.
+
+The hashes below are the original submission-branch commits. `master` now contains them through the final merge, even where earlier cherry-picked master equivalents also exist.
+
+| Commit | Purpose |
+| --- | --- |
+| `b2f3900` | `chore(audit): add reproducible harness and corpus expander` |
+| `a1fd5fc` | `feat(audit): add Render-hosted comparison app` |
+| `097d6f2` | `docs(audit): rewrite methodology, commit map, and verification guide` |
+| `0b5c709` | `fix(ci): gate category jobs at the step level` |
+| `fe9aefe` | `fix(ci): build the audit category matrix dynamically` |
+| `6a5b04c` | `fix(audit): disable AI analysis when Bedrock creds are unavailable` |
+| `8a27209` | `fix(audit): deepen evidence and workflow reporting` |
+| `0c0cefd` | `fix(audit): support flat artifact downloads` |
+| `8e4e075` | `fix(audit): correct runtime and aggregate evidence mapping` |
+| `21d1d5a` | `Merge remote-tracking branch 'origin/codex/submission-clean'` into `master` |
 
 ## Category 1: Type Safety
 
@@ -219,3 +267,10 @@ git log --reverse --oneline f3bf6ed^1..f3bf6ed^2
 git log --reverse --oneline be396af^1..be396af^2
 git log --reverse --oneline upstream/master..codex/submission-clean
 ```
+
+## Reading The History
+
+- The category sections above are the graded product changes.
+- `Submission Hardening Commits` are the reproducibility, CI, and reporting commits that make the grader workflow trustworthy.
+- The GitHub Actions workflow runs against `master` for dispatch, then checks out `codex/submission-clean` for the actual harness and measured code path.
+- After validation, the submission branch was merged back into `master` so the default branch now contains the full audit history, not just cherry-picked copies of the later fixes.

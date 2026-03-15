@@ -91,13 +91,44 @@ This adds parallel-flight flexibility without removing existing preflight/lookup
 
 ---
 
+## Branch and Commit Hygiene (Required)
+
+Before starting work:
+- Start each discrete task on a fresh branch named `codex/<short-task-name>`.
+- If the current branch has unrelated local edits, create a fresh worktree/branch instead of mixing changes.
+- Keep one concern per branch; do not combine unrelated fixes, docs, and feature work.
+
+While working:
+- Make small, reviewable commits once the relevant checks for that slice pass.
+- Use clear, descriptive, imperative commit messages that explain the outcome.
+- Good: `Add FleetGraph pre-search scaffolding`
+- Good: `Clarify sprint risk detection routing`
+- Bad: `updates`
+- Bad: `misc fixes`
+
+Before merge:
+- Push the branch and create or update a PR with scope, verification, and any remaining risks.
+- Resolve review comments on the branch, rerun required checks, and keep the PR diff focused.
+- Do not rewrite shared history or force-push unless explicitly requested.
+
+After approval:
+- Merge only after required checks pass and the branch is up to date with its base branch.
+- Prefer a clean final history: one focused commit or a small set of meaningful commits.
+- Delete stale worktrees/branches after merge when safe.
+
+---
+
 ## Git Finalization Gate (Required)
 
 Before final story handoff, run `.ai/workflows/git-finalization.md`.
 
 Minimum required outcome:
-- commit created for story changes,
+- work performed on a dedicated `codex/` branch,
+- clear commit(s) created for the story changes,
 - push completed to upstream,
+- PR created or updated with verification notes,
+- review feedback resolved before merge,
+- merge completed only after checks pass and the branch is current,
 - `bash scripts/git_finalize_guard.sh` passes.
 
 Do not mark story handoff complete without this gate.

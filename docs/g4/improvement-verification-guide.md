@@ -7,6 +7,8 @@ GitHub Actions workflow:
 - the workflow form is prefilled with the canonical baseline and submission repos/refs
 - leave `run_id` and `callback_base_url` blank when running directly from GitHub Actions
 - viewing logs and artifacts is the primary hosted verification path
+- the GitHub job summary renders a readable before/after category table
+- the uploaded artifact includes `diagnostics/report.md` with exact commands, SHAs, reproduction recipes, and per-category detail
 - manually clicking `Run workflow` requires repository permission
 
 Local fallback:
@@ -53,6 +55,7 @@ pnpm audit:grade --baseline-dir ../ship-audit-baseline --submission-dir .
 - resolved repo URLs, refs, and SHAs
 - canonical corpus counts for runtime-backed categories
 - raw per-target summaries plus one comparison artifact
+- a readable Markdown report in `diagnostics/report.md`
 - a generated HTML dashboard with before/after metrics and root-cause notes
 - GitHub Actions job steps, command logs, and uploaded workflow artifacts
 

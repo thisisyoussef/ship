@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { mkdir, writeFile } from 'node:fs/promises';
+import { access, mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 const runId = readRequiredEnv('AUDIT_RUN_ID');
@@ -125,7 +125,11 @@ async function writeFailureDiagnostics({
     '',
   ].join('\n');
 
-  if (stepSummary) {
+  const diagnosticsDir = outputDir ? join(outputDir, 'diagnostics') : null;
+  const existingSummaryPath = diagnosticsDir ? join(diagnosticsDir, 'github-summary.md') : null;
+  const summaryAlreadyExists = existingSummaryPath ? await fileExists(existingSummaryPath) : false;
+
+  if (stepSummary && !summaryAlreadyExists) {
     await writeFile(stepSummary, markdown, 'utf8');
   }
 
@@ -133,7 +137,6 @@ async function writeFailureDiagnostics({
     return;
   }
 
-  const diagnosticsDir = join(outputDir, 'diagnostics');
   await mkdir(diagnosticsDir, { recursive: true });
   await writeFile(
     join(diagnosticsDir, 'failure.json'),
@@ -151,5 +154,16 @@ async function writeFailureDiagnostics({
     )}\n`,
     'utf8'
   );
-  await writeFile(join(diagnosticsDir, 'github-summary.md'), markdown, 'utf8');
+  if (!summaryAlreadyExists) {
+    await writeFile(join(diagnosticsDir, 'github-summary.md'), markdown, 'utf8');
+  }
+}
+
+async function fileExists(filePath) {
+  try {
+    await access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
 }

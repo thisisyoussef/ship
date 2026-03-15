@@ -1,6 +1,7 @@
 import { PostgreSqlContainer } from '@testcontainers/postgresql';
 import pg from 'pg';
 import { sanitizeName } from './fs.mjs';
+import { basename, dirname } from 'node:path';
 
 const { Pool } = pg;
 
@@ -51,6 +52,11 @@ export async function resetSchema(baseConnectionString, schemaName) {
     schemaName: safeSchemaName,
     connectionString: buildSchemaConnectionString(baseConnectionString, safeSchemaName),
   };
+}
+
+export function schemaNameForTarget(target) {
+  const runId = basename(dirname(target.outputDir));
+  return `${runId}_${target.label}_${target.sha.slice(0, 7)}`;
 }
 
 export async function withPool(connectionString, callback) {

@@ -8,7 +8,8 @@ pnpm audit:grade
 
 Hosted dashboard after Render deploy:
 
-- `https://<your-render-service>.onrender.com`
+- `https://audit-dashboard-yner.onrender.com`
+- password is provided with the submission, not committed in this repo
 
 That command compares Treasury `master` against the current checkout, prepares the canonical corpus, runs all seven categories, and writes:
 
@@ -67,3 +68,5 @@ The hosted app is password-gated and exposes:
 - direct artifact downloads for `baseline-summary.json`, `submission-summary.json`, `comparison.json`, `dashboard.html`, and `bundle.tgz`
 
 The worker stores the exact same artifacts the local CLI writes, so the hosted result and the local reproduction path stay aligned.
+
+For the official grading path, start with `pnpm audit:grade` locally. Use the hosted dashboard when you want to trigger the same comparison virtually or inspect the latest generated `summary.json`, `comparison.json`, and `dashboard.html` artifacts without rerunning everything on your own machine.

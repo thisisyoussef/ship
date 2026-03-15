@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { buildAndStartWeb, startApiServer } from './service-runtime.mjs';
 import { runPlaywrightSuite } from './playwright-runner.mjs';
 import { expandCorpus } from './corpus.mjs';
-import { resetSchema } from './postgres.mjs';
+import { resetSchema, schemaNameForTarget } from './postgres.mjs';
 import getPort from 'get-port';
 
 export async function measureTestQuality({
@@ -13,7 +13,7 @@ export async function measureTestQuality({
 }) {
   const testSchema = await resetSchema(
     baseConnectionString,
-    `${target.label}_test_quality_suite_${target.sha.slice(0, 7)}`
+    schemaNameForTarget(target)
   );
   await runCommand(`${target.label}-test-quality-db-migrate`, 'pnpm db:migrate', {
     DATABASE_URL: testSchema.connectionString,

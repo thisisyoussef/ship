@@ -10,11 +10,12 @@ This submission now treats the audit harness as the source of truth. The same co
 
 - Baseline repo: `https://github.com/US-Department-of-the-Treasury/ship.git`
 - Baseline ref: `master`
-- Baseline SHA used during branch construction: `076a18371da0a09f88b5329bd59611c4bc9536bb`
+- Most recently verified Treasury `master` SHA for this submission: `076a18371da0a09f88b5329bd59611c4bc9536bb`
 - Submission repo: `https://github.com/thisisyoussef/ship.git`
 - Submission ref: `codex/submission-clean`
+- Hosted dashboard: `https://audit-dashboard-yner.onrender.com`
 
-The local CLI defaults to `Treasury master` versus the current checkout. The hosted dashboard defaults to `Treasury master` versus `thisisyoussef/ship@codex/submission-clean`.
+The local CLI defaults to `Treasury master` versus the current checkout. The hosted dashboard defaults to `Treasury master` versus `thisisyoussef/ship@codex/submission-clean`. The hosted dashboard is password-gated; the credential is supplied with the submission rather than committed into the repo.
 
 ## Corpus
 
@@ -28,6 +29,8 @@ The harness prepares a deterministic seeded corpus for every runtime-backed cate
   4. hard validation of the final counts
 
 The expander adds the missing users, person documents, and synthetic wiki filler documents needed to reach the target corpus. If the post-expansion counts are not exact, the run fails.
+
+Runtime-backed categories reuse one isolated schema per target run. That keeps the two repos independent while also avoiding cross-category leakage from enum types in Treasury `master` migrations, which query `pg_type` globally.
 
 ## Exact Command Contract
 
@@ -63,6 +66,7 @@ pnpm --filter @ship/web exec vite build --sourcemap
 ```
 
 The harness then reads `web/dist/.vite/manifest.json`, resolves the real entry chunk, computes raw size, gzip size, total emitted asset size, and JS chunk count.
+If a target build does not emit a Vite manifest, the harness falls back to `web/dist/index.html` and resolves the entry module from the generated script tag.
 
 Category 3 `api-response`:
 

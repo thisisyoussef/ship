@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { spawn } from 'node:child_process';
 import getPort from 'get-port';
 import { expandCorpus } from './corpus.mjs';
-import { resetSchema } from './postgres.mjs';
+import { resetSchema, schemaNameForTarget } from './postgres.mjs';
 
 export async function prepareSeededSchema({
   baseConnectionString,
@@ -13,7 +13,7 @@ export async function prepareSeededSchema({
 }) {
   const schema = await resetSchema(
     baseConnectionString,
-    `${target.label}_${categoryId}_${target.sha.slice(0, 7)}`
+    schemaNameForTarget(target)
   );
 
   await runCommand(`${target.label}-${categoryId}-db-migrate`, 'pnpm db:migrate', {

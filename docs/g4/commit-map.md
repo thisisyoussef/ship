@@ -2,6 +2,19 @@
 
 The clean submission branch is built from `upstream/master` and cherry-picks only the category-specific commits listed below before the reproducibility and hosted-audit commits are added on top.
 
+Baseline reference used for the verified Treasury comparison:
+
+- repo: `https://github.com/US-Department-of-the-Treasury/ship.git`
+- ref: `master`
+- most recently verified SHA: `076a18371da0a09f88b5329bd59611c4bc9536bb`
+
+Artifact layout for every category rerun:
+
+- `artifacts/g4-repro/<run-id>/baseline/summary.json`
+- `artifacts/g4-repro/<run-id>/submission/summary.json`
+- `artifacts/g4-repro/<run-id>/comparison.json`
+- `artifacts/g4-repro/<run-id>/dashboard.html`
+
 ## Category 1: Type Safety
 
 - `d9bee0c` `fix(types): type week routes with shared auth and SQL row helpers`
@@ -86,15 +99,4 @@ Rerun command:
 
 ```bash
 pnpm audit:grade --category accessibility
-```
-
-## Artifact Paths
-
-For every rerun, the authoritative outputs land in:
-
-```text
-artifacts/g4-repro/<run-id>/baseline/summary.json
-artifacts/g4-repro/<run-id>/submission/summary.json
-artifacts/g4-repro/<run-id>/comparison.json
-artifacts/g4-repro/<run-id>/dashboard.html
 ```

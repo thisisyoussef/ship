@@ -255,6 +255,7 @@ pnpm audit:grade
 ```
 
 See [docs/g4/improvement-verification-guide.md](./docs/g4/improvement-verification-guide.md) for the exact command contract and reproduction paths.
+See [docs/g4/commit-map.md](./docs/g4/commit-map.md) for the exact Category 1-7 commit and merge attribution.
 
 ---
 

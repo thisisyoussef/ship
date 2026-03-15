@@ -1,5 +1,7 @@
 # Improvement Verification Guide
 
+If the grader wants the exact commit and merge lineage for Categories 1-7, start with [docs/g4/commit-map.md](./commit-map.md). That page labels the canonical `master` merge for each category, the clean `codex/submission-clean` replay commits used by the audit harness, and the later aggregate or submission-only merges that should not be used for category attribution.
+
 GitHub Actions workflow:
 
 - `https://github.com/thisisyoussef/ship/actions/workflows/audit-runner.yml`

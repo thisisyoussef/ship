@@ -1,7 +1,8 @@
 #!/usr/bin/env node
-import { readFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import { join, resolve } from 'node:path';
+import { tmpdir } from 'node:os';
 import { runComparison } from './lib/run-compare.mjs';
 
 const config = loadConfig();
@@ -166,36 +167,42 @@ function createEventReporter(callback) {
 }
 
 async function collectArtifacts(outputDir) {
-  const bundlePath = join(outputDir, 'bundle.tgz');
-  await runTar(outputDir, bundlePath);
+  const bundleDir = await mkdtemp(join(tmpdir(), 'ship-audit-bundle-'));
+  const bundlePath = join(bundleDir, 'bundle.tgz');
 
-  return [
-    {
-      name: 'baseline-summary.json',
-      contentType: 'application/json',
-      bodyBase64: await readBase64(join(outputDir, 'baseline', 'summary.json')),
-    },
-    {
-      name: 'submission-summary.json',
-      contentType: 'application/json',
-      bodyBase64: await readBase64(join(outputDir, 'submission', 'summary.json')),
-    },
-    {
-      name: 'comparison.json',
-      contentType: 'application/json',
-      bodyBase64: await readBase64(join(outputDir, 'comparison.json')),
-    },
-    {
-      name: 'dashboard.html',
-      contentType: 'text/html; charset=utf-8',
-      bodyBase64: await readBase64(join(outputDir, 'dashboard.html')),
-    },
-    {
-      name: 'bundle.tgz',
-      contentType: 'application/gzip',
-      bodyBase64: await readBase64(bundlePath),
-    },
-  ];
+  try {
+    await runTar(outputDir, bundlePath);
+
+    return [
+      {
+        name: 'baseline-summary.json',
+        contentType: 'application/json',
+        bodyBase64: await readBase64(join(outputDir, 'baseline', 'summary.json')),
+      },
+      {
+        name: 'submission-summary.json',
+        contentType: 'application/json',
+        bodyBase64: await readBase64(join(outputDir, 'submission', 'summary.json')),
+      },
+      {
+        name: 'comparison.json',
+        contentType: 'application/json',
+        bodyBase64: await readBase64(join(outputDir, 'comparison.json')),
+      },
+      {
+        name: 'dashboard.html',
+        contentType: 'text/html; charset=utf-8',
+        bodyBase64: await readBase64(join(outputDir, 'dashboard.html')),
+      },
+      {
+        name: 'bundle.tgz',
+        contentType: 'application/gzip',
+        bodyBase64: await readBase64(bundlePath),
+      },
+    ];
+  } finally {
+    await rm(bundleDir, { recursive: true, force: true });
+  }
 }
 
 async function readBase64(filePath) {

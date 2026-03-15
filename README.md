@@ -231,7 +231,7 @@ Ship uses Playwright for end-to-end testing with 73+ tests covering all major fu
 
 ---
 
-## Reproducer Workflow
+## Audit Submission
 
 The reproducible audit harness now runs reliably in GitHub Actions.
 

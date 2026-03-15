@@ -298,7 +298,12 @@ export function renderDashboard({ comparison, baselineSummary, submissionSummary
 function renderCommandList(summary, categoryId, label) {
   const category = summary.categories[categoryId];
   const commandIds = new Set(category.commandIds ?? []);
-  const commands = summary.commands.filter((command) => commandIds.has(command.id));
+  let commands = summary.commands.filter((command) => commandIds.has(command.id));
+  if (commands.length === 0) {
+    commands = summary.commands.filter((command) =>
+      String(command.id ?? '').startsWith(`${categoryId}:`)
+    );
+  }
   if (commands.length === 0) {
     return '';
   }

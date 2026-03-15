@@ -29,11 +29,7 @@ export function formatCorpus(corpus) {
 }
 
 export function renderCategoryCommands(summary, categoryId) {
-  const category = summary.categories[categoryId];
-  const commandIds = new Set(category?.commandIds ?? []);
-  const commands = summary.commands
-    .filter((command) => commandIds.size === 0 || commandIds.has(command.id))
-    .map((command) => command.command);
+  const commands = selectCategoryCommands(summary, categoryId).map((command) => command.command);
 
   return commands.length > 0 ? commands.join('\n') : '(no commands recorded)';
 }
@@ -311,6 +307,23 @@ function renderPlaywrightSummary(title, playwright, options = {}) {
   ]
     .filter(Boolean)
     .join('\n');
+}
+
+function selectCategoryCommands(summary, categoryId) {
+  const category = summary.categories[categoryId];
+  const commandIds = new Set(category?.commandIds ?? []);
+  if (commandIds.size > 0) {
+    return summary.commands.filter((command) => commandIds.has(command.id));
+  }
+
+  const prefixedCommands = summary.commands.filter((command) =>
+    String(command.id ?? '').startsWith(`${categoryId}:`)
+  );
+  if (prefixedCommands.length > 0) {
+    return prefixedCommands;
+  }
+
+  return [];
 }
 
 function renderTestLists(suite) {

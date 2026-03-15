@@ -45,4 +45,4 @@ services:
 databases:
   - name: audit-meta
     databaseName: audit_meta
-    plan: starter
+    plan: free

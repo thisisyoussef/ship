@@ -76,8 +76,8 @@ function loadConfig() {
   const runId = readRequiredEnv('AUDIT_RUN_ID');
   const mode = process.env.AUDIT_MODE === 'category' ? 'category' : 'full';
   const category = normalizeOptional(process.env.AUDIT_CATEGORY);
-  const callbackBaseUrl = readRequiredEnv('AUDIT_CALLBACK_BASE_URL');
-  const callbackSecret = readRequiredEnv('AUDIT_CALLBACK_SECRET');
+  const callbackBaseUrl = normalizeOptional(process.env.AUDIT_CALLBACK_BASE_URL);
+  const callbackSecret = normalizeOptional(process.env.AUDIT_CALLBACK_SECRET);
   const outputDir = resolve(
     process.env.AUDIT_OUTPUT_DIR || join(process.cwd(), 'artifacts', 'g4-repro', `actions-${runId}`)
   );
@@ -101,6 +101,12 @@ function loadConfig() {
 }
 
 function createCallbackClient(config) {
+  if (!config.callbackBaseUrl || !config.callbackSecret) {
+    return {
+      async post() {},
+    };
+  }
+
   const baseHeaders = {
     'content-type': 'application/json',
     'x-audit-callback-secret': config.callbackSecret,

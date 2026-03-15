@@ -4,6 +4,8 @@ GitHub Actions workflow:
 
 - `https://github.com/thisisyoussef/ship/actions/workflows/audit-runner.yml`
 - the workflow checks out `codex/submission-clean` before running the harness
+- the workflow form is prefilled with the canonical baseline and submission repos/refs
+- leave `run_id` and `callback_base_url` blank when running directly from GitHub Actions
 - viewing logs and artifacts is the primary hosted verification path
 - manually clicking `Run workflow` requires repository permission
 

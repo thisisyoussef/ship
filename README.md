@@ -224,6 +224,7 @@ The reproducible audit harness now runs reliably in GitHub Actions.
 - Actions runs: [All workflow runs](https://github.com/thisisyoussef/ship/actions/workflows/audit-runner.yml?query=event%3Aworkflow_dispatch)
 - Submission branch measured by the workflow: [`codex/submission-clean`](https://github.com/thisisyoussef/ship/tree/codex/submission-clean)
 - Baseline repo used by default: [US-Department-of-the-Treasury/ship](https://github.com/US-Department-of-the-Treasury/ship)
+- The `Run workflow` form is prefilled for the official comparison. Leave `run_id` and `callback_base_url` blank for a direct GitHub-only run.
 
 What the workflow does:
 

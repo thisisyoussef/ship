@@ -17,6 +17,8 @@ This submission now treats the audit harness as the source of truth. The same co
 
 The local CLI defaults to `Treasury master` versus the current checkout. The hosted dashboard defaults to `Treasury master` versus `thisisyoussef/ship@codex/submission-clean`. The hosted dashboard is password-gated; the credential is supplied with the submission rather than committed into the repo.
 
+The hosted dashboard dispatches `audit-runner.yml` from the fork's default branch (`master`). That workflow immediately checks out `codex/submission-clean` before running the harness, so the execution scripts still come from the submission branch even though the dispatch entrypoint lives on the default branch for GitHub API compatibility.
+
 ## Corpus
 
 The harness prepares a deterministic seeded corpus for every runtime-backed category.

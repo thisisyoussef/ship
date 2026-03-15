@@ -27,7 +27,7 @@ services:
       - key: GITHUB_ACTIONS_WORKFLOW_FILE
         value: audit-runner.yml
       - key: GITHUB_ACTIONS_WORKFLOW_REF
-        value: codex/submission-clean
+        value: master
 
 databases:
   - name: audit-meta

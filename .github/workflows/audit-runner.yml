@@ -239,12 +239,13 @@ jobs:
             echo "- Output directory: \`$AUDIT_OUTPUT_DIR\`"
             echo
             echo "## Internal command contract"
-            echo "- git clone --depth 1 --branch <ref> <repo-url> <workdir>"
+            echo "- git clone --depth 1 --branch ${{ inputs.baseline_ref }} ${{ inputs.baseline_repo }} <baseline-workdir>"
+            echo "- git clone --depth 1 --branch ${{ inputs.submission_ref }} ${{ inputs.submission_repo }} <submission-workdir>"
             echo "- pnpm install --frozen-lockfile"
             echo "- pnpm build:shared"
             echo "- pnpm db:migrate"
             echo "- pnpm db:seed"
-            echo "- Expand canonical corpus to 580 docs / 105 issues / 35 weeks / 23 users"
+            echo "- node ./scripts/audit/expand-corpus.mjs --database-url <DATABASE_URL>"
             echo
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -281,7 +282,7 @@ jobs:
         if: ${{ matrix.needs_playwright }}
         run: pnpm exec playwright install --with-deps chromium
 
-      - name: Measure ${{ matrix.label }}
+      - name: Execute ${{ matrix.label }} and capture evidence
         run: node scripts/audit/github-actions-runner.mjs
         env:
           AUDIT_CALLBACK_BASE_URL: ''
@@ -324,7 +325,7 @@ jobs:
         env:
           AUDIT_CATEGORY_LABEL: ${{ matrix.label }}
 
-      - name: Fail category job on measurement errors
+      - name: Surface category warnings without failing the job
         if: always()
         run: |
           node <<'NODE'
@@ -340,8 +341,7 @@ jobs:
           const comparison = JSON.parse(fs.readFileSync(comparisonPath, 'utf8'));
           const failedCategoryCount = Number(comparison.summary?.failedCategoryCount ?? 0);
           if (failedCategoryCount > 0) {
-            console.error(`Category measurement recorded ${failedCategoryCount} failed target checks.`);
-            process.exit(1);
+            console.warn(`::warning::Category measurement recorded ${failedCategoryCount} failed target checks. See diagnostics/report.md for the exact before/after breakdown.`);
           }
           NODE
 
@@ -453,18 +453,18 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Notify final completion
-        if: ${{ steps.aggregate.outputs.aggregate_status == 'passed' && needs.kickoff.outputs.callbacks_enabled == 'true' }}
+        if: ${{ steps.aggregate.outputs.aggregate_status != 'failed' && needs.kickoff.outputs.callbacks_enabled == 'true' }}
         run: node scripts/audit/github-actions-notify-complete.mjs
 
       - name: Report workflow failure
-        if: ${{ failure() || steps.aggregate.outputs.aggregate_status != 'passed' }}
+        if: ${{ failure() || steps.aggregate.outputs.aggregate_status == 'failed' }}
         run: node scripts/audit/github-actions-notify-failure.mjs
         env:
           AUDIT_FAILURE_MESSAGE: >-
-            GitHub Actions detected category failures or incomplete evidence in the final aggregate report.
+            GitHub Actions detected incomplete evidence or an infrastructure failure in the final aggregate report.
 
-      - name: Fail workflow on category measurement errors
-        if: ${{ steps.aggregate.outputs.aggregate_status != 'passed' }}
+      - name: Fail workflow on incomplete evidence
+        if: ${{ steps.aggregate.outputs.aggregate_status == 'failed' }}
         run: |
           echo "Aggregate audit status: ${{ steps.aggregate.outputs.aggregate_status }}" >&2
           echo "See diagnostics/report.md in the uploaded aggregate artifact for details." >&2

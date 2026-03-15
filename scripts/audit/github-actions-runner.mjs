@@ -4,19 +4,16 @@ import { spawn } from 'node:child_process';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { runComparison } from './lib/run-compare.mjs';
-import { CATEGORY_DEFINITIONS, TARGET_COUNTS } from './lib/constants.mjs';
-
-const CATEGORY_LABELS = Object.fromEntries(
-  CATEGORY_DEFINITIONS.map((category) => [category.id, category.label])
-);
-const SETUP_CONTRACT = [
-  'git clone --depth 1 --branch <ref> <repo-url> <workdir>',
-  'pnpm install --frozen-lockfile',
-  'pnpm build:shared',
-  'pnpm db:migrate',
-  'pnpm db:seed',
-  `Expand canonical corpus to ${TARGET_COUNTS.documents} docs / ${TARGET_COUNTS.issues} issues / ${TARGET_COUNTS.weeks} weeks / ${TARGET_COUNTS.users} users`,
-];
+import { CATEGORY_DEFINITIONS } from './lib/constants.mjs';
+import {
+  buildExactReproductionCommands,
+  CATEGORY_LABELS,
+  formatCorpus,
+  renderCategorySection,
+  renderResultTable,
+  renderWarningsList,
+  SETUP_CONTRACT,
+} from './lib/reporting.mjs';
 
 const config = loadConfig();
 await mkdir(config.outputDir, { recursive: true });
@@ -476,7 +473,7 @@ function collectCategoryWarnings(result) {
     ];
     for (const failure of failures) {
       warnings.push(
-        `${targetLabel} ${failure.categoryId} failed${failure.error ? `: ${failure.error}` : ''}`
+        `${targetLabel} ${CATEGORY_LABELS[failure.categoryId] ?? failure.categoryId} failed${failure.error ? `: ${failure.error}` : ''}`
       );
     }
   }
@@ -484,13 +481,20 @@ function collectCategoryWarnings(result) {
 }
 
 function buildSuccessSummary({ config, result }) {
-  const rows = Object.entries(result.comparison.categories)
-    .map(([categoryId, category]) => {
-      return `| ${category.label} | ${category.baselineStatus} | ${category.submissionStatus} | ${formatSummaryMetric(category.before, category.unit)} | ${formatSummaryMetric(category.after, category.unit)} | ${formatSummaryMetric(category.delta, category.unit, true)} |`;
-    })
-    .join('\n');
-
   const warnings = collectCategoryWarnings(result);
+  const selectedIds = selectedCategoryIds(config);
+  const categoryDetail = selectedIds
+    .map((categoryId) =>
+      renderCategorySection({
+        categoryId,
+        comparisonCategory: result.comparison.categories[categoryId],
+        baselineCategory: result.baselineSummary.categories[categoryId],
+        submissionCategory: result.submissionSummary.categories[categoryId],
+        baselineSummary: result.baselineSummary,
+        submissionSummary: result.submissionSummary,
+      })
+    )
+    .join('\n\n');
 
   return [
     '# Ship Audit Summary',
@@ -507,16 +511,27 @@ function buildSuccessSummary({ config, result }) {
     '',
     '| Category | Baseline | Submission | Before | After | Delta |',
     '| --- | --- | --- | --- | --- | --- |',
-    rows,
+    renderResultTable(result.comparison, selectedIds),
+    '',
+    '## Warnings',
+    '',
+    renderWarningsList(warnings),
     '',
     '## Reproduce locally',
     '',
     '```bash',
-    result.recipes.easy,
+    buildExactReproductionCommands({
+      baselineRepo: result.baselineSummary.repoUrl,
+      baselineRef: result.baselineSummary.ref,
+      submissionRepo: result.submissionSummary.repoUrl,
+      submissionRef: result.submissionSummary.ref,
+      category: config.category ?? null,
+    }),
     '```',
     '',
-    '## Warnings',
-    warnings.length > 0 ? warnings.map((warning) => `- ${warning}`).join('\n') : '- None',
+    '## Category details',
+    '',
+    categoryDetail,
     '',
     `A full human-readable report is stored in \`${join('diagnostics', 'report.md')}\` inside the uploaded workflow artifact.`,
     '',
@@ -576,14 +591,6 @@ async function maybeReadJson(filePath) {
   }
 }
 
-function formatSummaryMetric(value, unit, includePositiveSign = false) {
-  if (value === null || value === undefined) {
-    return `n/a ${unit}`.trim();
-  }
-  const prefix = includePositiveSign && typeof value === 'number' && value > 0 ? '+' : '';
-  return `${prefix}${value} ${unit}`.trim();
-}
-
 function isMissingFile(error) {
   return Boolean(error) && typeof error === 'object' && 'code' in error && error.code === 'ENOENT';
 }
@@ -624,44 +631,17 @@ function buildSuccessReport({ config, result }) {
   const categorySections = CATEGORY_DEFINITIONS
     .filter((category) => result.comparison.categories[category.id])
     .map((category) => {
-      const comparisonCategory = result.comparison.categories[category.id];
-      const baselineCategory = result.baselineSummary.categories[category.id];
-      const submissionCategory = result.submissionSummary.categories[category.id];
-      return [
-        `## ${category.label}`,
-        '',
-        `- Baseline status: ${comparisonCategory.baselineStatus}`,
-        `- Submission status: ${comparisonCategory.submissionStatus}`,
-        `- Before: ${formatSummaryMetric(comparisonCategory.before, category.unit)}`,
-        `- After: ${formatSummaryMetric(comparisonCategory.after, category.unit)}`,
-        `- Delta: ${formatSummaryMetric(comparisonCategory.delta, category.unit, true)} (${comparisonCategory.percentChange}%)`,
-        '',
-        `### Root cause`,
-        '',
-        comparisonCategory.rootCause.baselineProblem,
-        '',
-        `### Why the fix works`,
-        '',
-        comparisonCategory.rootCause.whyFixWorks,
-        '',
-        renderMetricsSection('Baseline metrics', baselineCategory?.metrics),
-        '',
-        renderMetricsSection('Submission metrics', submissionCategory?.metrics),
-        '',
-        '### Exact commands run',
-        '',
-        '#### Baseline',
-        '```bash',
-        renderCategoryCommands(result.baselineSummary, category.id),
-        '```',
-        '',
-        '#### Submission',
-        '```bash',
-        renderCategoryCommands(result.submissionSummary, category.id),
-        '```',
-      ].join('\n');
+      return renderCategorySection({
+        categoryId: category.id,
+        comparisonCategory: result.comparison.categories[category.id],
+        baselineCategory: result.baselineSummary.categories[category.id],
+        submissionCategory: result.submissionSummary.categories[category.id],
+        baselineSummary: result.baselineSummary,
+        submissionSummary: result.submissionSummary,
+      });
     })
     .join('\n\n');
+  const warnings = collectCategoryWarnings(result);
 
   return [
     '# Ship Audit Report',
@@ -680,24 +660,26 @@ function buildSuccessReport({ config, result }) {
     '',
     '| Category | Baseline | Submission | Before | After | Delta |',
     '| --- | --- | --- | --- | --- | --- |',
-    ...CATEGORY_DEFINITIONS
-      .filter((category) => result.comparison.categories[category.id])
-      .map((category) => {
-        const comparisonCategory = result.comparison.categories[category.id];
-        return `| ${category.label} | ${comparisonCategory.baselineStatus} | ${comparisonCategory.submissionStatus} | ${formatSummaryMetric(comparisonCategory.before, category.unit)} | ${formatSummaryMetric(comparisonCategory.after, category.unit)} | ${formatSummaryMetric(comparisonCategory.delta, category.unit, true)} |`;
-      }),
+    renderResultTable(result.comparison, selectedCategoryIds(config)),
+    '',
+    '## Warnings',
+    '',
+    renderWarningsList(warnings),
     '',
     '## Reproduce locally',
     '',
-    '### Easy mode',
+    '### Exact comparison commands',
     '```bash',
-    result.recipes.easy,
+    buildExactReproductionCommands({
+      baselineRepo: result.baselineSummary.repoUrl,
+      baselineRef: result.baselineSummary.ref,
+      submissionRepo: result.submissionSummary.repoUrl,
+      submissionRef: result.submissionSummary.ref,
+      category: config.category ?? null,
+    }),
     '```',
     '',
-    '### Manual mode',
-    '```bash',
-    result.recipes.manual,
-    '```',
+    'The category sections below include the exact commands the harness executed for both targets.',
     '',
     '## Setup contract',
     '',
@@ -744,7 +726,7 @@ function buildFailureReport({ config, errorMessage, failureContext }) {
     `git clone --branch ${config.submissionRef} ${config.submissionRepo} ship-audit-submission`,
     'cd ship-audit-submission',
     'pnpm install --frozen-lockfile',
-    `pnpm audit:grade --category ${config.category ?? '<category>'} --baseline-repo ${config.baselineRepo} --baseline-ref ${config.baselineRef}`,
+    `node ./scripts/audit/cli.mjs --baseline-repo ${config.baselineRepo} --baseline-ref ${config.baselineRef}${config.category ? ` --category ${config.category}` : ''}`,
     '```',
     '',
     '## Setup contract',
@@ -754,53 +736,6 @@ function buildFailureReport({ config, errorMessage, failureContext }) {
     '```',
     '',
   ].join('\n');
-}
-
-function renderCategoryCommands(summary, categoryId) {
-  const category = summary.categories[categoryId];
-  const commandIds = new Set(category?.commandIds ?? []);
-  const commands = summary.commands
-    .filter((command) => commandIds.size === 0 || commandIds.has(command.id))
-    .map((command) => command.command);
-
-  return commands.length > 0 ? commands.join('\n') : '(no commands recorded)';
-}
-
-function renderMetricsSection(title, metrics) {
-  const entries = Object.entries(metrics ?? {});
-  if (entries.length === 0) {
-    return `### ${title}\n\n- No detailed metrics captured.`;
-  }
-
-  return [
-    `### ${title}`,
-    '',
-    ...entries.map(([key, value]) => `- ${formatMetricKey(key)}: ${renderMetricValue(value)}`),
-  ].join('\n');
-}
-
-function renderMetricValue(value) {
-  if (Array.isArray(value)) {
-    return value.map((item) => (typeof item === 'string' ? item : JSON.stringify(item))).join(', ');
-  }
-  if (value && typeof value === 'object') {
-    return JSON.stringify(value);
-  }
-  return String(value);
-}
-
-function formatMetricKey(value) {
-  return value
-    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
-
-function formatCorpus(corpus) {
-  if (!corpus) {
-    return `Expected ${TARGET_COUNTS.documents} docs / ${TARGET_COUNTS.issues} issues / ${TARGET_COUNTS.weeks} weeks / ${TARGET_COUNTS.users} users`;
-  }
-  return `${corpus.documents} docs / ${corpus.issues} issues / ${corpus.weeks} weeks / ${corpus.users} users`;
 }
 
 function writeWorkflowAnnotation(event) {

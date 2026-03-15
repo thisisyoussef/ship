@@ -1,5 +1,6 @@
 import { buildAndStartWeb, prepareSeededSchema, startApiServer } from './service-runtime.mjs';
 import { runPlaywrightSuite } from './playwright-runner.mjs';
+import { runVitestSuite } from './vitest-runner.mjs';
 import getPort from 'get-port';
 
 export async function measureRuntimeHandling({
@@ -9,12 +10,14 @@ export async function measureRuntimeHandling({
   registerCommand,
   reportEvent,
 }) {
-  const errorBoundaryTest = await runCommand(
-    `${target.label}-runtime-error-boundary`,
-    'pnpm --filter @ship/web test -- web/src/components/ui/ErrorBoundary.test.tsx',
-    {},
-    true
-  );
+  const errorBoundarySuite = await runVitestSuite({
+    target,
+    runCommand,
+    categoryId: 'runtime-handling',
+    commandId: `${target.label}-runtime-error-boundary`,
+    workspace: 'web',
+    extraArgs: 'web/src/components/ui/ErrorBoundary.test.tsx',
+  });
 
   const runtime = await prepareSeededSchema({
     baseConnectionString,
@@ -55,11 +58,12 @@ export async function measureRuntimeHandling({
 
     const unexpectedConsoleErrors = Number(playwright.metrics.unexpectedConsoleErrors ?? 0);
     const blockingActionItemsModals = Number(playwright.metrics.blockingActionItemsModals ?? 0);
-    const runtimeIssues = unexpectedConsoleErrors + blockingActionItemsModals + (errorBoundaryTest.exitCode === 0 ? 0 : 1);
+    const runtimeIssues =
+      unexpectedConsoleErrors + blockingActionItemsModals + (errorBoundarySuite.succeeded ? 0 : 1);
 
     return {
       status:
-        errorBoundaryTest.exitCode === 0 &&
+        errorBoundarySuite.succeeded &&
         playwright.succeeded &&
         playwright.totals.failed === 0 &&
         runtimeIssues === 0
@@ -70,9 +74,11 @@ export async function measureRuntimeHandling({
       metrics: {
         unexpectedConsoleErrors,
         blockingActionItemsModals,
-        errorBoundaryUnitPassed: errorBoundaryTest.exitCode === 0,
+        errorBoundaryUnitPassed: errorBoundarySuite.succeeded,
+        errorBoundaryFailedTests: errorBoundarySuite.totals.failed,
         playwrightSucceeded: playwright.succeeded,
       },
+      errorBoundarySuite,
       playwright,
     };
   } finally {

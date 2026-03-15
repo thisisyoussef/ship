@@ -1,22 +1,18 @@
 #!/usr/bin/env node
 import { appendFile, readdir } from 'node:fs/promises';
 import { basename, join, resolve } from 'node:path';
-import { CATEGORY_DEFINITIONS, CATEGORY_IDS, ROOT_CAUSES, TARGET_COUNTS } from './lib/constants.mjs';
+import { CATEGORY_DEFINITIONS, CATEGORY_IDS, ROOT_CAUSES } from './lib/constants.mjs';
 import { ensureDir, readJson, writeJson, writeText } from './lib/fs.mjs';
 import { renderDashboard } from './lib/dashboard.mjs';
-
-const SETUP_CONTRACT = [
-  'git clone --depth 1 --branch <ref> <repo-url> <workdir>',
-  'pnpm install --frozen-lockfile',
-  'pnpm build:shared',
-  'pnpm db:migrate',
-  'pnpm db:seed',
-  `Expand canonical corpus to ${TARGET_COUNTS.documents} docs / ${TARGET_COUNTS.issues} issues / ${TARGET_COUNTS.weeks} weeks / ${TARGET_COUNTS.users} users`,
-];
-
-const CATEGORY_LABELS = Object.fromEntries(
-  CATEGORY_DEFINITIONS.map((category) => [category.id, category.label])
-);
+import {
+  buildExactReproductionCommands,
+  CATEGORY_LABELS,
+  formatCorpus,
+  renderCategorySection,
+  renderResultTable,
+  renderWarningsList,
+  SETUP_CONTRACT,
+} from './lib/reporting.mjs';
 
 const config = loadConfig();
 await ensureDir(config.outputDir);
@@ -42,7 +38,7 @@ await writeJson(join(config.outputDir, 'diagnostics', 'run-context.json'), {
   submissionRef: config.submissionRef,
   githubRunUrl: config.githubRunUrl,
   outputDir: config.outputDir,
-  status: aggregate.comparison.summary.failedCategoryCount > 0 ? 'warning' : 'finished',
+  status: aggregate.aggregateStatus === 'passed' ? 'finished' : aggregate.aggregateStatus,
   generatedAt: aggregate.comparison.generatedAt,
 });
 
@@ -68,8 +64,9 @@ if (process.env.GITHUB_OUTPUT) {
   await appendFile(
     process.env.GITHUB_OUTPUT,
     [
-      `aggregate_status=${aggregate.comparison.summary.failedCategoryCount > 0 ? 'warning' : 'passed'}`,
+      `aggregate_status=${aggregate.aggregateStatus}`,
       `failed_category_count=${aggregate.comparison.summary.failedCategoryCount}`,
+      `incomplete_category_count=${aggregate.comparison.summary.incompleteCategoryCount ?? 0}`,
       `compared_category_count=${aggregate.comparison.summary.comparedCategoryCount}`,
     ].join('\n') + '\n',
     'utf8'
@@ -115,6 +112,7 @@ async function aggregateCategoryArtifacts(config) {
   };
 
   const comparisonCategories = {};
+  const incompleteCategories = [];
 
   for (const categoryId of config.selectedCategories) {
     const artifact = categoryArtifacts.find((entry) => entry.categoryId === categoryId);
@@ -125,6 +123,17 @@ async function aggregateCategoryArtifacts(config) {
       artifact?.failure?.error ??
       artifact?.failure?.message ??
       `No completed artifact was collected for ${CATEGORY_LABELS[categoryId] ?? categoryId}.`;
+    const hasCompleteArtifact = Boolean(
+      artifact?.comparison &&
+        artifact?.baselineSummary &&
+        artifact?.submissionSummary
+    );
+    if (!hasCompleteArtifact) {
+      incompleteCategories.push({
+        categoryId,
+        error: fallbackError,
+      });
+    }
 
     baselineSummary.categories[categoryId] = baselineCategory ?? {
       status: 'failed',
@@ -167,12 +176,19 @@ async function aggregateCategoryArtifacts(config) {
     baselineSummary,
     submissionSummary,
     comparisonCategories,
+    incompleteCategories,
   });
 
   return {
     baselineSummary,
     submissionSummary,
     comparison,
+    aggregateStatus:
+      incompleteCategories.length > 0
+        ? 'failed'
+        : comparison.summary.failedCategoryCount > 0
+          ? 'warning'
+          : 'passed',
     recipes: buildRecipes({ baseline: baselineSummary, submission: submissionSummary }),
     categoryArtifacts,
   };
@@ -219,7 +235,7 @@ async function loadCategoryArtifacts(config) {
   return artifacts;
 }
 
-function buildComparison({ config, baselineSummary, submissionSummary, comparisonCategories }) {
+function buildComparison({ config, baselineSummary, submissionSummary, comparisonCategories, incompleteCategories }) {
   const orderedCategories = {};
   for (const category of CATEGORY_DEFINITIONS) {
     if (!comparisonCategories[category.id]) {
@@ -231,6 +247,7 @@ function buildComparison({ config, baselineSummary, submissionSummary, compariso
   const baselineFailedCategories = collectFailedCategories(baselineSummary);
   const submissionFailedCategories = collectFailedCategories(submissionSummary);
   const failedCategoryCount = baselineFailedCategories.length + submissionFailedCategories.length;
+  const incompleteCategoryCount = incompleteCategories.length;
 
   return {
     runId: config.runId,
@@ -246,8 +263,11 @@ function buildComparison({ config, baselineSummary, submissionSummary, compariso
       sha: submissionSummary.sha,
     },
     summary: {
-      overallStatus: failedCategoryCount > 0 ? 'warning' : 'passed',
+      overallStatus:
+        incompleteCategoryCount > 0 ? 'failed' : failedCategoryCount > 0 ? 'warning' : 'passed',
       failedCategoryCount,
+      incompleteCategoryCount,
+      incompleteCategories,
       baselineFailedCategories,
       submissionFailedCategories,
       comparedCategoryCount: Object.keys(orderedCategories).length,
@@ -275,37 +295,26 @@ function createFallbackComparisonCategory({ categoryId, baselineCategory, submis
 }
 
 function buildRecipes({ baseline, submission }) {
-  const easy = [
-    `git clone --branch ${submission.ref} ${submission.repoUrl} ship-audit-submission`,
-    'cd ship-audit-submission',
-    'pnpm install --frozen-lockfile',
-    `pnpm audit:grade${config.mode === 'category' && config.category ? ` --category ${config.category}` : ''} --baseline-repo ${baseline.repoUrl} --baseline-ref ${baseline.ref}`,
-  ].join('\n');
+  const easy = buildExactReproductionCommands({
+    baselineRepo: baseline.repoUrl,
+    baselineRef: baseline.ref,
+    submissionRepo: submission.repoUrl,
+    submissionRef: submission.ref,
+    category: config.category ?? null,
+  });
 
-  const manual = [
-    `git clone --branch ${baseline.ref} ${baseline.repoUrl} ship-audit-baseline`,
-    `git clone --branch ${submission.ref} ${submission.repoUrl} ship-audit-submission`,
-    'cd ship-audit-submission',
-    'pnpm install --frozen-lockfile',
-    `pnpm audit:grade${config.mode === 'category' && config.category ? ` --category ${config.category}` : ''} --baseline-dir ../ship-audit-baseline --submission-dir .`,
-  ].join('\n');
+  const manual = easy;
 
   return { easy, manual };
 }
 
 function buildSummary({ config, aggregate }) {
-  const rows = CATEGORY_DEFINITIONS
-    .filter((category) => aggregate.comparison.categories[category.id])
-    .map((category) => {
-      const result = aggregate.comparison.categories[category.id];
-      return `| ${category.label} | ${result.baselineStatus} | ${result.submissionStatus} | ${formatSummaryMetric(result.before, category.unit)} | ${formatSummaryMetric(result.after, category.unit)} | ${formatSummaryMetric(result.delta, category.unit, true)} |`;
-    })
-    .join('\n');
+  const warnings = collectWarningsFromComparison(aggregate.comparison);
 
   return [
     '# Ship Audit Summary',
     '',
-    `- Status: ${aggregate.comparison.summary.overallStatus}`,
+    `- Status: ${aggregate.aggregateStatus}`,
     `- Run ID: ${config.runId}`,
     `- Mode: ${config.mode}${config.category ? ` (${config.category})` : ''}`,
     `- GitHub run: ${config.githubRunUrl ?? 'n/a'}`,
@@ -317,15 +326,25 @@ function buildSummary({ config, aggregate }) {
     '',
     '| Category | Baseline | Submission | Before | After | Delta |',
     '| --- | --- | --- | --- | --- | --- |',
-    rows,
+    renderResultTable(aggregate.comparison, config.selectedCategories),
+    '',
+    '## Warnings',
+    '',
+    renderWarningsList(warnings),
     '',
     '## Reproduce locally',
     '',
     '```bash',
-    aggregate.recipes.easy,
+    buildExactReproductionCommands({
+      baselineRepo: aggregate.baselineSummary.repoUrl,
+      baselineRef: aggregate.baselineSummary.ref,
+      submissionRepo: aggregate.submissionSummary.repoUrl,
+      submissionRef: aggregate.submissionSummary.ref,
+      category: config.category ?? null,
+    }),
     '```',
     '',
-    'A full human-readable report is stored in `diagnostics/report.md` inside the uploaded workflow artifact.',
+    'The full human-readable report is stored in `diagnostics/report.md` inside the uploaded workflow artifact.',
     '',
   ].join('\n');
 }
@@ -334,44 +353,17 @@ function buildSuccessReport({ config, aggregate }) {
   const categorySections = CATEGORY_DEFINITIONS
     .filter((category) => aggregate.comparison.categories[category.id])
     .map((category) => {
-      const comparisonCategory = aggregate.comparison.categories[category.id];
-      const baselineCategory = aggregate.baselineSummary.categories[category.id];
-      const submissionCategory = aggregate.submissionSummary.categories[category.id];
-      return [
-        `## ${category.label}`,
-        '',
-        `- Baseline status: ${comparisonCategory.baselineStatus}`,
-        `- Submission status: ${comparisonCategory.submissionStatus}`,
-        `- Before: ${formatSummaryMetric(comparisonCategory.before, category.unit)}`,
-        `- After: ${formatSummaryMetric(comparisonCategory.after, category.unit)}`,
-        `- Delta: ${formatSummaryMetric(comparisonCategory.delta, category.unit, true)} (${comparisonCategory.percentChange}%)`,
-        '',
-        '### Root cause',
-        '',
-        comparisonCategory.rootCause.baselineProblem,
-        '',
-        '### Why the fix works',
-        '',
-        comparisonCategory.rootCause.whyFixWorks,
-        '',
-        renderMetricsSection('Baseline metrics', baselineCategory?.metrics),
-        '',
-        renderMetricsSection('Submission metrics', submissionCategory?.metrics),
-        '',
-        '### Exact commands run',
-        '',
-        '#### Baseline',
-        '```bash',
-        renderCategoryCommands(aggregate.baselineSummary, category.id),
-        '```',
-        '',
-        '#### Submission',
-        '```bash',
-        renderCategoryCommands(aggregate.submissionSummary, category.id),
-        '```',
-      ].join('\n');
+      return renderCategorySection({
+        categoryId: category.id,
+        comparisonCategory: aggregate.comparison.categories[category.id],
+        baselineCategory: aggregate.baselineSummary.categories[category.id],
+        submissionCategory: aggregate.submissionSummary.categories[category.id],
+        baselineSummary: aggregate.baselineSummary,
+        submissionSummary: aggregate.submissionSummary,
+      });
     })
     .join('\n\n');
+  const warnings = collectWarningsFromComparison(aggregate.comparison);
 
   return [
     '# Ship Audit Report',
@@ -396,24 +388,26 @@ function buildSuccessReport({ config, aggregate }) {
     '',
     '| Category | Baseline | Submission | Before | After | Delta |',
     '| --- | --- | --- | --- | --- | --- |',
-    ...CATEGORY_DEFINITIONS
-      .filter((category) => aggregate.comparison.categories[category.id])
-      .map((category) => {
-        const result = aggregate.comparison.categories[category.id];
-        return `| ${category.label} | ${result.baselineStatus} | ${result.submissionStatus} | ${formatSummaryMetric(result.before, category.unit)} | ${formatSummaryMetric(result.after, category.unit)} | ${formatSummaryMetric(result.delta, category.unit, true)} |`;
-      }),
+    renderResultTable(aggregate.comparison, config.selectedCategories),
+    '',
+    '## Warnings',
+    '',
+    renderWarningsList(warnings),
     '',
     '## Reproduce locally',
     '',
-    '### Easy mode',
+    '### Exact comparison commands',
     '```bash',
-    aggregate.recipes.easy,
+    buildExactReproductionCommands({
+      baselineRepo: aggregate.baselineSummary.repoUrl,
+      baselineRef: aggregate.baselineSummary.ref,
+      submissionRepo: aggregate.submissionSummary.repoUrl,
+      submissionRef: aggregate.submissionSummary.ref,
+      category: config.category ?? null,
+    }),
     '```',
     '',
-    '### Manual mode',
-    '```bash',
-    aggregate.recipes.manual,
-    '```',
+    'The category sections below include the exact commands the harness executed for both targets.',
     '',
     '## Setup contract',
     '',
@@ -426,59 +420,18 @@ function buildSuccessReport({ config, aggregate }) {
   ].join('\n');
 }
 
-function renderCategoryCommands(summary, categoryId) {
-  const category = summary.categories[categoryId];
-  const commandIds = new Set(category?.commandIds ?? []);
-  const commands = summary.commands
-    .filter((command) => commandIds.size === 0 || commandIds.has(command.id))
-    .map((command) => command.command);
-
-  return commands.length > 0 ? commands.join('\n') : '(no commands recorded)';
-}
-
-function renderMetricsSection(title, metrics) {
-  const entries = Object.entries(metrics ?? {});
-  if (entries.length === 0) {
-    return `### ${title}\n\n- No detailed metrics captured.`;
+function collectWarningsFromComparison(comparison) {
+  const warnings = [];
+  for (const failure of comparison.summary.baselineFailedCategories ?? []) {
+    warnings.push(`Baseline ${CATEGORY_LABELS[failure.categoryId] ?? failure.categoryId}: ${failure.error ?? 'measurement failed'}`);
   }
-
-  return [
-    `### ${title}`,
-    '',
-    ...entries.map(([key, value]) => `- ${formatMetricKey(key)}: ${renderMetricValue(value)}`),
-  ].join('\n');
-}
-
-function renderMetricValue(value) {
-  if (Array.isArray(value)) {
-    return value.map((item) => (typeof item === 'string' ? item : JSON.stringify(item))).join(', ');
+  for (const failure of comparison.summary.submissionFailedCategories ?? []) {
+    warnings.push(`Submission ${CATEGORY_LABELS[failure.categoryId] ?? failure.categoryId}: ${failure.error ?? 'measurement failed'}`);
   }
-  if (value && typeof value === 'object') {
-    return JSON.stringify(value);
+  for (const failure of comparison.summary.incompleteCategories ?? []) {
+    warnings.push(`Incomplete category artifact for ${CATEGORY_LABELS[failure.categoryId] ?? failure.categoryId}: ${failure.error ?? 'artifact missing'}`);
   }
-  return String(value);
-}
-
-function formatMetricKey(value) {
-  return value
-    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
-
-function formatSummaryMetric(value, unit, includePositiveSign = false) {
-  if (value === null || value === undefined) {
-    return `n/a ${unit}`.trim();
-  }
-  const prefix = includePositiveSign && typeof value === 'number' && value > 0 ? '+' : '';
-  return `${prefix}${value} ${unit}`.trim();
-}
-
-function formatCorpus(corpus) {
-  if (!corpus) {
-    return `Expected ${TARGET_COUNTS.documents} docs / ${TARGET_COUNTS.issues} issues / ${TARGET_COUNTS.weeks} weeks / ${TARGET_COUNTS.users} users`;
-  }
-  return `${corpus.documents} docs / ${corpus.issues} issues / ${corpus.weeks} weeks / ${corpus.users} users`;
+  return warnings;
 }
 
 function prefixCommands(commands, categoryId) {

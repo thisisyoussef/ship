@@ -38,3 +38,17 @@ Capture reusable patterns that repeatedly work in this project.
 - **Benefits**: Prevents silent inheritance of an unrelated stack and keeps downstream workflows consistent.
 - **Tradeoffs**: Adds a small upfront setup step before implementation can start.
 - **References**: `README.md`, `AGENTS.md`, `.ai/docs/SINGLE_SOURCE_OF_TRUTH.md`
+
+- **Pattern**: REST normalization boundary for unified documents
+- **Use when**: Building features that reason across Ship projects, issues, weeks, people, and weekly docs through the public API.
+- **Approach**: Fetch only from Ship REST, then normalize canonical `document_associations`, `belongs_to`, legacy `project_id`, and `assignee_ids` into one internal graph state before reasoning or rendering.
+- **Benefits**: Prevents feature logic from drifting with Ship's mixed live data shapes and keeps the runtime honest to the REST-only contract.
+- **Tradeoffs**: Adds an adapter layer that must be kept current as the API evolves.
+- **References**: `PRESEARCH.md`, `api/src/routes/team.ts`, `api/src/utils/allocation.ts`, `api/src/routes/weekly-plans.ts`
+
+- **Pattern**: Rule-gated proactive reasoning
+- **Use when**: An AI workflow needs to monitor Ship continuously without turning every sweep into an LLM call.
+- **Approach**: Run deterministic thresholding and dedupe first, then invoke the model only for candidate findings or on-demand user questions.
+- **Benefits**: Keeps proactive cost predictable, reduces noise, and creates clearer branch traces in LangSmith.
+- **Tradeoffs**: Some intelligence moves into rules instead of the model.
+- **References**: `PRESEARCH.md`, `api/src/routes/accountability.ts`, `api/src/services/accountability.ts`

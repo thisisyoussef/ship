@@ -20,8 +20,11 @@
   - `api/src/services/fleetgraph/tracing/`
   - `api/src/services/fleetgraph/graph/`
   - `api/src/services/fleetgraph/normalize/`
+  - `api/src/services/fleetgraph/worker/`
   - `api/vitest.fleetgraph.config.ts`
   - `api/package.json`
+  - `api/src/db/schema.sql`
+  - `api/src/db/migrations/038_fleetgraph_worker_substrate.sql`
 - Public interfaces/contracts:
   - `LLMAdapter`: provider-agnostic model adapter; OpenAI default path
   - `TriggerEnvelope`: event or scheduled-sweep entry contract
@@ -29,11 +32,13 @@
   - `FleetGraphRuntimeInput`: validated graph input envelope before checkpointed execution
   - `NormalizedShipDocument`: one internal FleetGraph document model derived from canonical + legacy Ship payloads
   - `ShipContextEnvelope`: normalized contextual input from Ship routes
-  - `InsightLedger`: dedupe/checkpoint metadata contract
+  - `FleetGraphQueueJob`: durable proactive execution row keyed by dedupe and `thread_id`
+  - `FleetGraphDedupeLedger`: checkpoint/dedupe/cooldown contract for proactive runs
+  - `FleetGraphSweepSchedule`: durable schedule registry for under-5-minute workspace sweeps
 - Data flow summary:
   - Repo docs point future agents to the PDF, PRD reference, presearch, and foundation spec pack.
   - The foundation spec pack sequences future implementation into reconnaissance -> provider contract -> tracing -> graph runtime -> normalization -> worker substrate -> deployment -> UI/HITL integration.
-  - The current substrate path is adapter -> tracing -> graph shell -> normalization boundary, with real Ship fetch and worker nodes deferred to T006+.
+  - The current substrate path is adapter -> tracing -> graph shell -> normalization boundary -> worker queue/ledger/sweep runtime, with live route wiring and UI/HITL delivery deferred to T007+.
 
 ## Architecture Decisions
 - Decision: Treat the next FleetGraph phase as substrate-first instead of feature-first.
@@ -54,8 +59,8 @@
 - Response shape:
   - Foundation stories should define typed result contracts for quiet exit, advisory finding, approval-required action, and fallback.
 - Storage/index changes:
-  - No schema changes in this story.
-  - Future foundation work should evaluate how to persist checkpoints, dedupe state, and trace correlation metadata without violating the REST-only Ship data-source constraint.
+  - Add FleetGraph queue, dedupe-ledger, and sweep-schedule tables through `038_fleetgraph_worker_substrate.sql`.
+  - Keep `schema.sql` aligned with the fresh-install snapshot so empty databases can bootstrap without replaying historical enum-rename migrations.
 
 ## Dependency Plan
 - Existing dependencies used:
@@ -76,7 +81,7 @@
 - Unit tests:
   - Future `LLMAdapter`, normalization, scoring-policy, and checkpoint-contract tests
 - Integration tests:
-  - Future trigger enqueue -> worker -> graph trace integration
+  - Trigger enqueue -> worker retry/checkpoint integration via FleetGraph-specific Vitest + testcontainers
   - Future Ship-context -> embedded chat entry integration
 - E2E or smoke tests:
   - Future deployed worker/API smoke run with trace capture and at least one proactive branch

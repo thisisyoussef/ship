@@ -2,7 +2,7 @@
 
 **Last Updated**: 2026-03-16
 **Current Phase**: FleetGraph foundation-phase execution
-**Active Sprint**: T005 REST normalization and context envelopes
+**Active Sprint**: T006 proactive worker substrate
 **Project Status**: Active
 **Canonical Deployment Baseline**: API on AWS Elastic Beanstalk, frontend on S3/CloudFront, config/secrets on AWS-native services
 **Sanctioned Public Demo**: Render `ship-demo` at `https://ship-demo.onrender.com/`, deployed with `scripts/deploy-render-demo.sh`
@@ -12,14 +12,14 @@
 ## Current Focus
 
 ### Active Task
-- **Title**: Execute FleetGraph foundation story T005 by building the Ship REST normalization layer and trigger/context envelopes for mixed canonical and legacy payloads
+- **Title**: Execute FleetGraph foundation story T006 by adding the proactive worker substrate: enqueue hooks, scheduled sweep, dedupe ledger, and checkpoint-aware execution loop
 - **Status**: Implemented locally, pending audit/finalization
 - **Owner**: Codex
 
 ### Next Immediate Actions
-1. Treat `api/src/services/fleetgraph/normalize/` as the only FleetGraph boundary for mixed Ship REST payloads and route-derived context.
-2. Build T006 worker and enqueue code against `TriggerEnvelope` plus normalized documents instead of raw route responses.
-3. Build T007 same-origin entry/HITL contracts on top of `ShipContextEnvelope` rather than recreating frontend context shaping.
+1. Treat `api/src/services/fleetgraph/worker/` as the only durable queue/sweep/retry substrate for proactive FleetGraph work.
+2. Build T007 same-origin entry/HITL contracts on top of `ShipContextEnvelope` and the worker trigger hooks instead of recreating context shaping elsewhere.
+3. Build T008 deployment/auth/secrets readiness around the new worker runtime, demo deploy, and service-token path.
 
 ---
 
@@ -73,6 +73,7 @@
 - `api/src/services/fleetgraph/tracing/`
 - `api/src/services/fleetgraph/graph/`
 - `api/src/services/fleetgraph/normalize/`
+- `api/src/services/fleetgraph/worker/`
 - Shared LangSmith trace links showing different execution paths
 
 ---

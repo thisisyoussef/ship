@@ -113,3 +113,8 @@ Capture failures so they are not repeated.
 - **Example**: One node reads `belongs_to`, another reads `properties.project_id`, and a third assumes the frontend already derived the active tab or breadcrumb context.
 - **Why it failed**: The graph becomes coupled to route-specific payload accidents instead of one internal model, making worker and UI entry behavior drift apart.
 - **Prevention rule**: Normalize mixed REST payloads and route context once into `NormalizedShipDocument` and `ShipContextEnvelope` before graph logic runs.
+
+- **Problem**: Replaying historical migrations on top of the current schema snapshot
+- **Example**: Applying `schema.sql` for a fresh database and then rerunning old enum-rename migrations like the sprint-to-week rename, even though the schema file already reflects the renamed values.
+- **Why it failed**: Fresh installs hit impossible duplicate or missing-enum transitions, which breaks local bootstrap and DB-backed tests before story code even runs.
+- **Prevention rule**: Treat `schema.sql` as the fresh-install snapshot, mark historical migrations as applied on empty databases, and only execute pending migrations for already-migrated environments.

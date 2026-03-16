@@ -212,6 +212,46 @@ if missing_tokens:
 print("Eval-driven routing check passed.")
 PY
 
+run_check "User correction triage routing references" python - <<'PY'
+from pathlib import Path
+import sys
+
+required_files = [
+    ".ai/workflows/user-correction-triage.md",
+]
+missing_files = [path for path in required_files if not Path(path).is_file()]
+if missing_files:
+    print("ERROR: Missing user correction triage workflow files:", file=sys.stderr)
+    for path in missing_files:
+        print(f"- {path}", file=sys.stderr)
+    raise SystemExit(1)
+
+targets = [
+    "AGENTS.md",
+    ".ai/agents/claude.md",
+    ".ai/codex.md",
+    ".ai/agents/cursor-agent.md",
+    ".ai/workflows/feature-development.md",
+    ".ai/workflows/story-handoff.md",
+    ".ai/docs/WORKSPACE_INDEX.md",
+    ".clauderc",
+    ".cursorrules",
+]
+missing_refs: list[str] = []
+for rel in targets:
+    text = Path(rel).read_text(encoding="utf-8")
+    if "user-correction-triage.md" not in text:
+        missing_refs.append(rel)
+
+if missing_refs:
+    print("ERROR: User correction triage references missing from:", file=sys.stderr)
+    for rel in missing_refs:
+        print(f"- {rel}", file=sys.stderr)
+    raise SystemExit(1)
+
+print("User correction triage routing check passed.")
+PY
+
 run_check "Frontend design skill routing references" python - <<'PY'
 from pathlib import Path
 import sys
@@ -346,6 +386,25 @@ if missing:
 print("Story handoff lookup audit check passed.")
 PY
 
+run_check "Story handoff user correction triage audit" python - <<'PY'
+from pathlib import Path
+import sys
+
+story_handoff = Path(".ai/workflows/story-handoff.md").read_text(encoding="utf-8")
+required_tokens = (
+    "For narrow corrective feedback, run `.ai/workflows/user-correction-triage.md`",
+    "run `.ai/workflows/user-correction-triage.md` first when the feedback is a narrow correction or clarification",
+)
+missing = [token for token in required_tokens if token not in story_handoff]
+if missing:
+    print("ERROR: Story handoff user correction triage requirements missing:", file=sys.stderr)
+    for token in missing:
+        print(f"- {token}", file=sys.stderr)
+    raise SystemExit(1)
+
+print("Story handoff user correction triage check passed.")
+PY
+
 run_check "Parallel flight routing references" python - <<'PY'
 from pathlib import Path
 import sys
@@ -399,6 +458,42 @@ if missing:
     raise SystemExit(1)
 
 print("Git finalization routing check passed.")
+PY
+
+run_check "Git finalization workflow content" python - <<'PY'
+from pathlib import Path
+import sys
+
+git_finalization = Path(".ai/workflows/git-finalization.md").read_text(encoding="utf-8")
+required_tokens = (
+    "git fetch --all --prune",
+    "gh pr create --fill",
+    "gh pr merge --squash --delete-branch",
+    "remote sync status",
+    "branch cleanup status",
+)
+missing = [token for token in required_tokens if token not in git_finalization]
+if missing:
+    print("ERROR: Git finalization workflow requirements missing:", file=sys.stderr)
+    for token in missing:
+        print(f"- {token}", file=sys.stderr)
+    raise SystemExit(1)
+
+story_handoff = Path(".ai/workflows/story-handoff.md").read_text(encoding="utf-8")
+handoff_tokens = (
+    "Remote sync status recorded in handoff",
+    "PR URL and PR status recorded in handoff",
+    "Merge status recorded in handoff",
+    "Branch cleanup status recorded in handoff",
+)
+missing_handoff = [token for token in handoff_tokens if token not in story_handoff]
+if missing_handoff:
+    print("ERROR: Story handoff git evidence requirements missing:", file=sys.stderr)
+    for token in missing_handoff:
+        print(f"- {token}", file=sys.stderr)
+    raise SystemExit(1)
+
+print("Git finalization workflow content check passed.")
 PY
 
 run_check "Markdown link integrity (.ai + AGENTS/README)" python - <<'PY'

@@ -10,6 +10,8 @@
 - Completed FleetGraph presearch against the real Ship codebase instead of inventing a new data model.
 - Decided FleetGraph should stay provider-agnostic even though Ship already has Claude-specific routes and Bedrock integration.
 - Decided the FleetGraph MVP should use same-origin chat routes plus a background worker, with hybrid triggering and a REST normalization layer for mixed association shapes.
+- Decided narrow user corrections need their own explicit workflow route instead of being treated like full story reshaping by default.
+- Added a user-correction triage workflow that classifies blast radius before editing and limits low-blast-radius changes to the minimum affected surfaces.
 
 Record session-level technical decisions.
 

@@ -101,6 +101,44 @@
       "slot": "ai_arch",
       "status": "completed",
       "story_ref": "STACK-AGNOSTIC-01"
+    },
+    {
+      "branch": "codex/user-correction-triage",
+      "claimed_at": "2026-03-16T16:49:50Z",
+      "flight_id": "flight-user-correction-triage",
+      "lock_paths": [
+        ".ai",
+        ".clauderc",
+        ".cursorrules",
+        "AGENTS.md",
+        "scripts/check_ai_wiring.sh"
+      ],
+      "notes": "",
+      "owner": "codex",
+      "release_summary": "Added user correction triage workflow and wiring checks",
+      "released_at": "2026-03-16T16:55:01Z",
+      "slot": "ai_arch",
+      "status": "completed",
+      "story_ref": "USER-CORRECTION-TRIAGE"
+    },
+    {
+      "branch": "codex/user-correction-triage",
+      "claimed_at": "2026-03-16T16:59:02Z",
+      "flight_id": "flight-git-finalization-routing",
+      "lock_paths": [
+        ".ai",
+        ".clauderc",
+        ".cursorrules",
+        "AGENTS.md",
+        "scripts/check_ai_wiring.sh"
+      ],
+      "notes": "Add explicit remote sync, PR, merge, and branch cleanup routing to git finalization workflow",
+      "owner": "codex",
+      "release_summary": "Added remote sync, PR lifecycle, merge, and branch cleanup guidance to git finalization workflow",
+      "released_at": "2026-03-16T16:59:07Z",
+      "slot": "ai_arch",
+      "status": "completed",
+      "story_ref": "GIT-FINALIZATION-ROUTING"
     }
   ],
   "parallel_max_active_flights": 3,
@@ -111,6 +149,6 @@
     "docs": 2,
     "infra": 1
   },
-  "updated_at": "2026-03-07T07:36:12Z",
+  "updated_at": "2026-03-16T16:59:07Z",
   "version": 1
 }

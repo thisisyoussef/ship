@@ -1,8 +1,8 @@
 # Ship - Single Source of Truth
 
-**Last Updated**: 2026-03-15
-**Current Phase**: FleetGraph presearch complete, implementation pending
-**Active Sprint**: Pre-search and scaffolding
+**Last Updated**: 2026-03-16
+**Current Phase**: FleetGraph planning with workflow hardening
+**Active Sprint**: Pre-search, scaffolding, and harness refinement
 **Project Status**: Active
 
 ---
@@ -10,14 +10,14 @@
 ## Current Focus
 
 ### Active Task
-- **Title**: Complete FleetGraph presearch and lock the runtime shape before implementation
+- **Title**: Add a proportional user-correction triage route so small clarifications do not trigger oversized replanning
 - **Status**: In Progress
 - **Owner**: Codex
 
 ### Next Immediate Actions
-1. Translate `PRESEARCH.md` into the required sections in `FLEETGRAPH.md`.
-2. Scaffold same-origin FleetGraph API routes plus a background worker path.
-3. Start implementation only after the trigger model, HITL boundaries, and eval plan are fixed.
+1. Keep narrow corrective feedback bounded to the smallest affected surfaces.
+2. Escalate to full story gates only when a correction materially changes scope or architecture.
+3. Verify the new correction-triage route is wired across the agent entrypoints and handoff flow.
 
 ---
 
@@ -84,3 +84,4 @@ pnpm audit --prod
 3. `docs/assignments/fleetgraph/README.md`
 4. `.ai/docs/references/fleetgraph-prd.md`
 5. `.ai/agents/claude.md`
+6. `.ai/workflows/user-correction-triage.md` when user feedback is a narrow correction or clarification

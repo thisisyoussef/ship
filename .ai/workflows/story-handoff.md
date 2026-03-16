@@ -79,6 +79,7 @@ Use this checklist in your handoff message:
 10. **Feedback Intake (Required)**
 - [ ] Ask user for feedback explicitly
 - [ ] Capture feedback items as actionable bullets
+- [ ] For narrow corrective feedback, run `.ai/workflows/user-correction-triage.md` before reopening broad planning or spec work
 - [ ] Apply requested changes or document tradeoffs
 - [ ] Re-issue updated checklist if changes are made
 
@@ -95,6 +96,10 @@ Use this checklist in your handoff message:
 - [ ] Follow `.ai/workflows/git-finalization.md`
 - [ ] Commit hash recorded in handoff
 - [ ] Push confirmation recorded in handoff
+- [ ] Remote sync status recorded in handoff
+- [ ] PR URL and PR status recorded in handoff
+- [ ] Merge status recorded in handoff
+- [ ] Branch cleanup status recorded in handoff
 - [ ] `bash scripts/git_finalize_guard.sh` passed
 
 ---
@@ -141,6 +146,7 @@ Handoff is incomplete if this user audit section is missing.
 3. Treat user verification as a release gate for the story: no next story until user says proceed.
 4. If user provides feedback:
    - acknowledge each item,
+   - run `.ai/workflows/user-correction-triage.md` first when the feedback is a narrow correction or clarification,
    - implement changes,
    - return a revised checklist reflecting outcomes.
 5. If user says to proceed, start the next story by first running `agent-preflight`, then repeat this workflow.

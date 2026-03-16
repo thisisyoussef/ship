@@ -26,6 +26,11 @@
 - Gather local + external guidance for the chosen stack/providers
 - Publish lookup brief before tests/code edits
 
+### Step 0.6: Triage Narrow User Corrections
+- If the user gives a small corrective note or clarification during the story, run `.ai/workflows/user-correction-triage.md`
+- Classify blast radius before editing
+- Keep the response bounded unless the correction materially changes scope or architecture
+
 ### Step 0.7: Run Eval Design for AI-Behavior Changes
 - Run `.ai/workflows/eval-driven-development.md` when prompts, tools, routing, retrieval, graders, or other AI behavior changes
 - Publish eval brief before implementation

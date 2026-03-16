@@ -25,14 +25,16 @@ Ship is a production monorepo with:
 8. **For UI scope, apply the frontend design skill**: `.ai/skills/frontend-design.md`
 9. **For strategic or reusable UI prompting, create a UI prompt brief**: `.ai/templates/spec/UI_PROMPT_BRIEF_TEMPLATE.md`
 10. **ALWAYS run lookup before coding**: `.ai/workflows/story-lookup.md` (local docs + web best practices)
-11. **If the user gives a narrow corrective note, triage it first**: `.ai/workflows/user-correction-triage.md`
-12. **Coordinate flight slots before edits**: `.ai/workflows/parallel-flight.md` + `bash scripts/flight_slot.sh claim ...` (default mode is single)
-13. **For AI-behavior changes, run eval design first**: `.ai/workflows/eval-driven-development.md`
-14. **Before coding/review work**: read `.ai/docs/AGENTIC_ENGINEERING_PRINCIPLES.md`
-15. **Test-first**: Write tests before implementation (TDD)
-16. **Test prompt and review tasks neutrally**: ask for evidence, severity, and risk rather than assuming defects
-17. **File limits**: <250 lines max, target 150 lines
-18. **DRY principle**: Extract duplication into shared modules appropriate for the chosen stack
+11. **ALWAYS size the story after lookup**: `.ai/workflows/story-sizing.md`
+12. **Use the trivial lane only when the sizing workflow says the story is one-file, non-API, and non-AI**
+13. **If the user gives a narrow corrective note, triage it first**: `.ai/workflows/user-correction-triage.md`
+14. **Coordinate the single writer lock only for standard-lane work**: `.ai/workflows/parallel-flight.md` + `bash scripts/flight_slot.sh claim ...`
+15. **For AI-behavior changes, run eval design first**: `.ai/workflows/eval-driven-development.md`
+16. **Before coding/review work**: read `.ai/docs/AGENTIC_ENGINEERING_PRINCIPLES.md`
+17. **Test-first**: Write tests before implementation (TDD)
+18. **Test prompt and review tasks neutrally**: ask for evidence, severity, and risk rather than assuming defects
+19. **File limits**: <250 lines max, target 150 lines
+20. **DRY principle**: Extract duplication into shared modules appropriate for the chosen stack
 
 ## Code Standards
 - **Type hints**: Required on all functions
@@ -68,16 +70,18 @@ If changes touch `.ai/`, `AGENTS.md`, `.clauderc`, `.cursorrules`, or agent-cont
 ```bash
 bash scripts/check_ai_wiring.sh
 ```
+The pre-commit hook and finalization guard should also run this automatically for those diffs.
 
-## Flight Mode
-- Use `bash scripts/flight_slot.sh mode single` for normal one-flight development.
-- Use `bash scripts/flight_slot.sh mode parallel --max-active <N>` only when intentionally running multiple chats/agents.
-- Release each claimed flight at handoff with `bash scripts/flight_slot.sh release ...`.
+## Flight Lock Mode
+- Use `bash scripts/flight_slot.sh mode single` for the standard-lane single writer lock.
+- Parallel mode is retired until the repo actually needs real concurrent flight coordination.
+- Release each claimed lock at the combined completion gate with `bash scripts/flight_slot.sh release ...`.
 
-## End-of-Story Git Finalization (Required)
-- Run `.ai/workflows/git-finalization.md` before story handoff.
-- Ensure commit + push completed.
-- Run `bash scripts/git_finalize_guard.sh` and include its result in handoff.
+## End-of-Story Completion Gate (Required)
+- Run `.ai/workflows/story-handoff.md` first.
+- Include the finalization plan in the same packet as the user audit checklist.
+- After user approval, run `.ai/workflows/git-finalization.md`.
+- Run `bash scripts/git_finalize_guard.sh`; if finalization fails, route to `.ai/workflows/finalization-recovery.md`.
 
 ## AI Agent Delegation
 For specialized tasks, check:

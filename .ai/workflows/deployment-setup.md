@@ -4,24 +4,30 @@
 
 ---
 
-## Phase 0: Setup and Research (Mandatory)
+## Phase 0: Setup and Research
 
-### Step 0: Run Preflight
+### Step 0.1: Run Preflight
 - Run `agent-preflight`
-- Deliver concise preflight brief before deployment changes
+- Deliver a concise preflight brief before deployment changes
 
-### Step 0.3: Coordinate Flight Slot
-- Run `.ai/workflows/parallel-flight.md`
-- Claim a `deploy` or `infra` slot before edits
-
-### Step 0.5: Run Story Lookup
+### Step 0.2: Run Story Lookup
 - Run `.ai/workflows/story-lookup.md`
 - Gather provider-specific guidance for the selected hosting/runtime platforms
-- Publish lookup brief before changes
+- Publish the lookup brief before changes
 
-### Step 0.6: Confirm the Real Provider Baseline
-- Verify the active deployment contract from repo docs and scripts instead of guessing from neighboring repos or historical artifacts.
-- For Ship today, the canonical deployment baseline is:
+### Step 0.3: Size the Story
+- Run `.ai/workflows/story-sizing.md`
+- Publish `lane: trivial` or `lane: standard`
+- Deployment and infra stories usually remain `standard`; only one-file documentation/config clarifications should take the trivial lane
+
+### Step 0.4: Standard-Lane Lock Only
+If `lane: standard`:
+- run `.ai/workflows/parallel-flight.md`
+- claim a `deploy` or `infra` single writer lock before edits
+
+### Step 0.5: Confirm the Real Provider Baseline
+- Verify the active deployment contract from repo docs and scripts instead of guessing from neighboring repos or historical artifacts
+- For Ship today, the canonical production baseline is:
   - API/runtime: AWS Elastic Beanstalk
   - Frontend/static: S3 + CloudFront
   - Infra/config/secrets: AWS-native scripts, SSM, and related services
@@ -29,14 +35,11 @@
   - Render service: `ship-demo`
   - URL: `https://ship-demo.onrender.com/`
   - Repo-owned deploy path: `scripts/deploy-render-demo.sh`
-- Treat other Render, Vercel, or Railway references as non-canonical unless the live repo docs and scripts are updated to say otherwise.
-- Treat legacy/manual demo URLs as non-canonical unless they are backed by current repo-owned config, scripts, or workflows.
 
-### Step 0.7: Verify Deployment Access Early
-- Before promising a deploy, verify the required provider access is available from the current machine/session.
-- For Ship's default deploy path, confirm AWS credentials and required tooling first.
-- For Ship's sanctioned public demo path, confirm Render CLI authentication and access to the `ship-demo` service first.
-- If access is missing, do not imply the change was deployed. Record the exact blocker and continue with deploy-readiness work only.
+### Step 0.6: Verify Deployment Access Early
+- Before promising a deploy, verify the required provider access is available from the current machine/session
+- If access is missing, do not imply the change was deployed
+- Record the exact blocker and continue with deploy-readiness work only
 
 ---
 
@@ -45,48 +48,40 @@
 ### Step 1: Record Deployment Decisions
 - Production environments needed
 - Preview environments needed
-- Single service vs multi-service topology
-- Build and start commands
-- Health-check path or readiness mechanism
+- Service topology
+- Build/start commands
+- Health checks
 - Rollback strategy
 
 ### Step 2: Record Provider Choices
 - Backend/runtime host
-- Frontend/static host (if applicable)
+- Frontend/static host
 - Data/service providers
 - Secrets/config management mechanism
-
-Do not assume a hosting provider before setup has selected one.
 
 ---
 
 ## Phase 2: Configure the Chosen Providers
 
 ### Step 3: Create Provider Config
-Add the minimum config required by the selected providers:
-- build settings
-- start command
-- health checks
-- environment variables
-- preview/production routing
+- Add the minimum config required by the selected providers
 
 ### Step 4: Configure Secrets
 - Environment variables only
 - No secrets committed to the repo
-- `.env.example` kept current when applicable
+- Keep `.env.example` current when applicable
 
-### Step 5: Configure Git-Based Deploy Flow
+### Step 5: Configure the Git-Based Deploy Flow
 - Choose a single production deployment path
 - Prefer Git-linked auto-deploy where the provider supports it
-- For Ship's public demo, keep the repo-owned Render deploy command current: `scripts/deploy-render-demo.sh`
-- Document any emergency-only manual deploy commands separately
+- For Ship's public demo, keep `scripts/deploy-render-demo.sh` current
 
 ---
 
 ## Phase 3: Validate the Deployment Path
 
 ### Step 6: Verify Required Checks Before Release
-Run the project-specific validation commands defined during setup.
+- Run the project-specific validation commands defined during setup
 
 ### Step 7: Verify Runtime Health
 - Health or readiness endpoint
@@ -94,19 +89,18 @@ Run the project-specific validation commands defined during setup.
 - Logs/metrics/traces visible
 - Rollback path documented and tested if practical
 
-### Step 7.5: Record Deployment Execution Status
+### Step 8: Record Deployment Execution Status
 - Explicitly capture one of:
-  - `deployed` with environment and command evidence,
-  - `not deployed` with rationale,
-  - `blocked` with the missing credential/access/prerequisite.
-- For Ship deploy-relevant stories, include both production-path review status and public-demo Render status.
-- Do not leave deployment state implied.
+  - `deployed` with environment and command evidence
+  - `not deployed` with rationale
+  - `blocked` with the missing credential/access/prerequisite
+- For Ship deploy-relevant stories, include both production-path review status and public-demo Render status
 
 ---
 
-## Phase 4: Handoff
+## Phase 4: Completion
 
-### Step 8: Document the Final Deployment Contract
+### Step 9: Document the Final Deployment Contract
 - Chosen providers
 - Environments
 - Required secrets
@@ -114,10 +108,11 @@ Run the project-specific validation commands defined during setup.
 - Rollback method
 - Production vs preview behavior
 
-### Step 9: Finalize
+### Step 10: Run the Combined Completion Gate
 - Run `.ai/workflows/story-handoff.md`
-- Run `.ai/workflows/git-finalization.md`
-- Release the claimed flight slot
+- Include the finalization plan in the same packet as the user audit checklist
+- Release the single writer lock if this story claimed it
+- After user approval, run `.ai/workflows/git-finalization.md`
 
 ---
 
@@ -127,5 +122,5 @@ Run the project-specific validation commands defined during setup.
 - Config and secrets management are in place
 - Validation and health checks pass
 - Rollback path is documented
-- Handoff includes the runtime/deployment audit
+- Combined completion gate includes the runtime/deployment audit
 - Deployment execution status is explicit

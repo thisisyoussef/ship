@@ -153,7 +153,7 @@ Record durable architecture decisions.
 
 - **ADR-ID**: ADR-0022
 - **Date**: 2026-03-16
-- **Context**: The harness finalization workflow was defaulting to squash merges even though the repo allows merge commits and the team expects GitHub history to show normal merged PR lineage.
-- **Decision**: Change the default story-finalization path to merge commits (`gh pr merge --merge --delete-branch`) and treat squash or rebase as explicit exceptions requested by the user.
-- **Alternatives Considered**: Keep squash as the default and rely on PR pages for lineage; switch to rebase-by-default; leave the merge method implicit and let each story pick ad hoc.
-- **Consequences**: GitHub history will preserve clearer PR lineage by default, but the finalization workflow and wiring checks must stay aligned so agents do not silently drift back to squash-first behavior.
+- **Context**: The harness still treated trivial and complex stories the same, carried a multi-flight board that was heavier than current operating scale, relied on remembered AI wiring checks, allowed repeated correction loops without a circuit breaker, split review from finalization into two user-facing gates, and had no named recovery path when finalization failed.
+- **Decision**: Add a post-lookup story-sizing gate with a trivial fast-track lane, retire the current parallel board in favor of one single writer lock, run AI wiring checks automatically from pre-commit and the finalization guard, add a persisted triage counter with a re-scope circuit breaker, treat story handoff as the single completion gate that includes the finalization plan, and route finalization failures into a named recovery workflow.
+- **Alternatives Considered**: Keep the full ceremony for every story; preserve the richer flight-board state machine until it proved painful in practice; rely on manual `check_ai_wiring.sh` runs; keep handoff and finalization as separate human-touching steps; improvise on merge or guard failures.
+- **Consequences**: Trivial work becomes cheaper, standard work keeps a lighter coordination model, AI wiring drift fails earlier, repeated correction churn escalates sooner, and finalization becomes more resilient through an explicit rollback/recovery path.

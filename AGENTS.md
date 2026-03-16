@@ -30,6 +30,13 @@ Before implementing **any new story**, run `.ai/workflows/story-lookup.md` and p
 
 ---
 
+## Story Sizing Gate (Required)
+
+After story lookup and before implementation planning, run `.ai/workflows/story-sizing.md`.
+Use the `trivial` lane only when the change is bounded to one file, does not change an API/public contract, and does not change AI behavior. Trivial stories go directly to focused TDD or the bounded edit plus the combined completion gate; standard stories continue through the normal lifecycle gates.
+
+---
+
 ## User Correction Triage Gate (Required for Narrow Feedback and Clarifications)
 
 When the user gives a narrow corrective note during a story or after handoff, run `.ai/workflows/user-correction-triage.md`, classify blast radius first, and keep low-blast-radius fixes bounded.
@@ -50,9 +57,9 @@ Follow the workflow and `.ai/templates/spec/` for the exact artifact set. When t
 
 ---
 
-## Flight Slot Coordination (Flexible Single/Parallel)
+## Flight Lock Coordination (Standard Lane Only)
 
-Before implementation edits for a flight, run `.ai/workflows/parallel-flight.md`, claim with `bash scripts/flight_slot.sh claim ...`, and release with `bash scripts/flight_slot.sh release ...`. Default mode remains `single`.
+For standard-lane implementation stories, run `.ai/workflows/parallel-flight.md`, claim the single writer lock with `bash scripts/flight_slot.sh claim ...`, and release it with `bash scripts/flight_slot.sh release ...`. Trivial-lane stories skip this lock entirely.
 
 ---
 
@@ -77,13 +84,13 @@ Before starting work:
   - `not deployed` with reason,
   - or `blocked` with the exact missing access or prerequisite.
 - For deploy-relevant stories, refresh the sanctioned Render public demo after merge with `scripts/deploy-render-demo.sh <commit>` unless the handoff explicitly records why that demo deploy is `blocked`.
-While working and before merge, follow `.ai/workflows/git-finalization.md` for commit shape, push/PR flow, writable-remote fallback, merge-commit default behavior, merge readiness, remote re-sync, and cleanup.
+While working and before merge, follow `.ai/workflows/git-finalization.md` for commit shape, push/PR flow, writable-remote fallback, merge readiness, remote re-sync, and cleanup.
 
 ---
 
 ## Git Finalization Gate (Required)
 
-Before final story handoff, run `.ai/workflows/git-finalization.md`. Use merge commits by default so PR lineage stays visible in GitHub history; only use squash or rebase when the user explicitly asks for it. Do not commit, push, open a PR, or merge until the user has completed the User Audit Checklist and explicitly approved finalization, and do not mark handoff complete until `bash scripts/git_finalize_guard.sh` passes.
+Use `.ai/workflows/story-handoff.md` as the single user-facing completion gate. It must include the finalization plan, proposed commit message, deploy status, and recovery path in the same review packet as the **User Audit Checklist (Run This Now)**. After the user explicitly approves that completion gate, run `.ai/workflows/git-finalization.md`. Use merge commits by default so PR lineage stays visible in GitHub history; only use squash or rebase when the user explicitly asks for it. Do not commit, push, open a PR, or merge before that approval, and do not mark the story finalized until `bash scripts/git_finalize_guard.sh` passes.
 
 ---
 
@@ -95,12 +102,14 @@ Before final story handoff, run `.ai/workflows/git-finalization.md`. Use merge c
 - Security review -> `.ai/workflows/security-review.md`
 - Deployment/CI-CD -> `.ai/workflows/deployment-setup.md`
 - Git finalization -> `.ai/workflows/git-finalization.md`
-- Flight coordination (single/parallel) -> `.ai/workflows/parallel-flight.md`
+- Flight lock coordination -> `.ai/workflows/parallel-flight.md`
 - Story lookup -> `.ai/workflows/story-lookup.md`
+- Story sizing -> `.ai/workflows/story-sizing.md`
 - Narrow user correction triage -> `.ai/workflows/user-correction-triage.md`
 - Eval-driven development -> `.ai/workflows/eval-driven-development.md`
 - AI architecture/orchestrator changes -> `.ai/workflows/ai-architecture-change.md`
 - Feature spec scaffolding -> `.ai/workflows/spec-driven-delivery.md`
+- Finalization recovery -> `.ai/workflows/finalization-recovery.md`
 
 ## Agentic Engineering Compression
 
@@ -136,7 +145,7 @@ Follow `.ai/codex.md`, `.claude/CLAUDE.md`, and the active workflow for the curr
 
 ## Post-Story User Audit Checklist (Required)
 
-At the end of every story, follow `.ai/workflows/story-handoff.md` and include a **User Audit Checklist (Run This Now)** section. Run `bash scripts/check_ai_wiring.sh` only when AI-architecture files are changed (per `.ai/workflows/ai-architecture-change.md`), and wait for explicit user audit approval before final git actions or the next story.
+At the end of every story, follow `.ai/workflows/story-handoff.md` and include a **User Audit Checklist (Run This Now)** section plus the finalization plan in the same completion gate. Run `bash scripts/check_ai_wiring.sh` only when AI-architecture files are changed (per `.ai/workflows/ai-architecture-change.md`); the hook and finalization guard will also run it automatically for those changes. Wait for explicit user approval before final git actions or the next story.
 
 ---
 

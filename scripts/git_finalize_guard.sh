@@ -10,6 +10,7 @@ cd "${ROOT_DIR}"
 
 fail() {
   echo "ERROR: $1" >&2
+  echo "Recovery: see .ai/workflows/finalization-recovery.md" >&2
   exit 1
 }
 
@@ -43,6 +44,16 @@ fi
 
 if [[ "${behind_count}" != "0" ]]; then
   fail "branch is behind upstream by ${behind_count} commit(s); re-sync required"
+fi
+
+base_ref="origin/master"
+if ! git rev-parse --verify --quiet "${base_ref}" >/dev/null; then
+  base_ref="master"
+fi
+
+if bash scripts/ai_arch_changed.sh --branch-base "${base_ref}" >/dev/null 2>&1; then
+  echo "AI-architecture changes detected; running wiring audit..."
+  bash scripts/check_ai_wiring.sh || fail "AI wiring audit failed for architecture changes"
 fi
 
 commit_sha="$(git rev-parse --short HEAD)"

@@ -50,7 +50,12 @@
 - Decided the minimal harness trim should keep filenames, workflows, and scripts intact while removing repeated prose from startup docs.
 - Decided Codex should become the canonical orchestrator and Claude/Cursor entrypoints should defer to Codex as compatibility mirrors instead of carrying duplicate master contracts.
 - Replaced repeated validation-command, memory-update, and handoff prose in startup docs with references to the canonical workflow files.
-- Decided the harness should use merge commits by default during PR finalization so GitHub history preserves visible merged-PR lineage.
+- Decided every story should run a post-lookup sizing gate so one-file, non-API, non-AI work can take a trivial fast-track lane instead of paying the full ceremony cost.
+- Decided the current multi-flight board is overbuilt for Ship's current scale and should collapse into a single writer lock backed by `.ai/state/flight-lock.json`.
+- Decided AI-architecture diffs should trigger `check_ai_wiring.sh` automatically in pre-commit and again in `git_finalize_guard.sh` instead of relying on memory.
+- Decided user-correction triage needs a persisted loop counter with a circuit breaker so repeated patch cycles escalate as likely re-scope problems.
+- Decided story handoff should become the single user-facing completion gate by including the finalization plan in the same packet as the user audit checklist.
+- Decided finalization failures must route into a named recovery workflow rather than ending the story as if completion succeeded.
 
 Record session-level technical decisions.
 

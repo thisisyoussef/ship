@@ -1,162 +1,83 @@
-# Story Handoff Workflow (Mandatory)
+# Story Handoff Workflow (Combined Completion Gate)
 
-**Purpose**: After every completed story, deliver a user-run verification checklist (not just internal audit notes), capture feedback, and incorporate changes before proceeding.
+**Purpose**: Deliver one user-facing completion packet that combines verification evidence, manual audit guidance, and the finalization plan so approval and finalization happen in one clean gate.
 
 ---
 
 ## When To Run
 
-Run this workflow at the end of **every** story, regardless of story type:
+Run this workflow at the end of every story, regardless of story type:
 - feature
 - bug fix
 - performance
 - security
 - deployment/ops
+- AI-architecture changes
 
 ---
 
-## Handoff Checklist Template
+## Required Completion Gate Shape
 
-Use this checklist in your handoff message:
+Every completion gate must include:
+- `Current Status`
+- `Testing Brief`
+- `Decision / Design Brief`
+- `Visible Proof`
+- `Completion Plan`
+- `User Audit Checklist (Run This Now)`
 
-1. **Story Metadata**
-- [ ] Story ID and title
-- [ ] Status (`Complete`, `Partially Complete`, `Blocked`)
-- [ ] Scope completed vs deferred
-
-2. **Acceptance Criteria Audit**
-- [ ] AC-1 with explicit pass/fail evidence
-- [ ] AC-2 with explicit pass/fail evidence
-- [ ] AC-3+ with explicit pass/fail evidence
-- [ ] Edge cases covered (list)
-
-3. **Lookup Evidence Audit**
-- [ ] Lookup brief delivered before implementation
-- [ ] Local sources used (paths listed)
-- [ ] External sources used (links listed)
-- [ ] Best-practice takeaways mapped to implementation/tests
-
-4. **Code and Tests Audit**
-- [ ] Files changed (with paths)
-- [ ] New/updated tests and what they prove
-- [ ] Validation commands run and outcomes
-- [ ] Coverage and quality-gate status
-
-5. **Eval Evidence Audit (Required for AI Stories)**
-- [ ] Eval brief delivered before implementation
-- [ ] Objective and decision boundary recorded
-- [ ] Dataset slices listed (production-like, edge, adversarial)
-- [ ] Metrics/evaluator types listed
-- [ ] Baseline vs current comparison recorded
-- [ ] Human-calibration or reviewer check documented when automated judging is used
-
-6. **Security and Reliability Audit**
-- [ ] Secret handling validated
-- [ ] Error handling/logging safety validated
-- [ ] Notable risks or residual concerns
-
-7. **Deployment/Runtime Audit**
-- [ ] Local runtime verification
-- [ ] Production verification (if applicable)
-- [ ] Observability/logging checks (if applicable)
-- [ ] Deployment impact review recorded against the real Ship deploy contract
-- [ ] Public demo Render status recorded when the story affects deployed runtime behavior
-- [ ] Deploy scripts/config/docs updated or explicitly marked `deployment impact: none`
-- [ ] Deployment execution status recorded as `deployed`, `not deployed`, or `blocked`
-- [ ] Environment and command evidence listed when deployment occurred
-
-8. **Documentation and Memory Audit**
-- [ ] Story file updated
-- [ ] Smoke-test record updated
-- [ ] SSOT updated
-- [ ] Memory bank updates completed
-
-9. **User Audit Checklist (Required)**
-- [ ] List exactly what the user should test manually (3-7 steps)
-- [ ] Provide copy/paste commands and URLs
-- [ ] Provide explicit expected result for each step
-- [ ] Provide "if this fails, check" hint for each step
-- [ ] State what changed vs what should remain unchanged
-- [ ] Include estimated verification time
-- [ ] For UI stories: include visual-state checks (default/loading/error/interactive states) and accessibility spot checks
-- [ ] For UI stories: include design-language conformance checks (principles applied + precedent updates)
-
-10. **Feedback Intake (Required)**
-- [ ] Ask user for feedback explicitly
-- [ ] Capture feedback items as actionable bullets
-- [ ] For narrow corrective feedback, run `.ai/workflows/user-correction-triage.md` before reopening broad planning or spec work
-- [ ] Apply requested changes or document tradeoffs
-- [ ] Re-issue updated checklist if changes are made
-
-11. **AI Architecture Audit (Conditional)**
-- [ ] Run only when AI-architecture files changed
-- [ ] Follow `.ai/workflows/ai-architecture-change.md`
-- [ ] Include `check_ai_wiring.sh` outcome in handoff only for those changes
-
-12. **Flight Slot Audit (Required When Claimed)**
-- [ ] If a flight slot was claimed, release it at handoff using `bash scripts/flight_slot.sh release ...`
-- [ ] Include final flight status (`completed`, `blocked`, `cancelled`)
-
-13. **Git Finalization Audit (Required)**
-- [ ] Follow `.ai/workflows/git-finalization.md`
-- [ ] Story branch transition recorded in handoff
-- [ ] Pre-story remote sync status recorded in handoff
-- [ ] Commit hash recorded in handoff
-- [ ] Push confirmation recorded in handoff
-- [ ] Remote sync status recorded in handoff
-- [ ] Deployment impact review status recorded in handoff
-- [ ] Deployment execution status recorded in handoff
-- [ ] Public demo Render deploy status recorded in handoff when applicable
-- [ ] PR URL and PR status recorded in handoff
-- [ ] Merge status recorded in handoff
-- [ ] Branch cleanup status recorded in handoff
-- [ ] `bash scripts/git_finalize_guard.sh` passed
+The completion gate is incomplete if any of these sections are missing.
 
 ---
 
-## Required User Audit Pack Format
+## Completion Plan Requirements
 
-Every handoff must include this section verbatim structure:
+The completion gate must include the finalization plan in the same packet as the user audit:
+- current branch
+- target base branch
+- writable remote
+- proposed commit message
+- expected deploy status: `deployed`, `not deployed`, or `blocked`
+- public demo status when deploy-relevant
+- whether AI-architecture checks were required
+- recovery path: `.ai/workflows/finalization-recovery.md`
+
+Do not make the user go through a second human-facing git checklist after this packet.
+
+---
+
+## User Audit Checklist Requirements
+
+Use this exact section heading:
 
 ```markdown
 ## User Audit Checklist (Run This Now)
-
-1. [Goal of check]
-Command/URL:
-Expected:
-If this fails:
-
-2. [Goal of check]
-Command/URL:
-Expected:
-If this fails:
-
-3. [Goal of check]
-Command/URL:
-Expected:
-If this fails:
-
-Changed in this story:
-- [...]
-
-Should remain unchanged:
-- [...]
-
-Estimated audit time: [X minutes]
 ```
 
-Handoff is incomplete if this user audit section is missing.
+Checklist rules:
+- focus on manual judgment, visible proof, or approval decisions
+- do not offload routine terminal verification Codex could run itself
+- use commands only when the user truly must run them
+- include expected outcome and failure hint for each step
+- include `Changed in this story`
+- include `Should remain unchanged`
+- include `Estimated audit time`
 
 ---
 
-## Feedback Loop Rules
+## Feedback and Approval Rules
 
-1. Do not silently move to the next story after completion.
-2. Always invite audit feedback at the end of handoff.
-3. Treat user verification as a release gate for the story: no next story until user says proceed.
-4. If user provides feedback:
-   - acknowledge each item,
-   - run `.ai/workflows/user-correction-triage.md` first when the feedback is a narrow correction or clarification,
-   - implement changes,
-   - return a revised checklist reflecting outcomes.
-5. If user says to proceed, start the next story by first running `agent-preflight`, then repeat this workflow.
+1. Treat this completion gate as the only user-facing approval step before final git actions.
+2. If the user gives narrow corrective feedback, run `.ai/workflows/user-correction-triage.md` before broadening the work.
+3. If the diff changes materially after feedback, issue a revised completion gate.
+4. When the user explicitly approves, move directly into `.ai/workflows/git-finalization.md`.
+5. If finalization fails, stop and route to `.ai/workflows/finalization-recovery.md`, then return here with updated status.
+
+---
+
+## Exit Criteria
+
+- Completion evidence summarized clearly
+- Finalization plan included in the same packet as the user audit
+- User audit focused on manual judgment rather than routine commands
+- Explicit user approval awaited before git finalization

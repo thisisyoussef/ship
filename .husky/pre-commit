@@ -8,6 +8,14 @@ if [ -f "./scripts/check-api-coverage.sh" ]; then
   ./scripts/check-api-coverage.sh --staged
 fi
 
+# Run AI wiring audit automatically when staged files touch the harness contract
+if [ -f "./scripts/ai_arch_changed.sh" ] && [ -f "./scripts/check_ai_wiring.sh" ]; then
+  if bash ./scripts/ai_arch_changed.sh --staged >/dev/null 2>&1; then
+    echo "Running AI wiring audit for staged harness changes"
+    bash ./scripts/check_ai_wiring.sh
+  fi
+fi
+
 # Open source compliance checks (secrets scan + AI analysis)
 if command -v comply &> /dev/null; then
   # NOTE: --skip-trivy is temporary workaround for compliance-toolkit bug

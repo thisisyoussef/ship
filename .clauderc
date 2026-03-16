@@ -18,18 +18,19 @@
       "Check .ai/memory/project/patterns.md for prior solutions",
       "Check .ai/memory/project/anti-patterns.md for mistakes to avoid",
       "Search .ai/docs/references/ for relevant documentation",
+      "Run .ai/workflows/story-lookup.md, then .ai/workflows/story-sizing.md, before implementation planning",
       "For feature stories, run .ai/workflows/spec-driven-delivery.md, review .ai/docs/research/spec-driven-tdd-playbook.md and .ai/docs/design/DESIGN_PHILOSOPHY_AND_LANGUAGE.md (for UI scope), and use .ai/templates/spec/ artifacts before writing tests/code",
       "If UI is in scope, apply .ai/skills/frontend-design.md and translate visual intent into concrete typography, spacing, color, depth, and motion constraints",
       "If UI direction is strategic, reusable, or multi-step, create a .ai/templates/spec/UI_PROMPT_BRIEF_TEMPLATE.md artifact using WIRE or WIRE+FRAME structure before implementation",
-      "Run .ai/workflows/parallel-flight.md and claim a flight slot before implementation edits (default single mode)",
-      "Run .ai/workflows/story-lookup.md for local + external best-practice lookup before implementation",
+      "Use the trivial lane only when the story-sizing workflow says the change is one-file, non-API, and non-AI; otherwise stay on the standard lane",
+      "Run .ai/workflows/parallel-flight.md and claim the single writer lock only for standard-lane implementation edits",
       "If the user provides a narrow corrective note or clarification, run .ai/workflows/user-correction-triage.md and classify blast radius before expanding scope",
       "If the story changes prompts, retrieval, tools, routing, graders, or other AI behavior, run .ai/workflows/eval-driven-development.md and define objective, dataset, metrics, thresholds, and regression plan before implementation",
       "Use explicit completion criteria and avoid ending early when checks are unresolved",
       "For discovery/review tasks, avoid outcome-biased phrasing; request evidence and severity/risk first"
     ],
     "beforeHandoff": [
-      "Run .ai/workflows/git-finalization.md and ensure scripts/git_finalize_guard.sh passes"
+      "Run .ai/workflows/story-handoff.md as the combined completion gate; after user approval, run .ai/workflows/git-finalization.md and ensure scripts/git_finalize_guard.sh passes"
     ],
     "tdd": {
       "required": true,
@@ -65,10 +66,12 @@
     "specDriven": ".ai/workflows/spec-driven-delivery.md",
     "gitFinalization": ".ai/workflows/git-finalization.md",
     "parallelFlight": ".ai/workflows/parallel-flight.md",
+    "storySizing": ".ai/workflows/story-sizing.md",
     "userCorrectionTriage": ".ai/workflows/user-correction-triage.md",
     "evalDriven": ".ai/workflows/eval-driven-development.md",
     "aiArchitecture": ".ai/workflows/ai-architecture-change.md",
-    "lookup": ".ai/workflows/story-lookup.md"
+    "lookup": ".ai/workflows/story-lookup.md",
+    "finalizationRecovery": ".ai/workflows/finalization-recovery.md"
   },
   "skills": {
     "frontendDesign": ".ai/skills/frontend-design.md"

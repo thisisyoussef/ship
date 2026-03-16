@@ -4,28 +4,33 @@
 
 ---
 
-## Phase 0: Story Preflight (Mandatory)
+## Phase 0: Story Preflight and Routing
 
-### Step 0: Run Preflight Before Security Review
-- Run `agent-preflight` skill
-- Deliver concise preflight brief before review/fixes
+### Step 0.1: Run Preflight Before Security Review
+- Run `agent-preflight`
+- Deliver a concise preflight brief before review/fixes
 
-### Step 0.3: Coordinate Flight Slot (Mandatory for Implementation Flights)
-- Run `.ai/workflows/parallel-flight.md`
-- Claim slot via `bash scripts/flight_slot.sh claim ...`
-- Keep default `single` mode unless intentionally running parallel chats/agents
-
-### Step 0.5: Run Story Lookup Before Security Review
+### Step 0.2: Run Story Lookup Before Security Review
 - Run `.ai/workflows/story-lookup.md`
-- Gather local + external security best practices (framework/provider/deployment docs)
-- Publish concise lookup brief before audit/fixes
+- Gather local + external security best practices
+- Publish the lookup brief before audit/fixes
+
+### Step 0.3: Size the Story
+- Run `.ai/workflows/story-sizing.md`
+- Publish `lane: trivial` or `lane: standard`
+- Most security reviews remain `standard`; only bounded one-file mechanical corrections should take the trivial lane
+
+### Step 0.4: Standard-Lane Lock Only
+If `lane: standard`:
+- run `.ai/workflows/parallel-flight.md`
+- claim the single writer lock via `bash scripts/flight_slot.sh claim ...`
 
 ---
 
 ## Phase 1: Scope
 
 ### Step 1: Identify Attack Surface
-- External inputs (API/CLI/files)
+- External inputs
 - Secrets and credentials handling
 - Data stores and external provider calls
 - Deployment/runtime configuration
@@ -34,17 +39,14 @@
 - Code artifacts
 - Query payloads
 - Logs/traces
-- Any user-linked metadata
+- User-linked metadata
 
 ---
 
 ## Phase 2: Review
 
 ### Step 3: Run Automated Checks
-```bash
-pnpm audit --prod
-pnpm audit --prod
-```
+- Run the project-specific security and dependency checks required by the active workflow
 
 ### Step 4: Manual Checklist Pass
 - Input validation present and bounded
@@ -74,25 +76,31 @@ pnpm audit --prod
 ## Phase 4: Remediation
 
 ### Step 7: Fix Findings by Severity
-- Critical/High before release
+- Critical or High before release
 - Medium with tracked debt if justified
 - Low documented with rationale
 
 ### Step 8: Document Outcome
-- Add review summary to `.ai/memory/session/decisions-today.md`
+- Add the review summary to `.ai/memory/session/decisions-today.md`
 - Log durable decisions in `.ai/memory/project/architecture.md`
 - Update SSOT if release status changes
 
-### Step 9: Finalize Git State (Mandatory)
-- Run `.ai/workflows/git-finalization.md`
-- Ensure commit + push complete
-- Ensure `bash scripts/git_finalize_guard.sh` passes
+---
+
+## Phase 5: Completion
+
+### Step 9: Run the Combined Completion Gate
+- Run `.ai/workflows/story-handoff.md`
+- Include the finalization plan in the same packet as the user audit checklist
+- Release the single writer lock if this story claimed it
+- After user approval, run `.ai/workflows/git-finalization.md`
 
 ---
 
 ## Exit Criteria
-- No unresolved critical/high issues
+
+- No unresolved critical or high issues
 - Security checklist complete
 - Evidence recorded for auditability
-- Story handoff checklist delivered with **User Audit Checklist (Run This Now)** and user feedback ingested (`.ai/workflows/story-handoff.md`)
-- Claimed flight slot released via `bash scripts/flight_slot.sh release ...`
+- Combined completion gate delivered with **User Audit Checklist (Run This Now)** and user feedback ingested
+- Claimed single writer lock released when standard lane was used

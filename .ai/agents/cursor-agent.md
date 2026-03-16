@@ -37,6 +37,12 @@ Before implementing any story:
 2. Complete local + external docs lookup
 3. Deliver concise lookup brief before tests/code edits
 
+## Story Sizing Gate (Required)
+After story lookup and before implementation planning:
+1. Run `.ai/workflows/story-sizing.md`
+2. Publish `lane: trivial` or `lane: standard`
+3. Skip spec/eval/flight only when the workflow says the story is truly trivial
+
 ## User Correction Triage Gate (Required for Narrow Corrections)
 If the user gives a targeted corrective note or clarification during the story:
 1. Run `.ai/workflows/user-correction-triage.md`
@@ -49,17 +55,16 @@ Before changing prompts, retrieval, tools, routing, handoffs, graders, or model-
 2. Define eval objective, dataset slices, metrics, and thresholds
 3. Deliver concise eval brief before tests/code edits
 
-## Flight Slot Coordination (Flexible Single/Parallel)
-Before implementation edits for a flight:
+## Flight Lock Coordination (Standard Lane Only)
+Before implementation edits for a standard-lane story:
 1. Run `.ai/workflows/parallel-flight.md`
 2. Claim slot with `bash scripts/flight_slot.sh claim ...`
-3. Use default `single` mode for normal flow; enable `parallel` mode only for intentional multi-chat execution
+3. Use the single writer lock only; trivial-lane stories skip it
 
 ## Git Finalization Gate (Required)
-Before final story handoff:
-1. Run `.ai/workflows/git-finalization.md`
-2. Confirm commit + push are complete
-3. Run `bash scripts/git_finalize_guard.sh` and include result in handoff
+1. Use `.ai/workflows/story-handoff.md` as the combined completion gate
+2. After user approval, run `.ai/workflows/git-finalization.md`
+3. Run `bash scripts/git_finalize_guard.sh`; if finalization fails, route to `.ai/workflows/finalization-recovery.md`
 
 ## Task Routing
 - Feature: `.ai/workflows/feature-development.md`
@@ -68,13 +73,15 @@ Before final story handoff:
 - Security: `.ai/workflows/security-review.md`
 - Deployment: `.ai/workflows/deployment-setup.md`
 - Git finalization: `.ai/workflows/git-finalization.md`
-- Flight coordination: `.ai/workflows/parallel-flight.md`
+- Flight lock coordination: `.ai/workflows/parallel-flight.md`
 - AI architecture/orchestrator: `.ai/workflows/ai-architecture-change.md`
 - Story lookup: `.ai/workflows/story-lookup.md`
+- Story sizing: `.ai/workflows/story-sizing.md`
 - Narrow user correction triage: `.ai/workflows/user-correction-triage.md`
 - Eval-driven development: `.ai/workflows/eval-driven-development.md`
 - Spec-driven delivery: `.ai/workflows/spec-driven-delivery.md`
-- Story handoff: `.ai/workflows/story-handoff.md`
+- Story completion gate: `.ai/workflows/story-handoff.md`
+- Finalization recovery: `.ai/workflows/finalization-recovery.md`
 - Frontend design skill (UI only): `.ai/skills/frontend-design.md`
 
 ## Quality Gates
@@ -92,4 +99,4 @@ Cursor must follow the same standards in:
 Follow `.ai/codex.md` for the standard memory-update set after work.
 
 ## Post-Story User Audit Handoff (Required)
-After each story completion, follow `.ai/workflows/story-handoff.md`, include a **User Audit Checklist (Run This Now)**, run `.ai/workflows/ai-architecture-change.md` when needed, release `bash scripts/flight_slot.sh`, run `.ai/workflows/git-finalization.md`, and wait for user feedback before the next story.
+After each story completion, follow `.ai/workflows/story-handoff.md`, include a **User Audit Checklist (Run This Now)** plus the finalization plan, run `.ai/workflows/ai-architecture-change.md` when needed, release `bash scripts/flight_slot.sh` when a standard-lane lock was claimed, and wait for user approval before `.ai/workflows/git-finalization.md`.

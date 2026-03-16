@@ -17,15 +17,16 @@ Then use as needed:
 ## Required Gates
 
 - New story preflight: run `agent-preflight`, publish the brief, sync remotes, and move to a fresh `codex/` branch before edits.
+- Story sizing: run `.ai/workflows/story-sizing.md` after `.ai/workflows/story-lookup.md`; trivial stories skip spec/eval/flight and go straight to focused TDD or the bounded edit plus the combined completion gate.
 - Feature stories: run `.ai/workflows/spec-driven-delivery.md`, apply `.ai/skills/spec-driven-development.md`, use `.ai/docs/research/spec-driven-tdd-playbook.md`, and create the required `.ai/templates/spec/` artifacts before coding.
 - UI scope: use `.ai/docs/design/DESIGN_PHILOSOPHY_AND_LANGUAGE.md`, `.ai/skills/frontend-design.md`, and `.ai/templates/spec/UI_PROMPT_BRIEF_TEMPLATE.md`.
 - Story lookup: run `.ai/workflows/story-lookup.md` and publish the local + external lookup brief before coding.
 - Narrow user corrections: run `.ai/workflows/user-correction-triage.md` before broadening scope.
 - AI-behavior changes: run `.ai/workflows/eval-driven-development.md` and publish the eval brief before coding.
-- Flight coordination: run `.ai/workflows/parallel-flight.md`, claim via `bash scripts/flight_slot.sh claim ...`, and release via `bash scripts/flight_slot.sh release ...`.
-- Story finish: run `.ai/workflows/story-handoff.md`.
-- Git finalization: run `.ai/workflows/git-finalization.md`; use merge commits by default unless the user explicitly requests squash or rebase, and story completion requires a passing `bash scripts/git_finalize_guard.sh`.
-- AI architecture changes: run `.ai/workflows/ai-architecture-change.md` and `bash scripts/check_ai_wiring.sh` when `.ai/**`, `AGENTS.md`, `.clauderc`, `.cursorrules`, or `scripts/check_ai_wiring.sh` change.
+- Flight lock coordination: standard-lane stories run `.ai/workflows/parallel-flight.md`, claim the single writer lock via `bash scripts/flight_slot.sh claim ...`, and release it via `bash scripts/flight_slot.sh release ...`; trivial-lane stories skip the lock.
+- Story finish: run `.ai/workflows/story-handoff.md` as the combined completion gate.
+- Git finalization: after user approval of the completion gate, run `.ai/workflows/git-finalization.md`; use merge commits by default and require a passing `bash scripts/git_finalize_guard.sh`.
+- AI architecture changes: run `.ai/workflows/ai-architecture-change.md`; AI-architecture diffs trigger `bash scripts/check_ai_wiring.sh` automatically in pre-commit and again in the finalization guard.
 
 ## Route by Task Type
 
@@ -36,12 +37,14 @@ Then use as needed:
 - Deployment/CI-CD -> `.ai/workflows/deployment-setup.md`
 - Git finalization -> `.ai/workflows/git-finalization.md`
 - AI architecture/orchestrator change -> `.ai/workflows/ai-architecture-change.md`
-- Flight coordination (single/parallel) -> `.ai/workflows/parallel-flight.md`
+- Flight lock coordination -> `.ai/workflows/parallel-flight.md`
 - Mandatory pre-story lookup -> `.ai/workflows/story-lookup.md`
+- Mandatory post-lookup sizing -> `.ai/workflows/story-sizing.md`
 - Narrow user correction triage -> `.ai/workflows/user-correction-triage.md`
 - Eval-driven development for AI-behavior changes -> `.ai/workflows/eval-driven-development.md`
 - Spec-driven scaffolding (feature stories) -> `.ai/workflows/spec-driven-delivery.md`
-- Mandatory post-story handoff -> `.ai/workflows/story-handoff.md`
+- Mandatory post-story completion gate -> `.ai/workflows/story-handoff.md`
+- Finalization recovery -> `.ai/workflows/finalization-recovery.md`
 
 ## Implementation Defaults
 
@@ -86,7 +89,7 @@ Then use as needed:
   - `.ai/memory/project/anti-patterns.md`
   - `.ai/memory/codex/`
   - `.ai/memory/session/decisions-today.md`
-- Follow `.ai/workflows/story-handoff.md` for the exact handoff pack, including the **User Audit Checklist (Run This Now)** and explicit user approval before final git actions.
+- Follow `.ai/workflows/story-handoff.md` for the exact combined completion gate, including the **User Audit Checklist (Run This Now)**, finalization plan, and explicit user approval before final git actions.
 
 ## Specialist References
 

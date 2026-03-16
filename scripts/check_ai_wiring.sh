@@ -471,6 +471,8 @@ required_tokens = (
     "gh pr merge --squash --delete-branch",
     "remote sync status",
     "branch cleanup status",
+    "archived or read-only",
+    "writable remote",
 )
 missing = [token for token in required_tokens if token not in git_finalization]
 if missing:

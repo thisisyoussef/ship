@@ -121,6 +121,7 @@ While working:
 Before merge:
 - Push the branch and create or update a PR with scope, verification, and any remaining risks.
 - Sync remotes first with `git fetch --all --prune` and confirm branch tracking status before PR update or merge.
+- If the canonical upstream is archived or read-only, switch PR/merge operations to the writable remote and record that fallback in handoff notes.
 - Resolve review comments on the branch, rerun required checks, and keep the PR diff focused.
 - Do not rewrite shared history or force-push unless explicitly requested.
 
@@ -139,7 +140,7 @@ Minimum required outcome:
 - work performed on a dedicated `codex/` branch,
 - clear commit(s) created for the story changes,
 - remotes fetched and branch sync status checked,
-- push completed to upstream,
+- push completed to a writable remote,
 - PR created or updated with verification notes,
 - review feedback resolved before merge,
 - merge completed only after checks pass and the branch is current,

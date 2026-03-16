@@ -1,6 +1,6 @@
 # Git Finalization Workflow (Mandatory)
 
-**Purpose**: Enforce commit + push completion, remote sync, PR management, merge readiness, and branch cleanup at the end of each story.
+**Purpose**: Enforce commit + push completion, remote sync, writable-remote detection, PR management, merge readiness, and branch cleanup at the end of each story.
 
 ---
 
@@ -48,7 +48,12 @@ Confirm:
 - the current branch is not detached,
 - the current branch has the expected upstream,
 - the tracking branch is not behind,
-- the branch base is current enough to open or update a PR cleanly.
+- the branch base is current enough to open or update a PR cleanly,
+- the target GitHub repo is writable.
+
+If the canonical upstream repo is archived or read-only:
+- use the writable remote (usually `origin`) for PR creation, merge, and branch lifecycle tracking,
+- record that fallback explicitly in the handoff instead of silently failing.
 
 If the branch is behind its upstream, sync it first:
 
@@ -87,7 +92,7 @@ Use conventional commit style and include story reference.
 
 ---
 
-## Step 5: Push to Upstream
+## Step 5: Push to a Writable Remote
 
 ```bash
 git push
@@ -115,12 +120,18 @@ If no PR exists for the current branch:
 gh pr create --fill
 ```
 
+If the upstream repo is archived or read-only:
+- open the PR against the writable repo instead of retrying the archived target,
+- keep the base branch aligned with the writable repo's default branch,
+- note which repo became the effective merge target.
+
 If a PR already exists:
 - update the title/body if needed,
 - confirm the PR points at the correct base branch,
 - ensure the verification notes reflect the final validation state.
 
 Capture:
+- target repo,
 - PR URL,
 - PR state,
 - base branch,
@@ -172,6 +183,7 @@ Include in handoff checklist:
 - commit SHA,
 - push confirmation,
 - remote sync status,
+- writable target repo,
 - PR URL/status,
 - merge status or reason it has not happened yet,
 - branch cleanup status,
@@ -183,7 +195,7 @@ Include in handoff checklist:
 
 - Validation gates passed
 - Changes committed
-- Changes pushed to upstream
+- Changes pushed to a writable remote
 - Remote refs fetched and branch sync state checked
 - PR created or updated
 - `bash scripts/git_finalize_guard.sh` passed

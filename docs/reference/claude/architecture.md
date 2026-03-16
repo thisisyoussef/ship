@@ -404,7 +404,7 @@ const RATE_LIMIT = {
 
 ## Related Documentation
 
-- `docs/unified-document-model.md` - Data model details
-- `docs/application-architecture.md` - Full tech stack decisions
-- `docs/document-model-conventions.md` - Terminology, UI patterns
+- `docs/core/unified-document-model.md` - Data model details
+- `docs/core/application-architecture.md` - Full tech stack decisions
+- `docs/core/document-model-conventions.md` - Terminology, UI patterns
 - `docs/week-documentation-philosophy.md` - Week workflow and documentation philosophy

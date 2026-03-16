@@ -38,3 +38,10 @@ Capture reusable patterns that repeatedly work in this project.
 - **Benefits**: Prevents silent inheritance of an unrelated stack and keeps downstream workflows consistent.
 - **Tradeoffs**: Adds a small upfront setup step before implementation can start.
 - **References**: `README.md`, `AGENTS.md`, `.ai/docs/SINGLE_SOURCE_OF_TRUTH.md`
+
+- **Pattern**: Documentation by intent and lifecycle
+- **Use when**: Repo docs have started to mix active references, working deliverables, evidence, and historical artifacts in one flat surface.
+- **Approach**: Keep living references under stable buckets like `core/` and `guides/`, group assignment work with its source material, and separate `evidence/` from `archive/`.
+- **Benefits**: Faster onboarding, clearer agent routing, and less chance of treating historical output as current guidance.
+- **Tradeoffs**: Requires deliberate path maintenance when files move.
+- **References**: `docs/README.md`, `docs/archive/README.md`, `docs/evidence/README.md`

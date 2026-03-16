@@ -63,9 +63,9 @@ Read these files in order to understand the codebase:
 | File | Purpose |
 |------|---------|
 | `.claude/CLAUDE.md` | Development commands, patterns, conventions |
-| `docs/unified-document-model.md` | Core data model - everything is a document |
-| `docs/application-architecture.md` | Tech stack, deployment, testing strategy |
-| `docs/document-model-conventions.md` | Terminology, UI patterns, 4-panel layout |
+| `docs/core/unified-document-model.md` | Core data model - everything is a document |
+| `docs/core/application-architecture.md` | Tech stack, deployment, testing strategy |
+| `docs/core/document-model-conventions.md` | Terminology, UI patterns, 4-panel layout |
 | `api/src/db/schema.sql` | Database schema - single source of truth |
 
 ## Understanding the Codebase

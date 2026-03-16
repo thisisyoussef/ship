@@ -48,6 +48,8 @@ Thumbs.db
 # Evidence/verification screenshots
 evidence/
 *.png
+!docs/evidence/
+!docs/evidence/**
 
 # Playwright test artifacts
 playwright-report/
@@ -97,6 +99,8 @@ research/
 .research/
 !.ai/docs/research/
 !.ai/docs/research/**
+!docs/research/
+!docs/research/**
 .claude/deploy-logs/
 **/deploy-logs/
 .claude/deploy-config.json

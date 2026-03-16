@@ -106,7 +106,7 @@ They helped with the first pass, but only up to a point. The useful part was the
 
 ### Where did you have to override or correct AI suggestions? Why?
 
-I overrode the easiest path, which was to keep the original discovery framing based on `docs/g4/audit-report.md`. That would have produced a weaker submission because the question asks for discoveries in the codebase, not just discoveries in an audit narrative. I also avoided inventing an exact OpenAI dollar cost because the local log does not expose the billable model or pricing.
+I overrode the easiest path, which was to keep the original discovery framing based on `docs/archive/g4/audit-report.md`. That would have produced a weaker submission because the question asks for discoveries in the codebase, not just discoveries in an audit narrative. I also avoided inventing an exact OpenAI dollar cost because the local log does not expose the billable model or pricing.
 
 ### What percentage of your final code changes were AI-generated vs. hand-written?
 

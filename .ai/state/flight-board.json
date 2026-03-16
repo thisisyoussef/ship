@@ -101,6 +101,28 @@
       "slot": "ai_arch",
       "status": "completed",
       "story_ref": "STACK-AGNOSTIC-01"
+    },
+    {
+      "branch": "codex/project-docs-reorg",
+      "claimed_at": "2026-03-16T17:07:30Z",
+      "flight_id": "flight-docs-reorg-01",
+      "lock_paths": [
+        ".ai/docs/SINGLE_SOURCE_OF_TRUTH.md",
+        ".ai/memory/project/anti-patterns.md",
+        ".ai/memory/project/architecture.md",
+        ".ai/memory/project/patterns.md",
+        ".ai/memory/session/decisions-today.md",
+        "AGENTS.md",
+        "README.md",
+        "docs"
+      ],
+      "notes": "Reorganize repo docs surface for clearer active vs archival navigation and consolidate FleetGraph docs",
+      "owner": "codex",
+      "release_summary": "Reorganized docs by intent/lifecycle, consolidated FleetGraph docs, and verified links and AI wiring",
+      "released_at": "2026-03-16T17:14:11Z",
+      "slot": "docs",
+      "status": "completed",
+      "story_ref": "DOCS-REORG-01"
     }
   ],
   "parallel_max_active_flights": 3,
@@ -111,6 +133,6 @@
     "docs": 2,
     "infra": 1
   },
-  "updated_at": "2026-03-07T07:36:12Z",
+  "updated_at": "2026-03-16T17:14:11Z",
   "version": 1
 }

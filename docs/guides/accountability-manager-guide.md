@@ -2,7 +2,7 @@
 
 This guide explains how managers and reviewers use Ship's accountability features to ensure quality and track team progress.
 
-> **Related**: See [Accountability Philosophy](./accountability-philosophy.md) for why these features exist and [Ship Philosophy](./ship-philosophy.md) for system overview.
+> **Related**: See [Accountability Philosophy](../core/accountability-philosophy.md) for why these features exist and [Ship Philosophy](../core/ship-philosophy.md) for system overview.
 
 ## Using the Accountability Grid
 
@@ -331,6 +331,6 @@ A typo-free hypothesis with vague objectives is worse than a rough hypothesis wi
 
 ## References
 
-- [Accountability Philosophy](./accountability-philosophy.md) - Why these features exist
-- [Ship Philosophy](./ship-philosophy.md) - System design overview
-- [Week Documentation Philosophy](./week-documentation-philosophy.md) - Week workflow details
+- [Accountability Philosophy](../core/accountability-philosophy.md) - Why these features exist
+- [Ship Philosophy](../core/ship-philosophy.md) - System design overview
+- [Week Documentation Philosophy](../core/week-documentation-philosophy.md) - Week workflow details

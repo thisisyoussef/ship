@@ -7,6 +7,8 @@
 - Expanded the UI component spec so design intent is captured as executable constraints rather than vague taste.
 - Added a reusable UI prompt brief template based on WIRE and WIRE+FRAME for higher-stakes frontend work.
 - Removed baked-in stack assumptions so the template chooses its stack during setup instead of inheriting the source project's stack.
+- Decided the repo docs should be organized by reader intent and lifecycle instead of leaving active references, evidence, and archive material mixed together.
+- Moved FleetGraph working docs into `docs/assignments/fleetgraph/` so the assignment pack is self-contained.
 
 Record session-level technical decisions.
 

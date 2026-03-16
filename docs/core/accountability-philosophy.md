@@ -221,4 +221,4 @@ Teams that embrace the friction improve over time. Teams that resist it stay stu
 
 - [Ship Philosophy](./ship-philosophy.md) - System design and hierarchy
 - [Week Documentation Philosophy](./week-documentation-philosophy.md) - Week workflow details
-- [Accountability Manager Guide](./accountability-manager-guide.md) - How to use approval workflows
+- [Accountability Manager Guide](../guides/accountability-manager-guide.md) - How to use approval workflows

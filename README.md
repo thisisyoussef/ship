@@ -19,17 +19,30 @@
 
 ---
 
+## Documentation Map
+
+Start with [docs/README.md](docs/README.md). The docs surface is organized by intent:
+
+- `docs/core/` for living product and architecture references
+- `docs/guides/` for workflow and operational guides
+- `docs/assignments/fleetgraph/` for the FleetGraph PRD and working docs
+- `docs/reference/claude/` for the deeper agent-oriented codebase reference set
+- `docs/research/` and `docs/solutions/` for exploratory notes and solved problems
+- `docs/evidence/` and `docs/archive/` for screenshots, PR artifacts, and historical submissions
+
+---
+
 ## Audit Submission
 
 For grading and review, the final audit deliverables are here:
 
-- [Written audit report](docs/g4/audit-report.md)
-- [Visual audit report](docs/g4/audit-report-visual.html) (https://bright-follow-5f2z.pagedrop.io)
+- [Written audit report](docs/archive/g4/audit-report.md)
+- [Visual audit report](docs/archive/g4/audit-report-visual.html) (https://bright-follow-5f2z.pagedrop.io)
 - [Discovery write-up](discovery.md)
 
 Supporting audit evidence and charts are here:
 
-- [Audit resources dashboard](docs/g4/audit-resources/index.html)
+- [Audit resources dashboard](docs/archive/g4/audit-resources/index.html)
 
 ---
 
@@ -186,7 +199,7 @@ Ship is a monorepo with three packages:
 - **Boring technology** — Well-understood tools over cutting-edge experiments
 - **E2E testing** — 73+ Playwright tests covering real user flows
 
-See [docs/application-architecture.md](docs/application-architecture.md) for more.
+See [docs/core/application-architecture.md](docs/core/application-architecture.md) for more.
 
 ### Repository Structure
 
@@ -291,12 +304,13 @@ We welcome contributions. See [CONTRIBUTING.md](./CONTRIBUTING.md) for guideline
 
 ## Documentation
 
-- [Application Architecture](./docs/application-architecture.md) — Tech stack and design decisions
-- [Unified Document Model](./docs/unified-document-model.md) — Data model and sync architecture
-- [Document Model Conventions](./docs/document-model-conventions.md) — Terminology and patterns
-- [Week Documentation Philosophy](./docs/week-documentation-philosophy.md) — Why weekly plans and retros work the way they do
-- [Accountability Philosophy](./docs/accountability-philosophy.md) — How Ship enforces accountability
-- [Accountability Manager Guide](./docs/accountability-manager-guide.md) — Using approval workflows
+- [Application Architecture](./docs/core/application-architecture.md) — Tech stack and design decisions
+- [Unified Document Model](./docs/core/unified-document-model.md) — Data model and sync architecture
+- [Document Model Conventions](./docs/core/document-model-conventions.md) — Terminology and patterns
+- [Week Documentation Philosophy](./docs/core/week-documentation-philosophy.md) — Why weekly plans and retros work the way they do
+- [Accountability Philosophy](./docs/core/accountability-philosophy.md) — How Ship enforces accountability
+- [Accountability Manager Guide](./docs/guides/accountability-manager-guide.md) — Using approval workflows
+- [Full Docs Map](./docs/README.md) — Entry point for the reorganized docs tree
 - [Contributing Guidelines](./CONTRIBUTING.md) — How to contribute
 - [Security Policy](./SECURITY.md) — Vulnerability reporting
 

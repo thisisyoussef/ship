@@ -28,3 +28,8 @@ Capture failures so they are not repeated.
 - **Example**: Shipping a generic workspace with Python/RAG/provider-specific commands, paths, and specialist agents baked into the default contract.
 - **Why it failed**: New projects begin with the wrong assumptions and have to undo template bias before real work starts.
 - **Prevention rule**: Keep the template stack-neutral and force stack selection during setup.
+
+- **Problem**: Flat docs sprawl
+- **Example**: Keeping active product references, assignment deliverables, screenshots, PR artifacts, and archived submissions side by side in the same top-level docs surface.
+- **Why it failed**: Humans and agents both lose the distinction between current guidance and supporting or historical material.
+- **Prevention rule**: Group docs by reader intent and lifecycle, and keep archive/evidence areas explicitly labeled.

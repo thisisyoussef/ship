@@ -3,7 +3,7 @@
 ## Repo Handbook (Required)
 
 1. Read `.claude/CLAUDE.md` for Ship-specific commands, architecture, testing, and deployment conventions.
-2. If the task touches the FleetGraph assignment, read `docs/assignments/fleetgraph/README.md`, `PRESEARCH.md`, and `FLEETGRAPH.md`.
+2. If the task touches the FleetGraph assignment, read `docs/assignments/fleetgraph/README.md`, `docs/assignments/fleetgraph/PRESEARCH.md`, and `docs/assignments/fleetgraph/FLEETGRAPH.md`.
 3. Treat the root `.ai/` directory as the live AI workspace. Treat `ai-workspace-template/` as archive/reference material only.
 
 ## Canonical Startup Sequence (Required)

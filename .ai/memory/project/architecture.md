@@ -38,3 +38,10 @@ Record durable architecture decisions.
 - **Decision**: Keep the template stack-agnostic by default and require the chosen language, framework, providers, directory layout, validation commands, and deployment targets to be selected during setup.
 - **Alternatives Considered**: Ship a pre-selected default stack and ask users to edit around it later.
 - **Consequences**: The base template stays reusable across projects, but setup must explicitly record stack decisions before implementation begins.
+
+- **ADR-ID**: ADR-0005
+- **Date**: 2026-03-16
+- **Context**: The repo's docs surface mixed living references, assignment work, screenshots, PR artifacts, and historical submissions at the same level, which made both human onboarding and agent navigation harder than necessary.
+- **Decision**: Reorganize `docs/` by reader intent and lifecycle: `core/`, `guides/`, `assignments/`, `reference/`, `research/`, `solutions/`, `evidence/`, and `archive/`, while moving FleetGraph working docs under `docs/assignments/fleetgraph/`.
+- **Alternatives Considered**: Keep the flat docs surface and rely on a better top-level README only; move everything into an archive-heavy taxonomy with more nesting.
+- **Consequences**: Entry navigation becomes clearer and future agents can distinguish active guidance from support material, but path references must be maintained carefully during future moves.

@@ -5,8 +5,8 @@ Use this as the single source of truth while we work. Keep notes in each section
 ## 1) Pre-flight
 - Confirm you are in the repo root: `cd /Users/youss/Development/gauntlet/ship`
 - Confirm prerequisites: Node 20+, pnpm, Docker
-- Confirm assignment brief exists: `ls -la docs/gfa-week-4`
-- Start a notes file: `docs/gfa-week-4/notes.md` (can be created when you want)
+- Confirm assignment brief exists: `ls -la docs/archive/gfa-week-4`
+- Start a notes file: `docs/archive/gfa-week-4/notes.md` (can be created when you want)
 
 ## 2) Orientation (first 4 hours)
 - `pnpm install`
@@ -73,7 +73,7 @@ Commands to run:
 - Implement one category at a time, keep commits separate
 
 ## 11) Reporting
-- `docs/gfa-week-4/audit-report.md`
-- `docs/gfa-week-4/implementation-log.md`
-- `docs/gfa-week-4/discoveries.md`
-- `docs/gfa-week-4/ai-cost-log.md`
+- `docs/archive/gfa-week-4/audit-report.md`
+- `docs/archive/gfa-week-4/implementation-log.md`
+- `docs/archive/gfa-week-4/discoveries.md`
+- `docs/archive/gfa-week-4/ai-cost-log.md`

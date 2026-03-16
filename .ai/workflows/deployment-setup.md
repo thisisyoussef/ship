@@ -19,6 +19,20 @@
 - Gather provider-specific guidance for the selected hosting/runtime platforms
 - Publish lookup brief before changes
 
+### Step 0.6: Confirm the Real Provider Baseline
+- Verify the active deployment contract from repo docs and scripts instead of guessing from neighboring repos or historical artifacts.
+- For Ship today, the canonical deployment baseline is:
+  - API/runtime: AWS Elastic Beanstalk
+  - Frontend/static: S3 + CloudFront
+  - Infra/config/secrets: AWS-native scripts, SSM, and related services
+- Treat Render, Vercel, or Railway references as non-canonical unless the live repo docs and scripts are updated to say otherwise.
+- Treat legacy/manual demo URLs as non-canonical unless they are backed by current repo-owned config, scripts, or workflows.
+
+### Step 0.7: Verify Deployment Access Early
+- Before promising a deploy, verify the required provider access is available from the current machine/session.
+- For Ship's default deploy path, confirm AWS credentials and required tooling first.
+- If access is missing, do not imply the change was deployed. Record the exact blocker and continue with deploy-readiness work only.
+
 ---
 
 ## Phase 1: Choose the Deployment Shape
@@ -74,6 +88,13 @@ Run the project-specific validation commands defined during setup.
 - Logs/metrics/traces visible
 - Rollback path documented and tested if practical
 
+### Step 7.5: Record Deployment Execution Status
+- Explicitly capture one of:
+  - `deployed` with environment and command evidence,
+  - `not deployed` with rationale,
+  - `blocked` with the missing credential/access/prerequisite.
+- Do not leave deployment state implied.
+
 ---
 
 ## Phase 4: Handoff
@@ -100,3 +121,4 @@ Run the project-specific validation commands defined during setup.
 - Validation and health checks pass
 - Rollback path is documented
 - Handoff includes the runtime/deployment audit
+- Deployment execution status is explicit

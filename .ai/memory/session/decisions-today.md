@@ -18,6 +18,16 @@
 - Decided the source PDF's Claude-only bullet is superseded by the live repo contract: OpenAI is preferred, but the runtime must remain provider-agnostic.
 - Decided the next FleetGraph phase should be a foundation-first story pack covering gauntlet-wide reconnaissance, tracing, graph runtime, worker substrate, deployment, and HITL entry contracts before feature implementation.
 - Decided the phase-1-3 FleetGraph submission brief should be promoted into the docs surface as an approach reference so future agents use it instead of leaving it buried under `output/`.
+- Completed FleetGraph foundation story `T001` by scanning the broader `gauntlet/` workspace and writing a keep/avoid reconnaissance note for LangGraph, LangSmith, provider routing, worker substrate, and deployment-contract reuse.
+- Decided FleetGraph should borrow neighboring repos at the contract level only: Ghostfolio for graph/observability shape, LegacyLens for tracing/OpenAI adapter contracts, Collab Board for provider wrapping, and Ship audit app for durable queue-claim semantics.
+- Implemented FleetGraph foundation story `T002` with a dedicated provider-agnostic `LLMAdapter` factory under `api/src/services/fleetgraph/llm/`.
+- Decided FleetGraph should default to OpenAI Responses and keep Bedrock Anthropic behind the same adapter contract for compatibility only.
+- Added a DB-free Vitest config for FleetGraph pure unit modules so substrate tests can run without the API integration database harness.
+- Decided every new story must start with remote sync plus a fresh `codex/` branch instead of continuing on the previous story's branch.
+- Decided every story must review impact against Ship's real AWS deployment contract and either update deploy surfaces or explicitly record `deployment impact: none`.
+- Decided story packs and phase packs must define higher-level objectives first and write the full story set in one pass before implementation begins.
+- Decided deploy-relevant stories must record explicit deployment execution status as `deployed`, `not deployed`, or `blocked`.
+- Decided remembered or legacy demo URLs do not count as canonical deployment targets unless the current repo config/scripts/workflows own them.
 
 Record session-level technical decisions.
 

@@ -29,6 +29,7 @@ Before any new story:
 1. Run `agent-preflight`
 2. Deliver a concise preflight brief
 3. Only then begin implementation
+4. Sync remotes and move to a fresh `codex/` branch for that story before edits begin
 
 ### Step 0.6: Spec-Driven Package (Feature Stories)
 Before feature implementation:
@@ -39,6 +40,7 @@ Before feature implementation:
 5. For UI scope, apply `.ai/skills/frontend-design.md`
 6. For strategic or reusable UI prompting, create `.ai/templates/spec/UI_PROMPT_BRIEF_TEMPLATE.md`
 7. Create/update required spec artifacts under `.ai/templates/spec/`
+8. For story packs or phase packs, define the higher-level objectives first and write the full story set in one pass before implementation starts
 
 ### Step 0.7: Story Lookup
 Before coding any story:
@@ -63,6 +65,7 @@ Before implementation edits:
 1. Run `.ai/workflows/parallel-flight.md`
 2. Claim a flight slot with `bash scripts/flight_slot.sh claim ...`
 3. Use `single` mode unless intentionally coordinating parallel work
+4. Confirm deployment impact against Ship's AWS deploy contract even for non-deployment stories
 
 ### Step 0.9: Git Finalization
 Before final handoff:

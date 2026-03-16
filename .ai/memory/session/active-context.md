@@ -1,10 +1,10 @@
 # Active Context
 
 - **Session Started**: 2026-03-16
-- **Current Task**: Port the FleetGraph foundation docs and story pack onto the current Ship docs layout and master branch
+- **Current Task**: Correct the AI harness so deploy-relevant stories must record explicit deployment execution status; then resume FleetGraph foundation story T002 on the corrected branch
 - **Status**: In Progress
 
 ## Next 3 Actions
-1. [ ] Align the FleetGraph PDF reference docs with the provider-agnostic, OpenAI-preferred repo direction.
-2. [ ] Keep the foundation additions mapped to `docs/assignments/fleetgraph/` instead of the old root-level FleetGraph paths.
-3. [ ] Re-run docs and wiring verification before preparing the next audit.
+1. [ ] Finish the deployment-status guardrail patch and re-run the AI wiring audit.
+2. [ ] Hand back the updated deploy-status audit plus the current access blocker.
+3. [ ] Resume FleetGraph tracing bootstrap for T003 only after the workflow correction is settled.

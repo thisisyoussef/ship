@@ -469,6 +469,9 @@ required_tokens = (
     "git fetch --all --prune",
     "gh pr create --fill",
     "gh pr merge --squash --delete-branch",
+    "branch name reflects the active story",
+    "story branch transition status",
+    "deployment impact review status",
     "remote sync status",
     "branch cleanup status",
     "archived or read-only",
@@ -483,7 +486,9 @@ if missing:
 
 story_handoff = Path(".ai/workflows/story-handoff.md").read_text(encoding="utf-8")
 handoff_tokens = (
+    "Story branch transition recorded in handoff",
     "Remote sync status recorded in handoff",
+    "Deployment impact review status recorded in handoff",
     "PR URL and PR status recorded in handoff",
     "Merge status recorded in handoff",
     "Branch cleanup status recorded in handoff",
@@ -496,6 +501,130 @@ if missing_handoff:
     raise SystemExit(1)
 
 print("Git finalization workflow content check passed.")
+PY
+
+run_check "Story branch rollover and deployment review wiring" python - <<'PY'
+from pathlib import Path
+import sys
+
+targets = {
+    "AGENTS.md": (
+        "Do not start story N+1 on story N's branch",
+        "Elastic Beanstalk",
+        "S3/CloudFront",
+        "deployment impact: none",
+    ),
+    ".ai/workflows/feature-development.md": (
+        "Do not continue a new story on the previous story's branch",
+        "Elastic Beanstalk",
+        "S3 + CloudFront",
+        "deployment impact: none",
+    ),
+    ".ai/workflows/deployment-setup.md": (
+        "canonical deployment baseline",
+        "Elastic Beanstalk",
+        "S3 + CloudFront",
+    ),
+}
+
+missing: list[str] = []
+for rel, tokens in targets.items():
+    text = Path(rel).read_text(encoding="utf-8")
+    for token in tokens:
+        if token not in text:
+            missing.append(f"{rel}: missing '{token}'")
+
+if missing:
+    print("ERROR: Story branch rollover / deployment review requirements missing:", file=sys.stderr)
+    for item in missing:
+        print(f"- {item}", file=sys.stderr)
+    raise SystemExit(1)
+
+print("Story branch rollover and deployment review check passed.")
+PY
+
+run_check "Story pack objective planning wiring" python - <<'PY'
+from pathlib import Path
+import sys
+
+targets = {
+    "AGENTS.md": (
+        "define the higher-level objectives for the whole pack first",
+        "write the full set of stories for the pack in one planning pass",
+    ),
+    ".ai/workflows/spec-driven-delivery.md": (
+        "If this work is a story pack, phase pack, or multi-story foundation plan",
+        "the higher-level objectives of the full pack",
+        "write all story-level tasks for the pack in one pass",
+    ),
+    ".ai/skills/spec-driven-development.md": (
+        "When planning a story pack or phase pack, define the higher-level objectives first",
+        "write the whole planned story set in one pass",
+    ),
+    ".ai/templates/spec/FEATURE_SPEC_TEMPLATE.md": (
+        "Story Pack Objectives",
+    ),
+}
+
+missing: list[str] = []
+for rel, tokens in targets.items():
+    text = Path(rel).read_text(encoding="utf-8")
+    for token in tokens:
+        if token not in text:
+            missing.append(f"{rel}: missing '{token}'")
+
+if missing:
+    print("ERROR: Story pack objective planning requirements missing:", file=sys.stderr)
+    for item in missing:
+        print(f"- {item}", file=sys.stderr)
+    raise SystemExit(1)
+
+print("Story pack objective planning check passed.")
+PY
+
+run_check "Deployment execution status wiring" python - <<'PY'
+from pathlib import Path
+import sys
+
+targets = {
+    "AGENTS.md": (
+        "record explicit deployment status in handoff",
+        "deployed",
+        "not deployed",
+        "blocked",
+    ),
+    ".ai/workflows/deployment-setup.md": (
+        "Verify Deployment Access Early",
+        "Record Deployment Execution Status",
+        "deployed",
+        "not deployed",
+        "blocked",
+        "legacy/manual demo URLs as non-canonical",
+    ),
+    ".ai/workflows/story-handoff.md": (
+        "Deployment execution status recorded as `deployed`, `not deployed`, or `blocked`",
+        "Deployment execution status recorded in handoff",
+    ),
+    ".ai/workflows/git-finalization.md": (
+        "deployment execution status (`deployed`, `not deployed`, or `blocked`)",
+        "Deployment status is explicit for deploy-relevant stories",
+    ),
+}
+
+missing: list[str] = []
+for rel, tokens in targets.items():
+    text = Path(rel).read_text(encoding="utf-8")
+    for token in tokens:
+        if token not in text:
+            missing.append(f"{rel}: missing '{token}'")
+
+if missing:
+    print("ERROR: Deployment execution status requirements missing:", file=sys.stderr)
+    for item in missing:
+        print(f"- {item}", file=sys.stderr)
+    raise SystemExit(1)
+
+print("Deployment execution status check passed.")
 PY
 
 run_check "Markdown link integrity (.ai + AGENTS/README)" python - <<'PY'

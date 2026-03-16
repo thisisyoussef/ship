@@ -27,3 +27,5 @@ docs/specs/<phase>/<story-id>/
 ```
 
 Keep these files aligned with implementation and tests throughout the story lifecycle.
+
+When planning a story pack or phase pack, define the higher-level objectives first and draft the full story set together before implementation starts. That keeps the pack consistent, cohesive, holistic, and comprehensive instead of growing one disconnected story at a time.

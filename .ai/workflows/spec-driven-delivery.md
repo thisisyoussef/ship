@@ -66,6 +66,13 @@ If AI behavior is in scope, explicitly define:
 - the eval objective for that behavior,
 - the failure modes that must be caught before release.
 
+If this work is a story pack, phase pack, or multi-story foundation plan, also define:
+- the higher-level objectives of the full pack,
+- the boundaries between stories in the pack,
+- the full set of intended stories before implementation starts.
+
+Do not draft one story in isolation and invent the rest later if the work is clearly a coordinated pack.
+
 ---
 
 ## Step 3: Plan (How)
@@ -86,6 +93,11 @@ For AI-behavior stories, also include:
 - thresholds or baseline comparison method,
 - regression/continuous-eval plan.
 
+For story packs, also include:
+- why the pack is sequenced the way it is,
+- how the stories fit together without gaps or overlap,
+- what must be true for the whole pack to be considered successful.
+
 ---
 
 ## Step 4: Task Breakdown
@@ -97,6 +109,11 @@ Each task must have:
 - objective,
 - dependency label (`must-have`, `parallel`, `blocked-by`),
 - validation command/output.
+
+For story packs:
+- write all story-level tasks for the pack in one pass,
+- keep the story set cohesive and comprehensive,
+- verify each story advances at least one higher-level pack objective.
 
 ---
 
@@ -128,6 +145,7 @@ Before writing implementation code, confirm:
 - plan exists and is current,
 - tasks are executable and ordered,
 - tests are mapped to acceptance criteria.
+- for story packs, higher-level pack objectives are defined and every planned story maps back to them.
 
 If not aligned, stop and update artifacts first.
 

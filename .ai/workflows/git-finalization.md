@@ -17,6 +17,8 @@ Run this workflow after implementation and validation, before final story handof
 Important:
 - Do not run commit, push, PR creation/update, merge, or branch cleanup until the user has completed the story audit and explicitly approved finalization.
 - Once the user does approve, prefer to automate the full flow instead of leaving branch/PR state half-finished.
+- Remote sync is required both before story/branch work starts and again after finalization so local state never drifts silently from the remote.
+- The active branch must match the current story. If the branch name still reflects a previous completed story, stop and correct that before finalization.
 
 ---
 
@@ -49,6 +51,7 @@ Confirm:
 - the current branch has the expected upstream,
 - the tracking branch is not behind,
 - the branch base is current enough to open or update a PR cleanly,
+- the branch name reflects the active story instead of a previous story,
 - the target GitHub repo is writable.
 
 If the canonical upstream repo is archived or read-only:
@@ -172,6 +175,14 @@ git pull --ff-only origin master
 git branch -d <story-branch>
 ```
 
+If the branch is not being merged yet, still refresh local refs after push/PR updates:
+
+```bash
+git fetch --all --prune
+git status -sb
+git branch -vv
+```
+
 If the local branch is still needed temporarily, record why instead of deleting it silently.
 
 ---
@@ -180,9 +191,13 @@ If the local branch is still needed temporarily, record why instead of deleting 
 
 Include in handoff checklist:
 - branch name,
+- story branch transition status,
 - commit SHA,
+- pre-story remote sync status,
 - push confirmation,
 - remote sync status,
+- deployment impact review status,
+- deployment execution status (`deployed`, `not deployed`, or `blocked`),
 - writable target repo,
 - PR URL/status,
 - merge status or reason it has not happened yet,
@@ -196,7 +211,10 @@ Include in handoff checklist:
 - Validation gates passed
 - Changes committed
 - Changes pushed to a writable remote
+- Remote sync completed before story/branch work and after finalization
 - Remote refs fetched and branch sync state checked
+- Branch identity matches the current story
+- Deployment status is explicit for deploy-relevant stories
 - PR created or updated
 - `bash scripts/git_finalize_guard.sh` passed
 - Merge completed or explicitly waiting on user approval / checks

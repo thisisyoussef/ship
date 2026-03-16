@@ -11,6 +11,12 @@
 - Public interfaces/contracts:
 - Data flow summary:
 
+## Pack Cohesion and Sequencing (for phase packs or multi-story planning)
+- Higher-level pack objectives:
+- Story ordering rationale:
+- Gaps/overlap check:
+- Whole-pack success signal:
+
 ## Architecture Decisions
 - Decision:
 - Alternatives considered:

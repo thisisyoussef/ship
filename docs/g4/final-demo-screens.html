@@ -1,0 +1,1549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShipShape Final Demo Screens</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --font-display: "Fraunces", Georgia, serif;
+      --font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+      --bg: #f6f1e8;
+      --bg-strong: #eee4d5;
+      --surface: rgba(255, 252, 247, 0.88);
+      --surface-strong: rgba(255, 250, 243, 0.97);
+      --surface-muted: rgba(243, 235, 224, 0.92);
+      --ink: #183028;
+      --ink-soft: #526056;
+      --line: rgba(24, 48, 40, 0.12);
+      --line-strong: rgba(24, 48, 40, 0.2);
+      --accent: #1e5a46;
+      --accent-soft: rgba(30, 90, 70, 0.1);
+      --gold: #b67a22;
+      --gold-soft: rgba(182, 122, 34, 0.12);
+      --rust: #a0432a;
+      --rust-soft: rgba(160, 67, 42, 0.12);
+      --navy: #24465d;
+      --navy-soft: rgba(36, 70, 93, 0.12);
+      --ok: #256a4d;
+      --ok-soft: rgba(37, 106, 77, 0.12);
+      --shadow: 0 30px 80px rgba(73, 53, 28, 0.08);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f1715;
+        --bg-strong: #15201c;
+        --surface: rgba(23, 34, 30, 0.84);
+        --surface-strong: rgba(25, 37, 33, 0.96);
+        --surface-muted: rgba(17, 26, 23, 0.96);
+        --ink: #edf0ea;
+        --ink-soft: #a6b3aa;
+        --line: rgba(237, 240, 234, 0.08);
+        --line-strong: rgba(237, 240, 234, 0.16);
+        --accent: #67c39c;
+        --accent-soft: rgba(103, 195, 156, 0.12);
+        --gold: #e4ac55;
+        --gold-soft: rgba(228, 172, 85, 0.16);
+        --rust: #ef8e72;
+        --rust-soft: rgba(239, 142, 114, 0.14);
+        --navy: #79aad1;
+        --navy-soft: rgba(121, 170, 209, 0.14);
+        --ok: #7ad3a4;
+        --ok-soft: rgba(122, 211, 164, 0.14);
+        --shadow: 0 30px 80px rgba(0, 0, 0, 0.28);
+      }
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+      background:
+        radial-gradient(circle at top left, var(--gold-soft), transparent 28%),
+        radial-gradient(circle at 85% 15%, var(--navy-soft), transparent 30%),
+        linear-gradient(180deg, var(--bg) 0%, var(--bg-strong) 100%);
+      color: var(--ink);
+      overflow: hidden;
+      font-family: var(--font-display);
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--line) 1px, transparent 1px);
+      background-size: 28px 28px;
+      opacity: 0.28;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .deck {
+      position: relative;
+      height: 100dvh;
+      overflow-y: auto;
+      scroll-snap-type: y mandatory;
+      scroll-behavior: smooth;
+      z-index: 1;
+    }
+
+    .slide {
+      position: relative;
+      min-height: 100dvh;
+      padding: clamp(40px, 5vh, 70px) clamp(28px, 5vw, 84px);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      scroll-snap-align: start;
+      opacity: 0;
+      transform: translateY(34px) scale(0.985);
+      transition: opacity 0.55s ease, transform 0.55s ease;
+    }
+
+    .slide.visible {
+      opacity: 1;
+      transform: none;
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(14px);
+      transition: opacity 0.45s ease, transform 0.45s ease;
+    }
+
+    .slide.visible .reveal {
+      opacity: 1;
+      transform: none;
+    }
+
+    .slide.visible .reveal:nth-child(1) { transition-delay: 0.08s; }
+    .slide.visible .reveal:nth-child(2) { transition-delay: 0.16s; }
+    .slide.visible .reveal:nth-child(3) { transition-delay: 0.24s; }
+    .slide.visible .reveal:nth-child(4) { transition-delay: 0.32s; }
+    .slide.visible .reveal:nth-child(5) { transition-delay: 0.4s; }
+    .slide.visible .reveal:nth-child(6) { transition-delay: 0.48s; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .slide, .reveal {
+        opacity: 1 !important;
+        transform: none !important;
+        transition: none !important;
+      }
+    }
+
+    .progress {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 4px;
+      width: 0;
+      background: linear-gradient(90deg, var(--accent), var(--gold));
+      z-index: 20;
+      transition: width 0.2s ease;
+    }
+
+    .dots {
+      position: fixed;
+      right: 18px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 252, 247, 0.5);
+      backdrop-filter: blur(10px);
+      z-index: 20;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .dots {
+        background: rgba(12, 19, 17, 0.5);
+      }
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      border: 0;
+      background: var(--ink-soft);
+      opacity: 0.28;
+      cursor: pointer;
+      transition: transform 0.2s ease, opacity 0.2s ease, background 0.2s ease;
+    }
+
+    .dot.active {
+      opacity: 1;
+      transform: scale(1.35);
+      background: var(--accent);
+    }
+
+    .counter, .hint {
+      position: fixed;
+      z-index: 20;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+    }
+
+    .counter {
+      right: 24px;
+      bottom: 20px;
+    }
+
+    .hint {
+      left: 50%;
+      bottom: 20px;
+      transform: translateX(-50%);
+      opacity: 0.82;
+      transition: opacity 0.3s ease;
+    }
+
+    .hint.is-faded {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .slide__label {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--accent);
+      margin-bottom: 16px;
+    }
+
+    .slide__display {
+      font-size: clamp(46px, 7.6vw, 102px);
+      line-height: 0.94;
+      letter-spacing: -0.05em;
+      max-width: 11ch;
+      margin: 0 0 18px;
+    }
+
+    .slide__heading {
+      font-size: clamp(30px, 4vw, 52px);
+      line-height: 1;
+      letter-spacing: -0.045em;
+      margin: 0;
+    }
+
+    .slide__body {
+      font-size: clamp(17px, 1.9vw, 23px);
+      line-height: 1.55;
+      color: var(--ink-soft);
+      max-width: 62ch;
+    }
+
+    .hero {
+      display: grid;
+      gap: 26px;
+      align-items: end;
+      grid-template-columns: 1.1fr 0.9fr;
+    }
+
+    .hero-card,
+    .panel,
+    .card,
+    .metric,
+    .placeholder,
+    .frame {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 26px;
+      box-shadow: var(--shadow);
+    }
+
+    .hero-card {
+      padding: 28px;
+    }
+
+    .hero-grid {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      align-self: stretch;
+    }
+
+    .micro {
+      padding: 18px;
+      border-radius: 20px;
+      background: var(--surface-muted);
+      border: 1px solid var(--line);
+    }
+
+    .micro strong {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+
+    .micro span {
+      display: block;
+      font-size: 24px;
+      line-height: 1.1;
+      color: var(--ink);
+    }
+
+    .legend {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 12px;
+      border-radius: 999px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border: 1px solid var(--line);
+      background: var(--surface-strong);
+    }
+
+    .badge::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+    }
+
+    .badge--placeholder::before {
+      background: var(--gold);
+    }
+
+    .badge--risk::before {
+      background: var(--rust);
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+      gap: 24px;
+      align-items: stretch;
+    }
+
+    .split--reverse {
+      grid-template-columns: minmax(0, 0.94fr) minmax(0, 1.06fr);
+    }
+
+    .panel {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .panel__title {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin: 0;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--ink-soft);
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 20px;
+      height: 1px;
+      background: var(--line-strong);
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .metric {
+      padding: 18px;
+    }
+
+    .metric__label {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+      margin-bottom: 10px;
+    }
+
+    .metric__value {
+      display: block;
+      font-size: clamp(26px, 3vw, 40px);
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .metric__note {
+      color: var(--ink-soft);
+      font-size: 15px;
+      line-height: 1.45;
+    }
+
+    .scorecard {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .card {
+      padding: 18px;
+      min-height: 162px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      justify-content: space-between;
+    }
+
+    .card__kicker {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--ink-soft);
+    }
+
+    .card__value {
+      font-size: 30px;
+      line-height: 0.95;
+      color: var(--ink);
+    }
+
+    .card__copy {
+      font-size: 16px;
+      line-height: 1.5;
+      color: var(--ink-soft);
+    }
+
+    .callout {
+      padding: 18px 20px;
+      border-radius: 20px;
+      background: var(--accent-soft);
+      border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--line));
+    }
+
+    .callout--risk {
+      background: var(--rust-soft);
+      border-color: color-mix(in srgb, var(--rust) 22%, var(--line));
+    }
+
+    .callout--placeholder {
+      background: var(--gold-soft);
+      border-color: color-mix(in srgb, var(--gold) 26%, var(--line));
+    }
+
+    .callout strong {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 9px;
+    }
+
+    .callout p {
+      margin: 0;
+      font-size: 17px;
+      line-height: 1.5;
+      color: var(--ink);
+    }
+
+    .figure {
+      position: relative;
+      overflow: hidden;
+      border-radius: 22px;
+      border: 1px solid var(--line);
+      min-height: 260px;
+      background: var(--surface-muted);
+    }
+
+    .figure img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .figure--contain img {
+      object-fit: contain;
+      background: color-mix(in srgb, var(--surface) 75%, var(--bg) 25%);
+      padding: 18px;
+    }
+
+    .figure__caption {
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      bottom: 16px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(255, 252, 247, 0.84);
+      color: #1d3029;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      border: 1px solid rgba(29, 48, 41, 0.08);
+      backdrop-filter: blur(8px);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .figure__caption {
+        background: rgba(14, 23, 20, 0.82);
+        color: #ecf0ea;
+        border-color: rgba(236, 240, 234, 0.08);
+      }
+    }
+
+    .placeholder {
+      padding: 22px;
+      border: 2px dashed color-mix(in srgb, var(--gold) 55%, transparent);
+      background:
+        linear-gradient(135deg, var(--gold-soft), transparent 48%),
+        var(--surface-strong);
+      min-height: 210px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .placeholder__title {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--gold);
+    }
+
+    .placeholder__copy {
+      font-size: 20px;
+      line-height: 1.35;
+      color: var(--ink);
+      max-width: 28ch;
+    }
+
+    .placeholder__meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .placeholder__meta span {
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid color-mix(in srgb, var(--gold) 24%, var(--line));
+      background: rgba(255, 255, 255, 0.3);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .list,
+    .steps,
+    .mini-table {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .list li,
+    .steps li {
+      padding: 12px 0;
+      border-top: 1px solid var(--line);
+      font-size: 17px;
+      line-height: 1.5;
+      color: var(--ink-soft);
+    }
+
+    .list li:first-child,
+    .steps li:first-child {
+      border-top: 0;
+      padding-top: 0;
+    }
+
+    .list strong,
+    .steps strong {
+      color: var(--ink);
+    }
+
+    .steps li {
+      display: grid;
+      grid-template-columns: 44px 1fr;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .steps__num {
+      width: 44px;
+      height: 44px;
+      border-radius: 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--line));
+    }
+
+    .mini-table {
+      display: grid;
+      gap: 10px;
+    }
+
+    .mini-table li {
+      display: grid;
+      grid-template-columns: 1.1fr 0.8fr 1.1fr;
+      gap: 10px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: var(--surface-muted);
+      border: 1px solid var(--line);
+      font-size: 15px;
+      line-height: 1.45;
+      color: var(--ink-soft);
+    }
+
+    .mini-table li strong {
+      color: var(--ink);
+      font-weight: 600;
+    }
+
+    .context-diagram {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .context-card {
+      position: relative;
+      padding: 18px;
+      border-radius: 20px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      min-height: 160px;
+    }
+
+    .context-card::after {
+      content: "→";
+      position: absolute;
+      top: 50%;
+      right: -15px;
+      transform: translateY(-50%);
+      color: var(--accent);
+      font-size: 28px;
+      font-family: var(--font-display);
+    }
+
+    .context-card:last-child::after {
+      content: "";
+    }
+
+    .context-card__title {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+
+    .context-card__body {
+      font-size: 18px;
+      line-height: 1.45;
+      color: var(--ink-soft);
+    }
+
+    .note {
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: var(--navy-soft);
+      border: 1px solid color-mix(in srgb, var(--navy) 16%, var(--line));
+      font-size: 16px;
+      color: var(--ink);
+      line-height: 1.45;
+    }
+
+    .footer-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .footer-strip span {
+      padding: 9px 11px;
+      border-radius: 999px;
+      background: var(--surface-muted);
+      border: 1px solid var(--line);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .summary-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 15px;
+      line-height: 1.45;
+      color: var(--ink-soft);
+      border-radius: 20px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+    }
+
+    .summary-table th,
+    .summary-table td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .summary-table th {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--ink-soft);
+      background: var(--surface-muted);
+    }
+
+    .summary-table tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .summary-table td strong {
+      color: var(--ink);
+    }
+
+    .value-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 7px 10px;
+      border-radius: 999px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      background: var(--ok-soft);
+      color: var(--ok);
+      border: 1px solid color-mix(in srgb, var(--ok) 20%, var(--line));
+    }
+
+    .value-pill--placeholder {
+      background: var(--gold-soft);
+      color: var(--gold);
+      border-color: color-mix(in srgb, var(--gold) 26%, var(--line));
+    }
+
+    .frame {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      min-height: 260px;
+    }
+
+    .frame__header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--ink-soft);
+    }
+
+    .frame__body {
+      flex: 1;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      background: var(--surface-muted);
+    }
+
+    .frame__body img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .frame__body--contain img {
+      object-fit: contain;
+      padding: 12px;
+      background: color-mix(in srgb, var(--surface) 75%, var(--bg) 25%);
+    }
+
+    .center {
+      text-align: center;
+      align-items: center;
+    }
+
+    .close-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+      gap: 22px;
+      align-items: stretch;
+    }
+
+    .big-quote {
+      font-size: clamp(28px, 3.4vw, 48px);
+      line-height: 1.08;
+      letter-spacing: -0.04em;
+      margin: 0;
+    }
+
+    @media (max-width: 1100px) {
+      .hero,
+      .split,
+      .split--reverse,
+      .close-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .scorecard,
+      .metric-grid,
+      .context-diagram {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .context-card::after {
+        content: "";
+      }
+    }
+
+    @media (max-width: 720px) {
+      .slide {
+        padding: 26px 18px 70px;
+      }
+
+      .scorecard,
+      .metric-grid,
+      .context-diagram,
+      .hero-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .summary-table,
+      .summary-table thead,
+      .summary-table tbody,
+      .summary-table th,
+      .summary-table td,
+      .summary-table tr {
+        display: block;
+      }
+
+      .summary-table thead {
+        display: none;
+      }
+
+      .summary-table td {
+        border-bottom: 1px solid var(--line);
+      }
+
+      .mini-table li {
+        grid-template-columns: 1fr;
+      }
+
+      .dots {
+        display: none;
+      }
+
+      .counter {
+        right: 16px;
+        bottom: 12px;
+      }
+
+      .hint {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="progress" id="progress"></div>
+  <div class="dots" id="dots" aria-label="Slide navigation"></div>
+  <div class="counter" id="counter">1 / 11</div>
+  <div class="hint" id="hint">Use arrow keys, trackpad, or scroll</div>
+
+  <main class="deck" id="deck">
+    <section class="slide center visible" data-title="Intro">
+      <div class="hero">
+        <div class="hero-card">
+          <div class="slide__label reveal">0:00-0:20 • Final demo opener</div>
+          <h1 class="slide__display reveal">ShipShape final demo screens</h1>
+          <p class="slide__body reveal">One message for the whole video: I inherited a production TypeScript monorepo, measured it across seven categories, then made focused improvements with proof.</p>
+          <div class="legend reveal">
+            <span class="badge">Green cards are ready to show</span>
+            <span class="badge badge--placeholder">Gold boxes are where final artifacts go</span>
+            <span class="badge badge--risk">Keep each category under 20-25 seconds</span>
+          </div>
+        </div>
+        <div class="hero-grid">
+          <div class="micro reveal">
+            <strong>Audience</strong>
+            <span>reviewers grading proof, not promises</span>
+          </div>
+          <div class="micro reveal">
+            <strong>Format</strong>
+            <span>3-5 minute narrated walkthrough</span>
+          </div>
+          <div class="micro reveal">
+            <strong>Thread</strong>
+            <span>baseline, root cause, targeted fix, after proof</span>
+          </div>
+          <div class="micro reveal">
+            <strong>Tip</strong>
+            <span>replace every gold box before recording</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-title="Context">
+      <div class="split">
+        <div class="panel">
+          <div class="slide__label reveal">0:20-0:40 • Context in one screen</div>
+          <h2 class="slide__heading reveal">Show the product once, then ground the system</h2>
+          <p class="slide__body reveal">Start with a real Ship screen so the viewer knows this is a working application, then anchor the architecture in one sentence: <em>web and api share contracts through the shared package, and everything flows through the unified document model.</em></p>
+          <div class="context-diagram reveal">
+            <div class="context-card">
+              <div class="context-card__title">web</div>
+              <div class="context-card__body">React + Vite frontend. Main user flows, editor shell, route-level bundle decisions.</div>
+            </div>
+            <div class="context-card">
+              <div class="context-card__title">shared</div>
+              <div class="context-card__body">The cleanest contract layer in the repo. Types connect frontend assumptions to backend reality.</div>
+            </div>
+            <div class="context-card">
+              <div class="context-card__title">api</div>
+              <div class="context-card__body">Express routes, auth boundary, collaboration plumbing, and the highest concentration of unsafe typing.</div>
+            </div>
+            <div class="context-card">
+              <div class="context-card__title">postgres</div>
+              <div class="context-card__body">Unified documents table with document_type as the discriminator that drives docs, issues, projects, and weeks.</div>
+            </div>
+          </div>
+          <div class="note reveal">Narration cue: "I am not showing a rewrite. I am showing a measured improvement pass on a real production-oriented codebase."</div>
+        </div>
+        <div class="panel">
+          <div class="frame reveal">
+            <div class="frame__header">
+              <span>Recommended opening screen</span>
+              <span>UI screenshot</span>
+            </div>
+            <div class="frame__body">
+              <img src="file:///Users/youss/Development/gauntlet/ship/docs/screenshots/issues-list-view.png" alt="Ship issues list view screenshot">
+            </div>
+          </div>
+          <div class="footer-strip reveal">
+            <span>show app first</span>
+            <span>say "everything is a document"</span>
+            <span>do not linger here</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-title="Baseline">
+      <div class="panel">
+        <div class="slide__label reveal">0:40-1:00 • Baseline scorecard</div>
+        <h2 class="slide__heading reveal">Put the audit baseline on one slide before you start claiming improvement</h2>
+        <p class="slide__body reveal">This is the fastest way to make the rest of the video legible. Reviewers should see the original system cost before you walk through the fixes.</p>
+        <div class="scorecard reveal">
+          <article class="card">
+            <div class="card__kicker">Type safety</div>
+            <div class="card__value">273 <code>any</code><br>691 <code>as</code><br>329 <code>!</code></div>
+            <div class="card__copy">Strict mode was already on. The issue was type bypassing in route handlers and core document flows.</div>
+          </article>
+          <article class="card">
+            <div class="card__kicker">Bundle</div>
+            <div class="card__value">10.5 MB<br>2.0 MB main chunk</div>
+            <div class="card__copy">Editor and collaboration cost landed too early, and some lazy loading was being defeated.</div>
+          </article>
+          <article class="card">
+            <div class="card__kicker">API</div>
+            <div class="card__value">719 ms P95</div>
+            <div class="card__copy"><code>GET /api/documents</code> was the clearest backend hotspot at concurrency 50.</div>
+          </article>
+          <article class="card">
+            <div class="card__kicker">Database</div>
+            <div class="card__value">4-5 queries / flow</div>
+            <div class="card__copy">No obvious N+1. The bottleneck was query shape, not query explosion.</div>
+          </article>
+          <article class="card">
+            <div class="card__kicker">Tests</div>
+            <div class="card__value">1466 total<br>16 failing<br>6 flaky</div>
+            <div class="card__copy">The harness was strong, but the suite health was not clean in the most distinctive workflows.</div>
+          </article>
+          <article class="card">
+            <div class="card__kicker">Runtime</div>
+            <div class="card__value">2 console errors / page</div>
+            <div class="card__copy">Collaboration recovered better than expected, but user-facing confusion paths still existed.</div>
+          </article>
+          <article class="card">
+            <div class="card__kicker">Accessibility</div>
+            <div class="card__value">2 critical<br>20 serious</div>
+            <div class="card__copy">Lighthouse gave 100s, but axe still found real violations, especially on <code>/my-week</code>.</div>
+          </article>
+          <article class="card">
+            <div class="card__kicker">Dataset</div>
+            <div class="card__value">580 docs<br>23 users</div>
+            <div class="card__copy">You benchmarked against a realistic seed, not an empty dev database.</div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-title="Type Safety">
+      <div class="split split--reverse">
+        <div class="panel">
+          <div class="slide__label reveal">1:00-1:20 • Type safety</div>
+          <h2 class="slide__heading reveal">Show the baseline counts, then one real fix in a high-risk file</h2>
+          <div class="metric-grid reveal">
+            <div class="metric">
+              <span class="metric__label">Baseline any</span>
+              <span class="metric__value">273</span>
+              <span class="metric__note">Most concentrated in <code>api/</code>.</span>
+            </div>
+            <div class="metric">
+              <span class="metric__label">Baseline assertions</span>
+              <span class="metric__value">691</span>
+              <span class="metric__note">Weeks, projects, issues, unified document page.</span>
+            </div>
+            <div class="metric">
+              <span class="metric__label">Baseline non-null</span>
+              <span class="metric__value">329</span>
+              <span class="metric__note">Unsafe assumptions at the API boundary.</span>
+            </div>
+          </div>
+          <ul class="mini-table reveal">
+            <li><strong>api/src/routes/weeks.ts</strong><span>85 violations</span><span>Best file to zoom into if your fix landed here.</span></li>
+            <li><strong>api/src/routes/projects.ts</strong><span>51 violations</span><span>Good second option for route-boundary cleanup.</span></li>
+            <li><strong>web/src/pages/UnifiedDocumentPage.tsx</strong><span>37 violations</span><span>Useful if your strongest fix was in product UI flows.</span></li>
+          </ul>
+          <div class="callout reveal">
+            <strong>Narration cue</strong>
+            <p>"Strict mode was not the problem. The problem was how often important code paths escaped the type system."</p>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="frame reveal">
+            <div class="frame__header">
+              <span>Audit chart</span>
+              <span>Use as the opener for this category</span>
+            </div>
+            <div class="frame__body frame__body--contain">
+              <img src="file:///Users/youss/Development/gauntlet/ship/docs/g4/audit-resources/charts/type-safety-by-package.svg" alt="Type safety by package chart">
+            </div>
+          </div>
+          <div class="placeholder reveal">
+            <div>
+              <div class="placeholder__title">Replace with your final proof</div>
+              <div class="placeholder__copy">Drop in one diff screenshot that shows a real type improvement, plus a small before/after count card.</div>
+            </div>
+            <div class="placeholder__meta">
+              <span>AST scan output</span>
+              <span>route handler diff</span>
+              <span>after counts</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-title="Bundle">
+      <div class="split">
+        <div class="panel">
+          <div class="slide__label reveal">1:20-1:40 • Bundle size</div>
+          <h2 class="slide__heading reveal">Use the dependency chart, then prove the initial load got smaller</h2>
+          <div class="frame reveal">
+            <div class="frame__header">
+              <span>Baseline evidence</span>
+              <span>Top dependency contributors</span>
+            </div>
+            <div class="frame__body frame__body--contain">
+              <img src="file:///Users/youss/Development/gauntlet/ship/docs/g4/audit-resources/charts/bundle-top-dependencies.svg" alt="Bundle dependency chart">
+            </div>
+          </div>
+          <div class="footer-strip reveal">
+            <span>10,539.29 KB total</span>
+            <span>2,025.14 KB main chunk</span>
+            <span>262 chunks</span>
+          </div>
+          <div class="callout reveal">
+            <strong>Narration cue</strong>
+            <p>"The problem was not just weight. It was where that weight landed. Editor and collaboration code was arriving too early."</p>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="placeholder reveal">
+            <div>
+              <div class="placeholder__title">Swap in your final bundle artifact</div>
+              <div class="placeholder__copy">Best choice: before/after treemap or build-output comparison that makes the main entry chunk shrink obvious at a glance.</div>
+            </div>
+            <div class="placeholder__meta">
+              <span>treemap</span>
+              <span>lazy-loading diff</span>
+              <span>main chunk before/after</span>
+            </div>
+          </div>
+          <ul class="list reveal">
+            <li><strong>Show the broken split point.</strong> If static imports defeated lazy loading, highlight that exact import in one crop.</li>
+            <li><strong>Show the after state immediately after.</strong> Do not make the viewer infer the improvement from narration alone.</li>
+            <li><strong>Name the tradeoff.</strong> For example: slower first editor open in exchange for a lighter global entry path.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-title="API">
+      <div class="split split--reverse">
+        <div class="panel">
+          <div class="slide__label reveal">1:40-2:00 • API response time</div>
+          <h2 class="slide__heading reveal">Zoom into the hotspot instead of reading all five endpoints out loud</h2>
+          <div class="metric-grid reveal">
+            <div class="metric">
+              <span class="metric__label">Hot path</span>
+              <span class="metric__value"><code>/api/documents</code></span>
+              <span class="metric__note">This is the route worth centering in the video.</span>
+            </div>
+            <div class="metric">
+              <span class="metric__label">Baseline P95</span>
+              <span class="metric__value">719 ms</span>
+              <span class="metric__note">Measured at concurrency 50.</span>
+            </div>
+            <div class="metric">
+              <span class="metric__label">Message</span>
+              <span class="metric__value">Not all endpoints were slow</span>
+              <span class="metric__note">The problem was concentrated, which makes the fix easier to trust.</span>
+            </div>
+          </div>
+          <div class="callout callout--risk reveal">
+            <strong>Narration cue</strong>
+            <p>"I focused on user-facing P95 under load, because that is where slowness becomes visible. The backend problem was concentrated in one broad document-list path."</p>
+          </div>
+          <div class="placeholder reveal">
+            <div>
+              <div class="placeholder__title">Add your after benchmark here</div>
+              <div class="placeholder__copy">Show the exact same endpoint under the exact same concurrency and data volume. If you improved a second endpoint too, add it as a smaller side card.</div>
+            </div>
+            <div class="placeholder__meta">
+              <span>benchmark table</span>
+              <span>P95 before/after</span>
+              <span>same test conditions</span>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="frame reveal">
+            <div class="frame__header">
+              <span>Baseline evidence</span>
+              <span>P95 at concurrency 50</span>
+            </div>
+            <div class="frame__body frame__body--contain">
+              <img src="file:///Users/youss/Development/gauntlet/ship/docs/g4/audit-resources/charts/api-p95-concurrency-50.svg" alt="API P95 chart">
+            </div>
+          </div>
+          <ul class="list reveal">
+            <li><strong>Best supporting visual:</strong> one command pane or CSV crop showing the measured before/after numbers.</li>
+            <li><strong>Best supporting sentence:</strong> call out the root cause, not just the reduced latency number.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-title="Database">
+      <div class="split">
+        <div class="panel">
+          <div class="slide__label reveal">2:00-2:20 • Database query efficiency</div>
+          <h2 class="slide__heading reveal">Use this slide to separate query count from query shape</h2>
+          <div class="frame reveal">
+            <div class="frame__header">
+              <span>Baseline evidence</span>
+              <span>Query counts by user flow</span>
+            </div>
+            <div class="frame__body frame__body--contain">
+              <img src="file:///Users/youss/Development/gauntlet/ship/docs/g4/audit-resources/charts/db-query-counts.svg" alt="Database query counts chart">
+            </div>
+          </div>
+          <ul class="mini-table reveal">
+            <li><strong>Load main page</strong><span>4 queries</span><span>Slowest sampled query: 2.441 ms</span></li>
+            <li><strong>List issues</strong><span>5 queries</span><span>No obvious N+1 in the sampled flow.</span></li>
+            <li><strong>Search content</strong><span>4 queries</span><span>Explain why the issue was shape, join cost, or filtering, not fan-out.</span></li>
+          </ul>
+        </div>
+        <div class="panel">
+          <div class="placeholder reveal">
+            <div>
+              <div class="placeholder__title">Best final artifact for this category</div>
+              <div class="placeholder__copy">Show a tightly cropped <code>EXPLAIN ANALYZE</code> before/after or query log excerpt with the expensive line highlighted.</div>
+            </div>
+            <div class="placeholder__meta">
+              <span>EXPLAIN ANALYZE</span>
+              <span>index or filter fix</span>
+              <span>same flow before/after</span>
+            </div>
+          </div>
+          <div class="callout reveal">
+            <strong>Narration cue</strong>
+            <p>"This was an important negative finding: I did not find an N+1 explosion. That narrowed the investigation to broad filtering and association-heavy query shape."</p>
+          </div>
+          <ul class="list reveal">
+            <li><strong>If query count did improve:</strong> show the flow table first.</li>
+            <li><strong>If latency improved more than count:</strong> lead with the query plan instead.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-title="Tests">
+      <div class="split split--reverse">
+        <div class="panel">
+          <div class="slide__label reveal">2:20-2:40 • Test coverage and quality</div>
+          <h2 class="slide__heading reveal">Show suite health first, then one meaningful test or one stabilized flake</h2>
+          <div class="frame reveal">
+            <div class="frame__header">
+              <span>Baseline evidence</span>
+              <span>Suite status distribution</span>
+            </div>
+            <div class="frame__body frame__body--contain">
+              <img src="file:///Users/youss/Development/gauntlet/ship/docs/g4/audit-resources/charts/test-suite-status.svg" alt="Test suite status chart">
+            </div>
+          </div>
+          <div class="footer-strip reveal">
+            <span>1397 passing</span>
+            <span>16 failing</span>
+            <span>6 flaky</span>
+            <span>19.0 min e2e runtime</span>
+          </div>
+          <ul class="list reveal">
+            <li><strong>Best gap to call out:</strong> collaboration recovery, multi-user editing, or keyboard and screen-reader workflows.</li>
+            <li><strong>Best proof:</strong> a green test run plus a small snippet from the new or fixed test.</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <div class="placeholder reveal">
+            <div>
+              <div class="placeholder__title">Add the final test proof here</div>
+              <div class="placeholder__copy">Use a single frame that shows the test name, why it matters, and a passing run. If you fixed a flake, include the root cause in one sentence on-screen.</div>
+            </div>
+            <div class="placeholder__meta">
+              <span>Playwright run</span>
+              <span>new test snippet</span>
+              <span>flake root cause</span>
+            </div>
+          </div>
+          <div class="callout callout--placeholder reveal">
+            <strong>Recommended script line</strong>
+            <p>"The repo already had serious test infrastructure. My job here was to improve trust in the areas that define the product, not to inflate the raw test count."</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-title="Runtime">
+      <div class="split">
+        <div class="panel">
+          <div class="slide__label reveal">2:40-3:00 • Runtime handling</div>
+          <h2 class="slide__heading reveal">This category works best as a mini before/after storyboard</h2>
+          <ol class="steps reveal">
+            <li>
+              <span class="steps__num">01</span>
+              <div><strong>Disconnect and reconnect.</strong> Show the app surviving a transient failure instead of leaving the viewer with a hanging spinner or silent loss.</div>
+            </li>
+            <li>
+              <span class="steps__num">02</span>
+              <div><strong>Trigger the confusing path you fixed.</strong> This should be the user-facing scenario, not a low-value console warning.</div>
+            </li>
+            <li>
+              <span class="steps__num">03</span>
+              <div><strong>Show the after state immediately.</strong> Better recovery, clearer message, or preserved edits should be visible without explanation.</div>
+            </li>
+          </ol>
+          <div class="callout reveal">
+            <strong>Baseline you can reference</strong>
+            <p>Offline editing recovered, two-user editing converged, and there were no server-side unhandled promise rejections. The weakness was user trust: console noise and confusing failure paths.</p>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="placeholder reveal" style="min-height: 270px;">
+            <div>
+              <div class="placeholder__title">Insert a short clip or split-screen here</div>
+              <div class="placeholder__copy">This is the best place in the whole video for a literal before/after recording. Use one scenario only.</div>
+            </div>
+            <div class="placeholder__meta">
+              <span>screen recording</span>
+              <span>before / after</span>
+              <span>single scenario</span>
+            </div>
+          </div>
+          <div class="footer-strip reveal">
+            <span>console errors during normal usage: 2</span>
+            <span>network disconnect recovery: pass</span>
+            <span>silent failures identified: 2</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-title="Accessibility">
+      <div class="split split--reverse">
+        <div class="panel">
+          <div class="slide__label reveal">3:00-3:20 • Accessibility</div>
+          <h2 class="slide__heading reveal">Lead with the Lighthouse versus axe mismatch, then show the fix evidence</h2>
+          <div class="frame reveal">
+            <div class="frame__header">
+              <span>Baseline evidence</span>
+              <span>Why Lighthouse alone was not enough</span>
+            </div>
+            <div class="frame__body frame__body--contain">
+              <img src="file:///Users/youss/Development/gauntlet/ship/docs/g4/audit-resources/charts/accessibility-gap.svg" alt="Accessibility gap chart">
+            </div>
+          </div>
+          <div class="callout callout--risk reveal">
+            <strong>Narration cue</strong>
+            <p>"All sampled pages scored 100 in Lighthouse, but axe still found 2 critical and 20 serious issues. That is why I paired automated scans instead of trusting one tool."</p>
+          </div>
+          <div class="footer-strip reveal">
+            <span>18 contrast failures on /my-week</span>
+            <span>keyboard completeness: partial</span>
+            <span>broken semantics on document views</span>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="placeholder reveal">
+            <div>
+              <div class="placeholder__title">Use two artifacts here</div>
+              <div class="placeholder__copy">Best combination: axe before/after results and a 5-second keyboard-only navigation clip on the page you improved the most.</div>
+            </div>
+            <div class="placeholder__meta">
+              <span>axe diff</span>
+              <span>keyboard path</span>
+              <span>screen reader or semantics note</span>
+            </div>
+          </div>
+          <ul class="list reveal">
+            <li><strong>What to say:</strong> accessibility work mattered because the repo explicitly claims Section 508 and WCAG 2.1 AA conformance.</li>
+            <li><strong>What not to do:</strong> do not end this section with another Lighthouse score unless that is your only usable after metric.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-title="Close">
+      <div class="close-grid">
+        <div class="panel">
+          <div class="slide__label reveal">3:20-3:50 • Close on proof</div>
+          <h2 class="slide__heading reveal">End with one scorecard and one sentence</h2>
+          <p class="big-quote reveal">"The value of this project was not making the biggest change. It was understanding the system well enough to make the smallest change that measurably improved it."</p>
+          <table class="summary-table reveal" aria-label="Final scorecard template">
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th>Baseline</th>
+                <th>Final</th>
+                <th>Proof</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Type safety</strong></td>
+                <td>273 any / 691 as / 329 !</td>
+                <td><span class="value-pill value-pill--placeholder">Insert after counts</span></td>
+                <td>AST scan + diff</td>
+              </tr>
+              <tr>
+                <td><strong>Bundle</strong></td>
+                <td>10.5 MB total / 2.0 MB main chunk</td>
+                <td><span class="value-pill value-pill--placeholder">Insert after size</span></td>
+                <td>treemap or build output</td>
+              </tr>
+              <tr>
+                <td><strong>API</strong></td>
+                <td><code>/api/documents</code> P95 719 ms</td>
+                <td><span class="value-pill value-pill--placeholder">Insert after P95</span></td>
+                <td>same concurrency benchmark</td>
+              </tr>
+              <tr>
+                <td><strong>Database</strong></td>
+                <td>4-5 queries / flow</td>
+                <td><span class="value-pill value-pill--placeholder">Insert after query metric</span></td>
+                <td>EXPLAIN ANALYZE</td>
+              </tr>
+              <tr>
+                <td><strong>Tests</strong></td>
+                <td>16 failing / 6 flaky</td>
+                <td><span class="value-pill value-pill--placeholder">Insert after suite health</span></td>
+                <td>green run + test snippet</td>
+              </tr>
+              <tr>
+                <td><strong>Runtime</strong></td>
+                <td>2 console errors / page; 2 silent failures</td>
+                <td><span class="value-pill value-pill--placeholder">Insert final scenario result</span></td>
+                <td>before / after clip</td>
+              </tr>
+              <tr>
+                <td><strong>Accessibility</strong></td>
+                <td>2 critical / 20 serious</td>
+                <td><span class="value-pill value-pill--placeholder">Insert after violations</span></td>
+                <td>axe diff + keyboard clip</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="panel">
+          <div class="frame reveal">
+            <div class="frame__header">
+              <span>Closing visual</span>
+              <span>Use a live app or deployed app shot here</span>
+            </div>
+            <div class="frame__body">
+              <img src="file:///Users/youss/Development/gauntlet/ship/docs/screenshots/project-retro.png" alt="Ship project retro screenshot">
+            </div>
+          </div>
+          <div class="placeholder reveal">
+            <div>
+              <div class="placeholder__title">Final recording checklist</div>
+              <div class="placeholder__copy">Before you hit record, replace the gold boxes, prepare your benchmark crops, and keep one browser tab ready with the deployed app or final branch.</div>
+            </div>
+            <div class="placeholder__meta">
+              <span>deployed app</span>
+              <span>commit history</span>
+              <span>final numbers</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      const deck = document.getElementById("deck");
+      const slides = Array.from(document.querySelectorAll(".slide"));
+      const progress = document.getElementById("progress");
+      const dotsWrap = document.getElementById("dots");
+      const counter = document.getElementById("counter");
+      const hint = document.getElementById("hint");
+
+      slides.forEach((slide, index) => {
+        const button = document.createElement("button");
+        button.className = "dot";
+        button.type = "button";
+        button.setAttribute("aria-label", `Go to slide ${index + 1}: ${slide.dataset.title || ""}`);
+        button.addEventListener("click", () => {
+          slide.scrollIntoView({ behavior: "smooth", block: "start" });
+          hideHint();
+        });
+        dotsWrap.appendChild(button);
+      });
+
+      const dots = Array.from(document.querySelectorAll(".dot"));
+
+      function setActive(index) {
+        dots.forEach((dot, i) => dot.classList.toggle("active", i === index));
+        counter.textContent = `${index + 1} / ${slides.length}`;
+        progress.style.width = `${((index + 1) / slides.length) * 100}%`;
+      }
+
+      function hideHint() {
+        hint.classList.add("is-faded");
+      }
+
+      let activeIndex = 0;
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          const index = slides.indexOf(entry.target);
+          if (entry.isIntersecting) {
+            entry.target.classList.add("visible");
+            if (entry.intersectionRatio > 0.6) {
+              activeIndex = index;
+              setActive(index);
+            }
+          }
+        });
+      }, { threshold: [0.25, 0.6, 0.9] });
+
+      slides.forEach((slide) => observer.observe(slide));
+      setActive(0);
+
+      window.addEventListener("keydown", (event) => {
+        if (!["ArrowDown", "ArrowUp", "PageDown", "PageUp", " ", "Home", "End"].includes(event.key)) {
+          return;
+        }
+        hideHint();
+
+        if (event.key === "Home") {
+          event.preventDefault();
+          slides[0].scrollIntoView({ behavior: "smooth", block: "start" });
+          return;
+        }
+
+        if (event.key === "End") {
+          event.preventDefault();
+          slides[slides.length - 1].scrollIntoView({ behavior: "smooth", block: "start" });
+          return;
+        }
+
+        const direction = (event.key === "ArrowDown" || event.key === "PageDown" || event.key === " ") ? 1 : -1;
+        const nextIndex = Math.min(slides.length - 1, Math.max(0, activeIndex + direction));
+        if (nextIndex !== activeIndex) {
+          event.preventDefault();
+          slides[nextIndex].scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }, { passive: false });
+
+      deck.addEventListener("wheel", hideHint, { passive: true });
+      deck.addEventListener("touchstart", hideHint, { passive: true });
+      setTimeout(hideHint, 5000);
+    })();
+  </script>
+</body>
+</html>

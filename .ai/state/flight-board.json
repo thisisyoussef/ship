@@ -362,6 +362,30 @@
       "slot": "code",
       "status": "completed",
       "story_ref": "T006"
+    },
+    {
+      "branch": "codex/fleetgraph-t007-entry-hitl",
+      "claimed_at": "2026-03-16T20:03:21Z",
+      "flight_id": "fleetgraph-t007-entry-hitl",
+      "lock_paths": [
+        ".ai/docs",
+        ".ai/memory",
+        "api/src/openapi",
+        "api/src/routes",
+        "api/src/services/fleetgraph",
+        "docs/specs/fleetgraph",
+        "web/src/components",
+        "web/src/hooks",
+        "web/src/lib",
+        "web/src/pages"
+      ],
+      "notes": "Add same-origin FleetGraph entry contract and HITL approval envelope.",
+      "owner": "codex",
+      "release_summary": "Delivered same-origin entry route, embedded page card, and HITL preview contract for FleetGraph.",
+      "released_at": "2026-03-16T20:18:55Z",
+      "slot": "code",
+      "status": "completed",
+      "story_ref": "T007"
     }
   ],
   "parallel_max_active_flights": 3,
@@ -372,6 +396,6 @@
     "docs": 2,
     "infra": 1
   },
-  "updated_at": "2026-03-16T19:56:19Z",
+  "updated_at": "2026-03-16T20:18:55Z",
   "version": 1
 }

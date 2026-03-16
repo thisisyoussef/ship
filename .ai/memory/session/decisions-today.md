@@ -43,6 +43,10 @@
 - Decided remembered or legacy demo URLs do not count as canonical deployment targets unless the current repo config/scripts/workflows own them.
 - Decided Ship should keep AWS as the canonical production path while formalizing Render `ship-demo` as the sanctioned public demo path.
 - Added a checked-in `scripts/deploy-render-demo.sh` workflow so deploy-relevant stories can refresh the public demo with repo-owned commands instead of provider-side tribal knowledge.
+- Implemented FleetGraph foundation story `T007` with a same-origin entry contract at `api/src/routes/fleetgraph.ts` plus `api/src/services/fleetgraph/entry/`.
+- Decided the embedded FleetGraph page surface should send normalized Ship page context to the backend rather than rebuilding context from raw router state or direct DB reads.
+- Decided consequential on-demand requests should map to a typed approval envelope with `Apply`, `Dismiss`, and `Snooze` options before any Ship write execution is introduced.
+- Added an embedded `FleetGraphEntryCard` on `UnifiedDocumentPage` so T007 has a visible document-page proof surface instead of staying backend-only.
 
 Record session-level technical decisions.
 

@@ -14,6 +14,8 @@ import { issueKeys } from '@/hooks/useIssuesQuery';
 import { projectKeys, useProjectWeeksQuery } from '@/hooks/useProjectsQuery';
 import { TabBar } from '@/components/ui/TabBar';
 import { useCurrentDocument } from '@/contexts/CurrentDocumentContext';
+import { FleetGraphEntryCard } from '@/components/FleetGraphEntryCard';
+import { useDocumentContextQuery } from '@/hooks/useDocumentContextQuery';
 import type { BelongsTo } from '@ship/shared';
 import {
   getTabsForDocument,
@@ -158,6 +160,7 @@ export function UnifiedDocumentPage() {
   const { user } = useAuth();
   const { showToast } = useToast();
   const { setCurrentDocument, clearCurrentDocument } = useCurrentDocument();
+  const documentContextQuery = useDocumentContextQuery(id);
 
   // Fetch the document by ID
   const { data: document, isLoading, error } = useQuery<DocumentResponse>({
@@ -631,6 +634,25 @@ export function UnifiedDocumentPage() {
     return null;
   }
 
+  const fleetGraphCard = (
+    <div className="border-b border-border px-4 py-3">
+      <FleetGraphEntryCard
+        activeTab={activeTab || undefined}
+        context={documentContextQuery.data}
+        contextError={documentContextQuery.error instanceof Error ? documentContextQuery.error.message : undefined}
+        document={{
+          documentType: document.document_type,
+          id: document.id,
+          title: document.title,
+          workspaceId: document.workspace_id,
+        }}
+        loading={documentContextQuery.isLoading}
+        nestedPath={nestedPath}
+        userId={user.id}
+      />
+    </div>
+  );
+
   // Documents with tabs get a tabbed interface
   if (hasTabs && tabConfig.length > 0) {
     const tabs = resolveTabLabels(tabConfig, document, tabCounts);
@@ -639,6 +661,7 @@ export function UnifiedDocumentPage() {
 
     return (
       <div className="flex h-full flex-col">
+        {fleetGraphCard}
         {/* Tab bar */}
         <div className="border-b border-border px-4">
           <TabBar
@@ -675,17 +698,22 @@ export function UnifiedDocumentPage() {
 
   // Non-tabbed documents render directly in editor
   return (
-    <UnifiedEditor
-      document={unifiedDocument}
-      sidebarData={sidebarData}
-      onUpdate={handleUpdate}
-      onTypeChange={handleTypeChange}
-      onDocumentConverted={handleDocumentConverted}
-      onBack={hideBackButton ? undefined : handleBack}
-      backLabel={hideBackButton ? undefined : backLabel}
-      onDelete={handleDelete}
-      showTypeSelector={true}
-      titleSuffix={standupAuthorName}
-    />
+    <div className="flex h-full flex-col">
+      {fleetGraphCard}
+      <div className="min-h-0 flex-1">
+        <UnifiedEditor
+          document={unifiedDocument}
+          sidebarData={sidebarData}
+          onUpdate={handleUpdate}
+          onTypeChange={handleTypeChange}
+          onDocumentConverted={handleDocumentConverted}
+          onBack={hideBackButton ? undefined : handleBack}
+          backLabel={hideBackButton ? undefined : backLabel}
+          onDelete={handleDelete}
+          showTypeSelector={true}
+          titleSuffix={standupAuthorName}
+        />
+      </div>
+    </div>
   );
 }

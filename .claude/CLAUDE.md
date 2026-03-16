@@ -145,3 +145,24 @@ Use `/ship-philosophy-reviewer` to audit changes against Ship's core philosophy.
 ## Security Compliance
 
 **NEVER use `git commit --no-verify`.** See `/ship-security-compliance` skill for pre-commit hooks (`comply opensource`), CI enforcement, and compliance check failure handling.
+
+## gstack
+
+Use the `/browse` skill from gstack for all web browsing tasks. **Never use `mcp__claude-in-chrome__*` tools directly.**
+
+Install gstack (one-time, per machine):
+```bash
+git clone https://github.com/garrytan/gstack.git ~/.claude/skills/gstack && cd ~/.claude/skills/gstack && ./setup
+```
+
+Available gstack skills:
+- `/browse` — headless browser: navigate, click, fill forms, screenshot, scrape
+- `/plan-ceo-review` — review a plan from a CEO/product perspective
+- `/plan-eng-review` — review a plan from an engineering perspective
+- `/review` — code/PR review
+- `/ship` — ship a feature end-to-end
+- `/qa` — full QA pass on a feature or page
+- `/qa-only` — QA without fixing (report only)
+- `/setup-browser-cookies` — configure browser auth cookies for browse sessions
+- `/retro` — run a retrospective
+

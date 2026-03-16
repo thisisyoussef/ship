@@ -2,7 +2,7 @@
 
 **Last Updated**: 2026-03-16
 **Current Phase**: FleetGraph foundation-phase execution
-**Active Sprint**: T006 proactive worker substrate
+**Active Sprint**: T007 same-origin entry and HITL contract
 **Project Status**: Active
 **Canonical Deployment Baseline**: API on AWS Elastic Beanstalk, frontend on S3/CloudFront, config/secrets on AWS-native services
 **Sanctioned Public Demo**: Render `ship-demo` at `https://ship-demo.onrender.com/`, deployed with `scripts/deploy-render-demo.sh`
@@ -12,14 +12,14 @@
 ## Current Focus
 
 ### Active Task
-- **Title**: Execute FleetGraph foundation story T006 by adding the proactive worker substrate: enqueue hooks, scheduled sweep, dedupe ledger, and checkpoint-aware execution loop
+- **Title**: Execute FleetGraph foundation story T007 by adding the same-origin entry contract, embedded document-page surface, and HITL approval envelope
 - **Status**: Implemented locally, pending audit/finalization
 - **Owner**: Codex
 
 ### Next Immediate Actions
-1. Treat `api/src/services/fleetgraph/worker/` as the only durable queue/sweep/retry substrate for proactive FleetGraph work.
-2. Build T007 same-origin entry/HITL contracts on top of `ShipContextEnvelope` and the worker trigger hooks instead of recreating context shaping elsewhere.
-3. Build T008 deployment/auth/secrets readiness around the new worker runtime, demo deploy, and service-token path.
+1. Treat `api/src/routes/fleetgraph.ts` plus `api/src/services/fleetgraph/entry/` as the same-origin entry boundary for on-demand FleetGraph runs.
+2. Treat `web/src/components/FleetGraphEntryCard.tsx` and `web/src/hooks/useFleetGraphEntry.ts` as the embedded Ship page surface for contextual FleetGraph entry and approval previews.
+3. Build T008 deployment/auth/secrets readiness around the new API route, worker runtime, demo deploy, and service-token path.
 
 ---
 
@@ -74,6 +74,11 @@
 - `api/src/services/fleetgraph/graph/`
 - `api/src/services/fleetgraph/normalize/`
 - `api/src/services/fleetgraph/worker/`
+- `api/src/services/fleetgraph/entry/`
+- `api/src/routes/fleetgraph.ts`
+- `api/src/openapi/schemas/fleetgraph.ts`
+- `web/src/components/FleetGraphEntryCard.tsx`
+- `web/src/hooks/useFleetGraphEntry.ts`
 - Shared LangSmith trace links showing different execution paths
 
 ---

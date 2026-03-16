@@ -21,6 +21,12 @@
   - `api/src/services/fleetgraph/graph/`
   - `api/src/services/fleetgraph/normalize/`
   - `api/src/services/fleetgraph/worker/`
+  - `api/src/services/fleetgraph/entry/`
+  - `api/src/routes/fleetgraph.ts`
+  - `api/src/openapi/schemas/fleetgraph.ts`
+  - `web/src/components/FleetGraphEntryCard.tsx`
+  - `web/src/hooks/useFleetGraphEntry.ts`
+  - `web/src/lib/fleetgraph-entry.ts`
   - `api/vitest.fleetgraph.config.ts`
   - `api/package.json`
   - `api/src/db/schema.sql`
@@ -32,13 +38,15 @@
   - `FleetGraphRuntimeInput`: validated graph input envelope before checkpointed execution
   - `NormalizedShipDocument`: one internal FleetGraph document model derived from canonical + legacy Ship payloads
   - `ShipContextEnvelope`: normalized contextual input from Ship routes
+  - `FleetGraphEntryRequest`: same-origin document-page entry contract built from normalized Ship context
+  - `FleetGraphApprovalEnvelope`: typed human-review payload for consequential on-demand actions
   - `FleetGraphQueueJob`: durable proactive execution row keyed by dedupe and `thread_id`
   - `FleetGraphDedupeLedger`: checkpoint/dedupe/cooldown contract for proactive runs
   - `FleetGraphSweepSchedule`: durable schedule registry for under-5-minute workspace sweeps
 - Data flow summary:
   - Repo docs point future agents to the PDF, PRD reference, presearch, and foundation spec pack.
   - The foundation spec pack sequences future implementation into reconnaissance -> provider contract -> tracing -> graph runtime -> normalization -> worker substrate -> deployment -> UI/HITL integration.
-  - The current substrate path is adapter -> tracing -> graph shell -> normalization boundary -> worker queue/ledger/sweep runtime, with live route wiring and UI/HITL delivery deferred to T007+.
+  - The current substrate path is adapter -> tracing -> graph shell -> normalization boundary -> worker queue/ledger/sweep runtime -> same-origin entry route -> embedded document-page card, with live write execution and deployment/auth hardening deferred to T008.
 
 ## Architecture Decisions
 - Decision: Treat the next FleetGraph phase as substrate-first instead of feature-first.
@@ -58,6 +66,8 @@
   - Future FleetGraph entrypoints should accept a `TriggerEnvelope` or `ShipContextEnvelope`, not raw route state.
 - Response shape:
   - Foundation stories should define typed result contracts for quiet exit, advisory finding, approval-required action, and fallback.
+- Current same-origin entry contract:
+  - `POST /api/fleetgraph/entry` accepts normalized document-page context, derives a stable `thread_id`, and returns either an advisory entry summary or a typed approval envelope.
 - Storage/index changes:
   - Add FleetGraph queue, dedupe-ledger, and sweep-schedule tables through `038_fleetgraph_worker_substrate.sql`.
   - Keep `schema.sql` aligned with the fresh-install snapshot so empty databases can bootstrap without replaying historical enum-rename migrations.
@@ -82,9 +92,9 @@
   - Future `LLMAdapter`, normalization, scoring-policy, and checkpoint-contract tests
 - Integration tests:
   - Trigger enqueue -> worker retry/checkpoint integration via FleetGraph-specific Vitest + testcontainers
-  - Future Ship-context -> embedded chat entry integration
+  - Ship-context -> same-origin FleetGraph entry route integration
 - E2E or smoke tests:
-  - Future deployed worker/API smoke run with trace capture and at least one proactive branch
+  - Embedded document-page FleetGraph smoke card and approval-required preview
 - Edge-case coverage mapping:
   - mixed-shape REST payload normalization
   - missing or stale trace configuration
@@ -98,8 +108,8 @@
   - FleetGraph entry state builder
   - HITL approval envelope
 - Component structure:
-  - embedded trigger/surface inside the contextual Ship page
-  - approval modal or card for consequential actions
+  - embedded FleetGraph entry card inside `UnifiedDocumentPage`
+  - approval card state for consequential actions with explicit human options
 - Accessibility implementation plan:
   - keyboard-reachable trigger and confirm flow
   - visible focus handling and semantic labels for evidence/action states

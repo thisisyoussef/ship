@@ -118,3 +118,8 @@ Capture failures so they are not repeated.
 - **Example**: Applying `schema.sql` for a fresh database and then rerunning old enum-rename migrations like the sprint-to-week rename, even though the schema file already reflects the renamed values.
 - **Why it failed**: Fresh installs hit impossible duplicate or missing-enum transitions, which breaks local bootstrap and DB-backed tests before story code even runs.
 - **Prevention rule**: Treat `schema.sql` as the fresh-install snapshot, mark historical migrations as applied on empty databases, and only execute pending migrations for already-migrated environments.
+
+- **Problem**: Building FleetGraph entry directly from raw router state or direct DB reads
+- **Example**: A page-specific FleetGraph widget reads `useParams()` and document fields ad hoc, or the backend jumps straight to the database to reconstruct context, instead of going through the normalized page-context contract.
+- **Why it failed**: Context drift appears between the page shell, the API route, and the graph runtime, which makes approval behavior and thread lineage inconsistent.
+- **Prevention rule**: Always build on-demand entry through the normalized page-context payload and `/api/fleetgraph/entry`, with the backend deriving the final trigger envelope and `thread_id`.

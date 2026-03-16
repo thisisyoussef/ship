@@ -157,3 +157,10 @@ Capture reusable patterns that repeatedly work in this project.
 - **Benefits**: Makes enqueue idempotent, keeps retries on one durable row, and gives later stories a visible substrate for cooldowns and checkpoint-aware execution.
 - **Tradeoffs**: Adds internal tables and worker-store code before any user-facing proactive feature exists.
 - **References**: `api/src/services/fleetgraph/worker/store.ts`, `api/src/services/fleetgraph/worker/runtime.ts`, `api/src/db/migrations/038_fleetgraph_worker_substrate.sql`
+
+- **Pattern**: Same-origin entry through normalized page context
+- **Use when**: FleetGraph needs to start from the current Ship document page without inventing a standalone UI or re-fetching raw context ad hoc.
+- **Approach**: Let the document page provide `context`, `activeTab`, and `nestedPath`, build a normalized FleetGraph entry payload on the frontend, validate it server-side, derive a stable `thread_id`, and route it through the existing FleetGraph runtime behind `/api/fleetgraph/entry`.
+- **Benefits**: Keeps on-demand entry consistent with Ship's page state, preserves the REST-only boundary, and gives future chat behavior one stable ingress path.
+- **Tradeoffs**: Adds one more translation layer between the page shell and the graph/runtime.
+- **References**: `api/src/routes/fleetgraph.ts`, `api/src/services/fleetgraph/entry/service.ts`, `web/src/components/FleetGraphEntryCard.tsx`

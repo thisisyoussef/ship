@@ -6,7 +6,10 @@ export default defineConfig({
     fileParallelism: false,
     globals: true,
     hookTimeout: 120_000,
-    include: ['src/services/fleetgraph/**/*.test.ts'],
+    include: [
+      'src/routes/fleetgraph.test.ts',
+      'src/services/fleetgraph/**/*.test.ts',
+    ],
     testTimeout: 120_000,
   },
 });

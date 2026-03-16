@@ -6,6 +6,14 @@
 
 ## Phase 0: Setup and Framing (Mandatory)
 
+### Step 0.1: Sync and Branch for the Story
+- Run:
+  - `git fetch --all --prune`
+  - `git status -sb`
+  - `git branch -vv`
+- If this is a new story, create or switch to a fresh `codex/<short-task-name>` branch before any edits.
+- Do not continue a new story on the previous story's branch. Reuse the branch only when handling feedback for the same story.
+
 ### Step 0: Run Story Preflight
 - Run `agent-preflight`
 - Deliver concise preflight brief before edits
@@ -25,6 +33,18 @@
 - Run `.ai/workflows/story-lookup.md`
 - Gather local + external guidance for the chosen stack/providers
 - Publish lookup brief before tests/code edits
+
+### Step 0.55: Review Deployment Impact
+- Check the touched story against the repo's real deployment contract before coding.
+- For Ship, treat the default production surfaces as:
+  - API/runtime: AWS Elastic Beanstalk
+  - Frontend/static assets: S3 + CloudFront
+  - Config/secrets: AWS SSM/Secrets
+- For Ship, also treat the sanctioned public demo surface as:
+  - Render `ship-demo` deployed through `scripts/deploy-render-demo.sh`
+- If the story changes deploy-relevant behavior, update the relevant scripts, env docs, or deployment notes in the same story.
+- If the story changes deployed runtime behavior, plan to refresh the Render demo after merge or record why that demo deploy is blocked.
+- If no deploy surface changes are needed, record `deployment impact: none` in handoff.
 
 ### Step 0.6: Triage Narrow User Corrections
 - If the user gives a small corrective note or clarification during the story, run `.ai/workflows/user-correction-triage.md`
@@ -116,6 +136,7 @@ pnpm audit --prod
 - Update SSOT if the project state changed
 - Record durable patterns or decisions
 - Update design decisions when UI tradeoffs were made
+- Record deployment impact review outcome
 
 ### Step 11: Finalize
 - Run `.ai/workflows/story-handoff.md`

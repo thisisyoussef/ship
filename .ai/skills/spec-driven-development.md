@@ -22,6 +22,7 @@ SDD defines the contract. TDD proves the contract.
 3. Do not add behavior not present in the spec (YAGNI).
 4. Keep spec and implementation synchronized; if behavior changes, update spec first.
 5. Refactor only after tests are green.
+6. When planning a story pack or phase pack, define the higher-level objectives first and write the whole planned story set in one pass before implementation begins.
 
 ---
 
@@ -47,6 +48,15 @@ Create/update the following artifacts before implementation:
 
 Recommended location:
 - `docs/specs/<phase>/<story-id>/`
+
+## Story Pack Rule (When Scope Spans Multiple Stories)
+
+If the work is really a coordinated pack rather than one isolated story:
+
+1. Define the pack's higher-level objectives first.
+2. Write the whole set of stories together so scope, sequencing, and acceptance criteria stay cohesive.
+3. Make sure each story has a clear, non-overlapping role in the pack.
+4. Start implementation only after the pack reads as a coherent whole rather than a growing list of disconnected story drafts.
 
 ---
 
@@ -126,6 +136,8 @@ Do not unit-test pixel-perfect styling values; test behavior + token contract + 
 - [ ] Test list mapped to acceptance criteria
 - [ ] Edge cases enumerated
 - [ ] No out-of-scope behavior planned
+- [ ] For story packs: higher-level pack objectives defined before story drafting
+- [ ] For story packs: full story set written in one pass and checked for cohesion
 - [ ] For UI scope: component spec includes behavior/a11y/tokens/snapshot states
 - [ ] For UI scope: design philosophy principles and precedents reviewed
 

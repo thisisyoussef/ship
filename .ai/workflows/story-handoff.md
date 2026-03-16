@@ -59,6 +59,11 @@ Use this checklist in your handoff message:
 - [ ] Local runtime verification
 - [ ] Production verification (if applicable)
 - [ ] Observability/logging checks (if applicable)
+- [ ] Deployment impact review recorded against the real Ship deploy contract
+- [ ] Public demo Render status recorded when the story affects deployed runtime behavior
+- [ ] Deploy scripts/config/docs updated or explicitly marked `deployment impact: none`
+- [ ] Deployment execution status recorded as `deployed`, `not deployed`, or `blocked`
+- [ ] Environment and command evidence listed when deployment occurred
 
 8. **Documentation and Memory Audit**
 - [ ] Story file updated
@@ -94,9 +99,14 @@ Use this checklist in your handoff message:
 
 13. **Git Finalization Audit (Required)**
 - [ ] Follow `.ai/workflows/git-finalization.md`
+- [ ] Story branch transition recorded in handoff
+- [ ] Pre-story remote sync status recorded in handoff
 - [ ] Commit hash recorded in handoff
 - [ ] Push confirmation recorded in handoff
 - [ ] Remote sync status recorded in handoff
+- [ ] Deployment impact review status recorded in handoff
+- [ ] Deployment execution status recorded in handoff
+- [ ] Public demo Render deploy status recorded in handoff when applicable
 - [ ] PR URL and PR status recorded in handoff
 - [ ] Merge status recorded in handoff
 - [ ] Branch cleanup status recorded in handoff

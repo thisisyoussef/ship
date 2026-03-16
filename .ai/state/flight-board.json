@@ -201,6 +201,92 @@
       "slot": "docs",
       "status": "completed",
       "story_ref": "FLEETGRAPH-FOUNDATION-PHASE"
+    },
+    {
+      "branch": "codex/fleetgraph-t001-recon",
+      "claimed_at": "2026-03-16T18:25:38Z",
+      "flight_id": "fleetgraph-t002",
+      "lock_paths": [
+        "api/src",
+        "shared/src"
+      ],
+      "notes": "",
+      "owner": "codex",
+      "release_summary": "T002 provider adapter delivered",
+      "released_at": "2026-03-16T18:29:58Z",
+      "slot": "code",
+      "status": "completed",
+      "story_ref": "T002"
+    },
+    {
+      "branch": "",
+      "claimed_at": "2026-03-16T18:35:31Z",
+      "flight_id": "flight-ai-story-branch-deploy-sync",
+      "lock_paths": [
+        ".ai",
+        "AGENTS.md",
+        "scripts/check_ai_wiring.sh"
+      ],
+      "notes": "",
+      "owner": "codex",
+      "release_summary": "Enforced story branch rollover, remote sync, and deployment impact review rules",
+      "released_at": "2026-03-16T18:37:59Z",
+      "slot": "ai_arch",
+      "status": "completed",
+      "story_ref": ""
+    },
+    {
+      "branch": "",
+      "claimed_at": "2026-03-16T18:39:52Z",
+      "flight_id": "flight-ai-story-pack-objectives",
+      "lock_paths": [
+        ".ai",
+        "AGENTS.md",
+        "scripts/check_ai_wiring.sh"
+      ],
+      "notes": "",
+      "owner": "codex",
+      "release_summary": "Enforced pack-level objectives and full-pack drafting in spec workflow",
+      "released_at": "2026-03-16T18:41:12Z",
+      "slot": "ai_arch",
+      "status": "completed",
+      "story_ref": ""
+    },
+    {
+      "branch": "",
+      "claimed_at": "2026-03-16T18:42:35Z",
+      "flight_id": "flight-ai-deploy-status-gate",
+      "lock_paths": [
+        ".ai",
+        "AGENTS.md",
+        "scripts/check_ai_wiring.sh"
+      ],
+      "notes": "",
+      "owner": "codex",
+      "release_summary": "Completed deployment status guardrail updates; continuing with repo-owned Render demo deployment wiring in a new flight.",
+      "released_at": "2026-03-16T18:51:42Z",
+      "slot": "ai_arch",
+      "status": "completed",
+      "story_ref": ""
+    },
+    {
+      "branch": "codex/fleetgraph-t002-llm-adapter",
+      "claimed_at": "2026-03-16T18:51:46Z",
+      "flight_id": "flight-render-demo-contract",
+      "lock_paths": [
+        ".ai",
+        "AGENTS.md",
+        "README.md",
+        "render.yaml",
+        "scripts/deploy-render-demo.sh"
+      ],
+      "notes": "Document and wire repo-owned Render demo deployment before merging and deploying T002",
+      "owner": "codex",
+      "release_summary": "Added repo-owned Render demo deployment script and wired the public demo path into deployment workflows, docs, and handoff rules.",
+      "released_at": "2026-03-16T18:55:07Z",
+      "slot": "ai_arch",
+      "status": "completed",
+      "story_ref": "DEPLOY-DEMO"
     }
   ],
   "parallel_max_active_flights": 3,
@@ -211,6 +297,6 @@
     "docs": 2,
     "infra": 1
   },
-  "updated_at": "2026-03-16T17:44:32Z",
+  "updated_at": "2026-03-16T18:55:07Z",
   "version": 1
 }

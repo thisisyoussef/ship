@@ -10,6 +10,12 @@
 ## Problem Statement
 What user/system problem are we solving and why now?
 
+## Story Pack Objectives (for phase packs or multi-story planning)
+- Objective 1:
+- Objective 2:
+- Objective 3:
+- How this story or pack contributes to the overall objective set:
+
 ## User Stories
 - As a ..., I want ..., so that ...
 

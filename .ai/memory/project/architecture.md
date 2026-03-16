@@ -66,3 +66,45 @@ Record durable architecture decisions.
 - **Decision**: Treat FleetGraph as a foundation-first phase. Before feature implementation, require a gauntlet-wide reconnaissance pass, a provider adapter with OpenAI as the default path, LangSmith tracing bootstrap, LangGraph runtime scaffolding, trigger/worker substrate, and deployment/auth planning.
 - **Alternatives Considered**: Jump straight into individual FleetGraph use cases; hard-code a single provider into the runtime; defer tracing and deployment until after the first proactive behavior works locally.
 - **Consequences**: The next implementation stories should focus on platform readiness rather than user-facing FleetGraph behaviors, and future agents should enter through the foundation story pack instead of improvising the build order.
+
+- **ADR-ID**: ADR-0009
+- **Date**: 2026-03-16
+- **Context**: The gauntlet workspace contains strong neighboring examples for LangGraph, LangSmith, provider routing, queue claims, and deployment contracts, but each donor repo also carries product-specific assumptions that would misfit FleetGraph if copied wholesale.
+- **Decision**: Reuse neighboring repos at the contract and pattern level only. Lift Ghostfolio's graph/observability shape, LegacyLens's tracing and OpenAI adapter contracts, Collab Board's provider-wrapping pattern, and Ship audit app's durable claim semantics, while avoiding donor-specific provider lock-in, serverless-only runtimes, GitHub Actions execution, and foreign deployment defaults.
+- **Alternatives Considered**: Rebuild all substrate decisions from scratch; copy the most complete neighboring implementation directly into Ship.
+- **Consequences**: FleetGraph gets faster substrate convergence with less donor leakage, but implementers must translate patterns intentionally instead of copy-pasting code.
+
+- **ADR-ID**: ADR-0010
+- **Date**: 2026-03-16
+- **Context**: FleetGraph needs a concrete provider entry point before LangGraph or tracing work begins. Ship already contains Claude/Bedrock-specific analysis code, but using that directly would leak the wrong provider contract into the new runtime.
+- **Decision**: Introduce a dedicated FleetGraph `LLMAdapter` factory under `api/src/services/fleetgraph/llm/` that resolves provider config from env, defaults to OpenAI Responses, and keeps Bedrock Anthropic available behind the same interface.
+- **Alternatives Considered**: Call OpenAI directly from future graph nodes; reuse `api/src/services/ai-analysis.ts`; defer provider abstraction until after the graph skeleton exists.
+- **Consequences**: Future graph and tracing work can depend on one adapter interface, provider switching stays outside node logic, and the existing Bedrock path remains available as compatibility rather than as the default contract.
+
+- **ADR-ID**: ADR-0011
+- **Date**: 2026-03-16
+- **Context**: The local workflow drifted into starting T002 work on a T001-named branch and into guessing at deployment providers from unrelated repo artifacts. That makes story state hard to track and weakens release discipline.
+- **Decision**: Require every new story to begin with a remote sync and a fresh `codex/` branch whose name matches the active story. Also require every story, even non-deployment stories, to review impact against Ship's real deployment contract: API on Elastic Beanstalk, frontend on S3/CloudFront, and AWS-native config/secrets.
+- **Alternatives Considered**: Allow branch reuse until merge time; require deployment review only on explicit deploy stories; infer provider choice from historical or neighboring repo files.
+- **Consequences**: Story lineage stays easier to audit, deployment assumptions become explicit, and handoffs must record either the deploy updates made or `deployment impact: none`.
+
+- **ADR-ID**: ADR-0012
+- **Date**: 2026-03-16
+- **Context**: Story packs can drift into a sequence of locally reasonable but globally inconsistent stories when they are drafted one at a time. That weakens sequencing, creates overlap, and leaves pack-level objectives implicit.
+- **Decision**: When planning a story pack or phase pack, define the higher-level objectives first and draft the full planned story set in one pass before implementation begins.
+- **Alternatives Considered**: Write one story at a time and backfill the rest later; rely on a technical plan alone to imply pack objectives.
+- **Consequences**: Story packs should become more cohesive and comprehensive, but upfront planning discipline increases before implementation starts.
+
+- **ADR-ID**: ADR-0013
+- **Date**: 2026-03-16
+- **Context**: Deployment state was easy to leave ambiguous, especially when the repo contains old references to unrelated hosting providers and the current machine may not have provider access.
+- **Decision**: For stories that affect deployed runtime surfaces, require explicit deployment execution status in handoff and workflow state: `deployed`, `not deployed`, or `blocked`, with environment and command evidence when deployment occurs.
+- **Alternatives Considered**: Treat deployment as implied by merge; only mention deploys when they succeed; leave provider access failures out of the story record.
+- **Consequences**: Release state becomes more trustworthy, but handoffs must carry one more explicit status field for runtime-impacting stories.
+
+- **ADR-ID**: ADR-0014
+- **Date**: 2026-03-16
+- **Context**: Ship's canonical production deployment remains AWS-native, but the team also relies on a real public demo at `ship-demo.onrender.com`. That demo path existed only in provider state, which made it easy to forget, misclassify as non-canonical, or leave undeployed after story completion.
+- **Decision**: Keep AWS as the production baseline and formalize Render `ship-demo` as the sanctioned public demo environment, deployed through a checked-in script (`scripts/deploy-render-demo.sh`) and referenced in story/finalization workflows.
+- **Alternatives Considered**: Ignore the Render demo because it is not production; repoint production documentation to Render; keep the demo path as an unwritten manual provider-side detail.
+- **Consequences**: Deploy-relevant stories now need both production-path review and public-demo status, but future releases are less likely to drift away from the live demo the team actually uses.

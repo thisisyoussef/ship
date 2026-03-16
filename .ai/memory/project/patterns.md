@@ -80,3 +80,52 @@ Capture reusable patterns that repeatedly work in this project.
 - **Benefits**: Faster onboarding, clearer agent routing, and less chance of treating historical output as current guidance.
 - **Tradeoffs**: Requires deliberate path maintenance when files move.
 - **References**: `docs/README.md`, `docs/archive/README.md`, `docs/evidence/README.md`
+
+- **Pattern**: Contract-level neighbor reuse
+- **Use when**: A repository sits next to sibling projects that already solved parts of the same substrate problem.
+- **Approach**: Identify the minimal reusable contract from each neighbor, copy the idea rather than the product-specific implementation, and write keep/avoid decisions before coding.
+- **Benefits**: Speeds up architecture work without importing the wrong providers, prompts, or deployment assumptions.
+- **Tradeoffs**: Requires more judgment than direct code copying.
+- **References**: `docs/specs/fleetgraph/FLEETGRAPH-FOUNDATION-PHASE/reconnaissance-note.md`, `.ai/memory/project/architecture.md`
+
+- **Pattern**: Provider factory outside graph nodes
+- **Use when**: A graph or agent runtime must support more than one model provider without leaking provider-specific code into node logic.
+- **Approach**: Resolve env/config once, create a provider-specific adapter through a factory, and expose one narrow `LLMAdapter` interface to the rest of the runtime.
+- **Benefits**: Keeps provider switching, credentials, and API-shape differences out of graph logic and makes tracing easier to wrap centrally.
+- **Tradeoffs**: Adds a small abstraction layer before any user-facing behavior exists.
+- **References**: `api/src/services/fleetgraph/llm/factory.ts`, `.ai/memory/project/architecture.md`
+
+- **Pattern**: Story branch rollover before new implementation
+- **Use when**: One story is complete or paused and the next story is about to begin in the same local repo.
+- **Approach**: Sync with remote, create or switch to a fresh `codex/` branch whose name matches the new story, and record the branch transition in handoff/finalization evidence.
+- **Benefits**: Keeps story lineage obvious, prevents mixed PR diffs, and makes user audits easier to follow.
+- **Tradeoffs**: Adds a short git step before each story.
+- **References**: `AGENTS.md`, `.ai/workflows/feature-development.md`, `.ai/workflows/git-finalization.md`
+
+- **Pattern**: Deployment impact review on every story
+- **Use when**: Any story could touch runtime behavior, config, routing, background work, or user-facing capabilities that may alter release expectations.
+- **Approach**: Check the story against Ship's canonical AWS deploy surfaces, update deploy scripts/docs when impacted, and otherwise record `deployment impact: none` in handoff.
+- **Benefits**: Prevents silent runtime drift and keeps deploy assumptions aligned with the code that just changed.
+- **Tradeoffs**: Adds a lightweight review step even for stories that end up changing nothing operationally.
+- **References**: `.claude/CLAUDE.md`, `docs/core/application-architecture.md`, `.ai/workflows/feature-development.md`
+
+- **Pattern**: Pack-level objectives before story drafting
+- **Use when**: Planning a phase pack, foundation pack, or any coordinated multi-story effort.
+- **Approach**: Define the higher-level objectives first, then draft the whole story set in one pass and map each story back to the objective set.
+- **Benefits**: Keeps the pack cohesive, reduces overlap, and makes sequencing more intentional.
+- **Tradeoffs**: Adds more upfront planning before implementation can begin.
+- **References**: `.ai/workflows/spec-driven-delivery.md`, `.ai/skills/spec-driven-development.md`, `.ai/templates/spec/FEATURE_SPEC_TEMPLATE.md`
+
+- **Pattern**: Explicit deployment execution status
+- **Use when**: A story changes deployed runtime behavior or the user asks whether work is live.
+- **Approach**: Record `deployed`, `not deployed`, or `blocked` explicitly, and attach environment plus command evidence when a deploy actually runs.
+- **Benefits**: Prevents ambiguous release state and makes access blockers visible immediately.
+- **Tradeoffs**: Adds a small handoff burden for deploy-relevant stories.
+- **References**: `.ai/workflows/deployment-setup.md`, `.ai/workflows/story-handoff.md`, `.ai/workflows/git-finalization.md`
+
+- **Pattern**: Repo-owned public demo deploy path
+- **Use when**: The product has a sanctioned live demo environment that is separate from the canonical production hosting stack.
+- **Approach**: Check in a dedicated deploy script, document the demo environment in the repo contract, and require deploy-relevant stories to either refresh that demo or explicitly record why it is blocked.
+- **Benefits**: Keeps the live demo aligned with merged work and prevents provider-side tribal knowledge from becoming a release dependency.
+- **Tradeoffs**: Adds another deployment surface to track alongside production.
+- **References**: `scripts/deploy-render-demo.sh`, `.ai/workflows/deployment-setup.md`, `README.md`

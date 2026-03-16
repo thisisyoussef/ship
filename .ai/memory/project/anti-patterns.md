@@ -58,3 +58,43 @@ Capture failures so they are not repeated.
 - **Example**: Keeping active product references, assignment deliverables, screenshots, PR artifacts, and archived submissions side by side in the same top-level docs surface.
 - **Why it failed**: Humans and agents both lose the distinction between current guidance and supporting or historical material.
 - **Prevention rule**: Group docs by reader intent and lifecycle, and keep archive/evidence areas explicitly labeled.
+
+- **Problem**: Cargo-culting substrate from sibling repos
+- **Example**: Copying a neighboring repo's Claude wiring, Vercel serverless runtime, GitHub Actions worker, or Celery queue stack directly into FleetGraph because it already exists nearby.
+- **Why it failed**: The copied implementation solves a different product/runtime problem and drags in the wrong provider, hosting, or execution assumptions.
+- **Prevention rule**: Reuse neighboring repos at the contract level only and record explicit keep/avoid decisions before implementation.
+
+- **Problem**: Letting graph nodes choose their provider directly
+- **Example**: Future FleetGraph nodes read env vars or import SDK-specific clients directly to decide between OpenAI and Bedrock at call time.
+- **Why it failed**: Provider choice leaks into node logic, makes tracing/bootstrap harder to centralize, and turns a provider switch into a graph refactor.
+- **Prevention rule**: Keep provider selection in the FleetGraph adapter factory and expose only the `LLMAdapter` contract to the rest of the runtime.
+
+- **Problem**: Starting a new story on the previous story's branch
+- **Example**: T002 implementation continued on `codex/fleetgraph-t001-recon` because the branch rollover step was implicit instead of enforced.
+- **Why it failed**: The branch name stopped reflecting the active work, story tracking became confusing, and finalization evidence would have been harder to trust.
+- **Prevention rule**: Sync remotes, create a fresh `codex/` branch for each new story, and record the branch transition in handoff.
+
+- **Problem**: Guessing the deploy target from stray repo artifacts
+- **Example**: Treating `render.yaml` or neighboring repo defaults as the product deployment contract even though Ship's live runtime is AWS-native.
+- **Why it failed**: The wrong release surface gets reviewed, and operational changes can ship without checking the actual backend/frontend deployment path.
+- **Prevention rule**: Use `.claude/CLAUDE.md`, `README.md`, and `docs/core/application-architecture.md` as the deployment source of truth and review deploy impact on every story.
+
+- **Problem**: Writing a story pack one story at a time without pack objectives
+- **Example**: Drafting T001, then inventing T002-T008 incrementally without first defining the whole pack's higher-level outcomes and cohesion.
+- **Why it failed**: The pack can become uneven, overlapping, and harder to reason about as a system rather than a list of isolated stories.
+- **Prevention rule**: Define pack-level objectives first and write the full planned story set in one planning pass before implementation.
+
+- **Problem**: Leaving deployment state implied
+- **Example**: A story changes runtime code and the handoff says only that deployment was reviewed, leaving everyone to guess whether the change is actually live.
+- **Why it failed**: Teams confuse deploy-readiness with deployed state, and missing credentials or manual steps stay hidden.
+- **Prevention rule**: Always record deployment execution status explicitly as `deployed`, `not deployed`, or `blocked`.
+
+- **Problem**: Treating a remembered demo URL as the canonical deploy target
+- **Example**: Assuming an old Render hostname is the current Ship production path even though the repo-owned deploy scripts and config point elsewhere.
+- **Why it failed**: The team can deploy or verify against the wrong surface and incorrectly conclude the real product is live.
+- **Prevention rule**: Only treat repo-owned config, scripts, and workflows as canonical deployment targets; classify remembered/manual demo URLs separately unless they are wired in the repo.
+
+- **Problem**: Leaving a real demo environment outside the repo contract
+- **Example**: The team actively uses `ship-demo.onrender.com`, but the repo workflows only mention AWS and treat the Render demo as a manual rumor instead of a wired deployment surface.
+- **Why it failed**: Story handoffs can say "not deployed" even when a sanctioned demo path exists, and future agents may never refresh the environment users are actually looking at.
+- **Prevention rule**: If a live demo environment matters to the team, give it a repo-owned deploy script and document it explicitly in the deployment workflows.

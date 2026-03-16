@@ -380,6 +380,7 @@ Ship supports multiple deployment patterns:
 | Environment | Recommended Approach |
 |-------------|---------------------|
 | **Development** | Local with Docker Compose |
+| **Public Demo** | Render `ship-demo` via `./scripts/deploy-render-demo.sh <commit-ish>` |
 | **Staging** | AWS Elastic Beanstalk |
 | **Production** | AWS GovCloud with Terraform |
 
@@ -401,6 +402,8 @@ docker-compose -f docker-compose.prod.yml up
 | `DATABASE_URL` | PostgreSQL connection string | Required |
 | `SESSION_SECRET` | Cookie signing secret | Required |
 | `PORT` | API server port | `3000` |
+
+Production remains AWS-native. The public demo at [ship-demo.onrender.com](https://ship-demo.onrender.com/) is a sanctioned preview surface backed by the checked-in `scripts/deploy-render-demo.sh` workflow.
 
 ---
 

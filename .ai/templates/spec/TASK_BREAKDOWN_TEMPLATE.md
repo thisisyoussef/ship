@@ -9,6 +9,12 @@
 - Mark dependencies explicitly.
 - Mark parallelizable tasks explicitly.
 
+## Story Pack Alignment (for phase packs or multi-story planning)
+- Higher-level pack objectives:
+- Planned stories in this pack:
+- Why this story set is cohesive:
+- Coverage check: which objective each story advances:
+
 ## Tasks
 
 | Task ID | Description | Dependency | Parallelizable | Validation |

@@ -13,7 +13,7 @@
 
 | Task ID | Description | Dependency | Parallelizable | Validation |
 |---|---|---|---|---|
-| T001 | Recon the whole `/Users/youss/Development/gauntlet` directory for reusable LangGraph, LangSmith, provider-adapter, worker, and deployment patterns; capture what to reuse and what to avoid. | must-have | no | Written reconnaissance note with explicit keep/avoid decisions |
+| T001 | Recon the whole `/Users/youss/Development/gauntlet` directory for reusable LangGraph, LangSmith, provider-adapter, worker, and deployment patterns; capture what to reuse and what to avoid. | must-have | no | `docs/specs/fleetgraph/FLEETGRAPH-FOUNDATION-PHASE/reconnaissance-note.md` with explicit keep/avoid decisions |
 | T002 | Define the provider-agnostic `LLMAdapter` contract and OpenAI-first runtime config, while documenting fallback compatibility with other providers. | blocked-by:T001 | yes | Unit tests for adapter selection, config validation, and provider switching |
 | T003 | Bootstrap LangSmith tracing, trace metadata taxonomy, and shared trace-link workflow before any graph behavior is added. | blocked-by:T001 | yes | Smoke run emits traces with expected metadata and shareable links |
 | T004 | Stand up the LangGraph runtime skeleton, shared state schema, conditional branch taxonomy, and checkpoint boundaries for proactive and on-demand modes. | blocked-by:T002,T003 | no | Unit and integration tests prove branching/state transitions without real feature logic |

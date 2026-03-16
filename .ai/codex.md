@@ -26,6 +26,7 @@ Before starting any new story:
 1. Run `agent-preflight` skill
 2. Share concise preflight brief
 3. Proceed to implementation only after preflight
+4. Sync remotes and move to a fresh `codex/` branch for that story before edits begin
 
 ---
 
@@ -44,6 +45,7 @@ Before tests/implementation:
    - `UI_COMPONENT_SPEC_TEMPLATE.md` (if UI is in scope)
    - `UI_PROMPT_BRIEF_TEMPLATE.md` (if UI prompting needs explicit structure or reuse)
 6. For UI scope, apply `.ai/skills/frontend-design.md` so design prompts/specs use concrete visual constraints instead of vague taste words
+7. For story packs or phase packs, define the higher-level objectives first and draft the full story set in one planning pass before implementation begins
 
 Do not start coding until constitution/spec/plan/tasks are defined.
 
@@ -80,6 +82,7 @@ Before implementation edits for a flight:
 1. Run `.ai/workflows/parallel-flight.md`
 2. Claim slot via `bash scripts/flight_slot.sh claim ...`
 3. Keep `single` mode for normal one-flight flow; switch to `parallel` only when coordinating multiple chats
+4. Confirm deployment impact against Ship's AWS deploy contract even for non-deployment stories
 
 ---
 

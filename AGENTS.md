@@ -84,6 +84,10 @@ Minimum required artifacts (using `.ai/templates/spec/`):
 - task breakdown,
 - UI component spec when UI scope exists.
 - `.ai/templates/spec/UI_PROMPT_BRIEF_TEMPLATE.md` when UI scope needs explicit design prompting or reuse.
+When the work is a story pack, phase pack, or multi-story foundation plan:
+- define the higher-level objectives for the whole pack first,
+- write the full set of stories for the pack in one planning pass,
+- ensure story scopes, sequencing, and acceptance criteria are cohesive and non-overlapping before implementation begins.
 For UI scope, use `.ai/docs/design/DESIGN_PHILOSOPHY_AND_LANGUAGE.md` as the ambiguity tiebreaker, apply `.ai/skills/frontend-design.md`, and log non-obvious tradeoffs.
 
 Do not begin feature implementation until these artifacts exist and align with acceptance criteria.
@@ -106,9 +110,25 @@ This adds parallel-flight flexibility without removing existing preflight/lookup
 ## Branch and Commit Hygiene (Required)
 
 Before starting work:
+- Sync with remote first:
+  - `git fetch --all --prune`
+  - `git status -sb`
+  - `git branch -vv`
+- If this is a new story, create or switch to a fresh branch named `codex/<short-task-name>` before editing.
+- Do not start story N+1 on story N's branch. The only time a branch may continue is when you are still addressing feedback for that same story.
 - Start each discrete task on a fresh branch named `codex/<short-task-name>`.
-- If the current branch has unrelated local edits, create a fresh worktree/branch instead of mixing changes.
+- Stay in the single local Ship repo folder. Do not create helper worktrees unless the user explicitly asks for one.
+- If the current branch has unrelated local edits, park them safely in this repo and switch branches here instead of mixing changes.
 - Keep one concern per branch; do not combine unrelated fixes, docs, and feature work.
+- Review deployment impact for every story against Ship's real deployment surfaces:
+  - Production: API on AWS Elastic Beanstalk, frontend on S3/CloudFront, and AWS-backed config/secrets.
+  - Public demo: Render `ship-demo` via `scripts/deploy-render-demo.sh`.
+  Update those surfaces when impacted, or record `deployment impact: none` in handoff.
+- If a story changes deployed runtime behavior in `api/`, `web/`, deployment scripts, or production/demo config contracts, record explicit deployment status in handoff:
+  - `deployed` with environment + command evidence,
+  - `not deployed` with reason,
+  - or `blocked` with the exact missing access or prerequisite.
+- For deploy-relevant stories, refresh the sanctioned Render public demo after merge with `scripts/deploy-render-demo.sh <commit>` unless the handoff explicitly records why that demo deploy is `blocked`.
 
 While working:
 - Make small, reviewable commits once the relevant checks for that slice pass.
@@ -128,6 +148,7 @@ Before merge:
 After approval:
 - Merge only after required checks pass and the branch is up to date with its base branch.
 - Prefer a clean final history: one focused commit or a small set of meaningful commits.
+- Sync with remote again after merge or branch finalization so the local repo reflects the current remote state.
 - Delete stale worktrees/branches after merge when safe.
 
 ---
@@ -138,13 +159,17 @@ Before final story handoff, run `.ai/workflows/git-finalization.md`.
 
 Minimum required outcome:
 - work performed on a dedicated `codex/` branch,
+- branch name reflects the current story rather than a previous completed story,
 - clear commit(s) created for the story changes,
+- remotes fetched before branch/story work begins,
 - remotes fetched and branch sync status checked,
 - push completed to a writable remote,
 - PR created or updated with verification notes,
 - review feedback resolved before merge,
 - merge completed only after checks pass and the branch is current,
 - merged branch cleaned up locally/remotely when safe,
+- deployment impact reviewed and recorded for the story,
+- deployment execution status recorded for deploy-relevant stories,
 - `bash scripts/git_finalize_guard.sh` passes.
 
 Do not commit, push, open a PR, or merge until the user has completed the User Audit Checklist and explicitly approved finalization.

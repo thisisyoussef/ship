@@ -4,7 +4,7 @@ Grounded in the Ship codebase as explored on 2026-03-15.
 
 ## Assumption Update
 
-The assignment brief still says Claude, and Ship already ships Bedrock Claude integrations in `api/src/routes/ai.ts` and `api/src/routes/claude.ts`. Your latest clarification relaxes that requirement, so this presearch treats FleetGraph as provider-agnostic. The graph should sit behind an `LLMAdapter` and not hard-code a single model vendor. Cost math below uses `gpt-5-mini` as the reference model because it keeps proactive monitoring cheap; Ship's existing Claude path remains a viable fallback.
+The source PRD PDF still says Claude, and Ship already ships Bedrock Claude integrations in `api/src/routes/ai.ts` and `api/src/routes/claude.ts`. Your latest clarification supersedes that bullet for this repo, so this presearch treats FleetGraph as provider-agnostic with OpenAI as the preferred default. The graph should sit behind an `LLMAdapter` and not hard-code a single model vendor. Cost math below uses `gpt-5-mini` as the reference model because it keeps proactive monitoring cheap; Ship's existing Claude path remains a viable fallback rather than the primary plan.
 
 ## 1. Codebase Reconnaissance Report
 
@@ -987,6 +987,42 @@ Optional third scenario worth adding quickly:
 - insight-to-action conversion rate
 - tokens per proactive run
 - tokens per on-demand run
+
+## 12. Foundation Phase Prerequisites
+
+Before feature implementation, FleetGraph should establish the platform substrate below.
+
+| Prerequisite | Why it must exist first | Deployment / ops implication |
+|---|---|---|
+| Gauntlet-wide reconnaissance | The `gauntlet/` directory already contains sibling repos and experiments that may have reusable agent, tracing, deployment, or workflow patterns. The foundation phase should inspect the whole gauntlet workspace before adding net-new stack choices. | Reduces duplicate infra and helps us avoid drifting into a one-off FleetGraph setup. |
+| Provider adapter contract | The PDF's Claude-only bullet is now superseded, so the runtime must not bake one provider into graph nodes. Use a provider-agnostic `LLMAdapter` with OpenAI as the default path. | Keeps model choice, credentials, and rollout risk isolated from the graph logic. |
+| LangSmith tracing bootstrap | The PRD requires tracing from day one, and the implementation will be hard to debug once proactive and on-demand paths diverge. | Environment variables, trace metadata, and shared trace-link capture must be part of the initial runtime contract. |
+| LangGraph runtime skeleton | The graph needs shared state, conditional branching, parallel fetch fan-out, and checkpoint boundaries before any meaningful FleetGraph behavior can be added safely. | The deployment shape must account for graph checkpoints, branch metadata, and long-running worker execution. |
+| Ship REST normalization layer | Ship's live relationship model is mixed-shape, so direct reasoning on raw payloads will produce brittle behavior. | Normalize canonical associations plus legacy relationship fields before scoring or reasoning. |
+| Trigger and worker substrate | Hybrid triggering only works if enqueue, sweep, dedupe, and checkpoint behavior exist before the first proactive use case is added. | The worker must run outside the browser, with queue or checkpoint persistence and scheduler support. |
+| Deployment and secrets contract | Public accessibility is required, and proactive mode needs service auth, tracing secrets, and environment separation from day one. | Define API token strategy, worker/api topology, and env-var ownership before any MVP use case goes live. |
+| Embedded UI and HITL envelope | The PRD requires contextual chat and approval gates, so the entry and confirmation surfaces need contracts before feature stories start multiplying. | Ship needs a stable way to pass route context into the graph and pause for human approval without inventing a separate app. |
+
+### External grounding for the foundation phase
+
+- LangGraph overview: [docs.langchain.com/oss/javascript/langgraph/overview](https://docs.langchain.com/oss/javascript/langgraph/overview)
+- LangSmith observability quickstart: [docs.langchain.com/langsmith/observability-quickstart](https://docs.langchain.com/langsmith/observability-quickstart)
+- LangGraph Platform overview: [docs.langchain.com/langgraph-platform](https://docs.langchain.com/langgraph-platform)
+- OpenAI function calling guide: [developers.openai.com/api/docs/guides/function-calling](https://developers.openai.com/api/docs/guides/function-calling)
+- OpenAI migration guidance toward Responses: [developers.openai.com/api/docs/guides/migrate-to-responses](https://developers.openai.com/api/docs/guides/migrate-to-responses)
+
+## 13. Foundation Phase Story Pack Input
+
+The foundational implementation phase should be broken into these stories:
+
+1. Recon the entire `gauntlet/` directory for reusable LangGraph, LangSmith, worker, deployment, and provider-adapter patterns before introducing new FleetGraph-specific code.
+2. Define the provider-agnostic `LLMAdapter` and default it to OpenAI while preserving the ability to swap providers later.
+3. Bootstrap LangSmith tracing, trace metadata taxonomy, and shared trace-link capture before graph behaviors are added.
+4. Stand up the LangGraph runtime skeleton, state schema, and checkpoint boundaries for both proactive and on-demand modes.
+5. Build the Ship REST normalization layer plus trigger envelopes so graph nodes reason over one coherent internal model.
+6. Add the proactive worker, scheduled sweep, enqueue, dedupe, and checkpoint substrate needed for the under-5-minute latency goal.
+7. Define the same-origin UI entry contract and human-in-the-loop approval envelope before any write-capable use cases are attempted.
+8. Lock deployment, secrets, and public-access strategy early enough that traces, workers, and UI routes can be verified together.
 
 ## Final Recommendation
 

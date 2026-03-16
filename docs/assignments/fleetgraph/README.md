@@ -2,6 +2,12 @@
 
 Source PRD: `docs/assignments/fleetgraph/FleetGraph_PRD.pdf`
 
+Supporting repo docs:
+- `docs/assignments/fleetgraph/APPROACH_REFERENCE.md`
+- `.ai/docs/references/fleetgraph-prd.md`
+- `docs/assignments/fleetgraph/PRESEARCH.md`
+- `docs/assignments/fleetgraph/FLEETGRAPH.md`
+
 ## What this assignment is asking for
 
 Build a project-intelligence agent for Ship that does more than answer questions. It should read project state, reason about what matters, surface useful findings proactively, and support context-aware on-demand interaction inside the Ship UI.
@@ -16,17 +22,24 @@ Both modes must use the same graph architecture. The trigger changes, not the gr
 ## Hard constraints
 
 - Data source: Ship REST API only
-- AI provider: provider-agnostic, with OpenAI preferred in this repo direction
+- AI provider: provider-agnostic in this repo; OpenAI is the preferred default
 - Observability: LangSmith tracing from day one
 - Framework: LangGraph recommended; if not used, equivalent manual LangSmith instrumentation is required
 - UX: chat must be embedded in context, not a standalone chatbot page
 - Safety: consequential actions must pass through a human-in-the-loop confirmation gate
 - Performance target: detect and surface a relevant problem within 5 minutes
 
+## Repo clarification on the source PRD
+
+- The checked-in PDF is the canonical assignment source and matches the downloaded copy used for this story.
+- The source PDF still contains a Claude-only AI bullet. That requirement is superseded for this repo's planning and implementation.
+- FleetGraph should remain provider-agnostic behind an adapter boundary, with OpenAI as the preferred default unless another provider is explicitly justified later.
+
 ## Main deliverables
 
 - `docs/assignments/fleetgraph/PRESEARCH.md`
 - `docs/assignments/fleetgraph/FLEETGRAPH.md`
+- `docs/assignments/fleetgraph/APPROACH_REFERENCE.md`
 - Shared LangSmith trace links showing different execution paths
 - A deployed, publicly accessible implementation running against real Ship data
 

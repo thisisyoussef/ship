@@ -2,6 +2,11 @@
 
 Use this as the working submission document for the FleetGraph assignment.
 
+## Current Repo Clarification
+
+- The source PDF still mentions Claude-only integration.
+- For this repo, FleetGraph should remain provider-agnostic and use OpenAI as the preferred default unless another provider is explicitly justified.
+
 ## Agent Responsibility
 
 Define:
@@ -71,8 +76,8 @@ Cover:
 
 | Item | Amount |
 |------|--------|
-| Preferred AI API - input tokens | |
-| Preferred AI API - output tokens | |
+| Selected LLM API - input tokens | |
+| Selected LLM API - output tokens | |
 | Total invocations during development | |
 | Total development spend | |
 
@@ -85,6 +90,7 @@ Cover:
 | 10,000 | |
 
 Assumptions:
+- Preferred default provider: OpenAI
 - Proactive runs per project per day:
 - On-demand invocations per user per day:
 - Average tokens per invocation:

@@ -59,3 +59,10 @@ Record durable architecture decisions.
 - **Decision**: Reorganize `docs/` by reader intent and lifecycle: `core/`, `guides/`, `assignments/`, `reference/`, `research/`, `solutions/`, `evidence/`, and `archive/`, while moving FleetGraph working docs under `docs/assignments/fleetgraph/`.
 - **Alternatives Considered**: Keep the flat docs surface and rely on a better top-level README only; move everything into an archive-heavy taxonomy with more nesting.
 - **Consequences**: Entry navigation becomes clearer and future agents can distinguish active guidance from support material, but path references must be maintained carefully during future moves.
+
+- **ADR-ID**: ADR-0008
+- **Date**: 2026-03-16
+- **Context**: The FleetGraph source PDF still says Claude-only integration, but the active repo direction is provider-agnostic with OpenAI preferred. At the same time, the next implementation risk is not missing features but missing substrate: tracing, graph runtime, trigger worker, deployment, and a scan of the broader `gauntlet/` workspace for reusable patterns.
+- **Decision**: Treat FleetGraph as a foundation-first phase. Before feature implementation, require a gauntlet-wide reconnaissance pass, a provider adapter with OpenAI as the default path, LangSmith tracing bootstrap, LangGraph runtime scaffolding, trigger/worker substrate, and deployment/auth planning.
+- **Alternatives Considered**: Jump straight into individual FleetGraph use cases; hard-code a single provider into the runtime; defer tracing and deployment until after the first proactive behavior works locally.
+- **Consequences**: The next implementation stories should focus on platform readiness rather than user-facing FleetGraph behaviors, and future agents should enter through the foundation story pack instead of improvising the build order.

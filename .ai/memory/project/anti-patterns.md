@@ -38,3 +38,8 @@ Capture failures so they are not repeated.
 - **Example**: Designing proactive FleetGraph around subscribing to the existing WebSocket events layer as if it were a replayable queue.
 - **Why it failed**: The current realtime layer is browser-facing delivery plumbing with no persistence, no replay, and no worker-consumable event contract.
 - **Prevention rule**: Use route-level enqueue hooks plus scheduled sweeps for triggering, and reserve `/events` for delivery only.
+
+- **Problem**: Turning a narrow user correction into a broad replanning exercise
+- **Example**: The user says to ignore one stale requirement bullet, and the response grows into new ADRs, new phase packs, and expanded architectural scope without first classifying impact.
+- **Why it failed**: It creates work the user did not ask for, obscures the real correction, and weakens trust in the workflow's proportionality.
+- **Prevention rule**: Run user-correction triage first and keep low-blast-radius fixes bounded to the smallest affected surfaces.

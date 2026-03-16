@@ -36,6 +36,12 @@ Before implementing any story:
 2. Complete local + external docs lookup
 3. Deliver concise lookup brief before tests/code edits
 
+## User Correction Triage Gate (Required for Narrow Corrections)
+If the user gives a targeted corrective note or clarification during the story:
+1. Run `.ai/workflows/user-correction-triage.md`
+2. Classify the blast radius before editing
+3. Keep the fix bounded unless the correction materially changes scope or architecture
+
 ## Eval-Driven Gate (Required for AI-Behavior Changes)
 Before changing prompts, retrieval, tools, routing, handoffs, graders, or model-facing output behavior:
 1. Run `.ai/workflows/eval-driven-development.md`
@@ -64,6 +70,7 @@ Before final story handoff:
 - Flight coordination: `.ai/workflows/parallel-flight.md`
 - AI architecture/orchestrator: `.ai/workflows/ai-architecture-change.md`
 - Story lookup: `.ai/workflows/story-lookup.md`
+- Narrow user correction triage: `.ai/workflows/user-correction-triage.md`
 - Eval-driven development: `.ai/workflows/eval-driven-development.md`
 - Spec-driven delivery: `.ai/workflows/spec-driven-delivery.md`
 - Story handoff: `.ai/workflows/story-handoff.md`

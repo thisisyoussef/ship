@@ -52,3 +52,10 @@ Capture reusable patterns that repeatedly work in this project.
 - **Benefits**: Keeps proactive cost predictable, reduces noise, and creates clearer branch traces in LangSmith.
 - **Tradeoffs**: Some intelligence moves into rules instead of the model.
 - **References**: `PRESEARCH.md`, `api/src/routes/accountability.ts`, `api/src/services/accountability.ts`
+
+- **Pattern**: Narrow user correction triage
+- **Use when**: The user gives a small corrective note or clarification during a story or after handoff.
+- **Approach**: Restate the correction, classify blast radius, patch only the directly affected surfaces for low-blast-radius corrections, and escalate to full story gates only when the change materially alters scope or architecture.
+- **Benefits**: Keeps diffs focused, respects user intent, and prevents unnecessary replanning churn.
+- **Tradeoffs**: Requires deliberate classification before editing instead of reflexively expanding the task.
+- **References**: `.ai/workflows/user-correction-triage.md`, `.ai/workflows/story-handoff.md`

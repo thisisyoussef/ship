@@ -24,13 +24,14 @@ Ship is a production monorepo with:
 6. **For UI scope, apply the frontend design skill**: `.ai/skills/frontend-design.md`
 7. **For strategic or reusable UI prompting, create a UI prompt brief**: `.ai/templates/spec/UI_PROMPT_BRIEF_TEMPLATE.md`
 8. **ALWAYS run lookup before coding**: `.ai/workflows/story-lookup.md` (local docs + web best practices)
-9. **Coordinate flight slots before edits**: `.ai/workflows/parallel-flight.md` + `bash scripts/flight_slot.sh claim ...` (default mode is single)
-10. **For AI-behavior changes, run eval design first**: `.ai/workflows/eval-driven-development.md`
-11. **Before coding/review work**: read `.ai/docs/AGENTIC_ENGINEERING_PRINCIPLES.md`
-12. **Test-first**: Write tests before implementation (TDD)
-13. **Test prompt and review tasks neutrally**: ask for evidence, severity, and risk rather than assuming defects
-14. **File limits**: <250 lines max, target 150 lines
-15. **DRY principle**: Extract duplication into shared modules appropriate for the chosen stack
+9. **If the user gives a narrow corrective note, triage it first**: `.ai/workflows/user-correction-triage.md`
+10. **Coordinate flight slots before edits**: `.ai/workflows/parallel-flight.md` + `bash scripts/flight_slot.sh claim ...` (default mode is single)
+11. **For AI-behavior changes, run eval design first**: `.ai/workflows/eval-driven-development.md`
+12. **Before coding/review work**: read `.ai/docs/AGENTIC_ENGINEERING_PRINCIPLES.md`
+13. **Test-first**: Write tests before implementation (TDD)
+14. **Test prompt and review tasks neutrally**: ask for evidence, severity, and risk rather than assuming defects
+15. **File limits**: <250 lines max, target 150 lines
+16. **DRY principle**: Extract duplication into shared modules appropriate for the chosen stack
 
 ## Code Standards
 - **Type hints**: Required on all functions

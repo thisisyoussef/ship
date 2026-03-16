@@ -46,6 +46,12 @@ Before coding any story:
 2. Perform local + external lookup for the chosen stack/providers
 3. Publish a lookup brief before tests/implementation
 
+### Step 0.72: User Correction Triage
+If the user gives a narrow correction or clarification during the story:
+1. Run `.ai/workflows/user-correction-triage.md`
+2. Classify the blast radius before editing
+3. Patch only the minimum affected surfaces unless the change is truly scope- or architecture-shaping
+
 ### Step 0.75: Eval-Driven Gate (AI-Behavior Changes)
 Before changing prompts, tools, routing, retrieval, graders, or other nondeterministic AI behavior:
 1. Run `.ai/workflows/eval-driven-development.md`
@@ -75,6 +81,7 @@ Before final handoff:
 - Deployment/CI-CD -> `.ai/workflows/deployment-setup.md`
 - AI architecture/orchestrator change -> `.ai/workflows/ai-architecture-change.md`
 - Story lookup -> `.ai/workflows/story-lookup.md`
+- Narrow user correction triage -> `.ai/workflows/user-correction-triage.md`
 - Eval-driven development -> `.ai/workflows/eval-driven-development.md`
 - Spec-driven delivery -> `.ai/workflows/spec-driven-delivery.md`
 - Story handoff -> `.ai/workflows/story-handoff.md`

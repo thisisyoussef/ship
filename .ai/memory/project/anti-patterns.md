@@ -29,6 +29,21 @@ Capture failures so they are not repeated.
 - **Why it failed**: New projects begin with the wrong assumptions and have to undo template bias before real work starts.
 - **Prevention rule**: Keep the template stack-neutral and force stack selection during setup.
 
+- **Problem**: Assuming canonical associations are the only live relationship source
+- **Example**: Building cross-project or workload features that only read `document_associations` and ignore active legacy reads of `properties.project_id` and `assignee_ids`.
+- **Why it failed**: Ship still has runtime paths that depend on the legacy fields, so features silently miss assignments, project context, or approval targets.
+- **Prevention rule**: Normalize both canonical and legacy relationship signals at the FleetGraph boundary before reasoning.
+
+- **Problem**: Treating `/events` as a durable agent trigger bus
+- **Example**: Designing proactive FleetGraph around subscribing to the existing WebSocket events layer as if it were a replayable queue.
+- **Why it failed**: The current realtime layer is browser-facing delivery plumbing with no persistence, no replay, and no worker-consumable event contract.
+- **Prevention rule**: Use route-level enqueue hooks plus scheduled sweeps for triggering, and reserve `/events` for delivery only.
+
+- **Problem**: Turning a narrow user correction into a broad replanning exercise
+- **Example**: The user says to ignore one stale requirement bullet, and the response grows into new ADRs, new phase packs, and expanded architectural scope without first classifying impact.
+- **Why it failed**: It creates work the user did not ask for, obscures the real correction, and weakens trust in the workflow's proportionality.
+- **Prevention rule**: Run user-correction triage first and keep low-blast-radius fixes bounded to the smallest affected surfaces.
+
 - **Problem**: Flat docs sprawl
 - **Example**: Keeping active product references, assignment deliverables, screenshots, PR artifacts, and archived submissions side by side in the same top-level docs surface.
 - **Why it failed**: Humans and agents both lose the distinction between current guidance and supporting or historical material.

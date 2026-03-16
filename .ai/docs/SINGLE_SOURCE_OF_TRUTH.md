@@ -15,9 +15,9 @@
 - **Owner**: Codex
 
 ### Next Immediate Actions
-1. Finish moving FleetGraph working docs under `docs/assignments/fleetgraph/`.
-2. Update repo entrypoints so they point at the new docs structure first.
-3. Verify references and markdown links before finalizing the reorg.
+1. Keep FleetGraph assignment work routed through `docs/assignments/fleetgraph/`.
+2. Preserve the new `docs/core`, `docs/guides`, `docs/evidence`, and `docs/archive` boundaries instead of re-flattening the docs surface.
+3. Use `.ai/workflows/user-correction-triage.md` when a future correction is narrow instead of reopening broad replanning by default.
 
 ---
 
@@ -38,13 +38,20 @@
 ## FleetGraph Assignment Constraints
 
 - Use the Ship REST API as the data source. No direct database access.
-- AI integration should stay provider-agnostic with OpenAI preferred.
+- AI integration should stay provider-agnostic with OpenAI preferred, though Ship already has Bedrock Claude code that can be reused where appropriate.
 - LangGraph is recommended. If another framework is used, manual LangSmith instrumentation is required.
 - LangSmith tracing is required from day one.
 - Implement both proactive and on-demand modes through the same graph architecture.
 - The chat interface must be embedded in Ship context. No standalone chatbot page.
 - Consequential actions require a human-in-the-loop confirmation gate.
 - Detection latency target: under 5 minutes from Ship event to surfaced finding.
+
+## FleetGraph Architecture Snapshot
+
+- Ship runtime is a unified document graph exposed through REST, not a resource-silo app.
+- Live relationship data is mixed between canonical `document_associations` and legacy properties such as `project_id` and `assignee_ids`.
+- The current realtime layer is delivery-oriented WebSocket plumbing, not a durable trigger bus.
+- The recommended MVP shape is same-origin FleetGraph API routes for chat plus a separate background worker for proactive runs.
 
 ---
 
@@ -78,3 +85,4 @@ pnpm audit --prod
 4. `docs/assignments/fleetgraph/PRESEARCH.md`
 5. `.ai/docs/references/fleetgraph-prd.md`
 6. `.ai/agents/claude.md`
+7. `.ai/workflows/user-correction-triage.md` when user feedback is a narrow correction or clarification

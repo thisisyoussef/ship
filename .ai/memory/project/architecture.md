@@ -40,6 +40,20 @@ Record durable architecture decisions.
 - **Consequences**: The base template stays reusable across projects, but setup must explicitly record stack decisions before implementation begins.
 
 - **ADR-ID**: ADR-0005
+- **Date**: 2026-03-15
+- **Context**: FleetGraph must use Ship's REST API only, but Ship's live runtime model is a unified document graph with mixed relationship shapes. Canonical `document_associations` coexist with active legacy reads of `properties.project_id` and `assignee_ids`, and the current `/events` socket is browser delivery plumbing rather than a durable backend event bus.
+- **Decision**: Put FleetGraph behind a REST normalization boundary and use a hybrid trigger model: route-level dirty-context enqueue hooks for hot writes plus a scheduled sweep for time-based drift detection. Keep on-demand chat same-origin inside Ship and run proactive work in a separate background worker process.
+- **Alternatives Considered**: Assume `document_associations` is the only truth; pure polling; websocket-only triggering; fully separate cross-origin FleetGraph service from day one.
+- **Consequences**: FleetGraph needs its own insight and checkpoint state, explicit normalization of Ship REST payloads, and a human-in-the-loop path for all consequential Ship writes.
+
+- **ADR-ID**: ADR-0006
+- **Date**: 2026-03-16
+- **Context**: User feedback often arrives as a narrow correction or clarification during handoff or mid-story. The existing workflow had no explicit proportionality route, which made it too easy to overreact and expand a small correction into a broader planning or documentation cycle.
+- **Decision**: Add a user-correction triage workflow that classifies blast radius before editing. Low-blast-radius corrections should patch only directly affected surfaces; only material scope or architecture changes should re-enter the full story gates.
+- **Alternatives Considered**: Treat all user feedback as equally heavy; rely on agent judgment without a named workflow; always reopen spec/planning artifacts after any correction.
+- **Consequences**: The harness now has an explicit route for bounded feedback handling, which should reduce unnecessary scope growth and keep corrective diffs smaller.
+
+- **ADR-ID**: ADR-0007
 - **Date**: 2026-03-16
 - **Context**: The repo's docs surface mixed living references, assignment work, screenshots, PR artifacts, and historical submissions at the same level, which made both human onboarding and agent navigation harder than necessary.
 - **Decision**: Reorganize `docs/` by reader intent and lifecycle: `core/`, `guides/`, `assignments/`, `reference/`, `research/`, `solutions/`, `evidence/`, and `archive/`, while moving FleetGraph working docs under `docs/assignments/fleetgraph/`.

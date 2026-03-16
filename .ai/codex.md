@@ -56,6 +56,13 @@ Before implementation on any story:
 2. Complete local + external docs lookup
 3. Share lookup brief before tests/code edits
 
+## Step 0.72: User Correction Triage (Mandatory for Narrow Corrections)
+
+If the user gives a targeted corrective note or clarification during the story:
+1. Run `.ai/workflows/user-correction-triage.md`
+2. Classify the blast radius before editing
+3. Keep the fix bounded unless the correction materially changes scope or architecture
+
 ---
 
 ## Step 0.75: Eval-Driven Gate (Mandatory for AI-Behavior Changes)
@@ -94,6 +101,7 @@ Story completion requires commit + push confirmation and a passing `bash scripts
 - AI architecture/orchestrator change -> `.ai/workflows/ai-architecture-change.md`
 - Flight coordination (single/parallel) -> `.ai/workflows/parallel-flight.md`
 - Mandatory pre-story lookup -> `.ai/workflows/story-lookup.md`
+- Narrow user correction triage -> `.ai/workflows/user-correction-triage.md`
 - Eval-driven development for AI-behavior changes -> `.ai/workflows/eval-driven-development.md`
 - Spec-driven scaffolding (feature stories) -> `.ai/workflows/spec-driven-delivery.md`
 - UI philosophy tie-breaker -> `.ai/docs/design/DESIGN_PHILOSOPHY_AND_LANGUAGE.md` (when UI decisions are ambiguous)

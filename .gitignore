@@ -65,6 +65,9 @@ test-results/
 
 # Audit artifacts
 .audit
+.audit-tmp/
+api/.audit-tmp/
+artifacts/g4-repro/
 
 # Terraform
 terraform/.terraform/

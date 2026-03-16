@@ -45,6 +45,18 @@ Do not begin story implementation until lookup brief is complete.
 
 ---
 
+## User Correction Triage Gate (Required for Narrow Feedback and Clarifications)
+
+When the user gives a narrow corrective note during a story or after handoff, such as "ignore that bullet", "use OpenAI instead", or "that assumption is wrong":
+- run `.ai/workflows/user-correction-triage.md`,
+- classify the correction's blast radius before editing,
+- patch only the minimum affected surfaces for low-blast-radius corrections,
+- escalate back to the full preflight/lookup/spec flow only if the change is truly architectural or scope-shaping.
+
+Do not turn a small correction into a new broad planning cycle unless the blast radius justifies it.
+
+---
+
 ## Eval-Driven Development Gate (Required for AI-Behavior Changes)
 
 Before implementing any story that changes prompts, tools, retrieval, routing, graders, or other AI behavior, run `.ai/workflows/eval-driven-development.md`.
@@ -91,14 +103,51 @@ This adds parallel-flight flexibility without removing existing preflight/lookup
 
 ---
 
+## Branch and Commit Hygiene (Required)
+
+Before starting work:
+- Start each discrete task on a fresh branch named `codex/<short-task-name>`.
+- If the current branch has unrelated local edits, create a fresh worktree/branch instead of mixing changes.
+- Keep one concern per branch; do not combine unrelated fixes, docs, and feature work.
+
+While working:
+- Make small, reviewable commits once the relevant checks for that slice pass.
+- Use clear, descriptive, imperative commit messages that explain the outcome.
+- Good: `Add FleetGraph pre-search scaffolding`
+- Good: `Clarify sprint risk detection routing`
+- Bad: `updates`
+- Bad: `misc fixes`
+
+Before merge:
+- Push the branch and create or update a PR with scope, verification, and any remaining risks.
+- Sync remotes first with `git fetch --all --prune` and confirm branch tracking status before PR update or merge.
+- If the canonical upstream is archived or read-only, switch PR/merge operations to the writable remote and record that fallback in handoff notes.
+- Resolve review comments on the branch, rerun required checks, and keep the PR diff focused.
+- Do not rewrite shared history or force-push unless explicitly requested.
+
+After approval:
+- Merge only after required checks pass and the branch is up to date with its base branch.
+- Prefer a clean final history: one focused commit or a small set of meaningful commits.
+- Delete stale worktrees/branches after merge when safe.
+
+---
+
 ## Git Finalization Gate (Required)
 
 Before final story handoff, run `.ai/workflows/git-finalization.md`.
 
 Minimum required outcome:
-- commit created for story changes,
-- push completed to upstream,
+- work performed on a dedicated `codex/` branch,
+- clear commit(s) created for the story changes,
+- remotes fetched and branch sync status checked,
+- push completed to a writable remote,
+- PR created or updated with verification notes,
+- review feedback resolved before merge,
+- merge completed only after checks pass and the branch is current,
+- merged branch cleaned up locally/remotely when safe,
 - `bash scripts/git_finalize_guard.sh` passes.
+
+Do not commit, push, open a PR, or merge until the user has completed the User Audit Checklist and explicitly approved finalization.
 
 Do not mark story handoff complete without this gate.
 
@@ -114,6 +163,7 @@ Do not mark story handoff complete without this gate.
 - Git finalization -> `.ai/workflows/git-finalization.md`
 - Flight coordination (single/parallel) -> `.ai/workflows/parallel-flight.md`
 - Story lookup -> `.ai/workflows/story-lookup.md`
+- Narrow user correction triage -> `.ai/workflows/user-correction-triage.md`
 - Eval-driven development -> `.ai/workflows/eval-driven-development.md`
 - AI architecture/orchestrator changes -> `.ai/workflows/ai-architecture-change.md`
 - Feature spec scaffolding -> `.ai/workflows/spec-driven-delivery.md`
@@ -176,6 +226,12 @@ Minimum required content:
 - changed behavior vs unchanged behavior.
 
 Run `bash scripts/check_ai_wiring.sh` only when AI-architecture files are changed (per `.ai/workflows/ai-architecture-change.md`), not for every story.
+
+After the audit, pause and wait for explicit user permission before:
+- creating the final commit,
+- pushing the branch,
+- opening or updating the PR,
+- merging the PR.
 
 Do not begin the next story until the user audits and says to proceed.
 

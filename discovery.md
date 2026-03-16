@@ -78,7 +78,7 @@ The numbers below cover the measurable Codex discovery/write-up session on March
 ### Development Costs
 
 - LLM API costs:
-  Exact USD cost is not available from the local session log. The log exposes `model_provider: openai` and cumulative token counts, but it does not expose the billable model SKU or a per-token price table for this session.
+  Approximate API-equivalent cost for this measured discovery session: `$0.95`. The session log shows `gpt-5.4`, so I priced the captured snapshot using the public GPT-5.4 standard rates of `$2.50 / 1M` uncached input tokens, `$0.25 / 1M` cached input tokens, and `$15.00 / 1M` output tokens. The exact billed amount is still not recoverable from the local log because it does not expose an invoice or provider-side charge record.
 - Total tokens consumed:
   - Input tokens: `1,629,042`
   - Cached input tokens: `1,507,200`
@@ -106,7 +106,7 @@ They helped with the first pass, but only up to a point. The useful part was the
 
 ### Where did you have to override or correct AI suggestions? Why?
 
-I overrode the easiest path, which was to keep the original discovery framing based on `docs/archive/g4/audit-report.md`. That would have produced a weaker submission because the question asks for discoveries in the codebase, not just discoveries in an audit narrative. I also avoided inventing an exact OpenAI dollar cost because the local log does not expose the billable model or pricing.
+I overrode the easiest path, which was to keep the original discovery framing based on `docs/archive/g4/audit-report.md`. That would have produced a weaker submission because the question asks for discoveries in the codebase, not just discoveries in an audit narrative. I also avoided inventing an invoice-grade OpenAI billed amount; instead I used the closest defensible GPT-5.4 list-price approximation from the captured token snapshot.
 
 ### What percentage of your final code changes were AI-generated vs. hand-written?
 
@@ -116,5 +116,5 @@ For this session's file changes, `100%` of the text was AI-generated. The manual
 
 I can finish the repo-side deliverable without more input, but I would need your help for any cost section that must show exact dollars or cross-tool totals beyond this measured Codex session. Specifically:
 
-- If you want an exact USD number, I need the billing export or pricing basis for the model SKU used by this session.
+- If you want the exact billed USD number rather than the `$0.95` API-equivalent approximation, I need the provider billing export or invoice data for this session.
 - If you used other AI tools during the broader project outside this Codex session, I need those tool names and their usage totals to fold them into the same table.

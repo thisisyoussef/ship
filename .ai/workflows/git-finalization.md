@@ -1,6 +1,6 @@
 # Git Finalization Workflow (Mandatory)
 
-**Purpose**: Enforce commit + push completion at the end of each story so handoff cannot proceed with uncommitted or unpushed work.
+**Purpose**: Enforce commit + push completion, remote sync, writable-remote detection, PR management, merge readiness, and branch cleanup at the end of each story.
 
 ---
 
@@ -13,6 +13,10 @@ Run this workflow after implementation and validation, before final story handof
 - security
 - deployment/ops
 - AI-architecture changes
+
+Important:
+- Do not run commit, push, PR creation/update, merge, or branch cleanup until the user has completed the story audit and explicitly approved finalization.
+- Once the user does approve, prefer to automate the full flow instead of leaving branch/PR state half-finished.
 
 ---
 
@@ -32,7 +36,38 @@ If any command fails, stop and fix before committing.
 
 ---
 
-## Step 2: Review and Stage Intentional Changes
+## Step 2: Sync With Remotes First
+
+```bash
+git fetch --all --prune
+git status -sb
+git branch -vv
+```
+
+Confirm:
+- the current branch is not detached,
+- the current branch has the expected upstream,
+- the tracking branch is not behind,
+- the branch base is current enough to open or update a PR cleanly,
+- the target GitHub repo is writable.
+
+If the canonical upstream repo is archived or read-only:
+- use the writable remote (usually `origin`) for PR creation, merge, and branch lifecycle tracking,
+- record that fallback explicitly in the handoff instead of silently failing.
+
+If the branch is behind its upstream, sync it first:
+
+```bash
+git pull --ff-only
+```
+
+If the branch needs the latest base branch before PR or merge:
+- prefer merging the base branch into the feature branch once it is already shared remotely,
+- avoid force-push flows unless the user explicitly asks for them.
+
+---
+
+## Step 3: Review and Stage Intentional Changes
 
 ```bash
 git status --short
@@ -44,7 +79,7 @@ Never stage unrelated changes accidentally.
 
 ---
 
-## Step 3: Commit with Story Context
+## Step 4: Commit with Story Context
 
 ```bash
 git commit -m "<type>(<scope>): <summary>
@@ -57,7 +92,7 @@ Use conventional commit style and include story reference.
 
 ---
 
-## Step 4: Push to Upstream
+## Step 5: Push to a Writable Remote
 
 ```bash
 git push
@@ -71,7 +106,40 @@ git push -u origin <branch>
 
 ---
 
-## Step 5: Run Finalization Guard (Hard Gate)
+## Step 6: Open or Update the PR
+
+Check PR status:
+
+```bash
+gh pr status
+```
+
+If no PR exists for the current branch:
+
+```bash
+gh pr create --fill
+```
+
+If the upstream repo is archived or read-only:
+- open the PR against the writable repo instead of retrying the archived target,
+- keep the base branch aligned with the writable repo's default branch,
+- note which repo became the effective merge target.
+
+If a PR already exists:
+- update the title/body if needed,
+- confirm the PR points at the correct base branch,
+- ensure the verification notes reflect the final validation state.
+
+Capture:
+- target repo,
+- PR URL,
+- PR state,
+- base branch,
+- whether checks are pending/passing/failing.
+
+---
+
+## Step 7: Run Finalization Guard (Hard Gate)
 
 ```bash
 bash scripts/git_finalize_guard.sh
@@ -81,12 +149,44 @@ This must pass before handoff.
 
 ---
 
-## Step 6: Include Git Evidence in Handoff
+## Step 8: Merge Only After Approval and Passing Checks
+
+After the user approves finalization and required checks pass, complete the merge flow:
+
+```bash
+gh pr merge --squash --delete-branch
+```
+
+If auto-merge is the better fit because checks are still running but approvals are complete:
+
+```bash
+gh pr merge --auto --squash --delete-branch
+```
+
+After merge, update local refs:
+
+```bash
+git fetch --all --prune
+git checkout master
+git pull --ff-only origin master
+git branch -d <story-branch>
+```
+
+If the local branch is still needed temporarily, record why instead of deleting it silently.
+
+---
+
+## Step 9: Include Git Evidence in Handoff
 
 Include in handoff checklist:
 - branch name,
 - commit SHA,
 - push confirmation,
+- remote sync status,
+- writable target repo,
+- PR URL/status,
+- merge status or reason it has not happened yet,
+- branch cleanup status,
 - `git_finalize_guard.sh` result.
 
 ---
@@ -95,6 +195,10 @@ Include in handoff checklist:
 
 - Validation gates passed
 - Changes committed
-- Changes pushed to upstream
+- Changes pushed to a writable remote
+- Remote refs fetched and branch sync state checked
+- PR created or updated
 - `bash scripts/git_finalize_guard.sh` passed
+- Merge completed or explicitly waiting on user approval / checks
+- Branch cleanup completed or explicitly deferred
 - Git evidence included in handoff

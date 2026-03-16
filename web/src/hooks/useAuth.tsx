@@ -7,8 +7,10 @@ import {
   useRef,
   type ReactNode,
 } from 'react';
-import { api, UserInfo, Workspace } from '@/lib/api';
+import { api, UserInfo, Workspace, MeResponse } from '@/lib/api';
 import { useWorkspace, WorkspaceWithRole } from '@/contexts/WorkspaceContext';
+
+const API_URL = import.meta.env.VITE_API_URL ?? '';
 
 // Cache key for offline auth
 const AUTH_CACHE_KEY = 'ship:auth-cache';
@@ -67,6 +69,10 @@ interface AuthContextType {
   endImpersonation: () => Promise<void>;
 }
 
+function isPublicBootstrapPath(pathname: string): boolean {
+  return pathname === '/login' || pathname === '/setup' || pathname.startsWith('/invite');
+}
+
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -86,20 +92,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const checkSession = async () => {
       try {
+        if (isPublicBootstrapPath(window.location.pathname)) {
+          const statusResponse = await fetch(`${API_URL}/api/auth/status`, {
+            credentials: 'include',
+          });
+
+          if (!statusResponse.ok) {
+            throw new Error(`Failed to fetch auth status: ${statusResponse.status}`);
+          }
+
+          const statusData = await statusResponse.json() as {
+            success: boolean;
+            data?: { authenticated?: boolean };
+          };
+
+          if (!statusData.success || !statusData.data?.authenticated) {
+            if (navigator.onLine) {
+              clearCachedAuthData();
+            }
+            return;
+          }
+        }
+
         const response = await api.auth.me();
         if (response.success && response.data) {
-          setUser(response.data.user);
-          setCurrentWorkspace(response.data.currentWorkspace);
-          setWorkspaces(response.data.workspaces);
-          if (response.data.impersonating) {
-            setImpersonating(response.data.impersonating);
-          }
-          // Cache auth data for offline use
+          const authData: MeResponse = response.data;
+          setUser(authData.user);
+          setCurrentWorkspace(authData.currentWorkspace);
+          setWorkspaces(authData.workspaces);
+          setImpersonating(authData.impersonating ?? null);
           cacheAuthData({
-            user: response.data.user,
-            currentWorkspace: response.data.currentWorkspace,
-            workspaces: response.data.workspaces,
-            impersonating: response.data.impersonating,
+            user: authData.user,
+            currentWorkspace: authData.currentWorkspace,
+            workspaces: authData.workspaces,
+            impersonating: authData.impersonating,
             timestamp: Date.now(),
           });
         } else {
@@ -117,9 +143,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser(cached.user);
             setCurrentWorkspace(cached.currentWorkspace);
             setWorkspaces(cached.workspaces);
-            if (cached.impersonating) {
-              setImpersonating(cached.impersonating);
-            }
+            setImpersonating(cached.impersonating ?? null);
           }
         } else {
           console.error('[Auth] Session check failed:', error);

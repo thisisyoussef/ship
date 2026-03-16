@@ -108,6 +108,15 @@ export async function getCAIACredentials(): Promise<CAIACredentialsResult> {
       return { credentials: null, configured: false };
     }
 
+    const awsErr = err as { name?: string; message?: string };
+    if (
+      awsErr.name === 'CredentialsProviderError' ||
+      awsErr.message?.includes('Could not load credentials from any providers')
+    ) {
+      console.log('[SecretsManager] AWS credentials unavailable, treating CAIA as unconfigured');
+      return { credentials: null, configured: false };
+    }
+
     // Secrets Manager failure - fail closed
     console.error('[SecretsManager] Failed to fetch CAIA credentials:', err);
     return {

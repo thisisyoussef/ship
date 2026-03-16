@@ -4,6 +4,8 @@ import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.js';
 import { v4 as uuidv4 } from 'uuid';
 import { extractText } from '../utils/document-content.js';
+import { jsonToYjs } from '../utils/yjsConverter.js';
+import * as Y from 'yjs';
 
 type RouterType = ReturnType<typeof Router>;
 const router: RouterType = Router();
@@ -58,6 +60,15 @@ const TEMPLATE_HEADINGS = [
   'What I delivered this week',
   'Unplanned work',
 ];
+
+function buildInitialYjsState(content: unknown): Buffer {
+  const doc = new Y.Doc();
+  const fragment = doc.getXmlFragment('default');
+
+  jsonToYjs(doc, fragment, content);
+
+  return Buffer.from(Y.encodeStateAsUpdate(doc));
+}
 
 /** Extract plan items from TipTap JSON content (mirrors ai-analysis.ts logic) */
 function extractPlanItems(content: unknown): string[] {
@@ -251,6 +262,8 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
 
     const docId = uuidv4();
     const title = `Week ${week_number} Plan`; // Base title without person name
+    const templateContent = WEEKLY_PLAN_TEMPLATE;
+    const initialYjsState = buildInitialYjsState(templateContent);
     const properties: Record<string, unknown> = {
       person_id,
       week_number,
@@ -263,10 +276,10 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
 
     // Insert the document with template content
     const insertResult = await client.query(
-      `INSERT INTO documents (id, workspace_id, document_type, title, content, properties, visibility, created_by, position)
-       VALUES ($1, $2, 'weekly_plan', $3, $4, $5, 'workspace', $6, 0)
+      `INSERT INTO documents (id, workspace_id, document_type, title, content, yjs_state, properties, visibility, created_by, position)
+       VALUES ($1, $2, 'weekly_plan', $3, $4, $5, $6, 'workspace', $7, 0)
        RETURNING id, title, content, properties, created_at, updated_at`,
-      [docId, workspaceId, title, JSON.stringify(WEEKLY_PLAN_TEMPLATE), JSON.stringify(properties), userId]
+      [docId, workspaceId, title, JSON.stringify(templateContent), initialYjsState, JSON.stringify(properties), userId]
     );
 
     // Create association with project only if provided
@@ -656,12 +669,14 @@ weeklyRetrosRouter.post('/', authMiddleware, async (req: Request, res: Response)
       }
     }
 
+    const initialYjsState = buildInitialYjsState(retroTemplate);
+
     // Insert the document with template content
     const insertResult = await client.query(
-      `INSERT INTO documents (id, workspace_id, document_type, title, content, properties, visibility, created_by, position)
-       VALUES ($1, $2, 'weekly_retro', $3, $4, $5, 'workspace', $6, 0)
+      `INSERT INTO documents (id, workspace_id, document_type, title, content, yjs_state, properties, visibility, created_by, position)
+       VALUES ($1, $2, 'weekly_retro', $3, $4, $5, $6, 'workspace', $7, 0)
        RETURNING id, title, content, properties, created_at, updated_at`,
-      [docId, workspaceId, title, JSON.stringify(retroTemplate), JSON.stringify(properties), userId]
+      [docId, workspaceId, title, JSON.stringify(retroTemplate), initialYjsState, JSON.stringify(properties), userId]
     );
 
     // Create association with project only if provided

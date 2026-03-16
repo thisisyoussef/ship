@@ -1,0 +1,471 @@
+name: Audit Runner
+run-name: >-
+  Audit Runner / ${{ inputs.mode == 'category' && inputs.category || 'full-suite' }} /
+  ${{ inputs.baseline_ref }} -> ${{ inputs.submission_ref }}
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Optional dashboard run UUID. Leave blank when running directly from GitHub Actions.
+        required: false
+        default: ''
+        type: string
+      mode:
+        description: full or category
+        required: true
+        default: full
+        type: choice
+        options:
+          - full
+          - category
+      category:
+        description: Category id when mode is category. Leave blank for full runs.
+        required: false
+        default: ''
+        type: string
+      baseline_repo:
+        description: Baseline repository clone URL
+        required: true
+        default: https://github.com/US-Department-of-the-Treasury/ship.git
+        type: string
+      baseline_ref:
+        description: Baseline repository ref
+        required: true
+        default: master
+        type: string
+      submission_repo:
+        description: Submission repository clone URL
+        required: true
+        default: https://github.com/thisisyoussef/ship.git
+        type: string
+      submission_ref:
+        description: Submission repository ref
+        required: true
+        default: codex/submission-clean
+        type: string
+      callback_base_url:
+        description: Optional dashboard callback base URL. Leave blank for direct GitHub-only runs.
+        required: false
+        default: ''
+        type: string
+
+jobs:
+  kickoff:
+    name: Audit scope and kickoff
+    runs-on: ubuntu-latest
+    outputs:
+      run_id: ${{ steps.meta.outputs.run_id }}
+      callbacks_enabled: ${{ steps.meta.outputs.callbacks_enabled }}
+      category_matrix: ${{ steps.matrix.outputs.category_matrix }}
+    steps:
+      - name: Resolve workflow metadata
+        id: meta
+        run: |
+          if [ -n "${{ inputs.run_id }}" ]; then
+            RUN_ID="${{ inputs.run_id }}"
+          else
+            RUN_ID="manual-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          fi
+
+          if [ -n "${{ inputs.callback_base_url }}" ] && [ -n "${{ secrets.AUDIT_CALLBACK_SECRET }}" ]; then
+            CALLBACKS_ENABLED="true"
+          else
+            CALLBACKS_ENABLED="false"
+          fi
+
+          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+          echo "callbacks_enabled=$CALLBACKS_ENABLED" >> "$GITHUB_OUTPUT"
+
+      - name: Validate workflow inputs
+        run: |
+          for value in "${{ inputs.baseline_repo }}" "${{ inputs.baseline_ref }}" "${{ inputs.submission_repo }}" "${{ inputs.submission_ref }}"; do
+            if [ -z "$value" ]; then
+              echo "baseline_repo, baseline_ref, submission_repo, and submission_ref are required" >&2
+              exit 1
+            fi
+          done
+
+          if [ "${{ inputs.mode }}" = "category" ] && [ -z "${{ inputs.category }}" ]; then
+            echo "category is required when mode=category" >&2
+            exit 1
+          fi
+
+      - name: Publish requested audit scope
+        run: |
+          category_label() {
+            case "$1" in
+              type-safety) echo "Category 1: Type Safety" ;;
+              bundle-size) echo "Category 2: Bundle Size" ;;
+              api-response) echo "Category 3: API Response Time" ;;
+              db-efficiency) echo "Category 4: Database Query Efficiency" ;;
+              test-quality) echo "Category 5: Test Coverage and Quality" ;;
+              runtime-handling) echo "Category 6: Runtime Error and Edge Case Handling" ;;
+              accessibility) echo "Category 7: Accessibility Compliance" ;;
+              *) echo "$1" ;;
+            esac
+          }
+
+          {
+            echo "# Requested audit scope"
+            echo
+            echo "- Workflow run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            echo "- Run ID: ${{ steps.meta.outputs.run_id }}"
+            echo "- Mode: ${{ inputs.mode }}"
+            echo "- Baseline: ${{ inputs.baseline_repo }}@${{ inputs.baseline_ref }}"
+            echo "- Submission: ${{ inputs.submission_repo }}@${{ inputs.submission_ref }}"
+            echo "- Canonical runtime corpus: 580 docs / 105 issues / 35 weeks / 23 users"
+            echo
+            echo "## Categories requested"
+            if [ "${{ inputs.mode }}" = "category" ]; then
+              echo "- $(category_label "${{ inputs.category }}")"
+            else
+              echo "- $(category_label "type-safety")"
+              echo "- $(category_label "bundle-size")"
+              echo "- $(category_label "api-response")"
+              echo "- $(category_label "db-efficiency")"
+              echo "- $(category_label "test-quality")"
+              echo "- $(category_label "runtime-handling")"
+              echo "- $(category_label "accessibility")"
+            fi
+            echo
+            echo "## Workflow layout"
+            echo "- Kickoff job validates refs and records the requested scope."
+            echo "- Each category runs as its own visible job with its own logs and artifact."
+            echo "- A final aggregate job merges all category outputs into one readable report and dashboard."
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Build category matrix
+        id: matrix
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+
+          const allCategories = [
+            { category_id: 'type-safety', label: 'Category 1 - Type Safety', timeout_minutes: 50, needs_playwright: false },
+            { category_id: 'bundle-size', label: 'Category 2 - Bundle Size', timeout_minutes: 50, needs_playwright: false },
+            { category_id: 'api-response', label: 'Category 3 - API Response Time', timeout_minutes: 70, needs_playwright: false },
+            { category_id: 'db-efficiency', label: 'Category 4 - Database Query Efficiency', timeout_minutes: 70, needs_playwright: false },
+            { category_id: 'test-quality', label: 'Category 5 - Test Coverage and Quality', timeout_minutes: 90, needs_playwright: true },
+            { category_id: 'runtime-handling', label: 'Category 6 - Runtime Error and Edge Case Handling', timeout_minutes: 70, needs_playwright: true },
+            { category_id: 'accessibility', label: 'Category 7 - Accessibility Compliance', timeout_minutes: 70, needs_playwright: true },
+          ];
+
+          const mode = process.env.AUDIT_MODE;
+          const selectedCategory = process.env.AUDIT_CATEGORY;
+          const include = mode === 'category'
+            ? allCategories.filter((category) => category.category_id === selectedCategory)
+            : allCategories;
+
+          if (include.length === 0) {
+            throw new Error(`No categories selected for mode=${mode} category=${selectedCategory}`);
+          }
+
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `category_matrix=${JSON.stringify({ include })}\n`, 'utf8');
+          NODE
+        env:
+          AUDIT_MODE: ${{ inputs.mode }}
+          AUDIT_CATEGORY: ${{ inputs.category }}
+
+      - name: Notify runner start
+        if: ${{ steps.meta.outputs.callbacks_enabled == 'true' }}
+        env:
+          AUDIT_RUN_ID: ${{ steps.meta.outputs.run_id }}
+          AUDIT_CALLBACK_BASE_URL: ${{ inputs.callback_base_url }}
+          AUDIT_CALLBACK_SECRET: ${{ secrets.AUDIT_CALLBACK_SECRET }}
+        run: |
+          git clone --depth 1 --branch codex/submission-clean https://github.com/thisisyoussef/ship.git audit-runner
+          cd audit-runner
+          node scripts/audit/github-actions-notify-start.mjs
+
+  measure-category:
+    name: ${{ matrix.label }}
+    needs: kickoff
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ matrix.timeout_minutes }}
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix: ${{ fromJson(needs.kickoff.outputs.category_matrix) }}
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: ship_audit
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d ship_audit"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      CI: true
+      HUSKY: 0
+      AUDIT_SKIP_GIT_CONFIG: 1
+      RUNNER_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/ship_audit
+      AUDIT_MODE: category
+      AUDIT_CATEGORY: ${{ matrix.category_id }}
+      AUDIT_BASELINE_REPO: ${{ inputs.baseline_repo }}
+      AUDIT_BASELINE_REF: ${{ inputs.baseline_ref }}
+      AUDIT_SUBMISSION_REPO: ${{ inputs.submission_repo }}
+      AUDIT_SUBMISSION_REF: ${{ inputs.submission_ref }}
+      AUDIT_RUN_ID: ${{ needs.kickoff.outputs.run_id }}
+      AUDIT_OUTPUT_DIR: ${{ github.workspace }}/artifacts/g4-repro/actions-${{ needs.kickoff.outputs.run_id }}/${{ matrix.category_id }}
+    steps:
+      - name: Checkout audit app repo
+        uses: actions/checkout@v5
+        with:
+          ref: codex/submission-clean
+
+      - name: Publish category scope
+        run: |
+          {
+            echo "# ${{ matrix.label }}"
+            echo
+            echo "- Baseline: ${{ inputs.baseline_repo }}@${{ inputs.baseline_ref }}"
+            echo "- Submission: ${{ inputs.submission_repo }}@${{ inputs.submission_ref }}"
+            echo "- Canonical runtime corpus: 580 docs / 105 issues / 35 weeks / 23 users"
+            echo "- Output directory: \`$AUDIT_OUTPUT_DIR\`"
+            echo
+            echo "## Internal command contract"
+            echo "- git clone --depth 1 --branch ${{ inputs.baseline_ref }} ${{ inputs.baseline_repo }} <baseline-workdir>"
+            echo "- git clone --depth 1 --branch ${{ inputs.submission_ref }} ${{ inputs.submission_repo }} <submission-workdir>"
+            echo "- pnpm install --frozen-lockfile"
+            echo "- pnpm build:shared"
+            echo "- pnpm db:migrate"
+            echo "- pnpm db:seed"
+            echo "- node ./scripts/audit/expand-corpus.mjs --database-url <DATABASE_URL>"
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Initialize category output directory
+        run: mkdir -p "$AUDIT_OUTPUT_DIR/diagnostics"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.27.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: pnpm
+          package-manager-cache: false
+
+      - name: Notify category start
+        if: ${{ needs.kickoff.outputs.callbacks_enabled == 'true' }}
+        env:
+          AUDIT_CALLBACK_BASE_URL: ${{ inputs.callback_base_url }}
+          AUDIT_CALLBACK_SECRET: ${{ secrets.AUDIT_CALLBACK_SECRET }}
+          AUDIT_EVENT_PHASE: measure
+          AUDIT_EVENT_LEVEL: info
+          AUDIT_EVENT_TYPE: category-start
+          AUDIT_EVENT_MESSAGE: GitHub Actions started ${{ matrix.label }}.
+        run: node scripts/audit/github-actions-post-event.mjs
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browser dependencies
+        if: ${{ matrix.needs_playwright }}
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Execute ${{ matrix.label }} and capture evidence
+        run: node scripts/audit/github-actions-runner.mjs
+        env:
+          AUDIT_CALLBACK_BASE_URL: ''
+          AUDIT_CALLBACK_SECRET: ''
+
+      - name: Publish category result
+        if: always()
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+
+          const outputDir = process.env.AUDIT_OUTPUT_DIR;
+          const summaryPath = process.env.GITHUB_STEP_SUMMARY;
+          const comparisonPath = path.join(outputDir, 'comparison.json');
+          const reportPath = path.join(outputDir, 'diagnostics', 'report.md');
+          const label = process.env.AUDIT_CATEGORY_LABEL;
+
+          const lines = ['', `## ${label} result`, ''];
+
+          if (!fs.existsSync(comparisonPath)) {
+            lines.push('- comparison.json was not written. Check the raw logs and diagnostics artifact.');
+          } else {
+            const comparison = JSON.parse(fs.readFileSync(comparisonPath, 'utf8'));
+            const categoryId = Object.keys(comparison.categories)[0];
+            const category = comparison.categories[categoryId];
+            lines.push(`- Baseline status: ${category.baselineStatus}`);
+            lines.push(`- Submission status: ${category.submissionStatus}`);
+            lines.push(`- Before: ${category.before ?? 'n/a'} ${category.unit}`.trim());
+            lines.push(`- After: ${category.after ?? 'n/a'} ${category.unit}`.trim());
+            lines.push(`- Delta: ${category.delta ?? 'n/a'} ${category.unit}`.trim());
+          }
+
+          if (fs.existsSync(reportPath)) {
+            lines.push('- Human-readable category report: `diagnostics/report.md`');
+          }
+
+          fs.appendFileSync(summaryPath, `${lines.join('\n')}\n`, 'utf8');
+          NODE
+        env:
+          AUDIT_CATEGORY_LABEL: ${{ matrix.label }}
+
+      - name: Surface category warnings without failing the job
+        if: always()
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+
+          const comparisonPath = path.join(process.env.AUDIT_OUTPUT_DIR, 'comparison.json');
+          if (!fs.existsSync(comparisonPath)) {
+            console.error('comparison.json was not written.');
+            process.exit(1);
+          }
+
+          const comparison = JSON.parse(fs.readFileSync(comparisonPath, 'utf8'));
+          const failedCategoryCount = Number(comparison.summary?.failedCategoryCount ?? 0);
+          if (failedCategoryCount > 0) {
+            console.warn(`::warning::Category measurement recorded ${failedCategoryCount} failed target checks. See diagnostics/report.md for the exact before/after breakdown.`);
+          }
+          NODE
+
+      - name: Notify category completion
+        if: ${{ always() && needs.kickoff.outputs.callbacks_enabled == 'true' }}
+        env:
+          AUDIT_CALLBACK_BASE_URL: ${{ inputs.callback_base_url }}
+          AUDIT_CALLBACK_SECRET: ${{ secrets.AUDIT_CALLBACK_SECRET }}
+          AUDIT_EVENT_PHASE: measure
+          AUDIT_EVENT_LEVEL: ${{ job.status == 'success' && 'info' || 'error' }}
+          AUDIT_EVENT_TYPE: ${{ job.status == 'success' && 'category-end' || 'run-error' }}
+          AUDIT_EVENT_MESSAGE: GitHub Actions finished ${{ matrix.label }} with job status ${{ job.status }}.
+        run: node scripts/audit/github-actions-post-event.mjs
+
+      - name: Upload category evidence bundle
+        if: always()
+        id: upload_category_artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: audit-run-${{ needs.kickoff.outputs.run_id }}-${{ matrix.category_id }}
+          path: ${{ env.AUDIT_OUTPUT_DIR }}
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Publish category artifact link
+        if: ${{ always() && steps.upload_category_artifact.outputs.artifact-url != '' }}
+        env:
+          AUDIT_ARTIFACT_URL: ${{ steps.upload_category_artifact.outputs.artifact-url }}
+        run: |
+          {
+            echo
+            echo "## ${{ matrix.label }} artifact"
+            echo
+            echo "- [Download category evidence]($AUDIT_ARTIFACT_URL)"
+            echo "- Includes \`comparison.json\`, \`baseline/summary.json\`, \`submission/summary.json\`, and \`diagnostics/report.md\`"
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  aggregate-report:
+    name: Aggregate final audit report
+    if: ${{ always() }}
+    needs:
+      - kickoff
+      - measure-category
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      AUDIT_RUN_ID: ${{ needs.kickoff.outputs.run_id }}
+      AUDIT_MODE: ${{ inputs.mode }}
+      AUDIT_CATEGORY: ${{ inputs.category }}
+      AUDIT_BASELINE_REPO: ${{ inputs.baseline_repo }}
+      AUDIT_BASELINE_REF: ${{ inputs.baseline_ref }}
+      AUDIT_SUBMISSION_REPO: ${{ inputs.submission_repo }}
+      AUDIT_SUBMISSION_REF: ${{ inputs.submission_ref }}
+      AUDIT_OUTPUT_DIR: ${{ github.workspace }}/artifacts/g4-repro/actions-${{ needs.kickoff.outputs.run_id }}/aggregate
+      AUDIT_CATEGORY_RESULTS_DIR: ${{ github.workspace }}/downloaded-category-artifacts
+      AUDIT_CALLBACK_BASE_URL: ${{ inputs.callback_base_url }}
+      AUDIT_CALLBACK_SECRET: ${{ secrets.AUDIT_CALLBACK_SECRET }}
+    steps:
+      - name: Checkout audit app repo
+        uses: actions/checkout@v5
+        with:
+          ref: codex/submission-clean
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+
+      - name: Initialize aggregate output directory
+        run: mkdir -p "$AUDIT_OUTPUT_DIR/diagnostics" "$AUDIT_CATEGORY_RESULTS_DIR"
+
+      - name: Download category artifacts
+        if: ${{ needs.measure-category.result != 'skipped' }}
+        uses: actions/download-artifact@v6
+        with:
+          pattern: audit-run-${{ needs.kickoff.outputs.run_id }}-*
+          path: ${{ env.AUDIT_CATEGORY_RESULTS_DIR }}
+          merge-multiple: false
+
+      - name: Aggregate category artifacts into final report
+        id: aggregate
+        run: node scripts/audit/github-actions-aggregate.mjs
+
+      - name: Upload final audit evidence bundle
+        if: always()
+        id: upload_aggregate_artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: audit-run-${{ needs.kickoff.outputs.run_id }}-aggregate
+          path: ${{ env.AUDIT_OUTPUT_DIR }}
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Publish final artifact link
+        if: always() && steps.upload_aggregate_artifact.outputs.artifact-url != ''
+        env:
+          AUDIT_ARTIFACT_URL: ${{ steps.upload_aggregate_artifact.outputs.artifact-url }}
+        run: |
+          {
+            echo
+            echo "## Final audit evidence bundle"
+            echo
+            echo "- [Download aggregate evidence]($AUDIT_ARTIFACT_URL)"
+            echo "- Human-readable report: \`diagnostics/report.md\`"
+            echo "- Workflow summary: \`diagnostics/github-summary.md\`"
+            echo "- Dashboard artifact: \`dashboard.html\`"
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Notify final completion
+        if: ${{ steps.aggregate.outputs.aggregate_status != 'failed' && needs.kickoff.outputs.callbacks_enabled == 'true' }}
+        run: node scripts/audit/github-actions-notify-complete.mjs
+
+      - name: Report workflow failure
+        if: ${{ failure() || steps.aggregate.outputs.aggregate_status == 'failed' }}
+        run: node scripts/audit/github-actions-notify-failure.mjs
+        env:
+          AUDIT_FAILURE_MESSAGE: >-
+            GitHub Actions detected incomplete evidence or an infrastructure failure in the final aggregate report.
+
+      - name: Fail workflow on incomplete evidence
+        if: ${{ steps.aggregate.outputs.aggregate_status == 'failed' }}
+        run: |
+          echo "Aggregate audit status: ${{ steps.aggregate.outputs.aggregate_status }}" >&2
+          echo "See diagnostics/report.md in the uploaded aggregate artifact for details." >&2
+          exit 1

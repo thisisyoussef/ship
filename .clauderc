@@ -22,6 +22,7 @@
       "If UI direction is strategic, reusable, or multi-step, create a .ai/templates/spec/UI_PROMPT_BRIEF_TEMPLATE.md artifact using WIRE or WIRE+FRAME structure before implementation",
       "Run .ai/workflows/parallel-flight.md and claim a flight slot before implementation edits (default single mode)",
       "Run .ai/workflows/story-lookup.md for local + external best-practice lookup before implementation",
+      "If the user provides a narrow corrective note or clarification, run .ai/workflows/user-correction-triage.md and classify blast radius before expanding scope",
       "If the story changes prompts, retrieval, tools, routing, graders, or other AI behavior, run .ai/workflows/eval-driven-development.md and define objective, dataset, metrics, thresholds, and regression plan before implementation",
       "Use explicit completion criteria and avoid ending early when checks are unresolved",
       "For discovery/review tasks, avoid outcome-biased phrasing; request evidence and severity/risk first"
@@ -63,6 +64,7 @@
     "specDriven": ".ai/workflows/spec-driven-delivery.md",
     "gitFinalization": ".ai/workflows/git-finalization.md",
     "parallelFlight": ".ai/workflows/parallel-flight.md",
+    "userCorrectionTriage": ".ai/workflows/user-correction-triage.md",
     "evalDriven": ".ai/workflows/eval-driven-development.md",
     "aiArchitecture": ".ai/workflows/ai-architecture-change.md",
     "lookup": ".ai/workflows/story-lookup.md"

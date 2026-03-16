@@ -12,6 +12,7 @@ beforeAll(async () => {
   // Use TRUNCATE CASCADE which is faster and bypasses row-level triggers
   // (audit_logs has AU-9 compliance triggers preventing DELETE)
   await pool.query(`TRUNCATE TABLE
+    fleetgraph_sweep_schedules, fleetgraph_dedupe_ledger, fleetgraph_queue_jobs,
     workspace_invites, sessions, files, document_links, document_history,
     comments, document_associations, document_snapshots, sprint_iterations,
     issue_iterations, documents, audit_logs, workspace_memberships,

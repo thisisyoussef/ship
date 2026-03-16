@@ -342,6 +342,26 @@
       "slot": "code",
       "status": "completed",
       "story_ref": "T005"
+    },
+    {
+      "branch": "codex/fleetgraph-t006-worker-substrate",
+      "claimed_at": "2026-03-16T19:41:30Z",
+      "flight_id": "fleetgraph-t006",
+      "lock_paths": [
+        ".ai/docs",
+        ".ai/memory",
+        "api/package.json",
+        "api/src/db",
+        "api/src/services/fleetgraph",
+        "docs/specs/fleetgraph"
+      ],
+      "notes": "Add proactive worker substrate: durable queue, sweep, dedupe, and checkpoint-aware execution loop.",
+      "owner": "codex",
+      "release_summary": "Implemented durable FleetGraph worker substrate with queue jobs, dedupe ledger, sweep schedules, checkpoint-aware retry loop, and DB-backed tests.",
+      "released_at": "2026-03-16T19:56:19Z",
+      "slot": "code",
+      "status": "completed",
+      "story_ref": "T006"
     }
   ],
   "parallel_max_active_flights": 3,
@@ -352,6 +372,6 @@
     "docs": 2,
     "infra": 1
   },
-  "updated_at": "2026-03-16T19:34:02Z",
+  "updated_at": "2026-03-16T19:56:19Z",
   "version": 1
 }

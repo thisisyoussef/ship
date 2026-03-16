@@ -150,3 +150,10 @@ Capture reusable patterns that repeatedly work in this project.
 - **Benefits**: Prevents graph nodes from encoding route-specific quirks, keeps legacy compatibility visible, and makes context envelopes testable with fixtures instead of live routes.
 - **Tradeoffs**: Adds one more translation layer that must evolve with Ship’s REST responses.
 - **References**: `api/src/services/fleetgraph/normalize/documents.ts`, `api/src/services/fleetgraph/normalize/context.ts`, `api/src/services/fleetgraph/normalize/types.ts`
+
+- **Pattern**: Durable dedupe ledger before proactive reasoning
+- **Use when**: A proactive FleetGraph workflow needs hot-write enqueue, retry, and scheduled sweep behavior without duplicating work across worker ticks or process restarts.
+- **Approach**: Keep a PostgreSQL dedupe ledger keyed by stable FleetGraph dedupe keys, lock that ledger row during enqueue, claim queued jobs with `FOR UPDATE SKIP LOCKED`, and persist checkpoint summaries plus next-eligible timestamps back into the ledger after each run.
+- **Benefits**: Makes enqueue idempotent, keeps retries on one durable row, and gives later stories a visible substrate for cooldowns and checkpoint-aware execution.
+- **Tradeoffs**: Adds internal tables and worker-store code before any user-facing proactive feature exists.
+- **References**: `api/src/services/fleetgraph/worker/store.ts`, `api/src/services/fleetgraph/worker/runtime.ts`, `api/src/db/migrations/038_fleetgraph_worker_substrate.sql`

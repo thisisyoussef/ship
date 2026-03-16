@@ -32,6 +32,10 @@
 - Implemented FleetGraph foundation story `T005` with a REST normalization boundary under `api/src/services/fleetgraph/normalize/`.
 - Decided FleetGraph should parse mixed Ship route payloads once, preserve legacy relationship hints explicitly, and expose one `NormalizedShipDocument` contract to future graph code.
 - Decided on-demand page context should become a backend-owned `ShipContextEnvelope` with preserved route-surface metadata instead of staying as ad hoc frontend-only derivation.
+- Implemented FleetGraph foundation story `T006` with a durable worker substrate under `api/src/services/fleetgraph/worker/`.
+- Decided proactive FleetGraph work should use PostgreSQL queue jobs, a dedupe ledger, and sweep schedules rather than an in-memory queue or Ship's `/events` socket.
+- Decided worker retries should stay on the same durable job row, while checkpoint summaries from the LangGraph runtime should be written back into the dedupe ledger after each run.
+- Decided fresh database bootstrap should treat `schema.sql` as the current snapshot and mark historical migrations as applied on empty databases before running only true pending migrations.
 - Decided every new story must start with remote sync plus a fresh `codex/` branch instead of continuing on the previous story's branch.
 - Decided every story must review impact against Ship's real AWS deployment contract and either update deploy surfaces or explicitly record `deployment impact: none`.
 - Decided story packs and phase packs must define higher-level objectives first and write the full story set in one pass before implementation begins.

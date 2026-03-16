@@ -1,10 +1,10 @@
 # Active Context
 
 - **Session Started**: 2026-03-16
-- **Current Task**: Correct the AI harness so deploy-relevant stories must record explicit deployment execution status; then resume FleetGraph foundation story T002 on the corrected branch
+- **Current Task**: Complete FleetGraph foundation story T006 by landing the durable worker substrate, then pause for audit before T007
 - **Status**: In Progress
 
 ## Next 3 Actions
-1. [ ] Finish the deployment-status guardrail patch and re-run the AI wiring audit.
-2. [ ] Hand back the updated deploy-status audit plus the current access blocker.
-3. [ ] Resume FleetGraph tracing bootstrap for T003 only after the workflow correction is settled.
+1. [ ] Hand back the T006 worker-substrate audit with validation evidence and design brief.
+2. [ ] Wait for user audit approval before any commit, push, PR, merge, or T007 work.
+3. [ ] After approval, finalize T006 and start T007 on a fresh story branch.

@@ -2,6 +2,9 @@
 
 Canonical source: `docs/assignments/fleetgraph/FleetGraph_PRD.pdf`
 
+Repo status:
+- The checked-in PDF matches `/Users/youss/Downloads/FleetGraph_PRD.pdf` as verified on 2026-03-16.
+
 ## Assignment intent
 
 FleetGraph is not meant to be a generic chatbot. It is a project-intelligence agent for Ship that reads real project state, reasons about it, and makes the next useful action obvious.
@@ -16,7 +19,7 @@ Both modes must share the same graph architecture.
 ## Non-negotiable constraints
 
 - Ship REST API only
-- Provider-agnostic AI integration with OpenAI preferred in this repo direction
+- Provider-agnostic AI integration with an adapter boundary; OpenAI is the preferred default for this repo
 - LangSmith tracing from day one
 - LangGraph recommended
 - Embedded contextual chat only
@@ -34,6 +37,7 @@ Both modes must share the same graph architecture.
 
 ## Deliverables to keep current
 
+- `docs/assignments/fleetgraph/APPROACH_REFERENCE.md`
 - `docs/assignments/fleetgraph/PRESEARCH.md`
 - `docs/assignments/fleetgraph/FLEETGRAPH.md`
 - shared trace links
@@ -46,3 +50,9 @@ Both modes must share the same graph architecture.
 4. Which actions must stop for approval
 5. Whether proactive execution is poll, webhook, or hybrid
 6. How proactive auth and deployment work
+
+## Clarification on the source PDF
+
+- The PDF still mentions Claude-only integration.
+- The active repo direction supersedes that bullet: do not lock FleetGraph to one provider.
+- Default the foundation plan toward OpenAI plus LangGraph/LangSmith, while keeping the model provider replaceable.

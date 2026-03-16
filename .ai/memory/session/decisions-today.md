@@ -15,6 +15,9 @@
 - Decided narrow user corrections need their own explicit workflow route instead of being treated like full story reshaping by default.
 - Added a user-correction triage workflow that classifies blast radius before editing and limits low-blast-radius changes to the minimum affected surfaces.
 - Decided git finalization must detect archived or read-only upstream repos and fall back to the writable remote for PR and merge tracking.
+- Decided the source PDF's Claude-only bullet is superseded by the live repo contract: OpenAI is preferred, but the runtime must remain provider-agnostic.
+- Decided the next FleetGraph phase should be a foundation-first story pack covering gauntlet-wide reconnaissance, tracing, graph runtime, worker substrate, deployment, and HITL entry contracts before feature implementation.
+- Decided the phase-1-3 FleetGraph submission brief should be promoted into the docs surface as an approach reference so future agents use it instead of leaving it buried under `output/`.
 
 Record session-level technical decisions.
 

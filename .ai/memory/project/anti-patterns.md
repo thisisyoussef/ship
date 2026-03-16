@@ -39,6 +39,16 @@ Capture failures so they are not repeated.
 - **Why it failed**: The current realtime layer is browser-facing delivery plumbing with no persistence, no replay, and no worker-consumable event contract.
 - **Prevention rule**: Use route-level enqueue hooks plus scheduled sweeps for triggering, and reserve `/events` for delivery only.
 
+- **Problem**: Starting FleetGraph use-case implementation before the platform substrate exists
+- **Example**: Building stale-issue detection or contextual chat behavior before tracing, graph state, provider abstraction, worker scheduling, and deployment/auth contracts are defined.
+- **Why it failed**: The first feature ends up choosing hidden architecture decisions for every later story, usually with weak observability and brittle deployment assumptions.
+- **Prevention rule**: Start FleetGraph with a foundation phase that locks the runtime, tracing, worker, and deployment contracts first.
+
+- **Problem**: Treating the source PRD's Claude bullet as the live repo contract
+- **Example**: Wiring FleetGraph directly to Claude because the PDF says so, even after the active repo direction changed.
+- **Why it failed**: It locks the runtime to a stale assignment interpretation and blocks the preferred OpenAI path before the adapter boundary exists.
+- **Prevention rule**: Use the checked-in PDF for assignment intent, but let the live repo docs define the current provider direction.
+
 - **Problem**: Turning a narrow user correction into a broad replanning exercise
 - **Example**: The user says to ignore one stale requirement bullet, and the response grows into new ADRs, new phase packs, and expanded architectural scope without first classifying impact.
 - **Why it failed**: It creates work the user did not ask for, obscures the real correction, and weakens trust in the workflow's proportionality.

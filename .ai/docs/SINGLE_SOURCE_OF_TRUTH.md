@@ -1,8 +1,8 @@
 # Ship - Single Source of Truth
 
 **Last Updated**: 2026-03-16
-**Current Phase**: Docs information architecture cleanup
-**Active Sprint**: Documentation reorganization
+**Current Phase**: FleetGraph foundation-phase planning
+**Active Sprint**: Foundation definition and story-pack scaffolding
 **Project Status**: Active
 
 ---
@@ -10,14 +10,14 @@
 ## Current Focus
 
 ### Active Task
-- **Title**: Reorganize the repo docs surface so active references, assignments, evidence, and archive material are easier to navigate
+- **Title**: Turn the FleetGraph PRD and presearch into a foundation-phase prerequisite plan and story pack
 - **Status**: In Progress
 - **Owner**: Codex
 
 ### Next Immediate Actions
-1. Keep FleetGraph assignment work routed through `docs/assignments/fleetgraph/`.
-2. Preserve the new `docs/core`, `docs/guides`, `docs/evidence`, and `docs/archive` boundaries instead of re-flattening the docs surface.
-3. Use `.ai/workflows/user-correction-triage.md` when a future correction is narrow instead of reopening broad replanning by default.
+1. Keep the checked-in PRD, markdown reference, and presearch aligned around a provider-agnostic, OpenAI-preferred direction.
+2. Define the prerequisite platform work before FleetGraph feature implementation starts.
+3. Use the foundation story pack as the entry point for the next implementation flight.
 
 ---
 
@@ -38,7 +38,7 @@
 ## FleetGraph Assignment Constraints
 
 - Use the Ship REST API as the data source. No direct database access.
-- AI integration should stay provider-agnostic with OpenAI preferred, though Ship already has Bedrock Claude code that can be reused where appropriate.
+- Working presearch assumption: FleetGraph is provider-agnostic with OpenAI as the preferred default, though Ship already has Bedrock Claude code that can be reused as fallback/reference.
 - LangGraph is recommended. If another framework is used, manual LangSmith instrumentation is required.
 - LangSmith tracing is required from day one.
 - Implement both proactive and on-demand modes through the same graph architecture.
@@ -59,8 +59,11 @@
 
 - `docs/assignments/fleetgraph/FleetGraph_PRD.pdf`
 - `docs/assignments/fleetgraph/README.md`
+- `docs/assignments/fleetgraph/APPROACH_REFERENCE.md`
+- `.ai/docs/references/fleetgraph-prd.md`
 - `docs/assignments/fleetgraph/PRESEARCH.md`
 - `docs/assignments/fleetgraph/FLEETGRAPH.md`
+- `docs/specs/fleetgraph/FLEETGRAPH-FOUNDATION-PHASE/`
 - Shared LangSmith trace links showing different execution paths
 
 ---
@@ -82,7 +85,8 @@ pnpm audit --prod
 1. `.claude/CLAUDE.md`
 2. `docs/README.md`
 3. `docs/assignments/fleetgraph/README.md`
-4. `docs/assignments/fleetgraph/PRESEARCH.md`
+4. `docs/assignments/fleetgraph/APPROACH_REFERENCE.md`
 5. `.ai/docs/references/fleetgraph-prd.md`
-6. `.ai/agents/claude.md`
-7. `.ai/workflows/user-correction-triage.md` when user feedback is a narrow correction or clarification
+6. `docs/assignments/fleetgraph/PRESEARCH.md`
+7. `docs/specs/fleetgraph/FLEETGRAPH-FOUNDATION-PHASE/feature-spec.md`
+8. `.ai/agents/claude.md`

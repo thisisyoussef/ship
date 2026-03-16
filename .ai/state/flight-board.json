@@ -103,6 +103,26 @@
       "story_ref": "STACK-AGNOSTIC-01"
     },
     {
+      "branch": "codex/fleetgraph-foundation",
+      "claimed_at": "2026-03-16T16:41:45Z",
+      "flight_id": "flight-fleetgraph-foundation-pack",
+      "lock_paths": [
+        ".ai/docs/SINGLE_SOURCE_OF_TRUTH.md",
+        ".ai/docs/references",
+        ".ai/memory",
+        "docs/assignments/fleetgraph/FLEETGRAPH.md",
+        "docs/assignments/fleetgraph/PRESEARCH.md",
+        "docs"
+      ],
+      "notes": "",
+      "owner": "codex",
+      "release_summary": "Aligned FleetGraph docs, added approach reference, and created foundation story pack",
+      "released_at": "2026-03-16T16:48:04Z",
+      "slot": "docs",
+      "status": "completed",
+      "story_ref": "FLEETGRAPH-FOUNDATION-PACK"
+    },
+    {
       "branch": "codex/user-correction-triage",
       "claimed_at": "2026-03-16T16:49:50Z",
       "flight_id": "flight-user-correction-triage",
@@ -161,6 +181,26 @@
       "slot": "docs",
       "status": "completed",
       "story_ref": "DOCS-REORG-01"
+    },
+    {
+      "branch": "codex/fleetgraph-foundation-port",
+      "claimed_at": "2026-03-16T17:38:59Z",
+      "flight_id": "flight-fleetgraph-foundation-sync-01",
+      "lock_paths": [
+        ".ai/docs",
+        ".ai/memory",
+        "docs/assignments/fleetgraph/FLEETGRAPH.md",
+        "docs/assignments/fleetgraph/PRESEARCH.md",
+        "docs/assignments/fleetgraph",
+        "docs/specs/fleetgraph"
+      ],
+      "notes": "",
+      "owner": "codex",
+      "release_summary": "Ported the FleetGraph foundation docs and story pack onto the reorganized docs layout, restored current master memory/history, and verified wiring plus markdown links.",
+      "released_at": "2026-03-16T17:44:32Z",
+      "slot": "docs",
+      "status": "completed",
+      "story_ref": "FLEETGRAPH-FOUNDATION-PHASE"
     }
   ],
   "parallel_max_active_flights": 3,
@@ -171,6 +211,6 @@
     "docs": 2,
     "infra": 1
   },
-  "updated_at": "2026-03-16T17:14:11Z",
+  "updated_at": "2026-03-16T17:44:32Z",
   "version": 1
 }

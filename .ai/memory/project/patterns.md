@@ -53,6 +53,20 @@ Capture reusable patterns that repeatedly work in this project.
 - **Tradeoffs**: Some intelligence moves into rules instead of the model.
 - **References**: `docs/assignments/fleetgraph/PRESEARCH.md`, `api/src/routes/accountability.ts`, `api/src/services/accountability.ts`
 
+- **Pattern**: Foundation-first graph platform phase
+- **Use when**: A graph-agent project has clear user-facing use cases but still lacks the substrate for tracing, deployment, worker execution, provider abstraction, or durable graph state.
+- **Approach**: Create a prerequisite phase that sequences reconnaissance, provider/runtime contracts, tracing bootstrap, graph skeleton, trigger/worker substrate, and deployment/auth planning before use-case implementation stories.
+- **Benefits**: Prevents early feature work from hard-coding the wrong runtime assumptions and keeps deployment/tracing constraints visible from day one.
+- **Tradeoffs**: Delays visible product behaviors slightly in exchange for a cleaner MVP path.
+- **References**: `docs/assignments/fleetgraph/PRESEARCH.md`, `docs/specs/fleetgraph/FLEETGRAPH-FOUNDATION-PHASE/`
+
+- **Pattern**: Repo-neighborhood reconnaissance before net-new agent infra
+- **Use when**: The current repo sits inside a wider workspace that may already contain adjacent agent, tracing, or deployment experiments.
+- **Approach**: Scan the broader workspace first, identify reusable patterns and anti-patterns, then decide what belongs in the current repo.
+- **Benefits**: Avoids reinventing stack decisions and catches proven local patterns faster than external search alone.
+- **Tradeoffs**: Adds an explicit discovery step before implementation starts.
+- **References**: `/Users/youss/Development/gauntlet`, `docs/specs/fleetgraph/FLEETGRAPH-FOUNDATION-PHASE/task-breakdown.md`
+
 - **Pattern**: Narrow user correction triage
 - **Use when**: The user gives a small corrective note or clarification during a story or after handoff.
 - **Approach**: Restate the correction, classify blast radius, patch only the directly affected surfaces for low-blast-radius corrections, and escalate to full story gates only when the change materially alters scope or architecture.

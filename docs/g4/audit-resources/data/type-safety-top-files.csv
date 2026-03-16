@@ -1,6 +1,0 @@
-file,total
-api/src/routes/weeks.ts,85
-api/src/routes/projects.ts,51
-api/src/routes/issues.ts,49
-web/src/pages/UnifiedDocumentPage.tsx,37
-api/src/db/seed.ts,35

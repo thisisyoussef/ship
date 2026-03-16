@@ -1,8 +1,0 @@
-metric,value
-total_tests,1466
-passed,1397
-failed,16
-flaky,6
-not_run,47
-api_runtime_seconds,22
-e2e_runtime_minutes,19.0

@@ -1,6 +1,0 @@
-endpoint,c10_p50,c10_p95,c10_p99,c25_p50,c25_p95,c25_p99,c50_p50,c50_p95,c50_p99
-GET /api/documents,125,181,213,288,407,452,612,719,744
-GET /api/issues,42,65,85,108,158,178,233,334,354
-GET /api/documents/:id,19,27,50,52,85,97,92,134,154
-GET /api/weeks/:id/issues,20,38,60,52,100,117,104,144,161
-GET /api/search/learnings?q=api,15,24,56,37,81,92,74,102,136

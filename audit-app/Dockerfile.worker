@@ -1,0 +1,23 @@
+FROM mcr.microsoft.com/playwright:v1.57.0-jammy
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y git tar && rm -rf /var/lib/apt/lists/*
+RUN corepack enable && corepack prepare pnpm@10.27.0 --activate
+ENV AUDIT_SKIP_GIT_CONFIG=1
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json ./
+COPY api/package.json ./api/
+COPY web/package.json ./web/
+COPY shared/package.json ./shared/
+COPY audit-app/package.json ./audit-app/
+
+RUN pnpm install --frozen-lockfile
+
+COPY . .
+
+RUN pnpm build:shared && pnpm --filter @ship/audit-app build
+
+ENV NODE_ENV=production
+
+CMD ["pnpm", "audit:app:worker"]

@@ -14,6 +14,51 @@ function generateSecureSessionId(): string {
   return crypto.randomBytes(32).toString('hex');
 }
 
+async function hasActiveSession(sessionId: string | undefined): Promise<boolean> {
+  if (!sessionId) {
+    return false;
+  }
+
+  const result = await pool.query(
+    `SELECT s.id, s.user_id, s.workspace_id, s.last_activity, s.created_at, u.is_super_admin
+     FROM sessions s
+     JOIN users u ON s.user_id = u.id
+     WHERE s.id = $1`,
+    [sessionId]
+  );
+
+  const session = result.rows[0];
+
+  if (!session) {
+    return false;
+  }
+
+  const now = new Date();
+  const lastActivity = new Date(session.last_activity);
+  const createdAt = new Date(session.created_at);
+  const inactivityMs = now.getTime() - lastActivity.getTime();
+  const sessionAgeMs = now.getTime() - createdAt.getTime();
+
+  if (sessionAgeMs > ABSOLUTE_SESSION_TIMEOUT_MS || inactivityMs > SESSION_TIMEOUT_MS) {
+    await pool.query('DELETE FROM sessions WHERE id = $1', [sessionId]);
+    return false;
+  }
+
+  if (session.workspace_id && !session.is_super_admin) {
+    const membershipResult = await pool.query(
+      'SELECT 1 FROM workspace_memberships WHERE workspace_id = $1 AND user_id = $2',
+      [session.workspace_id, session.user_id]
+    );
+
+    if (!membershipResult.rows[0]) {
+      await pool.query('DELETE FROM sessions WHERE id = $1', [sessionId]);
+      return false;
+    }
+  }
+
+  return true;
+}
+
 // POST /api/auth/login
 router.post('/login', async (req: Request, res: Response): Promise<void> => {
   const { email, password } = req.body;
@@ -253,6 +298,38 @@ router.post('/logout', authMiddleware, async (req: Request, res: Response): Prom
       error: {
         code: ERROR_CODES.INTERNAL_ERROR,
         message: 'Logout failed',
+      },
+    });
+  }
+});
+
+// GET /api/auth/status
+router.get('/status', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const authenticated = await hasActiveSession(req.cookies?.session_id);
+
+    if (!authenticated && req.cookies?.session_id) {
+      res.clearCookie('session_id', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        path: '/',
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        authenticated,
+      },
+    });
+  } catch (error) {
+    console.error('Get auth status error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: {
+        code: ERROR_CODES.INTERNAL_ERROR,
+        message: 'Failed to get auth status',
       },
     });
   }

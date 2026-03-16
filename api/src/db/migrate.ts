@@ -11,6 +11,7 @@ import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { Pool } from 'pg';
 import { loadProductionSecrets } from '../config/ssm.js';
+import { getDatabaseSslConfig } from './connection.js';
 
 // Load .env.local for local development
 config({ path: join(dirname(fileURLToPath(import.meta.url)), '../../.env.local') });
@@ -29,11 +30,40 @@ async function migrate() {
 
   const pool = new Pool({
     connectionString: databaseUrl,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    ssl: getDatabaseSslConfig(databaseUrl, process.env.NODE_ENV),
   });
 
   try {
     console.log('Running database migrations...');
+
+    // Ensure enum types exist before schema.sql runs. The schema file references
+    // these enums later in the same batch, so creating them up front keeps fresh
+    // schema installs reproducible for the audit harness and normal local setup.
+    await pool.query(`
+      DO $$ BEGIN
+        CREATE TYPE document_type AS ENUM (
+          'wiki',
+          'issue',
+          'program',
+          'project',
+          'sprint',
+          'person',
+          'weekly_plan',
+          'weekly_retro',
+          'standup',
+          'weekly_review'
+        );
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+    await pool.query(`
+      DO $$ BEGIN
+        CREATE TYPE relationship_type AS ENUM ('parent', 'project', 'sprint', 'program');
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
 
     // Step 1: Run schema.sql for initial setup
     const schemaPath = join(__dirname, 'schema.sql');

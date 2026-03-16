@@ -290,6 +290,14 @@ export function Editor({
     // Store the updateUsers callback so we can properly remove it on cleanup
     let updateUsersCallback: (() => void) | null = null;
 
+    const syncCachedContentState = () => {
+      const fragment = ydoc.getXmlFragment('default');
+      hasCachedContent = fragment.length > 0;
+      if (hasCachedContent) {
+        setSyncStatus((prev) => prev === 'connecting' ? 'cached' : prev);
+      }
+    };
+
     // Create IndexedDB persistence for content caching
     // This loads cached content BEFORE WebSocket connects for instant navigation
     const indexeddbProvider = new IndexeddbPersistence(`ship-${roomPrefix}-${documentId}`, ydoc);
@@ -299,16 +307,14 @@ export function Editor({
     const waitForCache = new Promise<void>((resolve) => {
       // Resolve immediately if already synced
       if (indexeddbProvider.synced) {
-        hasCachedContent = true;
-        setSyncStatus('cached');
+        syncCachedContentState();
         resolve();
         return;
       }
 
       // Wait for sync event
       const onSynced = () => {
-        hasCachedContent = true;
-        setSyncStatus((prev) => prev === 'connecting' ? 'cached' : prev);
+        syncCachedContentState();
         console.log(`[Editor] IndexedDB synced for ${roomPrefix}:${documentId}`);
         resolve();
       };
@@ -342,14 +348,16 @@ export function Editor({
           const data = new Uint8Array(event.data);
           if (data.length > 0 && data[0] === MESSAGE_TYPE_CLEAR_CACHE) {
             console.log(`[Editor] Received cache clear signal for ${documentId}, clearing IndexedDB`);
-            // Clear the Y.Doc to remove any cached content before server sync
-            ydoc.transact(() => {
-              const fragment = ydoc.getXmlFragment('default');
-              // Delete all content from the fragment
-              while (fragment.length > 0) {
-                fragment.delete(0, 1);
-              }
-            });
+            if (hasCachedContent) {
+              ydoc.transact(() => {
+                const fragment = ydoc.getXmlFragment('default');
+                while (fragment.length > 0) {
+                  fragment.delete(0, 1);
+                }
+              });
+            } else {
+              console.log(`[Editor] No cached IndexedDB content loaded for ${documentId}; preserving in-memory edits`);
+            }
             // Also clear IndexedDB for future visits
             indexeddbProvider.clearData().then(() => {
               console.log(`[Editor] IndexedDB cache cleared for ${documentId} (fresh from JSON)`);

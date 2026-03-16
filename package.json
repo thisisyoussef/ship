@@ -31,8 +31,12 @@
     "db:seed": "pnpm --filter @ship/api db:seed",
     "db:migrate": "pnpm --filter @ship/api db:migrate",
     "db:orphan-check": "pnpm --filter @ship/api db:orphan-check",
+    "audit:grade": "node ./scripts/audit/cli.mjs",
+    "audit:app:build": "pnpm --filter @ship/audit-app build",
+    "audit:app:server": "pnpm --filter @ship/audit-app start",
+    "audit:app:worker": "pnpm --filter @ship/audit-app worker",
     "prepare": "husky",
-    "postinstall": "git config merge.ours.driver true && (command -v comply >/dev/null 2>&1 || echo '\\n⚠️  comply CLI not installed - pre-commit hooks require it\\n   Install with: pip install comply-cli\\n')"
+    "postinstall": "if [ \"${AUDIT_SKIP_GIT_CONFIG:-0}\" != \"1\" ]; then git config merge.ours.driver true; fi && (command -v comply >/dev/null 2>&1 || echo '\\n⚠️  comply CLI not installed - pre-commit hooks require it\\n   Install with: pip install comply-cli\\n')"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.0",
@@ -42,6 +46,7 @@
     "@vitest/ui": "^4.0.16",
     "get-port": "^7.1.0",
     "husky": "^9.1.7",
+    "pg": "^8.13.1",
     "prettier": "^3.4.2",
     "supertest": "^7.1.4",
     "testcontainers": "^11.11.0",

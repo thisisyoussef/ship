@@ -40,6 +40,17 @@ export async function loadProductionSecrets(): Promise<void> {
     return; // Use .env files for local dev
   }
 
+  const hasExplicitCoreConfig = Boolean(
+    process.env.DATABASE_URL &&
+    process.env.SESSION_SECRET &&
+    process.env.CORS_ORIGIN
+  );
+
+  if (hasExplicitCoreConfig) {
+    console.log('Using explicit production environment variables for app config');
+    return;
+  }
+
   const environment = process.env.ENVIRONMENT || 'prod';
   const basePath = `/ship/${environment}`;
 

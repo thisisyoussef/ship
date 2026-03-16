@@ -150,3 +150,10 @@ Record durable architecture decisions.
 - **Decision**: Make `.ai/codex.md` the canonical orchestrator, keep `AGENTS.md` as the repo-level constraint layer, and reduce `.ai/agents/claude.md` plus other entrypoint files to thin compatibility mirrors that point back to Codex and the workflow files.
 - **Alternatives Considered**: Keep Claude as canonical and trim Codex instead; leave all three startup docs as full contracts; collapse all rules into AGENTS only.
 - **Consequences**: Startup instructions become shorter and easier to maintain, but future harness edits must preserve Codex-first ownership and avoid regrowing duplicate orchestrators.
+
+- **ADR-ID**: ADR-0022
+- **Date**: 2026-03-16
+- **Context**: The harness finalization workflow was defaulting to squash merges even though the repo allows merge commits and the team expects GitHub history to show normal merged PR lineage.
+- **Decision**: Change the default story-finalization path to merge commits (`gh pr merge --merge --delete-branch`) and treat squash or rebase as explicit exceptions requested by the user.
+- **Alternatives Considered**: Keep squash as the default and rely on PR pages for lineage; switch to rebase-by-default; leave the merge method implicit and let each story pick ad hoc.
+- **Consequences**: GitHub history will preserve clearer PR lineage by default, but the finalization workflow and wiring checks must stay aligned so agents do not silently drift back to squash-first behavior.

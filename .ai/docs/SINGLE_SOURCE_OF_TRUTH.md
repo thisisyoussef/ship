@@ -1,8 +1,8 @@
 # Ship - Single Source of Truth
 
 **Last Updated**: 2026-03-16
-**Current Phase**: AI harness trim and startup-contract consolidation
-**Active Sprint**: Minimal harness trim with Codex as canonical orchestrator
+**Current Phase**: AI harness finalization-policy cleanup
+**Active Sprint**: Merge-commit default for GitHub PR finalization
 **Project Status**: Active
 **Canonical Deployment Baseline**: API on AWS Elastic Beanstalk, frontend on S3/CloudFront, config/secrets on AWS-native services
 **Sanctioned Public Demo**: Render `ship-demo` at `https://ship-demo.onrender.com/`, deployed with `scripts/deploy-render-demo.sh`
@@ -12,14 +12,14 @@
 ## Current Focus
 
 ### Active Task
-- **Title**: Trim duplicated startup and handoff prose while keeping workflow wiring intact and making Codex canonical
-- **Status**: In progress
+- **Title**: Change the harness finalization default from squash merges to merge commits while keeping workflow wiring intact
+- **Status**: Ready for audit
 - **Owner**: Codex
 
 ### Next Immediate Actions
-1. Keep `AGENTS.md`, `.ai/codex.md`, and `.ai/agents/claude.md` aligned around one Codex-first startup contract.
-2. Trim repeated validation, memory-update, and handoff prose by deferring to canonical workflows instead of restating them.
-3. Update `scripts/check_ai_wiring.sh`, workspace/index docs, and compatibility config files to enforce the Codex-first canonical model.
+1. Keep `AGENTS.md`, `.ai/codex.md`, and `.ai/workflows/git-finalization.md` aligned around merge-commit default finalization.
+2. Update `scripts/check_ai_wiring.sh` so merge-commit default behavior is enforced by the AI wiring audit.
+3. Sync the durable memory/docs surfaces so future agents do not drift back to squash-default finalization.
 
 ---
 

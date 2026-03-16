@@ -171,3 +171,10 @@ Capture reusable patterns that repeatedly work in this project.
 - **Benefits**: Reduces startup duplication, keeps workflow ownership obvious, and makes future harness edits easier to audit.
 - **Tradeoffs**: Requires discipline so mirrors stay thin instead of growing into a second source of truth.
 - **References**: `.ai/codex.md`, `.ai/agents/claude.md`, `AGENTS.md`, `scripts/check_ai_wiring.sh`
+
+- **Pattern**: Merge commits by default for story PR finalization
+- **Use when**: The team wants GitHub history to preserve visible PR lineage instead of flattening every story merge into a single squash commit.
+- **Approach**: Use `gh pr merge --merge --delete-branch` as the default finalization path and treat squash or rebase as explicit user-directed exceptions.
+- **Benefits**: Keeps PR history easier to inspect, aligns GitHub UI expectations with the merge workflow, and reduces ambiguity about whether a PR was truly merged.
+- **Tradeoffs**: Base-branch history keeps the feature-branch commit structure instead of compressing it automatically.
+- **References**: `.ai/workflows/git-finalization.md`, `AGENTS.md`, `.ai/codex.md`

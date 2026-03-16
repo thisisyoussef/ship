@@ -1,59 +1,58 @@
-# Parallel Flight Workflow (Flexible Single/Parallel Execution)
+# Flight Lock Workflow (Single Writer Lock)
 
-**Purpose**: Coordinate one or more concurrent agent flights while preserving the existing preflight -> lookup -> TDD -> handoff process.
+**Purpose**: Protect standard-lane implementation work with one lightweight single writer lock until real multi-agent contention exists.
 
 ---
 
-## Default Behavior (No Process Break)
+## Default Behavior
 
-- Default mode is `single`.
-- In `single` mode, this workflow behaves like lightweight tracking for the same one-story-at-a-time behavior already in place.
-- Switch to `parallel` mode only when you intentionally run multiple chats/agents at once.
+- Ship now uses one active flight lock at a time.
+- Trivial-lane stories skip this workflow completely.
+- The old board-based parallel state machine is retired until the repo actually needs concurrent flight coordination again.
 
 ---
 
 ## When To Run
 
-Run this before implementation work starts for a flight:
-- story implementation,
-- architecture/doc flights,
-- deployment/ops flights.
+Run this before implementation work starts for a standard-lane flight:
+- story implementation
+- architecture/doc flights
+- deployment/ops flights
 
-You can skip only for quick read-only exploration.
+Skip it for:
+- trivial-lane stories
+- read-only exploration
+- user-correction patches that stay in the trivial lane
 
 ---
 
-## Step 1: Initialize or Inspect Board
+## Step 1: Initialize or Inspect the Lock
 
 ```bash
 bash scripts/flight_slot.sh init
 bash scripts/flight_slot.sh status
 ```
 
-Board file:
+Active lock file:
+- `.ai/state/flight-lock.json`
+
+Legacy migration source:
 - `.ai/state/flight-board.json`
+- Used only so older active/history state can be migrated into the single-lock flow once.
 
 ---
 
-## Step 2: Select Execution Mode
-
-### Single flight (default)
+## Step 2: Stay in Single-Lock Mode
 
 ```bash
 bash scripts/flight_slot.sh mode single
 ```
 
-### Parallel flights
-
-```bash
-bash scripts/flight_slot.sh mode parallel --max-active 3
-```
-
-Use parallel mode only when a coordinator is intentionally running multiple independent flights.
+If someone tries `mode parallel`, the script should fail and tell them the parallel board has been retired until real contention returns.
 
 ---
 
-## Step 3: Claim a Flight Slot
+## Step 3: Claim the Lock
 
 Claim before editing files:
 
@@ -62,50 +61,46 @@ bash scripts/flight_slot.sh claim \
   --flight-id flight-us-p1-002 \
   --slot code \
   --owner codex \
-  --paths "api/src,web/src,shared/src,e2e,api/src" \
+  --paths "api/src,web/src,shared/src" \
   --story US-P1-002 \
   --branch codex/flight-us-p1-002
 ```
 
-### Slot guidance
+Slot guidance:
 - `code`: feature/bug code changes
 - `docs`: docs-only changes
 - `infra`: config/deployment infrastructure changes
 - `deploy`: release/deploy flight
 - `ai_arch`: `.ai`/orchestration contract changes
 
-### Path-lock guidance
-- Use stable path prefixes (not broad wildcards).
-- Keep lock scope as small as possible.
-- If claim fails, either:
-  - wait for conflicting flight to release,
-  - narrow your lock paths,
-  - or move to a non-conflicting flight.
+Lock guidance:
+- Keep the lock scope small even though only one writer lock exists.
+- If claim fails, finish or release the active flight instead of routing around it with a second concurrent lane.
 
 ---
 
-## Step 4: Run Normal Workflow (Unchanged)
+## Step 4: Run the Normal Workflow
 
-After claim succeeds, run existing process as usual:
+After claim succeeds, run the normal process as usual:
 1. `agent-preflight`
 2. `.ai/workflows/story-lookup.md`
-3. task workflow (`feature`, `bug`, `performance`, `security`, `deployment`)
-4. `.ai/workflows/story-handoff.md`
+3. `.ai/workflows/story-sizing.md`
+4. task workflow (`feature`, `bug`, `performance`, `security`, `deployment`)
+5. `.ai/workflows/story-handoff.md`
 
-No existing quality/security/deployment gates are removed by this workflow.
 Git finalization is still mandatory via `.ai/workflows/git-finalization.md`.
 
 ---
 
-## Step 5: Release Flight at Handoff
+## Step 5: Release the Lock
 
-When the flight is complete (or paused/cancelled), release the slot:
+When the flight is complete, paused, or cancelled, release the lock:
 
 ```bash
 bash scripts/flight_slot.sh release \
   --flight-id flight-us-p1-002 \
   --status completed \
-  --summary "US-P1-002 handoff delivered"
+  --summary "US-P1-002 completion gate delivered"
 ```
 
 Status choices:
@@ -115,19 +110,19 @@ Status choices:
 
 ---
 
-## Step 6: Optional Reset (Coordinator Use)
+## Step 6: Optional Reset
 
 ```bash
 bash scripts/flight_slot.sh reset --confirm
 ```
 
-Use reset only when intentionally clearing all active/history state.
+Use reset only when intentionally clearing the active lock after confirming no real story is still using it.
 
 ---
 
 ## Exit Criteria
 
-- Flight claimed before edits
+- Single writer lock claimed before standard-lane edits
 - Standard story workflow completed
-- Handoff delivered
-- Flight released with final status
+- Combined completion gate delivered
+- Flight lock released with final status

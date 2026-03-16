@@ -7,11 +7,11 @@
 ## When To Run
 
 Run this workflow when the user gives a targeted correction or clarification such as:
-- ignore one stale bullet or requirement,
-- rename or reword one item,
-- prefer a different provider or tool without changing the broader architecture,
-- point at one mistaken assumption,
-- ask for a small directional correction to the current work.
+- ignore one stale bullet or requirement
+- rename or reword one item
+- prefer a different provider or tool without changing the broader architecture
+- point at one mistaken assumption
+- ask for a small directional correction to the current work
 
 Do not use this workflow when the user is actually changing product scope, architecture, or acceptance criteria in a material way.
 
@@ -20,15 +20,32 @@ Do not use this workflow when the user is actually changing product scope, archi
 ## Step 1: Restate the Correction
 
 Capture the correction in one or two sentences:
-- what the user corrected,
-- what should now be treated as out of scope or preferred,
-- what remains unchanged.
+- what the user corrected
+- what should now be treated as out of scope or preferred
+- what remains unchanged
 
 If the correction is ambiguous, ask one narrow clarifying question.
 
 ---
 
-## Step 2: Classify Blast Radius
+## Step 2: Record the Triage Loop Count
+
+Before editing, record the correction cycle:
+
+```bash
+bash scripts/triage_counter.sh record
+```
+
+If the counter reaches the limit, stop and escalate to the user with:
+- `triage circuit breaker reached`
+- `this story may need re-scoping`
+- what keeps recurring and why another patch loop is the wrong response
+
+Do not continue patching after the circuit breaker trips.
+
+---
+
+## Step 3: Classify Blast Radius
 
 Choose one level before editing:
 
@@ -41,34 +58,36 @@ Choose one level before editing:
 
 ---
 
-## Step 3: Apply the Smallest Valid Response
+## Step 4: Apply the Smallest Valid Response
 
 ### If `L1`
-- patch only the directly affected files,
-- do not create a new story pack,
-- do not add a new ADR,
-- do not broaden the task with unrelated cleanup.
+- patch only the directly affected files
+- do not create a new story pack
+- do not add a new ADR
+- do not broaden the task with unrelated cleanup
 
 ### If `L2`
-- patch the directly affected files and current story artifacts,
-- keep the diff bounded to the current story,
-- only create additional spec or memory artifacts if the existing contract would otherwise become misleading.
+- patch the directly affected files and current story artifacts
+- keep the diff bounded to the current story
+- only create additional spec or memory artifacts if the existing contract would otherwise become misleading
 
 ### If `L3`
 - stop and re-route through the normal story gates:
-  - preflight,
-  - lookup,
-  - spec-driven delivery,
-  - eval-driven development when applicable.
+  - preflight
+  - lookup
+  - story sizing
+  - spec-driven delivery
+  - eval-driven development when applicable
 
 ---
 
-## Step 4: State Why You Did Not Escalate
+## Step 5: State Why You Did Not Escalate
 
 In handoff or the next update, say:
-- which blast-radius level you classified,
-- which files were updated,
-- why broader replanning was not needed.
+- which blast-radius level you classified
+- what the current triage count is
+- which files were updated
+- why broader replanning was not needed
 
 If you did escalate, say exactly what made it a real scope or architecture change.
 
@@ -77,6 +96,8 @@ If you did escalate, say exactly what made it a real scope or architecture chang
 ## Exit Criteria
 
 - The correction was restated clearly
+- The triage counter was updated before editing
 - Blast radius was classified before editing
 - Only the minimum affected surfaces were changed for `L1` and `L2`
+- The user was escalated with a re-scope signal if the triage loop limit was hit
 - Full story replanning was used only for `L3`

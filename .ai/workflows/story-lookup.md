@@ -98,6 +98,7 @@ Deliver a concise lookup brief before any code/test edits:
 7. Eval implications for AI behavior (objective, dataset, metrics, regression plan)
 8. Spec implications (what to update in constitution/spec/plan/tasks artifacts)
 9. For UI scope: design-ambiguity implications, selected principle tie-breakers, and prompt/spec constraints that prevent generic output
+10. Story sizing recommendation: `lane: trivial` or `lane: standard`, plus the reason `.ai/workflows/story-sizing.md` should land there next
 
 If lookup is incomplete, do not start implementation.
 

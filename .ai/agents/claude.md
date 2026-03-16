@@ -14,13 +14,15 @@
 Claude must follow the same required gates defined in `.ai/codex.md` and `AGENTS.md`:
 - `agent-preflight`
 - `.ai/workflows/story-lookup.md`
+- `.ai/workflows/story-sizing.md`
 - `.ai/workflows/user-correction-triage.md`
 - `.ai/workflows/eval-driven-development.md`
 - `.ai/workflows/spec-driven-delivery.md`
 - `.ai/skills/spec-driven-development.md`
-- `.ai/workflows/parallel-flight.md` + `scripts/flight_slot.sh`
+- `.ai/workflows/parallel-flight.md` + `scripts/flight_slot.sh` for the standard-lane single writer lock only
 - `.ai/workflows/git-finalization.md` + `scripts/git_finalize_guard.sh`
-- `.ai/workflows/story-handoff.md`
+- `.ai/workflows/story-handoff.md` as the combined completion gate
+- `.ai/workflows/finalization-recovery.md` when finalization fails
 - `.ai/workflows/ai-architecture-change.md` when `.ai/**`, `AGENTS.md`, `.clauderc`, `.cursorrules`, or `scripts/check_ai_wiring.sh` change
 - `.ai/docs/design/DESIGN_PHILOSOPHY_AND_LANGUAGE.md`, `.ai/skills/frontend-design.md`, and `.ai/templates/spec/UI_PROMPT_BRIEF_TEMPLATE.md` for UI scope
 

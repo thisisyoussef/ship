@@ -20,11 +20,11 @@ run_check() {
   "$@"
 }
 
-require_cmd python
+require_cmd python3
 
-run_check "Agent contract required files" python scripts/verify_agent_contract.py
+run_check "Agent contract required files" python3 scripts/verify_agent_contract.py
 
-run_check "Workflow gates (preflight + lookup + handoff)" python - <<'PY'
+run_check "Workflow gate routing" python3 - <<'PY'
 from pathlib import Path
 import sys
 
@@ -36,673 +36,246 @@ workflows = [
     ".ai/workflows/security-review.md",
     ".ai/workflows/deployment-setup.md",
 ]
-missing: list[str] = []
-for wf in workflows:
-    text = (root / wf).read_text(encoding="utf-8")
-    has_preflight = "agent-preflight" in text
-    has_lookup = "story-lookup.md" in text
-    has_handoff = "story-handoff.md" in text
-    has_git_finalization = "git-finalization.md" in text
-    if not (has_preflight and has_lookup and has_handoff and has_git_finalization):
-        missing.append(
-            f"{wf}: preflight={has_preflight}, lookup={has_lookup}, handoff={has_handoff}, git_finalization={has_git_finalization}"
-        )
-
-if missing:
-    print("ERROR: Workflow gate wiring issues detected:", file=sys.stderr)
-    for item in missing:
-        print(f"- {item}", file=sys.stderr)
-    raise SystemExit(1)
-
-print("Workflow gate wiring check passed.")
-PY
-
-run_check "Spec-driven routing references" python - <<'PY'
-from pathlib import Path
-import sys
-
-workflow_targets = [
-    "AGENTS.md",
-    ".ai/agents/claude.md",
-    ".ai/codex.md",
-    ".ai/agents/cursor-agent.md",
-    ".ai/workflows/feature-development.md",
-    ".ai/docs/WORKSPACE_INDEX.md",
-    ".clauderc",
-    ".cursorrules",
-]
-missing_workflow: list[str] = []
-for rel in workflow_targets:
-    text = Path(rel).read_text(encoding="utf-8")
-    if "spec-driven-delivery.md" not in text:
-        missing_workflow.append(rel)
-
-if missing_workflow:
-    print("ERROR: Spec-driven workflow routing missing from:", file=sys.stderr)
-    for rel in missing_workflow:
-        print(f"- {rel}", file=sys.stderr)
-    raise SystemExit(1)
-
-skill_targets = [
-    "AGENTS.md",
-    ".ai/agents/claude.md",
-    ".ai/codex.md",
-    ".ai/agents/cursor-agent.md",
-    ".ai/workflows/feature-development.md",
-    ".ai/docs/WORKSPACE_INDEX.md",
-]
-missing_skill: list[str] = []
-for rel in skill_targets:
-    text = Path(rel).read_text(encoding="utf-8")
-    if "spec-driven-development.md" not in text:
-        missing_skill.append(rel)
-
-if missing_skill:
-    print("ERROR: Spec-driven skill references missing from:", file=sys.stderr)
-    for rel in missing_skill:
-        print(f"- {rel}", file=sys.stderr)
-    raise SystemExit(1)
-
-required_templates = [
-    ".ai/templates/spec/README.md",
-    ".ai/templates/spec/CONSTITUTION_TEMPLATE.md",
-    ".ai/templates/spec/FEATURE_SPEC_TEMPLATE.md",
-    ".ai/templates/spec/TECHNICAL_PLAN_TEMPLATE.md",
-    ".ai/templates/spec/TASK_BREAKDOWN_TEMPLATE.md",
-    ".ai/templates/spec/UI_COMPONENT_SPEC_TEMPLATE.md",
-]
-missing_templates = [path for path in required_templates if not Path(path).is_file()]
-if missing_templates:
-    print("ERROR: Missing spec template files:", file=sys.stderr)
-    for path in missing_templates:
-        print(f"- {path}", file=sys.stderr)
-    raise SystemExit(1)
-
-playbook = ".ai/docs/research/spec-driven-tdd-playbook.md"
-if not Path(playbook).is_file():
-    print(f"ERROR: Missing SDD/TDD playbook: {playbook}", file=sys.stderr)
-    raise SystemExit(1)
-
-for rel in (".ai/docs/WORKSPACE_INDEX.md", ".ai/workflows/story-lookup.md"):
-    text = Path(rel).read_text(encoding="utf-8")
-    if "spec-driven-tdd-playbook.md" not in text:
-        print(f"ERROR: SDD/TDD playbook reference missing from {rel}", file=sys.stderr)
-        raise SystemExit(1)
-
-design_doc = ".ai/docs/design/DESIGN_PHILOSOPHY_AND_LANGUAGE.md"
-if not Path(design_doc).is_file():
-    print(f"ERROR: Missing design philosophy doc: {design_doc}", file=sys.stderr)
-    raise SystemExit(1)
-
-design_targets = [
-    "AGENTS.md",
-    ".ai/agents/claude.md",
-    ".ai/codex.md",
-    ".ai/workflows/spec-driven-delivery.md",
-    ".ai/workflows/story-lookup.md",
-    ".ai/templates/spec/UI_COMPONENT_SPEC_TEMPLATE.md",
-    ".ai/docs/WORKSPACE_INDEX.md",
-    ".clauderc",
-    ".cursorrules",
-]
-missing_design_refs: list[str] = []
-for rel in design_targets:
-    text = Path(rel).read_text(encoding="utf-8")
-    if "DESIGN_PHILOSOPHY_AND_LANGUAGE.md" not in text:
-        missing_design_refs.append(rel)
-
-if missing_design_refs:
-    print("ERROR: Design philosophy references missing from:", file=sys.stderr)
-    for rel in missing_design_refs:
-        print(f"- {rel}", file=sys.stderr)
-    raise SystemExit(1)
-
-print("Spec-driven routing check passed.")
-PY
-
-run_check "Eval-driven routing references" python - <<'PY'
-from pathlib import Path
-import sys
-
-workflow_targets = [
-    "AGENTS.md",
-    ".ai/agents/claude.md",
-    ".ai/codex.md",
-    ".ai/agents/cursor-agent.md",
-    ".ai/workflows/feature-development.md",
-    ".ai/docs/WORKSPACE_INDEX.md",
-    ".clauderc",
-    ".cursorrules",
-]
-missing_workflow: list[str] = []
-for rel in workflow_targets:
-    text = Path(rel).read_text(encoding="utf-8")
-    if "eval-driven-development.md" not in text:
-        missing_workflow.append(rel)
-
-if missing_workflow:
-    print("ERROR: Eval-driven workflow routing missing from:", file=sys.stderr)
-    for rel in missing_workflow:
-        print(f"- {rel}", file=sys.stderr)
-    raise SystemExit(1)
-
-required_files = [
-    ".ai/workflows/eval-driven-development.md",
-]
-missing_files = [path for path in required_files if not Path(path).is_file()]
-if missing_files:
-    print("ERROR: Missing eval workflow files:", file=sys.stderr)
-    for path in missing_files:
-        print(f"- {path}", file=sys.stderr)
-    raise SystemExit(1)
-
-story_handoff = Path(".ai/workflows/story-handoff.md").read_text(encoding="utf-8")
-required_tokens = (
-    "Eval Evidence Audit",
-    "Eval brief delivered before implementation",
-    "Dataset slices listed (production-like, edge, adversarial)",
-)
-missing_tokens = [token for token in required_tokens if token not in story_handoff]
-if missing_tokens:
-    print("ERROR: Story handoff eval audit requirements missing:", file=sys.stderr)
-    for token in missing_tokens:
-        print(f"- {token}", file=sys.stderr)
-    raise SystemExit(1)
-
-print("Eval-driven routing check passed.")
-PY
-
-run_check "User correction triage routing references" python - <<'PY'
-from pathlib import Path
-import sys
-
-required_files = [
-    ".ai/workflows/user-correction-triage.md",
-]
-missing_files = [path for path in required_files if not Path(path).is_file()]
-if missing_files:
-    print("ERROR: Missing user correction triage workflow files:", file=sys.stderr)
-    for path in missing_files:
-        print(f"- {path}", file=sys.stderr)
-    raise SystemExit(1)
-
-targets = [
-    "AGENTS.md",
-    ".ai/agents/claude.md",
-    ".ai/codex.md",
-    ".ai/agents/cursor-agent.md",
-    ".ai/workflows/feature-development.md",
-    ".ai/workflows/story-handoff.md",
-    ".ai/docs/WORKSPACE_INDEX.md",
-    ".clauderc",
-    ".cursorrules",
-]
-missing_refs: list[str] = []
-for rel in targets:
-    text = Path(rel).read_text(encoding="utf-8")
-    if "user-correction-triage.md" not in text:
-        missing_refs.append(rel)
-
-if missing_refs:
-    print("ERROR: User correction triage references missing from:", file=sys.stderr)
-    for rel in missing_refs:
-        print(f"- {rel}", file=sys.stderr)
-    raise SystemExit(1)
-
-print("User correction triage routing check passed.")
-PY
-
-run_check "Frontend design skill routing references" python - <<'PY'
-from pathlib import Path
-import sys
-
-targets = [
-    "AGENTS.md",
-    ".ai/agents/claude.md",
-    ".ai/codex.md",
-    ".ai/agents/cursor-agent.md",
-    ".ai/workflows/spec-driven-delivery.md",
-    ".ai/workflows/feature-development.md",
-    ".ai/workflows/story-lookup.md",
-    ".ai/docs/WORKSPACE_INDEX.md",
-    ".ai/skills/spec-driven-development.md",
-    ".ai/templates/spec/UI_COMPONENT_SPEC_TEMPLATE.md",
-    ".clauderc",
-    ".cursorrules",
-]
-missing: list[str] = []
-for rel in targets:
-    text = Path(rel).read_text(encoding="utf-8")
-    if "frontend-design.md" not in text:
-        missing.append(rel)
-
-if missing:
-    print("ERROR: Frontend design skill references missing from:", file=sys.stderr)
-    for rel in missing:
-        print(f"- {rel}", file=sys.stderr)
-    raise SystemExit(1)
-
-required_files = [
-    ".ai/skills/frontend-design.md",
-]
-missing_files = [path for path in required_files if not Path(path).is_file()]
-if missing_files:
-    print("ERROR: Missing frontend design skill files:", file=sys.stderr)
-    for path in missing_files:
-        print(f"- {path}", file=sys.stderr)
-    raise SystemExit(1)
-
-print("Frontend design skill routing check passed.")
-PY
-
-run_check "UI prompt brief template wiring" python - <<'PY'
-from pathlib import Path
-import sys
-
-required_files = [
-    ".ai/templates/spec/UI_PROMPT_BRIEF_TEMPLATE.md",
-]
-missing_files = [path for path in required_files if not Path(path).is_file()]
-if missing_files:
-    print("ERROR: Missing UI prompt brief template files:", file=sys.stderr)
-    for path in missing_files:
-        print(f"- {path}", file=sys.stderr)
-    raise SystemExit(1)
-
-targets = [
-    "AGENTS.md",
-    ".ai/agents/claude.md",
-    ".ai/codex.md",
-    ".ai/agents/cursor-agent.md",
-    ".ai/workflows/spec-driven-delivery.md",
-    ".ai/workflows/story-lookup.md",
-    ".ai/skills/spec-driven-development.md",
-    ".ai/skills/frontend-design.md",
-    ".ai/templates/spec/README.md",
-    ".ai/docs/WORKSPACE_INDEX.md",
-]
-missing_refs: list[str] = []
-for rel in targets:
-    text = Path(rel).read_text(encoding="utf-8")
-    if "UI_PROMPT_BRIEF_TEMPLATE.md" not in text:
-        missing_refs.append(rel)
-
-if missing_refs:
-    print("ERROR: UI prompt brief template references missing from:", file=sys.stderr)
-    for rel in missing_refs:
-        print(f"- {rel}", file=sys.stderr)
-    raise SystemExit(1)
-
-print("UI prompt brief template wiring check passed.")
-PY
-
-run_check "Canonical orchestrator references" python - <<'PY'
-from pathlib import Path
-import sys
-
-root = Path.cwd()
-targets = [
-    "AGENTS.md",
-    ".ai/agents/claude.md",
-    ".ai/codex.md",
-    ".ai/agents/cursor-agent.md",
-    ".ai/docs/WORKSPACE_INDEX.md",
-    ".ai/docs/SINGLE_SOURCE_OF_TRUTH.md",
-    ".clauderc",
-    ".cursorrules",
-]
-canonical = ".ai/codex.md"
-missing: list[str] = []
-for rel in targets:
+required = ("agent-preflight", "story-lookup.md", "story-sizing.md", "story-handoff.md", "git-finalization.md")
+errors: list[str] = []
+for rel in workflows:
     text = (root / rel).read_text(encoding="utf-8")
-    if canonical not in text:
-        missing.append(rel)
+    missing = [token for token in required if token not in text]
+    if missing:
+        errors.append(f"{rel}: missing {', '.join(missing)}")
 
-if missing:
-    print("ERROR: Canonical orchestrator reference missing from:", file=sys.stderr)
-    for rel in missing:
-        print(f"- {rel}", file=sys.stderr)
+if errors:
+    print("ERROR: Workflow routing issues detected:", file=sys.stderr)
+    for item in errors:
+        print(f"- {item}", file=sys.stderr)
     raise SystemExit(1)
 
-print("Canonical orchestrator reference check passed.")
+print("Workflow gate routing check passed.")
 PY
 
-run_check "Story handoff requires lookup evidence audit" python - <<'PY'
-from pathlib import Path
-import sys
-
-story_handoff = Path(".ai/workflows/story-handoff.md").read_text(encoding="utf-8")
-required_tokens = (
-    "Lookup Evidence Audit",
-    "Lookup brief delivered before implementation",
-    "External sources used (links listed)",
-)
-missing = [token for token in required_tokens if token not in story_handoff]
-if missing:
-    print("ERROR: Story handoff lookup audit requirements missing:", file=sys.stderr)
-    for token in missing:
-        print(f"- {token}", file=sys.stderr)
-    raise SystemExit(1)
-
-print("Story handoff lookup audit check passed.")
-PY
-
-run_check "Story handoff user correction triage audit" python - <<'PY'
-from pathlib import Path
-import sys
-
-story_handoff = Path(".ai/workflows/story-handoff.md").read_text(encoding="utf-8")
-required_tokens = (
-    "For narrow corrective feedback, run `.ai/workflows/user-correction-triage.md`",
-    "run `.ai/workflows/user-correction-triage.md` first when the feedback is a narrow correction or clarification",
-)
-missing = [token for token in required_tokens if token not in story_handoff]
-if missing:
-    print("ERROR: Story handoff user correction triage requirements missing:", file=sys.stderr)
-    for token in missing:
-        print(f"- {token}", file=sys.stderr)
-    raise SystemExit(1)
-
-print("Story handoff user correction triage check passed.")
-PY
-
-run_check "Parallel flight routing references" python - <<'PY'
+run_check "Canonical startup routing" python3 - <<'PY'
 from pathlib import Path
 import sys
 
 targets = [
     "AGENTS.md",
-    ".ai/agents/claude.md",
     ".ai/codex.md",
+    ".ai/agents/claude.md",
     ".ai/agents/cursor-agent.md",
     ".ai/docs/WORKSPACE_INDEX.md",
+    ".clauderc",
+    ".cursorrules",
 ]
-required_tokens = ("parallel-flight.md", "flight_slot.sh")
-missing: list[str] = []
-for rel in targets:
-    text = Path(rel).read_text(encoding="utf-8")
-    if not all(token in text for token in required_tokens):
-        missing.append(rel)
-
-if missing:
-    print("ERROR: Parallel flight references missing from:", file=sys.stderr)
-    for rel in missing:
-        print(f"- {rel}", file=sys.stderr)
-    raise SystemExit(1)
-
-print("Parallel flight routing check passed.")
-PY
-
-run_check "Git finalization routing references" python - <<'PY'
-from pathlib import Path
-import sys
-
-targets = [
-    "AGENTS.md",
-    ".ai/agents/claude.md",
-    ".ai/codex.md",
-    ".ai/agents/cursor-agent.md",
-    ".ai/docs/WORKSPACE_INDEX.md",
-    ".ai/workflows/story-handoff.md",
-]
-required_tokens = ("git-finalization.md", "git_finalize_guard.sh")
-missing: list[str] = []
-for rel in targets:
-    text = Path(rel).read_text(encoding="utf-8")
-    if not all(token in text for token in required_tokens):
-        missing.append(rel)
-
-if missing:
-    print("ERROR: Git finalization references missing from:", file=sys.stderr)
-    for rel in missing:
-        print(f"- {rel}", file=sys.stderr)
-    raise SystemExit(1)
-
-print("Git finalization routing check passed.")
-PY
-
-run_check "Git finalization workflow content" python - <<'PY'
-from pathlib import Path
-import sys
-
-git_finalization = Path(".ai/workflows/git-finalization.md").read_text(encoding="utf-8")
-required_tokens = (
-    "git fetch --all --prune",
-    "gh pr create --fill",
-    "gh pr merge --merge --delete-branch",
-    "Use merge commits by default",
-    "branch name reflects the active story",
-    "story branch transition status",
-    "deployment impact review status",
-    "remote sync status",
-    "branch cleanup status",
-    "archived or read-only",
-    "writable remote",
+required = (
+    "story-lookup.md",
+    "story-sizing.md",
+    "user-correction-triage.md",
+    "eval-driven-development.md",
+    "spec-driven-delivery.md",
+    "parallel-flight.md",
+    "story-handoff.md",
+    "git-finalization.md",
 )
-missing = [token for token in required_tokens if token not in git_finalization]
-if missing:
-    print("ERROR: Git finalization workflow requirements missing:", file=sys.stderr)
-    for token in missing:
-        print(f"- {token}", file=sys.stderr)
+errors: list[str] = []
+for rel in targets:
+    text = Path(rel).read_text(encoding="utf-8")
+    missing = [token for token in required if token not in text]
+    if missing:
+        errors.append(f"{rel}: missing {', '.join(missing)}")
+
+if errors:
+    print("ERROR: Startup routing references missing:", file=sys.stderr)
+    for item in errors:
+        print(f"- {item}", file=sys.stderr)
     raise SystemExit(1)
 
-story_handoff = Path(".ai/workflows/story-handoff.md").read_text(encoding="utf-8")
+print("Canonical startup routing check passed.")
+PY
+
+run_check "Story sizing fast-track wiring" python3 - <<'PY'
+from pathlib import Path
+import sys
+
+story_sizing = Path(".ai/workflows/story-sizing.md").read_text(encoding="utf-8")
+required_story_sizing = (
+    "lane: trivial",
+    "one file",
+    "no API surface or public contract changes",
+    "no AI behavior changes",
+    "skip `.ai/workflows/spec-driven-delivery.md`",
+    "skip `.ai/workflows/eval-driven-development.md`",
+    "skip `.ai/workflows/parallel-flight.md`",
+)
+missing_story = [token for token in required_story_sizing if token not in story_sizing]
+
+lookup = Path(".ai/workflows/story-lookup.md").read_text(encoding="utf-8")
+feature = Path(".ai/workflows/feature-development.md").read_text(encoding="utf-8")
+bug = Path(".ai/workflows/bug-fixing.md").read_text(encoding="utf-8")
+
+errors: list[str] = []
+if missing_story:
+    errors.append("story-sizing.md missing " + ", ".join(missing_story))
+if "Story sizing recommendation" not in lookup:
+    errors.append("story-lookup.md missing story sizing recommendation output")
+for rel, text in (("feature-development.md", feature), ("bug-fixing.md", bug)):
+    for token in ("lane: trivial", "lane: standard", "story-sizing.md"):
+        if token not in text:
+            errors.append(f"{rel} missing {token}")
+
+if errors:
+    print("ERROR: Story sizing wiring issues detected:", file=sys.stderr)
+    for item in errors:
+        print(f"- {item}", file=sys.stderr)
+    raise SystemExit(1)
+
+print("Story sizing fast-track wiring check passed.")
+PY
+
+run_check "Single flight lock wiring" python3 - <<'PY'
+from pathlib import Path
+import sys
+
+workflow = Path(".ai/workflows/parallel-flight.md").read_text(encoding="utf-8")
+script = Path("scripts/flight_slot.sh").read_text(encoding="utf-8")
+errors: list[str] = []
+
+for token in ("single writer lock", "flight-lock.json", "parallel board", "Trivial-lane stories skip"):
+    if token not in workflow:
+        errors.append(f"parallel-flight.md missing '{token}'")
+
+for token in ("flight-lock.json", "parallel mode is retired", "active_lock"):
+    if token not in script:
+        errors.append(f"scripts/flight_slot.sh missing '{token}'")
+
+if errors:
+    print("ERROR: Single flight lock wiring issues detected:", file=sys.stderr)
+    for item in errors:
+        print(f"- {item}", file=sys.stderr)
+    raise SystemExit(1)
+
+print("Single flight lock wiring check passed.")
+PY
+
+run_check "Automatic AI wiring checks" python3 - <<'PY'
+from pathlib import Path
+import sys
+
+pre_commit = Path(".husky/pre-commit").read_text(encoding="utf-8")
+guard = Path("scripts/git_finalize_guard.sh").read_text(encoding="utf-8")
+errors: list[str] = []
+
+for token in ("ai_arch_changed.sh", "check_ai_wiring.sh"):
+    if token not in pre_commit:
+        errors.append(f".husky/pre-commit missing '{token}'")
+
+for token in ("ai_arch_changed.sh", "check_ai_wiring.sh", "finalization-recovery.md"):
+    if token not in guard:
+        errors.append(f"scripts/git_finalize_guard.sh missing '{token}'")
+
+if errors:
+    print("ERROR: Automatic AI wiring enforcement issues detected:", file=sys.stderr)
+    for item in errors:
+        print(f"- {item}", file=sys.stderr)
+    raise SystemExit(1)
+
+print("Automatic AI wiring checks passed.")
+PY
+
+run_check "Correction triage circuit breaker" python3 - <<'PY'
+from pathlib import Path
+import sys
+
+workflow = Path(".ai/workflows/user-correction-triage.md").read_text(encoding="utf-8")
+script = Path("scripts/triage_counter.sh").read_text(encoding="utf-8")
+errors: list[str] = []
+
+for token in ("triage_counter.sh", "triage circuit breaker reached", "this story may need re-scoping", "story sizing"):
+    if token not in workflow:
+        errors.append(f"user-correction-triage.md missing '{token}'")
+
+for token in ("DEFAULT_LIMIT = 3", "triage count reached", "This story may need re-scoping"):
+    if token not in script:
+        errors.append(f"scripts/triage_counter.sh missing '{token}'")
+
+if errors:
+    print("ERROR: Correction triage circuit breaker issues detected:", file=sys.stderr)
+    for item in errors:
+        print(f"- {item}", file=sys.stderr)
+    raise SystemExit(1)
+
+print("Correction triage circuit breaker check passed.")
+PY
+
+run_check "Combined completion gate wiring" python3 - <<'PY'
+from pathlib import Path
+import sys
+
+handoff = Path(".ai/workflows/story-handoff.md").read_text(encoding="utf-8")
+finalization = Path(".ai/workflows/git-finalization.md").read_text(encoding="utf-8")
+errors: list[str] = []
+
 handoff_tokens = (
-    "Story branch transition recorded in handoff",
-    "Remote sync status recorded in handoff",
-    "Deployment impact review status recorded in handoff",
-    "PR URL and PR status recorded in handoff",
-    "Merge status recorded in handoff",
-    "Branch cleanup status recorded in handoff",
+    "Current Status",
+    "Testing Brief",
+    "Decision / Design Brief",
+    "Visible Proof",
+    "Completion Plan",
+    "User Audit Checklist (Run This Now)",
+    "finalization-recovery.md",
 )
-missing_handoff = [token for token in handoff_tokens if token not in story_handoff]
-if missing_handoff:
-    print("ERROR: Story handoff git evidence requirements missing:", file=sys.stderr)
-    for token in missing_handoff:
-        print(f"- {token}", file=sys.stderr)
+for token in handoff_tokens:
+    if token not in handoff:
+        errors.append(f"story-handoff.md missing '{token}'")
+
+finalization_tokens = (
+    "execution-only",
+    "story-handoff.md",
+    "gh pr merge --merge --delete-branch",
+    "finalization-recovery.md",
+)
+for token in finalization_tokens:
+    if token not in finalization:
+        errors.append(f"git-finalization.md missing '{token}'")
+
+if errors:
+    print("ERROR: Combined completion gate issues detected:", file=sys.stderr)
+    for item in errors:
+        print(f"- {item}", file=sys.stderr)
     raise SystemExit(1)
 
-print("Git finalization workflow content check passed.")
+print("Combined completion gate wiring check passed.")
 PY
 
-run_check "Story branch rollover and deployment review wiring" python - <<'PY'
+run_check "Recovery workflow wiring" python3 - <<'PY'
 from pathlib import Path
 import sys
 
-targets = {
-    "AGENTS.md": (
-        "Do not start story N+1 on story N's branch",
-        "Elastic Beanstalk",
-        "S3/CloudFront",
-        "scripts/deploy-render-demo.sh",
-        "deployment impact: none",
-    ),
-    ".ai/workflows/feature-development.md": (
-        "Do not continue a new story on the previous story's branch",
-        "Elastic Beanstalk",
-        "S3 + CloudFront",
-        "scripts/deploy-render-demo.sh",
-        "deployment impact: none",
-    ),
-    ".ai/workflows/deployment-setup.md": (
-        "canonical deployment baseline",
-        "Elastic Beanstalk",
-        "S3 + CloudFront",
-        "ship-demo",
-    ),
-}
+recovery = Path(".ai/workflows/finalization-recovery.md").read_text(encoding="utf-8")
+errors: list[str] = []
 
-missing: list[str] = []
-for rel, tokens in targets.items():
+for token in ("git merge --abort", "git rebase --abort", "story-handoff.md", "git_finalize_guard.sh fails"):
+    if token not in recovery:
+        errors.append(f"finalization-recovery.md missing '{token}'")
+
+targets = [
+    ".ai/workflows/story-handoff.md",
+    ".ai/workflows/git-finalization.md",
+    "AGENTS.md",
+    ".ai/codex.md",
+    ".ai/agents/cursor-agent.md",
+]
+for rel in targets:
     text = Path(rel).read_text(encoding="utf-8")
-    for token in tokens:
-        if token not in text:
-            missing.append(f"{rel}: missing '{token}'")
+    if "finalization-recovery.md" not in text:
+        errors.append(f"{rel} missing finalization-recovery.md reference")
 
-if missing:
-    print("ERROR: Story branch rollover / deployment review requirements missing:", file=sys.stderr)
-    for item in missing:
+if errors:
+    print("ERROR: Recovery workflow wiring issues detected:", file=sys.stderr)
+    for item in errors:
         print(f"- {item}", file=sys.stderr)
     raise SystemExit(1)
 
-print("Story branch rollover and deployment review check passed.")
-PY
-
-run_check "Story pack objective planning wiring" python - <<'PY'
-from pathlib import Path
-import sys
-
-targets = {
-    "AGENTS.md": (
-        "define the higher-level objectives for the whole pack first",
-        "write the full set of stories for the pack in one planning pass",
-    ),
-    ".ai/workflows/spec-driven-delivery.md": (
-        "If this work is a story pack, phase pack, or multi-story foundation plan",
-        "the higher-level objectives of the full pack",
-        "write all story-level tasks for the pack in one pass",
-    ),
-    ".ai/skills/spec-driven-development.md": (
-        "When planning a story pack or phase pack, define the higher-level objectives first",
-        "write the whole planned story set in one pass",
-    ),
-    ".ai/templates/spec/FEATURE_SPEC_TEMPLATE.md": (
-        "Story Pack Objectives",
-    ),
-}
-
-missing: list[str] = []
-for rel, tokens in targets.items():
-    text = Path(rel).read_text(encoding="utf-8")
-    for token in tokens:
-        if token not in text:
-            missing.append(f"{rel}: missing '{token}'")
-
-if missing:
-    print("ERROR: Story pack objective planning requirements missing:", file=sys.stderr)
-    for item in missing:
-        print(f"- {item}", file=sys.stderr)
-    raise SystemExit(1)
-
-print("Story pack objective planning check passed.")
-PY
-
-run_check "Deployment execution status wiring" python - <<'PY'
-from pathlib import Path
-import sys
-
-targets = {
-    "AGENTS.md": (
-        "record explicit deployment status in handoff",
-        "deployed",
-        "not deployed",
-        "blocked",
-    ),
-    ".ai/workflows/deployment-setup.md": (
-        "Verify Deployment Access Early",
-        "Record Deployment Execution Status",
-        "deployed",
-        "not deployed",
-        "blocked",
-        "legacy/manual demo URLs as non-canonical",
-        "scripts/deploy-render-demo.sh",
-        "ship-demo",
-    ),
-    ".ai/workflows/story-handoff.md": (
-        "Deployment execution status recorded as `deployed`, `not deployed`, or `blocked`",
-        "Deployment execution status recorded in handoff",
-        "Public demo Render deploy status recorded in handoff when applicable",
-    ),
-    ".ai/workflows/git-finalization.md": (
-        "deployment execution status (`deployed`, `not deployed`, or `blocked`)",
-        "Deployment status is explicit for deploy-relevant stories",
-        "public demo Render deploy status",
-        "./scripts/deploy-render-demo.sh <merged-commit>",
-    ),
-}
-
-missing: list[str] = []
-for rel, tokens in targets.items():
-    text = Path(rel).read_text(encoding="utf-8")
-    for token in tokens:
-        if token not in text:
-            missing.append(f"{rel}: missing '{token}'")
-
-if missing:
-    print("ERROR: Deployment execution status requirements missing:", file=sys.stderr)
-    for item in missing:
-        print(f"- {item}", file=sys.stderr)
-    raise SystemExit(1)
-
-print("Deployment execution status check passed.")
-PY
-
-run_check "Render demo deployment wiring" python - <<'PY'
-from pathlib import Path
-import sys
-
-targets = {
-    "README.md": (
-        "ship-demo.onrender.com",
-        "./scripts/deploy-render-demo.sh",
-    ),
-    ".claude/CLAUDE.md": (
-        "./scripts/deploy-render-demo.sh",
-        "ship-demo.onrender.com/health",
-    ),
-    ".ai/docs/SINGLE_SOURCE_OF_TRUTH.md": (
-        "Sanctioned Public Demo",
-        "scripts/deploy-render-demo.sh",
-    ),
-    "scripts/deploy-render-demo.sh": (
-        "srv-d6q29ms50q8c738ef12g",
-        "render deploys create",
-        "https://ship-demo.onrender.com",
-    ),
-}
-
-missing: list[str] = []
-for rel, tokens in targets.items():
-    text = Path(rel).read_text(encoding="utf-8")
-    for token in tokens:
-        if token not in text:
-            missing.append(f"{rel}: missing '{token}'")
-
-if missing:
-    print("ERROR: Render demo deployment wiring requirements missing:", file=sys.stderr)
-    for item in missing:
-        print(f"- {item}", file=sys.stderr)
-    raise SystemExit(1)
-
-print("Render demo deployment wiring check passed.")
-PY
-
-run_check "Markdown link integrity (.ai + AGENTS/README)" python - <<'PY'
-from pathlib import Path
-import re
-import sys
-
-root = Path.cwd()
-files = [*root.joinpath(".ai").rglob("*.md"), root / "AGENTS.md", root / "README.md"]
-missing: list[str] = []
-for file_path in files:
-    text = file_path.read_text(encoding="utf-8")
-    for match in re.finditer(r"\]\(([^)]+)\)", text):
-        target = match.group(1).strip()
-        if not target or "://" in target or target.startswith("#"):
-            continue
-        target = target.split("#", 1)[0]
-        resolved = (file_path.parent / target).resolve()
-        if not resolved.exists():
-            missing.append(f"{file_path.relative_to(root)} -> {target}")
-
-if missing:
-    print("ERROR: Broken markdown links detected:", file=sys.stderr)
-    for item in missing:
-        print(f"- {item}", file=sys.stderr)
-    raise SystemExit(1)
-
-print("Markdown link integrity check passed.")
+print("Recovery workflow wiring check passed.")
 PY
 
 echo

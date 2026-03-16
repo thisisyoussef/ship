@@ -129,7 +129,17 @@ Capture failures so they are not repeated.
 - **Why it failed**: Startup token load grows, canonical ownership gets ambiguous, and trimming one file becomes risky because the others may silently drift.
 - **Prevention rule**: Keep one canonical orchestrator and make the other agent entrypoints thin compatibility mirrors that defer to it.
 
-- **Problem**: Squash-default finalization when the team expects visible PR merge history
-- **Example**: Using `gh pr merge --squash --delete-branch` for every story, then wondering why GitHub history looks like plain commits instead of clearly merged PR lineage.
-- **Why it failed**: The PR is merged, but the default branch history is flattened into a single commit, which hides the merge style the user expected to see.
-- **Prevention rule**: Default the harness to merge commits and only use squash or rebase when the user explicitly asks for that merge style.
+- **Problem**: Full ceremony on truly trivial stories
+- **Example**: A one-file mechanical fix still has to walk through spec-driven delivery, eval design, and flight coordination even though none of those gates reduce real risk for the change.
+- **Why it failed**: The harness makes quick fixes feel disproportionately expensive, which encourages people to bypass the process entirely.
+- **Prevention rule**: Run story lookup first, then use `.ai/workflows/story-sizing.md` to route only one-file, non-API, non-AI stories into the trivial lane.
+
+- **Problem**: Manual-only AI wiring checks
+- **Example**: `check_ai_wiring.sh` runs only when someone remembers to invoke it after editing the harness.
+- **Why it failed**: Wiring drift can land on a branch and survive until review because the guard was optional in practice.
+- **Prevention rule**: Let the pre-commit hook and `scripts/git_finalize_guard.sh` call `check_ai_wiring.sh` automatically for AI-architecture diffs.
+
+- **Problem**: Unbounded correction patch loops
+- **Example**: The same story cycles through user correction triage again and again without ever escalating that the story itself may be mis-scoped.
+- **Why it failed**: Repeated local patches hide structural problems in the spec or the chosen approach.
+- **Prevention rule**: Persist triage counts per story and trip a re-scope circuit breaker once the limit is reached.

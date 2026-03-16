@@ -1,8 +1,8 @@
 # Ship - Single Source of Truth
 
 **Last Updated**: 2026-03-16
-**Current Phase**: AI harness finalization-policy cleanup
-**Active Sprint**: Merge-commit default for GitHub PR finalization
+**Current Phase**: AI harness lifecycle simplification and completion-gate consolidation
+**Active Sprint**: Proportionate routing, single-flight lock, and recovery-ready finalization
 **Project Status**: Active
 **Canonical Deployment Baseline**: API on AWS Elastic Beanstalk, frontend on S3/CloudFront, config/secrets on AWS-native services
 **Sanctioned Public Demo**: Render `ship-demo` at `https://ship-demo.onrender.com/`, deployed with `scripts/deploy-render-demo.sh`
@@ -12,14 +12,14 @@
 ## Current Focus
 
 ### Active Task
-- **Title**: Change the harness finalization default from squash merges to merge commits while keeping workflow wiring intact
-- **Status**: Ready for audit
+- **Title**: Simplify the harness lifecycle with story sizing, a single writer lock, automatic wiring checks, bounded correction loops, and a combined completion gate
+- **Status**: In progress
 - **Owner**: Codex
 
 ### Next Immediate Actions
-1. Keep `AGENTS.md`, `.ai/codex.md`, and `.ai/workflows/git-finalization.md` aligned around merge-commit default finalization.
-2. Update `scripts/check_ai_wiring.sh` so merge-commit default behavior is enforced by the AI wiring audit.
-3. Sync the durable memory/docs surfaces so future agents do not drift back to squash-default finalization.
+1. Finish wiring the new post-lookup story sizing gate through the startup docs, task workflows, and workspace index.
+2. Retire the old multi-flight board contract in favor of the single writer lock and automatic AI wiring enforcement.
+3. Sync SSOT and memory so future runs enter through the combined completion gate plus finalization-recovery path.
 
 ---
 
@@ -88,6 +88,11 @@
 ## Story Execution Guardrails
 
 - Follow `AGENTS.md`, `.ai/codex.md`, and the active workflow for validation commands, branch rollover, deployment review, and handoff requirements.
+- Run story lookup first, then `.ai/workflows/story-sizing.md`, before deciding whether the story is trivial or standard.
+- Use the trivial lane only for one-file, non-API, non-AI changes; standard stories continue through the normal spec/eval/lock gates.
+- Standard-lane implementation work uses the single writer lock in `.ai/workflows/parallel-flight.md`; trivial stories skip it.
+- AI-architecture diffs trigger `bash scripts/check_ai_wiring.sh` automatically in pre-commit and again in `bash scripts/git_finalize_guard.sh`.
+- `.ai/workflows/story-handoff.md` is the single user-facing completion gate; after approval, `.ai/workflows/git-finalization.md` executes or routes to `.ai/workflows/finalization-recovery.md`.
 - Keep the sanctioned public demo reference current: `scripts/deploy-render-demo.sh` -> `https://ship-demo.onrender.com/`.
 - For deploy-relevant stories, deployment status must still be explicit: `deployed`, `not deployed`, or `blocked`.
 

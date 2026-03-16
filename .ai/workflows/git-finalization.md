@@ -1,41 +1,28 @@
-# Git Finalization Workflow (Mandatory)
+# Git Finalization Workflow
 
-**Purpose**: Enforce commit + push completion, remote sync, writable-remote detection, PR management, merge-commit default behavior, merge readiness, and branch cleanup at the end of each story.
+**Purpose**: Execute commit, push, PR, merge, deploy, and cleanup atomically after the user approves the combined completion gate.
 
 ---
 
 ## When To Run
 
-Run this workflow after implementation and validation, before final story handoff:
-- feature
-- bug fix
-- performance
-- security
-- deployment/ops
-- AI-architecture changes
+Run this workflow only after:
+- implementation and validation are done
+- `.ai/workflows/story-handoff.md` has been issued
+- the user has explicitly approved finalization
 
-Important:
-- Do not run commit, push, PR creation/update, merge, or branch cleanup until the user has completed the story audit and explicitly approved finalization.
-- Once the user does approve, prefer to automate the full flow instead of leaving branch/PR state half-finished.
-- Remote sync is required both before story/branch work starts and again after finalization so local state never drifts silently from the remote.
-- The active branch must match the current story. If the branch name still reflects a previous completed story, stop and correct that before finalization.
-- For Ship deploy-relevant stories, finalization includes the sanctioned Render public demo deploy unless it is explicitly blocked.
+This workflow is execution-only. The user-facing review already happened in the combined completion gate.
 
 ---
 
-## Step 1: Confirm Validation Gates
+## Step 1: Confirm the Story Is Ready
 
-Run the project-specific validation commands defined during setup first:
+Before final git actions:
+- confirm the active branch matches the current story
+- confirm the completion gate already recorded deploy status and finalization plan
+- confirm the user explicitly approved finalization
 
-```bash
-pnpm test
-pnpm type-check
-pnpm lint
-pnpm --filter @ship/api test -- --coverage
-pnpm audit --prod
-```
-
-If any command fails, stop and fix before committing.
+If any of these are false, stop and return to `.ai/workflows/story-handoff.md`.
 
 ---
 
@@ -48,128 +35,79 @@ git branch -vv
 ```
 
 Confirm:
-- the current branch is not detached,
-- the current branch has the expected upstream,
-- the tracking branch is not behind,
-- the branch base is current enough to open or update a PR cleanly,
-- the branch name reflects the active story instead of a previous story,
-- the target GitHub repo is writable.
+- the current branch is not detached
+- the current branch has the expected upstream or is ready to set one
+- the target repo is writable
 
 If the canonical upstream repo is archived or read-only:
-- use the writable remote (usually `origin`) for PR creation, merge, and branch lifecycle tracking,
-- record that fallback explicitly in the handoff instead of silently failing.
+- use the writable remote for PR creation, merge, and branch lifecycle tracking
+- record that fallback explicitly in the finalization update
 
-If the branch is behind its upstream, sync it first:
-
-```bash
-git pull --ff-only
-```
-
-If the branch needs the latest base branch before PR or merge:
-- prefer merging the base branch into the feature branch once it is already shared remotely,
-- avoid force-push flows unless the user explicitly asks for them.
+If sync fails or a merge conflict appears, stop and route to `.ai/workflows/finalization-recovery.md`.
 
 ---
 
-## Step 3: Review and Stage Intentional Changes
+## Step 3: Review, Stage, and Commit Intentional Changes
 
 ```bash
 git status --short
 git diff
 git add <intended-files>
+git commit -m "<type>(<scope>): <summary>"
 ```
 
-Never stage unrelated changes accidentally.
+Use the commit message from the approved completion gate unless the user changed it.
+
+If staging or commit fails, stop and route to `.ai/workflows/finalization-recovery.md`.
 
 ---
 
-## Step 4: Commit with Story Context
-
-```bash
-git commit -m "<type>(<scope>): <summary>
-
-- Story: <story-id>
-- Notes: <key outcome>"
-```
-
-Use conventional commit style and include story reference.
-
----
-
-## Step 5: Push to a Writable Remote
+## Step 4: Push and Open or Update the PR
 
 ```bash
 git push
-```
-
-If branch has no upstream yet:
-
-```bash
-git push -u origin <branch>
-```
-
----
-
-## Step 6: Open or Update the PR
-
-Check PR status:
-
-```bash
 gh pr status
 ```
 
-If no PR exists for the current branch:
+If no PR exists:
 
 ```bash
 gh pr create --fill
 ```
 
-If the upstream repo is archived or read-only:
-- open the PR against the writable repo instead of retrying the archived target,
-- keep the base branch aligned with the writable repo's default branch,
-- note which repo became the effective merge target.
+If a PR already exists, update it as needed and confirm the correct base branch.
 
-If a PR already exists:
-- update the title/body if needed,
-- confirm the PR points at the correct base branch,
-- ensure the verification notes reflect the final validation state.
-
-Capture:
-- target repo,
-- PR URL,
-- PR state,
-- base branch,
-- whether checks are pending/passing/failing.
+If push or PR creation fails, stop and route to `.ai/workflows/finalization-recovery.md`.
 
 ---
 
-## Step 7: Run Finalization Guard (Hard Gate)
+## Step 5: Run the Finalization Guard
 
 ```bash
 bash scripts/git_finalize_guard.sh
 ```
 
-This must pass before handoff.
+This must pass before merge.
+
+If it fails, stop and route to `.ai/workflows/finalization-recovery.md`.
 
 ---
 
-## Step 8: Merge Only After Approval and Passing Checks
+## Step 6: Merge With Visible PR Lineage
 
-After the user approves finalization and required checks pass, complete the merge flow.
-
-Use merge commits by default so GitHub history preserves the PR lineage. Only use squash or rebase if the user explicitly requests that merge style.
+After approval and passing checks, merge with a normal merge commit by default:
 
 ```bash
 gh pr merge --merge --delete-branch
 ```
 
-If auto-merge is the better fit because checks are still running but approvals are complete:
+Use squash or rebase only when the user explicitly asks for it.
 
-```bash
-gh pr merge --auto --merge --delete-branch
-```
+If merge fails or GitHub reports conflicts/check failures, stop and route to `.ai/workflows/finalization-recovery.md`.
 
-After merge, update local refs:
+---
+
+## Step 7: Refresh Local Refs and Cleanup
 
 ```bash
 git fetch --all --prune
@@ -178,15 +116,17 @@ git pull --ff-only origin master
 git branch -d <story-branch>
 ```
 
-If the branch is not being merged yet, still refresh local refs after push/PR updates:
+If the branch must remain temporarily, record why instead of deleting it silently.
+
+Clear the correction-triage counter for the completed story before leaving the branch if it was used:
 
 ```bash
-git fetch --all --prune
-git status -sb
-git branch -vv
+bash scripts/triage_counter.sh clear
 ```
 
-If the local branch is still needed temporarily, record why instead of deleting it silently.
+---
+
+## Step 8: Run Post-Merge Deployment Work When Needed
 
 For Ship deploy-relevant stories after merge:
 
@@ -194,42 +134,30 @@ For Ship deploy-relevant stories after merge:
 ./scripts/deploy-render-demo.sh <merged-commit>
 ```
 
-If Render access is unavailable, record the demo deploy as `blocked` with the exact missing prerequisite.
+If the demo deploy fails or access is missing, stop and route to `.ai/workflows/finalization-recovery.md`.
 
 ---
 
-## Step 9: Include Git Evidence in Handoff
+## Step 9: Report Finalization Outcome
 
-Include in handoff checklist:
-- branch name,
-- story branch transition status,
-- commit SHA,
-- pre-story remote sync status,
-- push confirmation,
-- remote sync status,
-- deployment impact review status,
-- deployment execution status (`deployed`, `not deployed`, or `blocked`),
-- public demo Render deploy status,
-- writable target repo,
-- PR URL/status,
-- merge status or reason it has not happened yet,
-- branch cleanup status,
-- `git_finalize_guard.sh` result.
+Return a concise finalization update with:
+- branch name
+- commit SHA
+- target remote
+- PR URL/status
+- merge status
+- branch cleanup status
+- deployment status
+- `git_finalize_guard.sh` result
 
 ---
 
 ## Exit Criteria
 
-- Validation gates passed
+- User approved the combined completion gate
 - Changes committed
 - Changes pushed to a writable remote
-- Remote sync completed before story/branch work and after finalization
-- Remote refs fetched and branch sync state checked
-- Branch identity matches the current story
-- Deployment status is explicit for deploy-relevant stories
-- Ship deploy-relevant stories either refresh the Render public demo or record an explicit block
 - PR created or updated
 - `bash scripts/git_finalize_guard.sh` passed
-- Merge completed or explicitly waiting on user approval / checks
+- Merge completed or failure routed to recovery
 - Branch cleanup completed or explicitly deferred
-- Git evidence included in handoff

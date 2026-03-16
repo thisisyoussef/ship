@@ -62,6 +62,8 @@ test-results/
 
 # Dev server port allocation
 .ports
+.ai/state/flight-lock.json
+.ai/state/correction-triage.json
 
 # Audit artifacts
 .audit

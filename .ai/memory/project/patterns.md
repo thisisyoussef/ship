@@ -172,9 +172,23 @@ Capture reusable patterns that repeatedly work in this project.
 - **Tradeoffs**: Requires discipline so mirrors stay thin instead of growing into a second source of truth.
 - **References**: `.ai/codex.md`, `.ai/agents/claude.md`, `AGENTS.md`, `scripts/check_ai_wiring.sh`
 
-- **Pattern**: Merge commits by default for story PR finalization
-- **Use when**: The team wants GitHub history to preserve visible PR lineage instead of flattening every story merge into a single squash commit.
-- **Approach**: Use `gh pr merge --merge --delete-branch` as the default finalization path and treat squash or rebase as explicit user-directed exceptions.
-- **Benefits**: Keeps PR history easier to inspect, aligns GitHub UI expectations with the merge workflow, and reduces ambiguity about whether a PR was truly merged.
-- **Tradeoffs**: Base-branch history keeps the feature-branch commit structure instead of compressing it automatically.
-- **References**: `.ai/workflows/git-finalization.md`, `AGENTS.md`, `.ai/codex.md`
+- **Pattern**: Story sizing before full ceremony
+- **Use when**: A story may be small enough that the full spec/eval/coordination path would add more friction than safety.
+- **Approach**: Run story lookup first, then classify the work with `.ai/workflows/story-sizing.md`. Only one-file, non-API, non-AI stories may take the trivial lane; everything else stays standard.
+- **Benefits**: Keeps quick fixes fast without weakening the heavier guardrails needed for public-contract, AI, schema, or deployment work.
+- **Tradeoffs**: Requires disciplined classification instead of hand-wavy “this feels small” reasoning.
+- **References**: `.ai/workflows/story-sizing.md`, `.ai/workflows/feature-development.md`, `.ai/workflows/bug-fixing.md`
+
+- **Pattern**: Single writer lock until real contention
+- **Use when**: The repo needs lightweight coordination for standard-lane implementation work, but real multi-agent contention is still rare.
+- **Approach**: Keep `scripts/flight_slot.sh` as the stable entrypoint, but back it with one `.ai/state/flight-lock.json` active lock instead of the old richer board state machine.
+- **Benefits**: Preserves single-writer safety with much lower coordination overhead.
+- **Tradeoffs**: Gives up richer multi-flight metadata until the repo actually needs it again.
+- **References**: `.ai/workflows/parallel-flight.md`, `scripts/flight_slot.sh`
+
+- **Pattern**: One combined completion gate
+- **Use when**: A story is ready for review and the team wants one human-facing approval step instead of separate handoff and finalization rounds.
+- **Approach**: Put evidence, visible proof, the user audit checklist, and the finalization plan into `.ai/workflows/story-handoff.md`; after approval, let `.ai/workflows/git-finalization.md` execute atomically and route failures to recovery.
+- **Benefits**: Fewer round-trips, clearer user review, and a more tangible completion packet.
+- **Tradeoffs**: The completion gate has to be well-structured so it does not become vague or overloaded.
+- **References**: `.ai/workflows/story-handoff.md`, `.ai/workflows/git-finalization.md`, `.ai/workflows/finalization-recovery.md`

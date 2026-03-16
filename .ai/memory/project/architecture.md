@@ -122,3 +122,10 @@ Record durable architecture decisions.
 - **Decision**: Add a FleetGraph-local LangGraph runtime under `api/src/services/fleetgraph/graph/` that validates typed runtime input, compiles a `StateGraph` with `MemorySaver`, and routes through explicit `quiet_exit`, `reason_and_deliver`, `approval_interrupt`, and `fallback` nodes backed by one shared `FleetGraphState` contract.
 - **Alternatives Considered**: Wait to add LangGraph until real REST fetch nodes exist; build the first feature as a prompt chain and retrofit branches later; implement human interrupts in T004 instead of keeping this story substrate-only.
 - **Consequences**: Future stories can plug real fetch/normalize/worker logic into a stable branch taxonomy and checkpoint boundary, but graph-node implementations must continue using the shared state contract rather than inventing branch-local state shapes.
+
+- **ADR-ID**: ADR-0018
+- **Date**: 2026-03-16
+- **Context**: FleetGraph now has a graph shell, but Ship still exposes live project context through a mixed set of canonical `belongs_to` relationships, route-derived context payloads, and legacy properties like `project_id` and `assignee_ids`. Letting future nodes reason over those raw shapes would reproduce existing route-specific assumptions inside the graph.
+- **Decision**: Add a FleetGraph-local normalization boundary under `api/src/services/fleetgraph/normalize/` that validates raw Ship REST fragments, derives one `NormalizedShipDocument` contract, and packages on-demand page context into a typed `ShipContextEnvelope` plus `TriggerEnvelope` before any graph node consumes it.
+- **Alternatives Considered**: Normalize ad hoc inside each future node; treat `belongs_to` as the only truth and ignore legacy fields; keep route-surface metadata implicit in frontend-only code.
+- **Consequences**: Future worker and UI entry stories can operate on one internal model and one context envelope, but the normalization boundary must be updated intentionally whenever Ship route shapes evolve.

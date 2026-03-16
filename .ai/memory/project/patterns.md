@@ -143,3 +143,10 @@ Capture reusable patterns that repeatedly work in this project.
 - **Benefits**: Keeps future node work aligned to one state shape, makes quiet vs non-quiet paths testable early, and prevents feature stories from inventing ad hoc branching semantics.
 - **Tradeoffs**: Adds substrate code that does not deliver end-user value by itself and must be kept intentionally minimal until real nodes arrive.
 - **References**: `api/src/services/fleetgraph/graph/runtime.ts`, `api/src/services/fleetgraph/graph/state.ts`, `api/src/services/fleetgraph/graph/runtime.test.ts`
+
+- **Pattern**: Normalize mixed Ship relationships before graph use
+- **Use when**: FleetGraph needs to reason over Ship issues, projects, sprints, or weekly documents that may expose both canonical `belongs_to` links and legacy fields like `project_id` or `assignee_ids`.
+- **Approach**: Parse raw route payloads at one boundary, preserve canonical associations, carry legacy hints separately, and emit a single `NormalizedShipDocument` plus `ShipContextEnvelope` contract for the graph/runtime to consume.
+- **Benefits**: Prevents graph nodes from encoding route-specific quirks, keeps legacy compatibility visible, and makes context envelopes testable with fixtures instead of live routes.
+- **Tradeoffs**: Adds one more translation layer that must evolve with Ship’s REST responses.
+- **References**: `api/src/services/fleetgraph/normalize/documents.ts`, `api/src/services/fleetgraph/normalize/context.ts`, `api/src/services/fleetgraph/normalize/types.ts`

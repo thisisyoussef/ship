@@ -108,3 +108,8 @@ Capture failures so they are not repeated.
 - **Example**: Presearch talks about `quiet_exit` and `approval_interrupt`, tracing records `branch:quiet`, and runtime nodes improvise different names or state fields for the same path.
 - **Why it failed**: Tests, traces, and future graph stories stop lining up, which makes checkpoint history harder to interpret and encourages branch-local hacks.
 - **Prevention rule**: Keep one explicit FleetGraph branch contract and map node names, branch labels, and outcomes through shared runtime types.
+
+- **Problem**: Letting raw Ship route quirks leak directly into FleetGraph nodes
+- **Example**: One node reads `belongs_to`, another reads `properties.project_id`, and a third assumes the frontend already derived the active tab or breadcrumb context.
+- **Why it failed**: The graph becomes coupled to route-specific payload accidents instead of one internal model, making worker and UI entry behavior drift apart.
+- **Prevention rule**: Normalize mixed REST payloads and route context once into `NormalizedShipDocument` and `ShipContextEnvelope` before graph logic runs.

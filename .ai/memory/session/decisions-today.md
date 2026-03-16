@@ -29,6 +29,9 @@
 - Implemented FleetGraph foundation story `T004` with a LangGraph runtime shell under `api/src/services/fleetgraph/graph/`.
 - Decided FleetGraph runtime input should be validated before invocation and should always resolve to one shared `FleetGraphState` contract.
 - Decided T004 should keep the branch shell explicit and checkpointed by `thread_id`, but should defer true HITL pause semantics and real business nodes to later stories.
+- Implemented FleetGraph foundation story `T005` with a REST normalization boundary under `api/src/services/fleetgraph/normalize/`.
+- Decided FleetGraph should parse mixed Ship route payloads once, preserve legacy relationship hints explicitly, and expose one `NormalizedShipDocument` contract to future graph code.
+- Decided on-demand page context should become a backend-owned `ShipContextEnvelope` with preserved route-surface metadata instead of staying as ad hoc frontend-only derivation.
 - Decided every new story must start with remote sync plus a fresh `codex/` branch instead of continuing on the previous story's branch.
 - Decided every story must review impact against Ship's real AWS deployment contract and either update deploy surfaces or explicitly record `deployment impact: none`.
 - Decided story packs and phase packs must define higher-level objectives first and write the full story set in one pass before implementation begins.

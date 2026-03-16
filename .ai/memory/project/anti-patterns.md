@@ -128,3 +128,8 @@ Capture failures so they are not repeated.
 - **Example**: `AGENTS.md`, `.ai/agents/claude.md`, and `.ai/codex.md` each restate the same gates, routing, validation commands, and handoff prose with slightly different emphasis.
 - **Why it failed**: Startup token load grows, canonical ownership gets ambiguous, and trimming one file becomes risky because the others may silently drift.
 - **Prevention rule**: Keep one canonical orchestrator and make the other agent entrypoints thin compatibility mirrors that defer to it.
+
+- **Problem**: Squash-default finalization when the team expects visible PR merge history
+- **Example**: Using `gh pr merge --squash --delete-branch` for every story, then wondering why GitHub history looks like plain commits instead of clearly merged PR lineage.
+- **Why it failed**: The PR is merged, but the default branch history is flattened into a single commit, which hides the merge style the user expected to see.
+- **Prevention rule**: Default the harness to merge commits and only use squash or rebase when the user explicitly asks for that merge style.

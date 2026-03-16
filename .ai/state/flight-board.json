@@ -426,6 +426,26 @@
       "slot": "ai_arch",
       "status": "completed",
       "story_ref": ""
+    },
+    {
+      "branch": "codex/merge-commit-default",
+      "claimed_at": "2026-03-16T20:48:20Z",
+      "flight_id": "flight-ai-merge-commit-default",
+      "lock_paths": [
+        ".ai",
+        ".clauderc",
+        ".cursorrules",
+        "AGENTS.md",
+        "CLAUDE.md",
+        "scripts/check_ai_wiring.sh"
+      ],
+      "notes": "Switch finalization default from squash merge to merge commit",
+      "owner": "codex",
+      "release_summary": "Switched harness finalization default from squash merges to merge commits and revalidated wiring",
+      "released_at": "2026-03-16T20:49:41Z",
+      "slot": "ai_arch",
+      "status": "completed",
+      "story_ref": "AI-HARNESS-MERGE-DEFAULT"
     }
   ],
   "parallel_max_active_flights": 3,
@@ -436,6 +456,6 @@
     "docs": 2,
     "infra": 1
   },
-  "updated_at": "2026-03-16T20:37:28Z",
+  "updated_at": "2026-03-16T20:49:41Z",
   "version": 1
 }

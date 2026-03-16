@@ -50,6 +50,7 @@
 - Decided the minimal harness trim should keep filenames, workflows, and scripts intact while removing repeated prose from startup docs.
 - Decided Codex should become the canonical orchestrator and Claude/Cursor entrypoints should defer to Codex as compatibility mirrors instead of carrying duplicate master contracts.
 - Replaced repeated validation-command, memory-update, and handoff prose in startup docs with references to the canonical workflow files.
+- Decided the harness should use merge commits by default during PR finalization so GitHub history preserves visible merged-PR lineage.
 
 Record session-level technical decisions.
 

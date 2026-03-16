@@ -1,6 +1,6 @@
 # Git Finalization Workflow (Mandatory)
 
-**Purpose**: Enforce commit + push completion, remote sync, writable-remote detection, PR management, merge readiness, and branch cleanup at the end of each story.
+**Purpose**: Enforce commit + push completion, remote sync, writable-remote detection, PR management, merge-commit default behavior, merge readiness, and branch cleanup at the end of each story.
 
 ---
 
@@ -155,16 +155,18 @@ This must pass before handoff.
 
 ## Step 8: Merge Only After Approval and Passing Checks
 
-After the user approves finalization and required checks pass, complete the merge flow:
+After the user approves finalization and required checks pass, complete the merge flow.
+
+Use merge commits by default so GitHub history preserves the PR lineage. Only use squash or rebase if the user explicitly requests that merge style.
 
 ```bash
-gh pr merge --squash --delete-branch
+gh pr merge --merge --delete-branch
 ```
 
 If auto-merge is the better fit because checks are still running but approvals are complete:
 
 ```bash
-gh pr merge --auto --squash --delete-branch
+gh pr merge --auto --merge --delete-branch
 ```
 
 After merge, update local refs:

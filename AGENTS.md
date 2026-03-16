@@ -77,13 +77,13 @@ Before starting work:
   - `not deployed` with reason,
   - or `blocked` with the exact missing access or prerequisite.
 - For deploy-relevant stories, refresh the sanctioned Render public demo after merge with `scripts/deploy-render-demo.sh <commit>` unless the handoff explicitly records why that demo deploy is `blocked`.
-While working and before merge, follow `.ai/workflows/git-finalization.md` for commit shape, push/PR flow, writable-remote fallback, merge readiness, remote re-sync, and cleanup.
+While working and before merge, follow `.ai/workflows/git-finalization.md` for commit shape, push/PR flow, writable-remote fallback, merge-commit default behavior, merge readiness, remote re-sync, and cleanup.
 
 ---
 
 ## Git Finalization Gate (Required)
 
-Before final story handoff, run `.ai/workflows/git-finalization.md`. Do not commit, push, open a PR, or merge until the user has completed the User Audit Checklist and explicitly approved finalization, and do not mark handoff complete until `bash scripts/git_finalize_guard.sh` passes.
+Before final story handoff, run `.ai/workflows/git-finalization.md`. Use merge commits by default so PR lineage stays visible in GitHub history; only use squash or rebase when the user explicitly asks for it. Do not commit, push, open a PR, or merge until the user has completed the User Audit Checklist and explicitly approved finalization, and do not mark handoff complete until `bash scripts/git_finalize_guard.sh` passes.
 
 ---
 

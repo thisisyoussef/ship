@@ -469,7 +469,8 @@ git_finalization = Path(".ai/workflows/git-finalization.md").read_text(encoding=
 required_tokens = (
     "git fetch --all --prune",
     "gh pr create --fill",
-    "gh pr merge --squash --delete-branch",
+    "gh pr merge --merge --delete-branch",
+    "Use merge commits by default",
     "branch name reflects the active story",
     "story branch transition status",
     "deployment impact review status",

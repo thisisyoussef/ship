@@ -24,7 +24,7 @@ Then use as needed:
 - AI-behavior changes: run `.ai/workflows/eval-driven-development.md` and publish the eval brief before coding.
 - Flight coordination: run `.ai/workflows/parallel-flight.md`, claim via `bash scripts/flight_slot.sh claim ...`, and release via `bash scripts/flight_slot.sh release ...`.
 - Story finish: run `.ai/workflows/story-handoff.md`.
-- Git finalization: run `.ai/workflows/git-finalization.md`; story completion requires a passing `bash scripts/git_finalize_guard.sh`.
+- Git finalization: run `.ai/workflows/git-finalization.md`; use merge commits by default unless the user explicitly requests squash or rebase, and story completion requires a passing `bash scripts/git_finalize_guard.sh`.
 - AI architecture changes: run `.ai/workflows/ai-architecture-change.md` and `bash scripts/check_ai_wiring.sh` when `.ai/**`, `AGENTS.md`, `.clauderc`, `.cursorrules`, or `scripts/check_ai_wiring.sh` change.
 
 ## Route by Task Type

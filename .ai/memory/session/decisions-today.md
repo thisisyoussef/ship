@@ -28,6 +28,8 @@
 - Decided story packs and phase packs must define higher-level objectives first and write the full story set in one pass before implementation begins.
 - Decided deploy-relevant stories must record explicit deployment execution status as `deployed`, `not deployed`, or `blocked`.
 - Decided remembered or legacy demo URLs do not count as canonical deployment targets unless the current repo config/scripts/workflows own them.
+- Decided Ship should keep AWS as the canonical production path while formalizing Render `ship-demo` as the sanctioned public demo path.
+- Added a checked-in `scripts/deploy-render-demo.sh` workflow so deploy-relevant stories can refresh the public demo with repo-owned commands instead of provider-side tribal knowledge.
 
 Record session-level technical decisions.
 

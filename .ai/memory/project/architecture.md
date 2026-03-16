@@ -101,3 +101,10 @@ Record durable architecture decisions.
 - **Decision**: For stories that affect deployed runtime surfaces, require explicit deployment execution status in handoff and workflow state: `deployed`, `not deployed`, or `blocked`, with environment and command evidence when deployment occurs.
 - **Alternatives Considered**: Treat deployment as implied by merge; only mention deploys when they succeed; leave provider access failures out of the story record.
 - **Consequences**: Release state becomes more trustworthy, but handoffs must carry one more explicit status field for runtime-impacting stories.
+
+- **ADR-ID**: ADR-0014
+- **Date**: 2026-03-16
+- **Context**: Ship's canonical production deployment remains AWS-native, but the team also relies on a real public demo at `ship-demo.onrender.com`. That demo path existed only in provider state, which made it easy to forget, misclassify as non-canonical, or leave undeployed after story completion.
+- **Decision**: Keep AWS as the production baseline and formalize Render `ship-demo` as the sanctioned public demo environment, deployed through a checked-in script (`scripts/deploy-render-demo.sh`) and referenced in story/finalization workflows.
+- **Alternatives Considered**: Ignore the Render demo because it is not production; repoint production documentation to Render; keep the demo path as an unwritten manual provider-side detail.
+- **Consequences**: Deploy-relevant stories now need both production-path review and public-demo status, but future releases are less likely to drift away from the live demo the team actually uses.

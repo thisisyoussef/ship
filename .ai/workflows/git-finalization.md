@@ -19,6 +19,7 @@ Important:
 - Once the user does approve, prefer to automate the full flow instead of leaving branch/PR state half-finished.
 - Remote sync is required both before story/branch work starts and again after finalization so local state never drifts silently from the remote.
 - The active branch must match the current story. If the branch name still reflects a previous completed story, stop and correct that before finalization.
+- For Ship deploy-relevant stories, finalization includes the sanctioned Render public demo deploy unless it is explicitly blocked.
 
 ---
 
@@ -185,6 +186,14 @@ git branch -vv
 
 If the local branch is still needed temporarily, record why instead of deleting it silently.
 
+For Ship deploy-relevant stories after merge:
+
+```bash
+./scripts/deploy-render-demo.sh <merged-commit>
+```
+
+If Render access is unavailable, record the demo deploy as `blocked` with the exact missing prerequisite.
+
 ---
 
 ## Step 9: Include Git Evidence in Handoff
@@ -198,6 +207,7 @@ Include in handoff checklist:
 - remote sync status,
 - deployment impact review status,
 - deployment execution status (`deployed`, `not deployed`, or `blocked`),
+- public demo Render deploy status,
 - writable target repo,
 - PR URL/status,
 - merge status or reason it has not happened yet,
@@ -215,6 +225,7 @@ Include in handoff checklist:
 - Remote refs fetched and branch sync state checked
 - Branch identity matches the current story
 - Deployment status is explicit for deploy-relevant stories
+- Ship deploy-relevant stories either refresh the Render public demo or record an explicit block
 - PR created or updated
 - `bash scripts/git_finalize_guard.sh` passed
 - Merge completed or explicitly waiting on user approval / checks

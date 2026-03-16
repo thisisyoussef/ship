@@ -122,3 +122,10 @@ Capture reusable patterns that repeatedly work in this project.
 - **Benefits**: Prevents ambiguous release state and makes access blockers visible immediately.
 - **Tradeoffs**: Adds a small handoff burden for deploy-relevant stories.
 - **References**: `.ai/workflows/deployment-setup.md`, `.ai/workflows/story-handoff.md`, `.ai/workflows/git-finalization.md`
+
+- **Pattern**: Repo-owned public demo deploy path
+- **Use when**: The product has a sanctioned live demo environment that is separate from the canonical production hosting stack.
+- **Approach**: Check in a dedicated deploy script, document the demo environment in the repo contract, and require deploy-relevant stories to either refresh that demo or explicitly record why it is blocked.
+- **Benefits**: Keeps the live demo aligned with merged work and prevents provider-side tribal knowledge from becoming a release dependency.
+- **Tradeoffs**: Adds another deployment surface to track alongside production.
+- **References**: `scripts/deploy-render-demo.sh`, `.ai/workflows/deployment-setup.md`, `README.md`

@@ -120,11 +120,15 @@ Before starting work:
 - Stay in the single local Ship repo folder. Do not create helper worktrees unless the user explicitly asks for one.
 - If the current branch has unrelated local edits, park them safely in this repo and switch branches here instead of mixing changes.
 - Keep one concern per branch; do not combine unrelated fixes, docs, and feature work.
-- Review deployment impact for every story against Ship's real deployment surfaces: API on AWS Elastic Beanstalk, frontend on S3/CloudFront, and AWS-backed config/secrets. Update those surfaces when impacted, or record `deployment impact: none` in handoff.
-- If a story changes deployed runtime behavior in `api/`, `web/`, deployment scripts, or production config contracts, record explicit deployment status in handoff:
+- Review deployment impact for every story against Ship's real deployment surfaces:
+  - Production: API on AWS Elastic Beanstalk, frontend on S3/CloudFront, and AWS-backed config/secrets.
+  - Public demo: Render `ship-demo` via `scripts/deploy-render-demo.sh`.
+  Update those surfaces when impacted, or record `deployment impact: none` in handoff.
+- If a story changes deployed runtime behavior in `api/`, `web/`, deployment scripts, or production/demo config contracts, record explicit deployment status in handoff:
   - `deployed` with environment + command evidence,
   - `not deployed` with reason,
   - or `blocked` with the exact missing access or prerequisite.
+- For deploy-relevant stories, refresh the sanctioned Render public demo after merge with `scripts/deploy-render-demo.sh <commit>` unless the handoff explicitly records why that demo deploy is `blocked`.
 
 While working:
 - Make small, reviewable commits once the relevant checks for that slice pass.

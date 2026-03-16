@@ -124,11 +124,15 @@ Local dev uses `.env.local` for DB connection.
 ```bash
 ./scripts/deploy.sh prod           # Backend → Elastic Beanstalk
 ./scripts/deploy-frontend.sh prod  # Frontend → S3/CloudFront
+./scripts/deploy-render-demo.sh    # Public demo → Render ship-demo
 ```
 
 **After deploy, verify with browser** (curl can't catch JS errors). Health checks:
 - Prod API: `http://ship-api-prod.eba-xsaqsg9h.us-east-1.elasticbeanstalk.com/health`
 - Prod Web: `https://ship.awsdev.treasury.gov`
+- Public demo: `https://ship-demo.onrender.com/health`
+
+Production remains AWS-native. Render is the sanctioned public demo surface, not the canonical production baseline.
 
 **Shadow (UAT):** Deploy to shadow from `feat/unified-document-model-v2` before merging to master.
 

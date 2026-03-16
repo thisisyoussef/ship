@@ -5,6 +5,7 @@
 **Active Sprint**: T002 provider adapter and runtime config
 **Project Status**: Active
 **Canonical Deployment Baseline**: API on AWS Elastic Beanstalk, frontend on S3/CloudFront, config/secrets on AWS-native services
+**Sanctioned Public Demo**: Render `ship-demo` at `https://ship-demo.onrender.com/`, deployed with `scripts/deploy-render-demo.sh`
 
 ---
 
@@ -88,9 +89,10 @@ pnpm audit --prod
   - `git fetch --all --prune`
   - `git status -sb`
   - `git branch -vv`
-- Review deployment impact on every story against Ship's AWS deploy surfaces.
+- Review deployment impact on every story against Ship's AWS production surfaces and the sanctioned Render public demo path.
 - If a story does not affect deployment surfaces, record `deployment impact: none` in handoff instead of skipping the review silently.
 - For deploy-relevant stories, deployment status must be explicit: `deployed`, `not deployed`, or `blocked`.
+- For deploy-relevant stories, refresh the Render public demo after merge with `scripts/deploy-render-demo.sh <commit>` unless the handoff records an explicit block.
 - For story packs or phase packs, define the higher-level objectives first and write the whole story set together before implementation starts.
 
 ---

@@ -40,7 +40,10 @@
   - API/runtime: AWS Elastic Beanstalk
   - Frontend/static assets: S3 + CloudFront
   - Config/secrets: AWS SSM/Secrets
+- For Ship, also treat the sanctioned public demo surface as:
+  - Render `ship-demo` deployed through `scripts/deploy-render-demo.sh`
 - If the story changes deploy-relevant behavior, update the relevant scripts, env docs, or deployment notes in the same story.
+- If the story changes deployed runtime behavior, plan to refresh the Render demo after merge or record why that demo deploy is blocked.
 - If no deploy surface changes are needed, record `deployment impact: none` in handoff.
 
 ### Step 0.6: Triage Narrow User Corrections

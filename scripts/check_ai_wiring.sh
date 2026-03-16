@@ -512,18 +512,21 @@ targets = {
         "Do not start story N+1 on story N's branch",
         "Elastic Beanstalk",
         "S3/CloudFront",
+        "scripts/deploy-render-demo.sh",
         "deployment impact: none",
     ),
     ".ai/workflows/feature-development.md": (
         "Do not continue a new story on the previous story's branch",
         "Elastic Beanstalk",
         "S3 + CloudFront",
+        "scripts/deploy-render-demo.sh",
         "deployment impact: none",
     ),
     ".ai/workflows/deployment-setup.md": (
         "canonical deployment baseline",
         "Elastic Beanstalk",
         "S3 + CloudFront",
+        "ship-demo",
     ),
 }
 
@@ -600,14 +603,19 @@ targets = {
         "not deployed",
         "blocked",
         "legacy/manual demo URLs as non-canonical",
+        "scripts/deploy-render-demo.sh",
+        "ship-demo",
     ),
     ".ai/workflows/story-handoff.md": (
         "Deployment execution status recorded as `deployed`, `not deployed`, or `blocked`",
         "Deployment execution status recorded in handoff",
+        "Public demo Render deploy status recorded in handoff when applicable",
     ),
     ".ai/workflows/git-finalization.md": (
         "deployment execution status (`deployed`, `not deployed`, or `blocked`)",
         "Deployment status is explicit for deploy-relevant stories",
+        "public demo Render deploy status",
+        "./scripts/deploy-render-demo.sh <merged-commit>",
     ),
 }
 
@@ -625,6 +633,46 @@ if missing:
     raise SystemExit(1)
 
 print("Deployment execution status check passed.")
+PY
+
+run_check "Render demo deployment wiring" python - <<'PY'
+from pathlib import Path
+import sys
+
+targets = {
+    "README.md": (
+        "ship-demo.onrender.com",
+        "./scripts/deploy-render-demo.sh",
+    ),
+    ".claude/CLAUDE.md": (
+        "./scripts/deploy-render-demo.sh",
+        "ship-demo.onrender.com/health",
+    ),
+    ".ai/docs/SINGLE_SOURCE_OF_TRUTH.md": (
+        "Sanctioned Public Demo",
+        "scripts/deploy-render-demo.sh",
+    ),
+    "scripts/deploy-render-demo.sh": (
+        "srv-d6q29ms50q8c738ef12g",
+        "render deploys create",
+        "https://ship-demo.onrender.com",
+    ),
+}
+
+missing: list[str] = []
+for rel, tokens in targets.items():
+    text = Path(rel).read_text(encoding="utf-8")
+    for token in tokens:
+        if token not in text:
+            missing.append(f"{rel}: missing '{token}'")
+
+if missing:
+    print("ERROR: Render demo deployment wiring requirements missing:", file=sys.stderr)
+    for item in missing:
+        print(f"- {item}", file=sys.stderr)
+    raise SystemExit(1)
+
+print("Render demo deployment wiring check passed.")
 PY
 
 run_check "Markdown link integrity (.ai + AGENTS/README)" python - <<'PY'

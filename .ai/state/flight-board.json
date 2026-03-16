@@ -1,21 +1,5 @@
 {
-  "active_flights": [
-    {
-      "branch": "",
-      "claimed_at": "2026-03-16T18:42:35Z",
-      "flight_id": "flight-ai-deploy-status-gate",
-      "lock_paths": [
-        ".ai",
-        "AGENTS.md",
-        "scripts/check_ai_wiring.sh"
-      ],
-      "notes": "",
-      "owner": "codex",
-      "slot": "ai_arch",
-      "status": "active",
-      "story_ref": ""
-    }
-  ],
+  "active_flights": [],
   "created_at": "2026-03-05T05:05:26Z",
   "execution_mode": "single",
   "history": [
@@ -267,6 +251,42 @@
       "slot": "ai_arch",
       "status": "completed",
       "story_ref": ""
+    },
+    {
+      "branch": "",
+      "claimed_at": "2026-03-16T18:42:35Z",
+      "flight_id": "flight-ai-deploy-status-gate",
+      "lock_paths": [
+        ".ai",
+        "AGENTS.md",
+        "scripts/check_ai_wiring.sh"
+      ],
+      "notes": "",
+      "owner": "codex",
+      "release_summary": "Completed deployment status guardrail updates; continuing with repo-owned Render demo deployment wiring in a new flight.",
+      "released_at": "2026-03-16T18:51:42Z",
+      "slot": "ai_arch",
+      "status": "completed",
+      "story_ref": ""
+    },
+    {
+      "branch": "codex/fleetgraph-t002-llm-adapter",
+      "claimed_at": "2026-03-16T18:51:46Z",
+      "flight_id": "flight-render-demo-contract",
+      "lock_paths": [
+        ".ai",
+        "AGENTS.md",
+        "README.md",
+        "render.yaml",
+        "scripts/deploy-render-demo.sh"
+      ],
+      "notes": "Document and wire repo-owned Render demo deployment before merging and deploying T002",
+      "owner": "codex",
+      "release_summary": "Added repo-owned Render demo deployment script and wired the public demo path into deployment workflows, docs, and handoff rules.",
+      "released_at": "2026-03-16T18:55:07Z",
+      "slot": "ai_arch",
+      "status": "completed",
+      "story_ref": "DEPLOY-DEMO"
     }
   ],
   "parallel_max_active_flights": 3,
@@ -277,6 +297,6 @@
     "docs": 2,
     "infra": 1
   },
-  "updated_at": "2026-03-16T18:42:35Z",
+  "updated_at": "2026-03-16T18:55:07Z",
   "version": 1
 }

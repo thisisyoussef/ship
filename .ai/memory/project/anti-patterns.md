@@ -93,3 +93,8 @@ Capture failures so they are not repeated.
 - **Example**: Assuming an old Render hostname is the current Ship production path even though the repo-owned deploy scripts and config point elsewhere.
 - **Why it failed**: The team can deploy or verify against the wrong surface and incorrectly conclude the real product is live.
 - **Prevention rule**: Only treat repo-owned config, scripts, and workflows as canonical deployment targets; classify remembered/manual demo URLs separately unless they are wired in the repo.
+
+- **Problem**: Leaving a real demo environment outside the repo contract
+- **Example**: The team actively uses `ship-demo.onrender.com`, but the repo workflows only mention AWS and treat the Render demo as a manual rumor instead of a wired deployment surface.
+- **Why it failed**: Story handoffs can say "not deployed" even when a sanctioned demo path exists, and future agents may never refresh the environment users are actually looking at.
+- **Prevention rule**: If a live demo environment matters to the team, give it a repo-owned deploy script and document it explicitly in the deployment workflows.

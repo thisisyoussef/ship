@@ -60,6 +60,7 @@ Use this checklist in your handoff message:
 - [ ] Production verification (if applicable)
 - [ ] Observability/logging checks (if applicable)
 - [ ] Deployment impact review recorded against the real Ship deploy contract
+- [ ] Public demo Render status recorded when the story affects deployed runtime behavior
 - [ ] Deploy scripts/config/docs updated or explicitly marked `deployment impact: none`
 - [ ] Deployment execution status recorded as `deployed`, `not deployed`, or `blocked`
 - [ ] Environment and command evidence listed when deployment occurred
@@ -105,6 +106,7 @@ Use this checklist in your handoff message:
 - [ ] Remote sync status recorded in handoff
 - [ ] Deployment impact review status recorded in handoff
 - [ ] Deployment execution status recorded in handoff
+- [ ] Public demo Render deploy status recorded in handoff when applicable
 - [ ] PR URL and PR status recorded in handoff
 - [ ] Merge status recorded in handoff
 - [ ] Branch cleanup status recorded in handoff

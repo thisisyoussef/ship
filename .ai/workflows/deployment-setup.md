@@ -25,12 +25,17 @@
   - API/runtime: AWS Elastic Beanstalk
   - Frontend/static: S3 + CloudFront
   - Infra/config/secrets: AWS-native scripts, SSM, and related services
-- Treat Render, Vercel, or Railway references as non-canonical unless the live repo docs and scripts are updated to say otherwise.
+- For Ship today, the sanctioned public demo baseline is:
+  - Render service: `ship-demo`
+  - URL: `https://ship-demo.onrender.com/`
+  - Repo-owned deploy path: `scripts/deploy-render-demo.sh`
+- Treat other Render, Vercel, or Railway references as non-canonical unless the live repo docs and scripts are updated to say otherwise.
 - Treat legacy/manual demo URLs as non-canonical unless they are backed by current repo-owned config, scripts, or workflows.
 
 ### Step 0.7: Verify Deployment Access Early
 - Before promising a deploy, verify the required provider access is available from the current machine/session.
 - For Ship's default deploy path, confirm AWS credentials and required tooling first.
+- For Ship's sanctioned public demo path, confirm Render CLI authentication and access to the `ship-demo` service first.
 - If access is missing, do not imply the change was deployed. Record the exact blocker and continue with deploy-readiness work only.
 
 ---
@@ -73,6 +78,7 @@ Add the minimum config required by the selected providers:
 ### Step 5: Configure Git-Based Deploy Flow
 - Choose a single production deployment path
 - Prefer Git-linked auto-deploy where the provider supports it
+- For Ship's public demo, keep the repo-owned Render deploy command current: `scripts/deploy-render-demo.sh`
 - Document any emergency-only manual deploy commands separately
 
 ---
@@ -93,6 +99,7 @@ Run the project-specific validation commands defined during setup.
   - `deployed` with environment and command evidence,
   - `not deployed` with rationale,
   - `blocked` with the missing credential/access/prerequisite.
+- For Ship deploy-relevant stories, include both production-path review status and public-demo Render status.
 - Do not leave deployment state implied.
 
 ---

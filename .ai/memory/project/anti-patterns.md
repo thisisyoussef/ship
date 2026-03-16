@@ -43,3 +43,8 @@ Capture failures so they are not repeated.
 - **Example**: The user says to ignore one stale requirement bullet, and the response grows into new ADRs, new phase packs, and expanded architectural scope without first classifying impact.
 - **Why it failed**: It creates work the user did not ask for, obscures the real correction, and weakens trust in the workflow's proportionality.
 - **Prevention rule**: Run user-correction triage first and keep low-blast-radius fixes bounded to the smallest affected surfaces.
+
+- **Problem**: Flat docs sprawl
+- **Example**: Keeping active product references, assignment deliverables, screenshots, PR artifacts, and archived submissions side by side in the same top-level docs surface.
+- **Why it failed**: Humans and agents both lose the distinction between current guidance and supporting or historical material.
+- **Prevention rule**: Group docs by reader intent and lifecycle, and keep archive/evidence areas explicitly labeled.

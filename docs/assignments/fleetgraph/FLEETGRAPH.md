@@ -71,8 +71,8 @@ Cover:
 
 | Item | Amount |
 |------|--------|
-| Claude API - input tokens | |
-| Claude API - output tokens | |
+| Preferred AI API - input tokens | |
+| Preferred AI API - output tokens | |
 | Total invocations during development | |
 | Total development spend | |
 

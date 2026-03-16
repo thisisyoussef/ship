@@ -16,7 +16,7 @@ Both modes must share the same graph architecture.
 ## Non-negotiable constraints
 
 - Ship REST API only
-- Claude API for AI integration
+- Provider-agnostic AI integration with OpenAI preferred in this repo direction
 - LangSmith tracing from day one
 - LangGraph recommended
 - Embedded contextual chat only
@@ -28,14 +28,14 @@ Both modes must share the same graph architecture.
 
 - One proactive detection running end to end
 - At least two shared LangSmith traces showing different execution paths
-- `FLEETGRAPH.md` with Agent Responsibility, Use Cases, Trigger Model, and graph outline
+- `docs/assignments/fleetgraph/FLEETGRAPH.md` with Agent Responsibility, Use Cases, Trigger Model, and graph outline
 - At least one human-in-the-loop gate
 - A defended trigger-model decision
 
 ## Deliverables to keep current
 
-- `PRESEARCH.md`
-- `FLEETGRAPH.md`
+- `docs/assignments/fleetgraph/PRESEARCH.md`
+- `docs/assignments/fleetgraph/FLEETGRAPH.md`
 - shared trace links
 
 ## What to decide before coding

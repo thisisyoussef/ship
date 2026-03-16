@@ -383,7 +383,7 @@ Two new guides are available:
 
 Find them in the **Docs** section or at:
 - `docs/accountability-philosophy.md`
-- `docs/accountability-manager-guide.md`
+- `docs/guides/accountability-manager-guide.md`
 
 ---
 

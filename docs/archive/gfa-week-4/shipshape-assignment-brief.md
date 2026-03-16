@@ -1,6 +1,6 @@
 # ShipShape Assignment Brief (Week 4)
 
-Source brief: `/Users/youss/Development/gauntlet/ship/docs/gfa-week-4/GFA_Week_4-ShipShape.pdf`
+Source brief: `/Users/youss/Development/gauntlet/ship/docs/archive/gfa-week-4/GFA_Week_4-ShipShape.pdf`
 
 ## Objective
 
@@ -48,10 +48,10 @@ For each category:
 
 ## Key deliverables
 
-- `docs/gfa-week-4/audit-report.md`
-- `docs/gfa-week-4/implementation-log.md`
-- `docs/gfa-week-4/discoveries.md`
-- `docs/gfa-week-4/ai-cost-log.md`
+- `docs/archive/gfa-week-4/audit-report.md`
+- `docs/archive/gfa-week-4/implementation-log.md`
+- `docs/archive/gfa-week-4/discoveries.md`
+- `docs/archive/gfa-week-4/ai-cost-log.md`
 - README update showing setup guidance
 - Improved fork with clearly separated changes/commits
 - Deployed app

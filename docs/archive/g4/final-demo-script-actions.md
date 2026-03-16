@@ -5,7 +5,7 @@ Use this script for the final recording after the reproducibility feedback.
 Open these tabs before you start:
 
 - `README.md` audit submission section
-- `docs/g4/commit-map.md`
+- `docs/archive/g4/commit-map.md`
 - `https://github.com/thisisyoussef/ship/actions/workflows/audit-runner.yml`
 - `https://github.com/thisisyoussef/ship/actions/runs/23119211004`
 

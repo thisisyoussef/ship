@@ -232,4 +232,4 @@ This enables:
 - [Week Documentation Philosophy](./week-documentation-philosophy.md) - Week workflow details
 - [Document Model Conventions](./document-model-conventions.md) - Data model terminology
 - [Unified Document Model](./unified-document-model.md) - Technical implementation
-- [Ship Claude CLI Integration](./ship-claude-cli-integration.md) - API and CLI usage
+- [Ship Claude CLI Integration](../guides/ship-claude-cli-integration.md) - API and CLI usage

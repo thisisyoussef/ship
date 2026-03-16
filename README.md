@@ -19,6 +19,19 @@
 
 ---
 
+## Documentation Map
+
+Start with [docs/README.md](docs/README.md). The docs surface is organized by intent:
+
+- `docs/core/` for living product and architecture references
+- `docs/guides/` for workflow and operational guides
+- `docs/assignments/fleetgraph/` for the FleetGraph PRD and working docs
+- `docs/reference/claude/` for the deeper agent-oriented codebase reference set
+- `docs/research/` and `docs/solutions/` for exploratory notes and solved problems
+- `docs/evidence/` and `docs/archive/` for screenshots, PR artifacts, and historical submissions
+
+---
+
 ## Audit Submission
 
 Start here for the reproducible audit workflow:
@@ -32,22 +45,23 @@ Start here for the reproducible audit workflow:
 
 The final audit deliverables and reproducibility entrypoints are here.
 
-- [Written audit report](docs/g4/audit-report.md)
-- [Visual audit report](docs/g4/audit-report-visual.html) (https://bright-follow-5f2z.pagedrop.io)
-- [GitHub Actions demo script](docs/g4/final-demo-script-actions.md)
+- [Written audit report](docs/archive/g4/audit-report.md)
+- [Visual audit report](docs/archive/g4/audit-report-visual.html) (https://bright-follow-5f2z.pagedrop.io)
+- [Discovery write-up](discovery.md)
+- [GitHub Actions demo script](docs/archive/g4/final-demo-script-actions.md)
 - [Discovery write-up](discovery.md) (discovery requirement)
-- [AI cost analysis and reflection](docs/gfa-week-4/ai-cost-log.md) (discovery requirement)
-- [Improvement verification guide](docs/g4/improvement-verification-guide.md)
+- [AI cost analysis and reflection](docs/archive/gfa-week-4/ai-cost-log.md) (discovery requirement)
+- [Improvement verification guide](docs/archive/g4/improvement-verification-guide.md)
 
 Supporting audit evidence and charts are here:
 
-- [Audit resources dashboard](docs/g4/audit-resources/index.html)
+- [Audit resources dashboard](docs/archive/g4/audit-resources/index.html)
 
 The reproducible audit harness runs in GitHub Actions. The `Run workflow` form is prefilled for the default baseline-vs-submission comparison. Leave `run_id` and `callback_base_url` blank for a direct GitHub-only run.
 
 ### Audit Commit Tree
 
-The audit work was intentionally split into category commits first, then reproducibility and CI/reporting commits on top. The full detailed map lives in [docs/g4/commit-map.md](./docs/g4/commit-map.md).
+The audit work was intentionally split into category commits first, then reproducibility and CI/reporting commits on top. The full detailed map lives in [docs/archive/g4/commit-map.md](./docs/archive/g4/commit-map.md).
 
 ```mermaid
 flowchart TD
@@ -158,7 +172,7 @@ Important note:
 pnpm audit:grade
 ```
 
-See [docs/g4/improvement-verification-guide.md](./docs/g4/improvement-verification-guide.md) for the exact command contract and reproduction paths, and [docs/g4/commit-map.md](./docs/g4/commit-map.md) for the full commit-by-commit audit history.
+See [docs/archive/g4/improvement-verification-guide.md](./docs/archive/g4/improvement-verification-guide.md) for the exact command contract and reproduction paths, and [docs/archive/g4/commit-map.md](./docs/archive/g4/commit-map.md) for the full commit-by-commit audit history.
 
 ---
 
@@ -315,7 +329,7 @@ Ship is a monorepo with three packages:
 - **Boring technology** — Well-understood tools over cutting-edge experiments
 - **E2E testing** — 73+ Playwright tests covering real user flows
 
-See [docs/application-architecture.md](docs/application-architecture.md) for more.
+See [docs/core/application-architecture.md](docs/core/application-architecture.md) for more.
 
 ### Repository Structure
 
@@ -420,12 +434,13 @@ We welcome contributions. See [CONTRIBUTING.md](./CONTRIBUTING.md) for guideline
 
 ## Documentation
 
-- [Application Architecture](./docs/application-architecture.md) — Tech stack and design decisions
-- [Unified Document Model](./docs/unified-document-model.md) — Data model and sync architecture
-- [Document Model Conventions](./docs/document-model-conventions.md) — Terminology and patterns
-- [Week Documentation Philosophy](./docs/week-documentation-philosophy.md) — Why weekly plans and retros work the way they do
-- [Accountability Philosophy](./docs/accountability-philosophy.md) — How Ship enforces accountability
-- [Accountability Manager Guide](./docs/accountability-manager-guide.md) — Using approval workflows
+- [Application Architecture](./docs/core/application-architecture.md) — Tech stack and design decisions
+- [Unified Document Model](./docs/core/unified-document-model.md) — Data model and sync architecture
+- [Document Model Conventions](./docs/core/document-model-conventions.md) — Terminology and patterns
+- [Week Documentation Philosophy](./docs/core/week-documentation-philosophy.md) — Why weekly plans and retros work the way they do
+- [Accountability Philosophy](./docs/core/accountability-philosophy.md) — How Ship enforces accountability
+- [Accountability Manager Guide](./docs/guides/accountability-manager-guide.md) — Using approval workflows
+- [Full Docs Map](./docs/README.md) — Entry point for the reorganized docs tree
 - [Contributing Guidelines](./CONTRIBUTING.md) — How to contribute
 - [Security Policy](./SECURITY.md) — Vulnerability reporting
 

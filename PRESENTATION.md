@@ -22,7 +22,7 @@ This branch implements the "Ship Clarity" philosophy - a systematic approach to 
 
 ## 1. Programs List
 
-![Programs List](docs/screenshots/programs-list.png)
+![Programs List](docs/evidence/screenshots/programs-list.png)
 
 **What it shows:**
 - Multi-program organization with colorful icons
@@ -34,7 +34,7 @@ This branch implements the "Ship Clarity" philosophy - a systematic approach to 
 
 ## 2. Sprint Planning Timeline
 
-![Sprint Timeline](docs/screenshots/sprint-planning-timeline.png)
+![Sprint Timeline](docs/evidence/screenshots/sprint-planning-timeline.png)
 
 **What it shows:**
 - **Visual timeline** - Sprints displayed on a scrollable timeline
@@ -47,7 +47,7 @@ This branch implements the "Ship Clarity" philosophy - a systematic approach to 
 
 ## 3. Sprint Planning View
 
-![Sprint Planning](docs/screenshots/sprint-planning-view.png)
+![Sprint Planning](docs/evidence/screenshots/sprint-planning-view.png)
 
 **What's new:**
 - Three-tab interface: **Planning** | **Standups** | **Review**
@@ -59,7 +59,7 @@ This branch implements the "Ship Clarity" philosophy - a systematic approach to 
 
 ## 4. Daily Standups
 
-![Standups](docs/screenshots/sprint-standups.png)
+![Standups](docs/evidence/screenshots/sprint-standups.png)
 
 **Features:**
 - Rich text updates with structured format (Yesterday/Today/Blockers)
@@ -77,7 +77,7 @@ This branch implements the "Ship Clarity" philosophy - a systematic approach to 
 
 ## 5. Sprint Review
 
-![Sprint Review](docs/screenshots/sprint-review.png)
+![Sprint Review](docs/evidence/screenshots/sprint-review.png)
 
 **Features:**
 - **Pre-filled draft** - Issues automatically listed when first opened
@@ -95,7 +95,7 @@ This branch implements the "Ship Clarity" philosophy - a systematic approach to 
 
 ## 6. Project Retrospective
 
-![Project Retro](docs/screenshots/project-retro.png)
+![Project Retro](docs/evidence/screenshots/project-retro.png)
 
 **Features:**
 - **Issues summary** - Total, Completed, Active, Cancelled counts
@@ -115,7 +115,7 @@ This branch implements the "Ship Clarity" philosophy - a systematic approach to 
 
 ## 7. OpenAPI Documentation
 
-![OpenAPI Docs](docs/screenshots/openapi-docs.png)
+![OpenAPI Docs](docs/evidence/screenshots/openapi-docs.png)
 
 **Features:**
 - Swagger UI at `/api/docs`

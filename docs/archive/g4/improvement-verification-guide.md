@@ -1,6 +1,6 @@
 # Improvement Verification Guide
 
-If you want the exact commit and merge lineage for Categories 1-7, start with [docs/g4/commit-map.md](./commit-map.md). That page labels the canonical `master` merge for each category, the clean `codex/submission-clean` replay commits used by the audit harness, and the later aggregate or submission-only merges that should not be used for category attribution.
+If you want the exact commit and merge lineage for Categories 1-7, start with [docs/archive/g4/commit-map.md](./commit-map.md). That page labels the canonical `master` merge for each category, the clean `codex/submission-clean` replay commits used by the audit harness, and the later aggregate or submission-only merges that should not be used for category attribution.
 
 GitHub Actions workflow:
 

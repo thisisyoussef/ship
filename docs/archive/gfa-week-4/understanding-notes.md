@@ -12,14 +12,14 @@
    - `docker-compose up -d`,
    - `pnpm db:seed`, `pnpm db:migrate`, `pnpm dev`).
 4. Copied assignment PDF into a new docs folder already requested:
-   - `/Users/youss/Development/gauntlet/ship/docs/gfa-week-4/GFA_Week_4-ShipShape.pdf`
+   - `/Users/youss/Development/gauntlet/ship/docs/archive/gfa-week-4/GFA_Week_4-ShipShape.pdf`
 5. Read repo instructions files in scope:
    - `README.md`, `terraform/README.md`, `e2e/AGENTS.md`.
 6. Read core architecture docs:
-   - `docs/application-architecture.md`
-   - `docs/unified-document-model.md`
-   - `docs/document-model-conventions.md`
-   - `docs/developer-workflow-guide.md`
+   - `docs/core/application-architecture.md`
+   - `docs/core/unified-document-model.md`
+   - `docs/core/document-model-conventions.md`
+   - `docs/guides/developer-workflow-guide.md`
 7. Ran baseline install/build/type-check probes:
    - `pnpm install` (succeeded).
    - `cp api/.env.example api/.env.local`

@@ -16,7 +16,7 @@ Both modes must use the same graph architecture. The trigger changes, not the gr
 ## Hard constraints
 
 - Data source: Ship REST API only
-- AI provider: Claude API
+- AI provider: provider-agnostic, with OpenAI preferred in this repo direction
 - Observability: LangSmith tracing from day one
 - Framework: LangGraph recommended; if not used, equivalent manual LangSmith instrumentation is required
 - UX: chat must be embedded in context, not a standalone chatbot page
@@ -25,8 +25,8 @@ Both modes must use the same graph architecture. The trigger changes, not the gr
 
 ## Main deliverables
 
-- `PRESEARCH.md`
-- `FLEETGRAPH.md`
+- `docs/assignments/fleetgraph/PRESEARCH.md`
+- `docs/assignments/fleetgraph/FLEETGRAPH.md`
 - Shared LangSmith trace links showing different execution paths
 - A deployed, publicly accessible implementation running against real Ship data
 

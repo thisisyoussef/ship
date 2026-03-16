@@ -6,10 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Read `docs/*` before making architectural decisions.** These documents capture the design philosophy and key decisions:
 
-- `docs/unified-document-model.md` - Core data model, sync architecture, document types
-- `docs/application-architecture.md` - Tech stack decisions, deployment, testing strategy
-- `docs/document-model-conventions.md` - Terminology, what becomes a document vs config
-- `docs/sprint-documentation-philosophy.md` - Sprint workflow and required documentation
+- `docs/core/unified-document-model.md` - Core data model, sync architecture, document types
+- `docs/core/application-architecture.md` - Tech stack decisions, deployment, testing strategy
+- `docs/core/document-model-conventions.md` - Terminology, what becomes a document vs config
+- `docs/core/week-documentation-philosophy.md` - Week workflow and required documentation
 
 When in doubt about implementation approach, check these docs first.
 
@@ -81,9 +81,9 @@ pnpm test             # Runs api unit tests via vitest
 
 ## Key Patterns
 
-**4-Panel Editor Layout**: Every document editor uses the same layout: Icon Rail (48px) → Contextual Sidebar (224px, shows mode's item list) → Main Content (flex-1, editor) → Properties Sidebar (256px, doc-type-specific props). All four panels are always visible. See `docs/document-model-conventions.md` for the diagram.
+**4-Panel Editor Layout**: Every document editor uses the same layout: Icon Rail (48px) → Contextual Sidebar (224px, shows mode's item list) → Main Content (flex-1, editor) → Properties Sidebar (256px, doc-type-specific props). All four panels are always visible. See `docs/core/document-model-conventions.md` for the diagram.
 
-**New document titles**: All document types use `"Untitled"` as the default title. No variations like "Untitled Issue" or "Untitled Project". The shared Editor component expects this exact string to show placeholder styling. See `docs/document-model-conventions.md` for details.
+**New document titles**: All document types use `"Untitled"` as the default title. No variations like "Untitled Issue" or "Untitled Project". The shared Editor component expects this exact string to show placeholder styling. See `docs/core/document-model-conventions.md` for details.
 
 **Document associations**: Documents reference other documents via the `document_associations` junction table (relationship types: `parent`, `project`, `sprint`, `program`). Legacy columns `program_id` and `project_id` still exist; `sprint_id` was dropped by migration 027.
 

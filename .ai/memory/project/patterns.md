@@ -44,14 +44,14 @@ Capture reusable patterns that repeatedly work in this project.
 - **Approach**: Fetch only from Ship REST, then normalize canonical `document_associations`, `belongs_to`, legacy `project_id`, and `assignee_ids` into one internal graph state before reasoning or rendering.
 - **Benefits**: Prevents feature logic from drifting with Ship's mixed live data shapes and keeps the runtime honest to the REST-only contract.
 - **Tradeoffs**: Adds an adapter layer that must be kept current as the API evolves.
-- **References**: `PRESEARCH.md`, `api/src/routes/team.ts`, `api/src/utils/allocation.ts`, `api/src/routes/weekly-plans.ts`
+- **References**: `docs/assignments/fleetgraph/PRESEARCH.md`, `api/src/routes/team.ts`, `api/src/utils/allocation.ts`, `api/src/routes/weekly-plans.ts`
 
 - **Pattern**: Rule-gated proactive reasoning
 - **Use when**: An AI workflow needs to monitor Ship continuously without turning every sweep into an LLM call.
 - **Approach**: Run deterministic thresholding and dedupe first, then invoke the model only for candidate findings or on-demand user questions.
 - **Benefits**: Keeps proactive cost predictable, reduces noise, and creates clearer branch traces in LangSmith.
 - **Tradeoffs**: Some intelligence moves into rules instead of the model.
-- **References**: `PRESEARCH.md`, `api/src/routes/accountability.ts`, `api/src/services/accountability.ts`
+- **References**: `docs/assignments/fleetgraph/PRESEARCH.md`, `api/src/routes/accountability.ts`, `api/src/services/accountability.ts`
 
 - **Pattern**: Narrow user correction triage
 - **Use when**: The user gives a small corrective note or clarification during a story or after handoff.
@@ -59,3 +59,10 @@ Capture reusable patterns that repeatedly work in this project.
 - **Benefits**: Keeps diffs focused, respects user intent, and prevents unnecessary replanning churn.
 - **Tradeoffs**: Requires deliberate classification before editing instead of reflexively expanding the task.
 - **References**: `.ai/workflows/user-correction-triage.md`, `.ai/workflows/story-handoff.md`
+
+- **Pattern**: Documentation by intent and lifecycle
+- **Use when**: Repo docs have started to mix active references, working deliverables, evidence, and historical artifacts in one flat surface.
+- **Approach**: Keep living references under stable buckets like `core/` and `guides/`, group assignment work with its source material, and separate `evidence/` from `archive/`.
+- **Benefits**: Faster onboarding, clearer agent routing, and less chance of treating historical output as current guidance.
+- **Tradeoffs**: Requires deliberate path maintenance when files move.
+- **References**: `docs/README.md`, `docs/archive/README.md`, `docs/evidence/README.md`

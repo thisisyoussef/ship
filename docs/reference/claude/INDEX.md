@@ -77,9 +77,9 @@ Before writing code, review:
 ## External Documentation
 
 These files are in `docs/` (committed to repo):
-- `docs/unified-document-model.md` - Canonical data model reference
-- `docs/application-architecture.md` - Full architecture decisions
-- `docs/document-model-conventions.md` - UI and terminology conventions
+- `docs/core/unified-document-model.md` - Canonical data model reference
+- `docs/core/application-architecture.md` - Full architecture decisions
+- `docs/core/document-model-conventions.md` - UI and terminology conventions
 - `docs/week-documentation-philosophy.md` - Week workflow
 
 ## Quick Reference

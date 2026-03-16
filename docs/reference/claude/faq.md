@@ -59,7 +59,7 @@ See `api/src/routes/issues.ts` for a complete example.
 3. Rebuild: `pnpm build:shared`
 4. Create API routes
 
-See `docs/unified-document-model.md` for full details.
+See `docs/core/unified-document-model.md` for full details.
 
 ### How do I write a database migration?
 

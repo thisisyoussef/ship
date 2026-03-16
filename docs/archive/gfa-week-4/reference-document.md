@@ -1,6 +1,6 @@
 # Reference Document
 
-This is the submission-facing index for the codebase orientation work completed before the audit. The full orientation notes used during the project are in [docs/g4/audit-resources/codebase-orientation-reference.md](../g4/audit-resources/codebase-orientation-reference.md).
+This is the submission-facing index for the codebase orientation work completed before the audit. The full orientation notes used during the project are in [docs/archive/g4/audit-resources/codebase-orientation-reference.md](../g4/audit-resources/codebase-orientation-reference.md).
 
 ## Orientation Coverage
 

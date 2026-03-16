@@ -721,7 +721,7 @@ pnpm dev
 
 ## Claude Code Integration
 
-Ship integrates with Claude Code CLI for AI-assisted development workflows. See [Ship + Claude CLI Integration Guide](./ship-claude-cli-integration.md) for full documentation.
+Ship integrates with Claude Code CLI for AI-assisted development workflows. See [Ship + Claude CLI Integration Guide](../guides/ship-claude-cli-integration.md) for full documentation.
 
 ### Key Integration Points
 

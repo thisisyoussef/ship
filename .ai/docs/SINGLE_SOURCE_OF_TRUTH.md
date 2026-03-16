@@ -1,8 +1,8 @@
 # Ship - Single Source of Truth
 
 **Last Updated**: 2026-03-16
-**Current Phase**: FleetGraph planning with workflow hardening
-**Active Sprint**: Pre-search, scaffolding, and harness refinement
+**Current Phase**: Docs information architecture cleanup
+**Active Sprint**: Documentation reorganization
 **Project Status**: Active
 
 ---
@@ -10,14 +10,14 @@
 ## Current Focus
 
 ### Active Task
-- **Title**: Add a proportional user-correction triage route so small clarifications do not trigger oversized replanning
+- **Title**: Reorganize the repo docs surface so active references, assignments, evidence, and archive material are easier to navigate
 - **Status**: In Progress
 - **Owner**: Codex
 
 ### Next Immediate Actions
-1. Keep narrow corrective feedback bounded to the smallest affected surfaces.
-2. Escalate to full story gates only when a correction materially changes scope or architecture.
-3. Verify the new correction-triage route is wired across the agent entrypoints and handoff flow.
+1. Keep FleetGraph assignment work routed through `docs/assignments/fleetgraph/`.
+2. Preserve the new `docs/core`, `docs/guides`, `docs/evidence`, and `docs/archive` boundaries instead of re-flattening the docs surface.
+3. Use `.ai/workflows/user-correction-triage.md` when a future correction is narrow instead of reopening broad replanning by default.
 
 ---
 
@@ -38,7 +38,7 @@
 ## FleetGraph Assignment Constraints
 
 - Use the Ship REST API as the data source. No direct database access.
-- Working presearch assumption: FleetGraph is provider-agnostic, though Ship already has Bedrock Claude code that can be reused.
+- AI integration should stay provider-agnostic with OpenAI preferred, though Ship already has Bedrock Claude code that can be reused where appropriate.
 - LangGraph is recommended. If another framework is used, manual LangSmith instrumentation is required.
 - LangSmith tracing is required from day one.
 - Implement both proactive and on-demand modes through the same graph architecture.
@@ -59,8 +59,8 @@
 
 - `docs/assignments/fleetgraph/FleetGraph_PRD.pdf`
 - `docs/assignments/fleetgraph/README.md`
-- `PRESEARCH.md`
-- `FLEETGRAPH.md`
+- `docs/assignments/fleetgraph/PRESEARCH.md`
+- `docs/assignments/fleetgraph/FLEETGRAPH.md`
 - Shared LangSmith trace links showing different execution paths
 
 ---
@@ -82,6 +82,7 @@ pnpm audit --prod
 1. `.claude/CLAUDE.md`
 2. `docs/README.md`
 3. `docs/assignments/fleetgraph/README.md`
-4. `.ai/docs/references/fleetgraph-prd.md`
-5. `.ai/agents/claude.md`
-6. `.ai/workflows/user-correction-triage.md` when user feedback is a narrow correction or clarification
+4. `docs/assignments/fleetgraph/PRESEARCH.md`
+5. `.ai/docs/references/fleetgraph-prd.md`
+6. `.ai/agents/claude.md`
+7. `.ai/workflows/user-correction-triage.md` when user feedback is a narrow correction or clarification

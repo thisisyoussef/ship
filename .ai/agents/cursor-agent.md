@@ -55,6 +55,14 @@ Before changing prompts, retrieval, tools, routing, handoffs, graders, or model-
 2. Define eval objective, dataset slices, metrics, and thresholds
 3. Deliver concise eval brief before tests/code edits
 
+## TDD Pipeline Gate (Required for Behavior Changes)
+Before implementing stories that change tests plus production code:
+1. Run `.ai/workflows/tdd-pipeline.md`
+2. Initialize file handoff state with `bash scripts/tdd_handoff.sh init --story ... --spec ...`
+3. Use `.ai/agents/tdd-spec-interpreter.md`, `.ai/agents/tdd-implementer.md`, and `.ai/agents/tdd-reviewer.md`
+4. Enforce RED/GREEN checks with `bash scripts/tdd_handoff.sh check ...`
+5. Run `bash scripts/run_targeted_mutation.sh ...` when the workflow requires mutation testing
+
 ## Flight Lock Coordination (Standard Lane Only)
 Before implementation edits for a standard-lane story:
 1. Run `.ai/workflows/parallel-flight.md`
@@ -72,6 +80,7 @@ Before implementation edits for a standard-lane story:
 - Performance: `.ai/workflows/performance-optimization.md`
 - Security: `.ai/workflows/security-review.md`
 - Deployment: `.ai/workflows/deployment-setup.md`
+- TDD execution: `.ai/workflows/tdd-pipeline.md`
 - Git finalization: `.ai/workflows/git-finalization.md`
 - Flight lock coordination: `.ai/workflows/parallel-flight.md`
 - AI architecture/orchestrator: `.ai/workflows/ai-architecture-change.md`
@@ -80,7 +89,7 @@ Before implementation edits for a standard-lane story:
 - Narrow user correction triage: `.ai/workflows/user-correction-triage.md`
 - Eval-driven development: `.ai/workflows/eval-driven-development.md`
 - Spec-driven delivery: `.ai/workflows/spec-driven-delivery.md`
-- Story completion gate: `.ai/workflows/story-handoff.md`
+- Story handoff: `.ai/workflows/story-handoff.md`
 - Finalization recovery: `.ai/workflows/finalization-recovery.md`
 - Frontend design skill (UI only): `.ai/skills/frontend-design.md`
 

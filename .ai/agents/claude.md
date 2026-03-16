@@ -18,7 +18,11 @@ Claude must follow the same required gates defined in `.ai/codex.md` and `AGENTS
 - `.ai/workflows/user-correction-triage.md`
 - `.ai/workflows/eval-driven-development.md`
 - `.ai/workflows/spec-driven-delivery.md`
+- `.ai/workflows/tdd-pipeline.md`
 - `.ai/skills/spec-driven-development.md`
+- `.ai/agents/tdd-spec-interpreter.md`
+- `.ai/agents/tdd-implementer.md`
+- `.ai/agents/tdd-reviewer.md`
 - `.ai/workflows/parallel-flight.md` + `scripts/flight_slot.sh` for the standard-lane single writer lock only
 - `.ai/workflows/git-finalization.md` + `scripts/git_finalize_guard.sh`
 - `.ai/workflows/story-handoff.md` as the combined completion gate

@@ -31,7 +31,7 @@ Ship is a production monorepo with:
 14. **Coordinate the single writer lock only for standard-lane work**: `.ai/workflows/parallel-flight.md` + `bash scripts/flight_slot.sh claim ...`
 15. **For AI-behavior changes, run eval design first**: `.ai/workflows/eval-driven-development.md`
 16. **Before coding/review work**: read `.ai/docs/AGENTIC_ENGINEERING_PRINCIPLES.md`
-17. **Test-first**: Write tests before implementation (TDD)
+17. **Run the isolated TDD pipeline for behavior changes**: `.ai/workflows/tdd-pipeline.md` + `bash scripts/tdd_handoff.sh ...`
 18. **Test prompt and review tasks neutrally**: ask for evidence, severity, and risk rather than assuming defects
 19. **File limits**: <250 lines max, target 150 lines
 20. **DRY principle**: Extract duplication into shared modules appropriate for the chosen stack
@@ -52,6 +52,7 @@ Ship is a production monorepo with:
 - **Test structure**: Given-When-Then
 - **Test naming**: `test_<function>_<scenario>_<expected>`
 - **Run frequently**: the smallest focused test command for the chosen stack after each change
+- **TDD handoff artifacts**: keep `.ai/state/tdd-handoff/<story-id>/` current when the story uses the three-agent pipeline
 
 ## Before Committing
 Run the validation commands defined during setup:
@@ -85,7 +86,10 @@ The pre-commit hook and finalization guard should also run this automatically fo
 
 ## AI Agent Delegation
 For specialized tasks, check:
-- `.ai/agents/tdd-agent.md` - Test design
+- `.ai/agents/tdd-agent.md` - TDD pipeline coordination
+- `.ai/agents/tdd-spec-interpreter.md` - Adversarial test authoring
+- `.ai/agents/tdd-implementer.md` - Minimum implementation
+- `.ai/agents/tdd-reviewer.md` - Refactor and quality review
 - `.ai/agents/architect-agent.md` - System design
 - `.ai/agents/security-agent.md` - Security audit
 - Project-specific domain agents under `.ai/agents/` - Created or replaced during setup

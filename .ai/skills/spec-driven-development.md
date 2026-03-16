@@ -9,7 +9,7 @@ Reference playbook:
 
 This workspace follows:
 1. **Constitution -> Specify -> Plan -> Tasks** (SDD)
-2. **Red -> Green -> Refactor** (TDD)
+2. **Agent 1 tests -> Agent 2 implementation -> Agent 3 review/refactor** (TDD pipeline)
 
 SDD defines the contract. TDD proves the contract.
 
@@ -69,11 +69,14 @@ Before coding, produce a test list derived from acceptance criteria:
 - failure modes
 - integration boundaries
 
-Then run TDD cycles in behavioral chunks:
+Then run the isolated TDD pipeline in behavioral chunks through `.ai/workflows/tdd-pipeline.md`:
 
-1. RED: write failing tests for one acceptance criterion or tight criterion slice.
-2. GREEN: implement the minimum code to pass.
-3. REFACTOR: remove duplication and improve design with tests still green.
+1. Agent 1 writes failing tests from the spec and public API surface only.
+2. `bash scripts/tdd_handoff.sh check --expect red` proves the contract is genuinely failing.
+3. Agent 2 implements the minimum code without editing Agent 1 tests.
+4. Property tests run when the story shape qualifies.
+5. Targeted mutation testing runs when the story calls for the mutation gate.
+6. Agent 3 reviews/refactors and leaves the suite green.
 
 ---
 

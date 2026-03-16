@@ -57,6 +57,19 @@ Follow the workflow and `.ai/templates/spec/` for the exact artifact set. When t
 
 ---
 
+## TDD Pipeline Gate (Required for Behavior Changes)
+
+Before implementing any story that changes tests plus production code, run `.ai/workflows/tdd-pipeline.md`.
+Use the three-agent split:
+- Agent 1: `.ai/agents/tdd-spec-interpreter.md`
+- Agent 2: `.ai/agents/tdd-implementer.md`
+- Agent 3: `.ai/agents/tdd-reviewer.md`
+
+Use `bash scripts/tdd_handoff.sh ...` for file-based handoff state, RED/GREEN guards, and loop-limit enforcement.
+Use `bash scripts/run_targeted_mutation.sh ...` when the workflow calls for the mutation gate.
+
+---
+
 ## Flight Lock Coordination (Standard Lane Only)
 
 For standard-lane implementation stories, run `.ai/workflows/parallel-flight.md`, claim the single writer lock with `bash scripts/flight_slot.sh claim ...`, and release it with `bash scripts/flight_slot.sh release ...`. Trivial-lane stories skip this lock entirely.
@@ -101,6 +114,7 @@ Use `.ai/workflows/story-handoff.md` as the single user-facing completion gate. 
 - Performance -> `.ai/workflows/performance-optimization.md`
 - Security review -> `.ai/workflows/security-review.md`
 - Deployment/CI-CD -> `.ai/workflows/deployment-setup.md`
+- TDD execution -> `.ai/workflows/tdd-pipeline.md`
 - Git finalization -> `.ai/workflows/git-finalization.md`
 - Flight lock coordination -> `.ai/workflows/parallel-flight.md`
 - Story lookup -> `.ai/workflows/story-lookup.md`
@@ -124,7 +138,7 @@ Apply the following defaults from `.ai/docs/AGENTIC_ENGINEERING_PRINCIPLES.md`:
 
 ## Engineering Constraints
 
-- TDD first (red -> green -> refactor)
+- TDD first via `.ai/workflows/tdd-pipeline.md` (Agent 1 tests -> Agent 2 implement -> Agent 3 review/refactor)
 - Spec-first for features (constitution -> specify -> plan -> tasks)
 - Choose the stack during project setup; do not assume language, framework, datastore, or hosting before requirements are known
 - For UI scope, translate design intent into concrete typography/layout/color/motion constraints instead of vague taste words

@@ -59,6 +59,7 @@ If `lane: standard`:
 ## Phase 3: Fix
 
 ### Step 5: Minimal Corrective Change
+- Run `.ai/workflows/tdd-pipeline.md` to keep test authoring, implementation, and refactor review isolated
 - Implement the smallest change that makes the reproduction pass
 - Keep interfaces stable unless the bug requires a contract change
 
@@ -91,7 +92,6 @@ If `lane: standard`:
 ---
 
 ## Exit Criteria
-
 - Reproduction test added and passing
 - Related regressions covered
 - Quality gates pass

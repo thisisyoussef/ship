@@ -92,6 +92,144 @@ if errors:
 print("Canonical startup routing check passed.")
 PY
 
+run_check "TDD pipeline routing references" python3 - <<'PY'
+from pathlib import Path
+import sys
+
+workflow_targets = [
+    "AGENTS.md",
+    ".ai/agents/claude.md",
+    ".ai/codex.md",
+    ".ai/agents/cursor-agent.md",
+    ".ai/workflows/feature-development.md",
+    ".ai/workflows/bug-fixing.md",
+    ".ai/docs/WORKSPACE_INDEX.md",
+    ".clauderc",
+    ".cursorrules",
+]
+missing_workflow: list[str] = []
+for rel in workflow_targets:
+    text = Path(rel).read_text(encoding="utf-8")
+    if "tdd-pipeline.md" not in text:
+        missing_workflow.append(rel)
+
+if missing_workflow:
+    print("ERROR: TDD pipeline workflow routing missing from:", file=sys.stderr)
+    for rel in missing_workflow:
+        print(f"- {rel}", file=sys.stderr)
+    raise SystemExit(1)
+
+required_files = [
+    ".ai/workflows/tdd-pipeline.md",
+    ".ai/agents/tdd-agent.md",
+    ".ai/agents/tdd-spec-interpreter.md",
+    ".ai/agents/tdd-implementer.md",
+    ".ai/agents/tdd-reviewer.md",
+    ".ai/state/tdd-handoff/README.md",
+    "scripts/tdd_handoff.sh",
+    "scripts/run_targeted_mutation.sh",
+]
+missing_files = [path for path in required_files if not Path(path).is_file()]
+if missing_files:
+    print("ERROR: Missing TDD pipeline files:", file=sys.stderr)
+    for path in missing_files:
+        print(f"- {path}", file=sys.stderr)
+    raise SystemExit(1)
+
+print("TDD pipeline routing check passed.")
+PY
+
+run_check "TDD pipeline workflow content" python3 - <<'PY'
+from pathlib import Path
+import sys
+
+tdd_pipeline = Path(".ai/workflows/tdd-pipeline.md").read_text(encoding="utf-8")
+required_tokens = (
+    "tdd_handoff.sh init",
+    "tdd-spec-interpreter.md",
+    "tdd-implementer.md",
+    "tdd-reviewer.md",
+    "--expect red",
+    "--expect green",
+    "fast-check",
+    "run_targeted_mutation.sh",
+    "70%",
+    "maximum 3 implementation attempts",
+    "maximum 2 failed refactor attempts",
+)
+missing = [token for token in required_tokens if token not in tdd_pipeline]
+if missing:
+    print("ERROR: TDD pipeline workflow requirements missing:", file=sys.stderr)
+    for token in missing:
+        print(f"- {token}", file=sys.stderr)
+    raise SystemExit(1)
+
+tdd_skill = Path(".ai/skills/tdd-workflow.md").read_text(encoding="utf-8")
+skill_tokens = (
+    "files on disk as the only handoff boundary",
+    "Agent 1 - RED Contract",
+    "Agent 2 - GREEN Implementation",
+    "Mutation Gate",
+    "Agent 3 - Review and Refactor",
+)
+missing_skill = [token for token in skill_tokens if token not in tdd_skill]
+if missing_skill:
+    print("ERROR: TDD skill requirements missing:", file=sys.stderr)
+    for token in missing_skill:
+        print(f"- {token}", file=sys.stderr)
+    raise SystemExit(1)
+
+story_handoff = Path(".ai/workflows/story-handoff.md").read_text(encoding="utf-8")
+handoff_tokens = (
+    "TDD handoff artifact path listed",
+    "RED/GREEN checkpoint evidence listed",
+    "Property-test and mutation outcomes listed",
+)
+missing_handoff = [token for token in handoff_tokens if token not in story_handoff]
+if missing_handoff:
+    print("ERROR: Story handoff TDD audit requirements missing:", file=sys.stderr)
+    for token in missing_handoff:
+        print(f"- {token}", file=sys.stderr)
+    raise SystemExit(1)
+
+print("TDD pipeline workflow content check passed.")
+PY
+
+run_check "TDD tooling wiring" python3 - <<'PY'
+from pathlib import Path
+import json
+import sys
+
+package = json.loads(Path("package.json").read_text(encoding="utf-8"))
+scripts = package.get("scripts", {})
+dev_dependencies = package.get("devDependencies", {})
+errors: list[str] = []
+
+if scripts.get("test:mutation:changed") != "./scripts/run_targeted_mutation.sh":
+    errors.append("package.json missing test:mutation:changed script")
+
+for dep in (
+    "@stryker-mutator/core",
+    "@stryker-mutator/typescript-checker",
+    "@stryker-mutator/vitest-runner",
+    "fast-check",
+):
+    if dep not in dev_dependencies:
+        errors.append(f"package.json missing devDependency {dep}")
+
+for rel in ("api/stryker.config.mjs", "web/stryker.config.mjs"):
+    if not Path(rel).is_file():
+        errors.append(f"missing {rel}")
+
+if errors:
+    print("ERROR: TDD tooling wiring issues detected:", file=sys.stderr)
+    for item in errors:
+        print(f"- {item}", file=sys.stderr)
+    raise SystemExit(1)
+
+print("TDD tooling wiring check passed.")
+PY
+
 run_check "Story sizing fast-track wiring" python3 - <<'PY'
 from pathlib import Path
 import sys

@@ -143,3 +143,8 @@ Capture failures so they are not repeated.
 - **Example**: The same story cycles through user correction triage again and again without ever escalating that the story itself may be mis-scoped.
 - **Why it failed**: Repeated local patches hide structural problems in the spec or the chosen approach.
 - **Prevention rule**: Persist triage counts per story and trip a re-scope circuit breaker once the limit is reached.
+
+- **Problem**: Single-agent TDD context contamination
+- **Example**: The same agent writes tests, writes the implementation, and then declares refactor done inside one context window.
+- **Why it failed**: The red phase becomes shallow, tests mirror the intended implementation too closely, and edge cases that would break a naive solution are underrepresented.
+- **Prevention rule**: Use the file-isolated three-agent TDD pipeline with RED/GREEN guards, fixed-test ownership, and explicit escalation limits.

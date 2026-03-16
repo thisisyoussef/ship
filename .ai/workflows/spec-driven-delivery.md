@@ -126,6 +126,13 @@ Derive tests directly from acceptance criteria:
 
 Store this mapping in story notes or task checklist.
 
+Also define the TDD pipeline contract before coding:
+- the public API surface Agent 1 may see,
+- the handoff artifact path `.ai/state/tdd-handoff/<story-id>/`,
+- whether property tests are required,
+- whether targeted mutation testing should run,
+- the focused RED/GREEN command the story will use.
+
 For UI scope, also define:
 - behavior tests (component interactions + a11y),
 - visual regression snapshot matrix,
@@ -160,10 +167,11 @@ For UI scope, also confirm:
 ## Step 7: Execution Loop
 
 For each task:
-1. RED: write failing test(s)
-2. GREEN: minimal passing implementation
-3. REFACTOR: design cleanup without behavior changes
-4. Verify against spec before moving to next task
+1. Run `.ai/workflows/tdd-pipeline.md`
+2. Agent 1 writes failing tests from the spec-derived contract
+3. Agent 2 delivers the minimal passing implementation
+4. Agent 3 reviews/refactors without changing behavior
+5. Verify against spec before moving to next task
 
 ---
 

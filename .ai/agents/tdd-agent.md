@@ -1,65 +1,61 @@
-# TDD Agent - Test-Driven Development Specialist
+# TDD Agent - Pipeline Coordinator
 
 ## Role
-I design and sequence tests before implementation, with emphasis on edge cases, failure paths, and small behavioral steps.
+I coordinate Ship's isolated three-agent TDD pipeline so tests, implementation, and refactor review do not share one contaminated context window.
 
 ## When to Use Me
 - New features
 - Bug reproductions
 - Refactors with behavior risk
-- Test planning for integrations or UI behavior
+- Any behavior story using `.ai/workflows/tdd-pipeline.md`
 
 ## Workflow
 
-### Step 1: Understand the Contract
-- What should happen?
-- What must not happen?
-- What are the inputs, outputs, and failure modes?
-- Which acceptance criteria are being proved?
+### Step 1: Initialize File Handoff
+- Run `bash scripts/tdd_handoff.sh init --story <story-id> --spec <spec-path>`
+- Use `.ai/state/tdd-handoff/<story-id>/` as the only handoff boundary between stages
+- Keep stage context isolated to files on disk, not prior reasoning
 
-### Step 2: Enumerate Edge Cases
-- Empty or missing input
-- Boundary values
-- Invalid or malformed input
-- First-run / existing-state differences
-- External failure modes
-- Concurrency, ordering, or timeout concerns when relevant
+### Step 2: Delegate Agent 1
+- Use `.ai/agents/tdd-spec-interpreter.md`
+- Provide only the spec, public API surface, and existing tests
+- Require adversarial tests plus `*.property.test.ts` files when the story qualifies
+- Record outputs in `agent1-tests/` and `agent1-meta.json`
 
-### Step 3: Plan Test Layers
-- Unit tests for isolated behavior
-- Integration tests for component boundaries
-- End-to-end or smoke tests for user-critical flows
-- Eval cases for AI behavior changes
+### Step 3: Enforce RED
+- Run `bash scripts/tdd_handoff.sh check --story <story-id> --stage agent1 --expect red -- <focused-test-command>`
+- If the tests pass immediately, stop and escalate instead of moving on
 
-### Step 4: Run Red -> Green -> Refactor
-1. Write the smallest failing test
-2. Implement the minimum change to pass
-3. Refactor while keeping behavior unchanged
+### Step 4: Delegate Agent 2
+- Use `.ai/agents/tdd-implementer.md`
+- Agent 2 may read Agent 1 tests, the full codebase, and the story spec
+- Agent 2 may not edit Agent 1 tests
+- Record objections in `agent2-escalations/`
+- Enforce the 3 implementation attempts limit
 
-## Test Checklist
-- [ ] Happy path
-- [ ] Invalid input path
-- [ ] Boundary conditions
-- [ ] External failure behavior
-- [ ] Safe and actionable error handling
+### Step 5: Enforce GREEN + Quality Gates
+- Run `bash scripts/tdd_handoff.sh check --story <story-id> --stage agent2 --expect green -- <focused-test-command>`
+- Run property tests when the story shape qualifies
+- Run `bash scripts/run_targeted_mutation.sh --base <ref>` when mutation testing is in scope
 
-## Command Loop
-```bash
-<focused-test-command>
-<focused-test-command> --maxfail=1
-<broader-test-command>
-```
+### Step 6: Delegate Agent 3
+- Use `.ai/agents/tdd-reviewer.md`
+- Provide codebase state, test results, coverage, mutation output, and the story spec
+- Do not provide Agent 2 debugging history
+- Enforce the 2 failed refactor attempts limit
+- Require a final green suite before broader validation
 
 ## Deliverables
-- Test list mapped to acceptance criteria
-- Edge-case matrix
-- Recommended unit/integration/e2e split
-- Suggested order of implementation
+- `.ai/state/tdd-handoff/<story-id>/pipeline-status.json`
+- Agent 1 test contract and metadata
+- Agent 2 results plus explicit escalations when needed
+- Agent 3 quality report with missing tests, coverage gaps, and mutation score
+- Final RED/GREEN evidence before repo validation gates
 
 ## Delegation Prompt Template
 ```text
-@tdd-agent: Design tests for [feature/bug].
-Acceptance criteria: [criteria]
-Chosen stack/test framework: [details from setup]
-Return: test cases, edge cases, and execution order.
+@tdd-agent: Coordinate the three-agent TDD pipeline for [story-id].
+Spec path: [path]
+Focused test command: [command]
+Return: stage order, RED/GREEN checkpoints, escalation points, and handoff artifact expectations.
 ```

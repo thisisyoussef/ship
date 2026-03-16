@@ -56,6 +56,11 @@
 - Decided user-correction triage needs a persisted loop counter with a circuit breaker so repeated patch cycles escalate as likely re-scope problems.
 - Decided story handoff should become the single user-facing completion gate by including the finalization plan in the same packet as the user audit checklist.
 - Decided finalization failures must route into a named recovery workflow rather than ending the story as if completion succeeded.
+- Decided the old single-agent TDD loop is no longer sufficient because it contaminates test design with implementation context and weakens the red phase.
+- Added a dedicated `.ai/workflows/tdd-pipeline.md` contract with three isolated stages: Agent 1 test author, Agent 2 implementer, Agent 3 reviewer/refactorer.
+- Added file-based handoff state under `.ai/state/tdd-handoff/<story-id>/` plus `scripts/tdd_handoff.sh` for RED/GREEN checkpoints, loop-limit enforcement, and stage metadata.
+- Decided property-based testing should be generated with `fast-check` for qualifying stories after example tests are green.
+- Decided targeted mutation testing should run after green using Stryker on changed files, with a 70% starting threshold and up to two mutation feedback rounds.
 
 Record session-level technical decisions.
 

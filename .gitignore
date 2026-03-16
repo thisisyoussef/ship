@@ -33,6 +33,10 @@ Thumbs.db
 *.tmp
 .cache
 
+# AI harness local runtime state
+.ai/state/flight-lock.json
+.ai/state/tdd-handoff/*/
+
 # Ralph loop local state
 .claude/ralph-loop.local.md
 

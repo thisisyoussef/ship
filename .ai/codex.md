@@ -23,6 +23,7 @@ Then use as needed:
 - Story lookup: run `.ai/workflows/story-lookup.md` and publish the local + external lookup brief before coding.
 - Narrow user corrections: run `.ai/workflows/user-correction-triage.md` before broadening scope.
 - AI-behavior changes: run `.ai/workflows/eval-driven-development.md` and publish the eval brief before coding.
+- Behavior changes that touch tests plus production code: run `.ai/workflows/tdd-pipeline.md`, initialize file handoff state with `bash scripts/tdd_handoff.sh`, and use the isolated three-agent split.
 - Flight lock coordination: standard-lane stories run `.ai/workflows/parallel-flight.md`, claim the single writer lock via `bash scripts/flight_slot.sh claim ...`, and release it via `bash scripts/flight_slot.sh release ...`; trivial-lane stories skip the lock.
 - Story finish: run `.ai/workflows/story-handoff.md` as the combined completion gate.
 - Git finalization: after user approval of the completion gate, run `.ai/workflows/git-finalization.md`; use merge commits by default and require a passing `bash scripts/git_finalize_guard.sh`.
@@ -35,6 +36,7 @@ Then use as needed:
 - Performance tuning -> `.ai/workflows/performance-optimization.md`
 - Security review -> `.ai/workflows/security-review.md`
 - Deployment/CI-CD -> `.ai/workflows/deployment-setup.md`
+- TDD execution -> `.ai/workflows/tdd-pipeline.md`
 - Git finalization -> `.ai/workflows/git-finalization.md`
 - AI architecture/orchestrator change -> `.ai/workflows/ai-architecture-change.md`
 - Flight lock coordination -> `.ai/workflows/parallel-flight.md`
@@ -49,7 +51,7 @@ Then use as needed:
 ## Implementation Defaults
 
 - Use `.ai/docs/AGENTIC_ENGINEERING_PRINCIPLES.md` as the default operating lens.
-- Practice TDD: red -> green -> refactor.
+- Practice TDD through the isolated pipeline in `.ai/workflows/tdd-pipeline.md`.
 - Keep files under 250 lines and functions under 30 lines when practical.
 - Use `.ai/skills/code-standards.md`, `.ai/skills/security-checklist.md`, and `.ai/skills/performance-checklist.md`.
 - Follow `.claude/CLAUDE.md` and the active workflow for the current validation commands before handoff/commit.
@@ -58,9 +60,12 @@ Then use as needed:
 ## Quick Reference
 
 - TDD loop:
-  - red -> green -> refactor
-  - validate against acceptance criteria, edge cases, error paths, and integration behavior
-  - see `.ai/agents/tdd-agent.md`, `.ai/skills/tdd-workflow.md`, and `.ai/skills/testing-pyramid.md`
+  - Agent 1 writes adversarial tests from the spec without implementation context
+  - `bash scripts/tdd_handoff.sh check --expect red` must prove the contract is genuinely failing
+  - Agent 2 implements without editing Agent 1 tests
+  - run `bash scripts/run_targeted_mutation.sh ...` when the workflow calls for mutation coverage
+  - Agent 3 reviews/refactors and leaves the suite green
+  - see `.ai/workflows/tdd-pipeline.md`, `.ai/agents/tdd-agent.md`, `.ai/agents/tdd-spec-interpreter.md`, `.ai/agents/tdd-implementer.md`, `.ai/agents/tdd-reviewer.md`, `.ai/skills/tdd-workflow.md`, and `.ai/skills/testing-pyramid.md`
 - Validation command set:
   - `pnpm test`
   - `pnpm type-check`
@@ -75,7 +80,10 @@ Then use as needed:
   - `.ai/memory/codex/`
   - `.ai/memory/session/decisions-today.md`
 - Specialist references:
-  - TDD: `.ai/agents/tdd-agent.md`
+  - TDD coordinator: `.ai/agents/tdd-agent.md`
+  - TDD test author: `.ai/agents/tdd-spec-interpreter.md`
+  - TDD implementer: `.ai/agents/tdd-implementer.md`
+  - TDD reviewer: `.ai/agents/tdd-reviewer.md`
   - Architecture: `.ai/agents/architect-agent.md`
   - Security: `.ai/agents/security-agent.md`
   - Deployment: `.ai/agents/deployment-agent.md`
@@ -93,7 +101,10 @@ Then use as needed:
 
 ## Specialist References
 
-- TDD: `.ai/agents/tdd-agent.md`
+- TDD coordinator: `.ai/agents/tdd-agent.md`
+- TDD test author: `.ai/agents/tdd-spec-interpreter.md`
+- TDD implementer: `.ai/agents/tdd-implementer.md`
+- TDD reviewer: `.ai/agents/tdd-reviewer.md`
 - Architecture: `.ai/agents/architect-agent.md`
 - Security: `.ai/agents/security-agent.md`
 - Deployment: `.ai/agents/deployment-agent.md`

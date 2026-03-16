@@ -30,6 +30,15 @@ The completion gate is incomplete if any of these sections are missing.
 
 ---
 
+## TDD Evidence Requirements
+
+When `.ai/workflows/tdd-pipeline.md` was used, the completion gate must also include:
+- TDD handoff artifact path listed
+- RED/GREEN checkpoint evidence listed
+- Property-test and mutation outcomes listed
+
+---
+
 ## Completion Plan Requirements
 
 The completion gate must include the finalization plan in the same packet as the user audit:

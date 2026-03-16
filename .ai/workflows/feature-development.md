@@ -101,18 +101,16 @@ Do not assume defaults that have not been recorded.
 
 ## Phase 3: Implement with TDD
 
-### Step 5: RED
-- Write the smallest failing test for the next behavior slice
-- Confirm it fails for the expected reason
+### Step 5: Run the TDD Pipeline
+- Run `.ai/workflows/tdd-pipeline.md` for stories that change tests plus production code
+- Initialize file handoff state with `bash scripts/tdd_handoff.sh init --story ... --spec ...`
+- Decide whether the story requires property tests and targeted mutation testing before implementation starts
 
-### Step 6: GREEN
-- Implement the minimum code to pass
-- Avoid unnecessary abstractions
-
-### Step 7: REFACTOR
-- Remove duplication
-- Improve naming and structure
-- Keep behavior unchanged while tests stay green
+### Step 6: RED -> GREEN -> REFACTOR Through the Pipeline
+- Agent 1: write the smallest failing behavior contract from the spec and public API surface only
+- Agent 2: implement the minimum code to pass without editing Agent 1 tests
+- Agent 3: review/refactor while keeping the suite green
+- Use `bash scripts/tdd_handoff.sh check ...` for RED/GREEN enforcement
 
 ---
 

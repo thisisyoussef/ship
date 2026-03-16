@@ -1,8 +1,8 @@
 # Ship - Single Source of Truth
 
 **Last Updated**: 2026-03-16
-**Current Phase**: AI harness lifecycle simplification and completion-gate consolidation
-**Active Sprint**: Proportionate routing, single-flight lock, and recovery-ready finalization
+**Current Phase**: AI harness TDD pipeline hardening
+**Active Sprint**: Multi-agent TDD split, property tests, and mutation gating
 **Project Status**: Active
 **Canonical Deployment Baseline**: API on AWS Elastic Beanstalk, frontend on S3/CloudFront, config/secrets on AWS-native services
 **Sanctioned Public Demo**: Render `ship-demo` at `https://ship-demo.onrender.com/`, deployed with `scripts/deploy-render-demo.sh`
@@ -12,14 +12,14 @@
 ## Current Focus
 
 ### Active Task
-- **Title**: Simplify the harness lifecycle with story sizing, a single writer lock, automatic wiring checks, bounded correction loops, and a combined completion gate
+- **Title**: Replace single-agent TDD with an isolated three-agent pipeline and file-based handoff
 - **Status**: In progress
 - **Owner**: Codex
 
 ### Next Immediate Actions
-1. Finish wiring the new post-lookup story sizing gate through the startup docs, task workflows, and workspace index.
-2. Retire the old multi-flight board contract in favor of the single writer lock and automatic AI wiring enforcement.
-3. Sync SSOT and memory so future runs enter through the combined completion gate plus finalization-recovery path.
+1. Wire `.ai/workflows/tdd-pipeline.md` through startup docs, task workflows, and compatibility configs.
+2. Keep `.ai/state/tdd-handoff/`, `scripts/tdd_handoff.sh`, and `scripts/run_targeted_mutation.sh` as the canonical file-based TDD substrate.
+3. Validate the new contract with `bash scripts/check_ai_wiring.sh` plus smoke checks for the handoff helper and mutation tooling.
 
 ---
 
@@ -93,6 +93,7 @@
 - Standard-lane implementation work uses the single writer lock in `.ai/workflows/parallel-flight.md`; trivial stories skip it.
 - AI-architecture diffs trigger `bash scripts/check_ai_wiring.sh` automatically in pre-commit and again in `bash scripts/git_finalize_guard.sh`.
 - `.ai/workflows/story-handoff.md` is the single user-facing completion gate; after approval, `.ai/workflows/git-finalization.md` executes or routes to `.ai/workflows/finalization-recovery.md`.
+- Use `.ai/workflows/tdd-pipeline.md` for behavior stories that change tests plus production code; do not fall back to a single shared-context TDD loop.
 - Keep the sanctioned public demo reference current: `scripts/deploy-render-demo.sh` -> `https://ship-demo.onrender.com/`.
 - For deploy-relevant stories, deployment status must still be explicit: `deployed`, `not deployed`, or `blocked`.
 

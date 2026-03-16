@@ -192,3 +192,10 @@ Capture reusable patterns that repeatedly work in this project.
 - **Benefits**: Fewer round-trips, clearer user review, and a more tangible completion packet.
 - **Tradeoffs**: The completion gate has to be well-structured so it does not become vague or overloaded.
 - **References**: `.ai/workflows/story-handoff.md`, `.ai/workflows/git-finalization.md`, `.ai/workflows/finalization-recovery.md`
+
+- **Pattern**: File-isolated three-agent TDD
+- **Use when**: A story changes both tests and implementation and the team wants a real red phase instead of implementation-aware tests.
+- **Approach**: Let Agent 1 write adversarial tests from spec plus public API only, enforce RED on disk, let Agent 2 implement without touching those tests, run property and mutation gates when applicable, then let Agent 3 review/refactor with a fresh context and final GREEN enforcement.
+- **Benefits**: Reduces fake-red cycles, improves edge-case pressure on the implementation, and leaves durable audit artifacts in `.ai/state/tdd-handoff/`.
+- **Tradeoffs**: Adds orchestration overhead and more helper tooling before coding starts.
+- **References**: `.ai/workflows/tdd-pipeline.md`, `scripts/tdd_handoff.sh`, `scripts/run_targeted_mutation.sh`, `.ai/state/tdd-handoff/README.md`

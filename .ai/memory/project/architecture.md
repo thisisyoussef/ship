@@ -143,3 +143,10 @@ Record durable architecture decisions.
 - **Decision**: Add a same-origin FleetGraph entry boundary at `api/src/routes/fleetgraph.ts` backed by `api/src/services/fleetgraph/entry/`. The frontend sends normalized `ShipContextEnvelope` input from the current document page, the backend derives a stable `thread_id`, routes through the existing FleetGraph runtime, and maps consequential requests into a typed approval envelope with `Apply`, `Dismiss`, and `Snooze` options. Surface that contract through an embedded `FleetGraphEntryCard` on `UnifiedDocumentPage`.
 - **Alternatives Considered**: Build a full chat UI before the entry contract exists; let FleetGraph fetch raw page context server-side through direct DB access; execute requested Ship writes immediately and add HITL later.
 - **Consequences**: T007 gives FleetGraph a real contextual entry surface and a tangible approval-required pause state without yet executing live Ship writes, but future stories must preserve this boundary instead of bypassing it with ad hoc page- or route-specific logic.
+
+- **ADR-ID**: ADR-0021
+- **Date**: 2026-03-16
+- **Context**: Ship's harness accumulated multiple near-canonical startup docs that repeated the same gate, routing, validation, and handoff rules. That increased startup token cost and made it unclear which file owned the live workflow contract.
+- **Decision**: Make `.ai/codex.md` the canonical orchestrator, keep `AGENTS.md` as the repo-level constraint layer, and reduce `.ai/agents/claude.md` plus other entrypoint files to thin compatibility mirrors that point back to Codex and the workflow files.
+- **Alternatives Considered**: Keep Claude as canonical and trim Codex instead; leave all three startup docs as full contracts; collapse all rules into AGENTS only.
+- **Consequences**: Startup instructions become shorter and easier to maintain, but future harness edits must preserve Codex-first ownership and avoid regrowing duplicate orchestrators.

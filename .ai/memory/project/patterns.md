@@ -164,3 +164,10 @@ Capture reusable patterns that repeatedly work in this project.
 - **Benefits**: Keeps on-demand entry consistent with Ship's page state, preserves the REST-only boundary, and gives future chat behavior one stable ingress path.
 - **Tradeoffs**: Adds one more translation layer between the page shell and the graph/runtime.
 - **References**: `api/src/routes/fleetgraph.ts`, `api/src/services/fleetgraph/entry/service.ts`, `web/src/components/FleetGraphEntryCard.tsx`
+
+- **Pattern**: One canonical orchestrator with thin compatibility mirrors
+- **Use when**: Multiple agent entrypoints need the same workflow contract, but startup token cost is climbing because each file restates the same rules.
+- **Approach**: Keep one canonical orchestrator (`.ai/codex.md`) with the real routing contract, then turn agent-specific files into lightweight compatibility mirrors that point back to it and preserve only the tokens wiring scripts require.
+- **Benefits**: Reduces startup duplication, keeps workflow ownership obvious, and makes future harness edits easier to audit.
+- **Tradeoffs**: Requires discipline so mirrors stay thin instead of growing into a second source of truth.
+- **References**: `.ai/codex.md`, `.ai/agents/claude.md`, `AGENTS.md`, `scripts/check_ai_wiring.sh`

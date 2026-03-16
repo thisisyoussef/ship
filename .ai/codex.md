@@ -1,99 +1,33 @@
 # Ship Development Orchestrator (Codex)
 
-You are Codex, an expert software engineer building Ship. Optimize for:
-1. **Test-Driven Development** (tests first)
-2. **Clean Architecture** (small modules, DRY, SOLID)
-3. **Security & Performance** (safe by default, measurable latency)
+`.ai/codex.md` is the canonical Ship orchestrator. Keep startup context small, route to the right workflow quickly, and let the workflow files hold the detailed procedure.
 
----
-
-## Step 0: Read First (Mandatory)
+## Read First
 
 Always read:
 - `.ai/docs/SINGLE_SOURCE_OF_TRUTH.md`
-- `.ai/agents/claude.md` (canonical master orchestrator)
+- `.ai/codex.md`
 
-Then check:
+Then use as needed:
+- `.ai/agents/claude.md` for Claude compatibility notes
 - `.ai/memory/project/patterns.md`
 - `.ai/memory/project/anti-patterns.md`
 - `.ai/memory/session/active-context.md`
 
----
+## Required Gates
 
-## Step 0.5: Story Preflight Gate (Mandatory)
+- New story preflight: run `agent-preflight`, publish the brief, sync remotes, and move to a fresh `codex/` branch before edits.
+- Feature stories: run `.ai/workflows/spec-driven-delivery.md`, apply `.ai/skills/spec-driven-development.md`, use `.ai/docs/research/spec-driven-tdd-playbook.md`, and create the required `.ai/templates/spec/` artifacts before coding.
+- UI scope: use `.ai/docs/design/DESIGN_PHILOSOPHY_AND_LANGUAGE.md`, `.ai/skills/frontend-design.md`, and `.ai/templates/spec/UI_PROMPT_BRIEF_TEMPLATE.md`.
+- Story lookup: run `.ai/workflows/story-lookup.md` and publish the local + external lookup brief before coding.
+- Narrow user corrections: run `.ai/workflows/user-correction-triage.md` before broadening scope.
+- AI-behavior changes: run `.ai/workflows/eval-driven-development.md` and publish the eval brief before coding.
+- Flight coordination: run `.ai/workflows/parallel-flight.md`, claim via `bash scripts/flight_slot.sh claim ...`, and release via `bash scripts/flight_slot.sh release ...`.
+- Story finish: run `.ai/workflows/story-handoff.md`.
+- Git finalization: run `.ai/workflows/git-finalization.md`; story completion requires a passing `bash scripts/git_finalize_guard.sh`.
+- AI architecture changes: run `.ai/workflows/ai-architecture-change.md` and `bash scripts/check_ai_wiring.sh` when `.ai/**`, `AGENTS.md`, `.clauderc`, `.cursorrules`, or `scripts/check_ai_wiring.sh` change.
 
-Before starting any new story:
-1. Run `agent-preflight` skill
-2. Share concise preflight brief
-3. Proceed to implementation only after preflight
-4. Sync remotes and move to a fresh `codex/` branch for that story before edits begin
-
----
-
-## Step 0.6: Spec-Driven Package Gate (Mandatory for Feature Stories)
-
-Before tests/implementation:
-1. Run `.ai/workflows/spec-driven-delivery.md`
-2. Apply `.ai/skills/spec-driven-development.md`
-3. Review methodology: `.ai/docs/research/spec-driven-tdd-playbook.md`
-4. For UI scope, review `.ai/docs/design/DESIGN_PHILOSOPHY_AND_LANGUAGE.md`
-5. Build story artifacts using `.ai/templates/spec/`
-   - `CONSTITUTION_TEMPLATE.md`
-   - `FEATURE_SPEC_TEMPLATE.md`
-   - `TECHNICAL_PLAN_TEMPLATE.md`
-   - `TASK_BREAKDOWN_TEMPLATE.md`
-   - `UI_COMPONENT_SPEC_TEMPLATE.md` (if UI is in scope)
-   - `UI_PROMPT_BRIEF_TEMPLATE.md` (if UI prompting needs explicit structure or reuse)
-6. For UI scope, apply `.ai/skills/frontend-design.md` so design prompts/specs use concrete visual constraints instead of vague taste words
-7. For story packs or phase packs, define the higher-level objectives first and draft the full story set in one planning pass before implementation begins
-
-Do not start coding until constitution/spec/plan/tasks are defined.
-
----
-
-## Step 0.7: Story Lookup Gate (Mandatory)
-
-Before implementation on any story:
-1. Run `.ai/workflows/story-lookup.md`
-2. Complete local + external docs lookup
-3. Share lookup brief before tests/code edits
-
-## Step 0.72: User Correction Triage (Mandatory for Narrow Corrections)
-
-If the user gives a targeted corrective note or clarification during the story:
-1. Run `.ai/workflows/user-correction-triage.md`
-2. Classify the blast radius before editing
-3. Keep the fix bounded unless the correction materially changes scope or architecture
-
----
-
-## Step 0.75: Eval-Driven Gate (Mandatory for AI-Behavior Changes)
-
-Before changing prompts, retrieval, tools, routing, handoffs, graders, or model-facing output rules:
-1. Run `.ai/workflows/eval-driven-development.md`
-2. Define eval objective, dataset slices, metrics, and thresholds
-3. Share eval brief before tests/code edits
-
----
-
-## Step 0.8: Flight Slot Coordination (Flexible Single/Parallel)
-
-Before implementation edits for a flight:
-1. Run `.ai/workflows/parallel-flight.md`
-2. Claim slot via `bash scripts/flight_slot.sh claim ...`
-3. Keep `single` mode for normal one-flight flow; switch to `parallel` only when coordinating multiple chats
-4. Confirm deployment impact against Ship's AWS deploy contract even for non-deployment stories
-
----
-
-## Step 0.9: Git Finalization Expectation (Mandatory at Story End)
-
-Before final story handoff, run `.ai/workflows/git-finalization.md`.
-Story completion requires commit + push confirmation and a passing `bash scripts/git_finalize_guard.sh`.
-
----
-
-## Step 1: Route by Task Type
+## Route by Task Type
 
 - Feature implementation -> `.ai/workflows/feature-development.md`
 - Bug fix -> `.ai/workflows/bug-fixing.md`
@@ -107,137 +41,57 @@ Story completion requires commit + push confirmation and a passing `bash scripts
 - Narrow user correction triage -> `.ai/workflows/user-correction-triage.md`
 - Eval-driven development for AI-behavior changes -> `.ai/workflows/eval-driven-development.md`
 - Spec-driven scaffolding (feature stories) -> `.ai/workflows/spec-driven-delivery.md`
-- UI philosophy tie-breaker -> `.ai/docs/design/DESIGN_PHILOSOPHY_AND_LANGUAGE.md` (when UI decisions are ambiguous)
-- UI prompting/design execution -> `.ai/skills/frontend-design.md`
-- Project-specific domain clarification -> create or replace domain agents under `.ai/agents/` during setup
 - Mandatory post-story handoff -> `.ai/workflows/story-handoff.md`
 
-## Step 1.1: Agentic Compression Rule
-
-Keep instructions minimal and context-bounded.
+## Implementation Defaults
 
 - Use `.ai/docs/AGENTIC_ENGINEERING_PRINCIPLES.md` as the default operating lens.
-- Keep rules and skills additive only when they remove repeated friction.
-- Separate research tasks from implementation tasks to prevent assumption-driven drift.
-- Ask agents to report evidence with neutral wording (especially for bug/review work).
-- Define termination clearly in each task contract (tests, checks, expected outputs).
+- Practice TDD: red -> green -> refactor.
+- Keep files under 250 lines and functions under 30 lines when practical.
+- Use `.ai/skills/code-standards.md`, `.ai/skills/security-checklist.md`, and `.ai/skills/performance-checklist.md`.
+- Follow `.claude/CLAUDE.md` and the active workflow for the current validation commands before handoff/commit.
+- For story packs or phase packs, define the higher-level objectives first and draft the full story set in one planning pass.
 
----
+## Quick Reference
 
-## Step 2: Specialist Delegation
+- TDD loop:
+  - red -> green -> refactor
+  - validate against acceptance criteria, edge cases, error paths, and integration behavior
+  - see `.ai/agents/tdd-agent.md`, `.ai/skills/tdd-workflow.md`, and `.ai/skills/testing-pyramid.md`
+- Validation command set:
+  - `pnpm test`
+  - `pnpm type-check`
+  - `pnpm lint`
+  - `pnpm --filter @ship/api test -- --coverage`
+  - `pnpm audit --prod`
+- Memory update set:
+  - `.ai/docs/SINGLE_SOURCE_OF_TRUTH.md`
+  - `.ai/memory/project/architecture.md`
+  - `.ai/memory/project/patterns.md`
+  - `.ai/memory/project/anti-patterns.md`
+  - `.ai/memory/codex/`
+  - `.ai/memory/session/decisions-today.md`
+- Specialist references:
+  - TDD: `.ai/agents/tdd-agent.md`
+  - Architecture: `.ai/agents/architect-agent.md`
+  - Security: `.ai/agents/security-agent.md`
+  - Deployment: `.ai/agents/deployment-agent.md`
 
-Use targeted specialist playbooks:
+## Memory and Handoff
+
+- Standard memory-update set:
+  - `.ai/docs/SINGLE_SOURCE_OF_TRUTH.md`
+  - `.ai/memory/project/architecture.md`
+  - `.ai/memory/project/patterns.md`
+  - `.ai/memory/project/anti-patterns.md`
+  - `.ai/memory/codex/`
+  - `.ai/memory/session/decisions-today.md`
+- Follow `.ai/workflows/story-handoff.md` for the exact handoff pack, including the **User Audit Checklist (Run This Now)** and explicit user approval before final git actions.
+
+## Specialist References
+
 - TDD: `.ai/agents/tdd-agent.md`
 - Architecture: `.ai/agents/architect-agent.md`
 - Security: `.ai/agents/security-agent.md`
 - Deployment: `.ai/agents/deployment-agent.md`
-- Additional project-specific specialist agents should be selected or created during setup
-
----
-
-## Step 3: TDD Execution Contract
-
-TDD must be anchored to story spec artifacts; tests validate acceptance criteria, not ad-hoc behavior.
-
-Follow red -> green -> refactor:
-1. Write failing tests first
-2. Implement minimum code to pass
-3. Refactor while tests remain green
-
-Checklist:
-- [ ] Happy path
-- [ ] Edge cases (empty/None/boundary/invalid)
-- [ ] Error paths
-- [ ] Integration behavior
-
-See `.ai/skills/tdd-workflow.md` and `.ai/skills/testing-pyramid.md`.
-
----
-
-## Step 4: Code Quality Gates
-
-See `.ai/skills/code-standards.md`.
-
-Hard constraints:
-- File size <250 lines (target 150)
-- Function size <30 lines (target 15)
-- Type hints required
-- No duplicated logic where extraction is appropriate
-
----
-
-## Step 5: Security and Performance Gates
-
-Security checklist:
-- `.ai/skills/security-checklist.md`
-
-Performance checklist:
-- `.ai/skills/performance-checklist.md`
-
-Ensure:
-- No secrets in code/logs
-- Input validation on all external inputs
-- Async I/O for network paths
-- Connection reuse/pooling where applicable
-
----
-
-## Step 6: Verification Commands
-
-Run the project-specific validation commands recorded during setup before handoff/commit:
-
-```bash
-pnpm test
-pnpm type-check
-pnpm lint
-pnpm --filter @ship/api test -- --coverage
-pnpm audit --prod
-```
-
----
-
-## Step 7: Memory and Documentation Updates
-
-After completing work, update:
-1. `.ai/docs/SINGLE_SOURCE_OF_TRUTH.md`
-2. `.ai/memory/project/architecture.md`
-3. `.ai/memory/project/patterns.md`
-4. `.ai/memory/project/anti-patterns.md`
-5. `.ai/memory/codex/`
-6. `.ai/memory/session/decisions-today.md`
-
----
-
-## Step 8: Story Handoff Checklist (Mandatory)
-
-After every story:
-1. Execute `.ai/workflows/story-handoff.md`
-2. Deliver checklist handoff for user audit
-3. Include a **User Audit Checklist (Run This Now)** with copy/paste commands/URLs, expected outcomes, and failure hints
-4. If AI-architecture files changed, run `.ai/workflows/ai-architecture-change.md` and include the outcome
-5. Request feedback explicitly
-6. Apply feedback updates before beginning the next story (unless user explicitly says continue)
-7. Release claimed flight slot with `bash scripts/flight_slot.sh release ...`
-8. Run `.ai/workflows/git-finalization.md` and report `git_finalize_guard.sh` result
-
----
-
-## MCP and Deployment Notes
-
-MCP config:
-- `.ai/mcp-config.json`
-
-Deployment workflows:
-- Provider-agnostic deployment setup and checks in `.ai/workflows/deployment-setup.md`
-- CI/CD behavior in `.ai/agents/deployment-agent.md`
-
----
-
-## Success Criteria
-
-Work is complete only when:
-- Tests pass
-- Coverage is above threshold
-- Type checking and linting pass
-- Security/performance checklists satisfied
-- SSOT and memory bank updated
+- Claude compatibility mirror: `.ai/agents/claude.md`

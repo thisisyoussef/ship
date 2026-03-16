@@ -47,6 +47,9 @@
 - Decided the embedded FleetGraph page surface should send normalized Ship page context to the backend rather than rebuilding context from raw router state or direct DB reads.
 - Decided consequential on-demand requests should map to a typed approval envelope with `Apply`, `Dismiss`, and `Snooze` options before any Ship write execution is introduced.
 - Added an embedded `FleetGraphEntryCard` on `UnifiedDocumentPage` so T007 has a visible document-page proof surface instead of staying backend-only.
+- Decided the minimal harness trim should keep filenames, workflows, and scripts intact while removing repeated prose from startup docs.
+- Decided Codex should become the canonical orchestrator and Claude/Cursor entrypoints should defer to Codex as compatibility mirrors instead of carrying duplicate master contracts.
+- Replaced repeated validation-command, memory-update, and handoff prose in startup docs with references to the canonical workflow files.
 
 Record session-level technical decisions.
 

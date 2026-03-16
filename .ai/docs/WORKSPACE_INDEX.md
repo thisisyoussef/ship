@@ -8,8 +8,8 @@ This index links the full AI workspace so any agent can navigate it consistently
 3. SSOT: `.ai/docs/SINGLE_SOURCE_OF_TRUTH.md`
 4. FleetGraph assignment brief: `docs/assignments/fleetgraph/README.md`
 5. FleetGraph durable reference: `.ai/docs/references/fleetgraph-prd.md`
-6. Canonical orchestrator: `.ai/agents/claude.md`
-7. Codex mirror: `.ai/codex.md`
+6. Canonical orchestrator: `.ai/codex.md`
+7. Claude compatibility mirror: `.ai/agents/claude.md`
 8. Cursor entry: `.ai/agents/cursor-agent.md`
 9. Claude config: `.clauderc`
 10. Skill catalog: `.ai/docs/CODEX_SKILLS.md`

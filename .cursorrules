@@ -16,22 +16,23 @@ Ship is a production monorepo with:
 
 ## Development Workflow
 1. **ALWAYS start** by reading `.ai/docs/SINGLE_SOURCE_OF_TRUTH.md`
-2. **ALWAYS read orchestrator**: `.ai/agents/claude.md`
-3. **If setup is incomplete, choose the stack first**: language, framework, runtime, package manager, deploy target, source dirs, test dirs, validation commands
-3. **ALWAYS run preflight for new stories**: `agent-preflight` brief before edits
-4. **ALWAYS run SDD scaffolding for features**: `.ai/workflows/spec-driven-delivery.md` + `.ai/docs/research/spec-driven-tdd-playbook.md` + `.ai/templates/spec/`
-5. **For UI scope, use design philosophy as tie-breaker**: `.ai/docs/design/DESIGN_PHILOSOPHY_AND_LANGUAGE.md`
-6. **For UI scope, apply the frontend design skill**: `.ai/skills/frontend-design.md`
-7. **For strategic or reusable UI prompting, create a UI prompt brief**: `.ai/templates/spec/UI_PROMPT_BRIEF_TEMPLATE.md`
-8. **ALWAYS run lookup before coding**: `.ai/workflows/story-lookup.md` (local docs + web best practices)
-9. **If the user gives a narrow corrective note, triage it first**: `.ai/workflows/user-correction-triage.md`
-10. **Coordinate flight slots before edits**: `.ai/workflows/parallel-flight.md` + `bash scripts/flight_slot.sh claim ...` (default mode is single)
-11. **For AI-behavior changes, run eval design first**: `.ai/workflows/eval-driven-development.md`
-12. **Before coding/review work**: read `.ai/docs/AGENTIC_ENGINEERING_PRINCIPLES.md`
-13. **Test-first**: Write tests before implementation (TDD)
-14. **Test prompt and review tasks neutrally**: ask for evidence, severity, and risk rather than assuming defects
-15. **File limits**: <250 lines max, target 150 lines
-16. **DRY principle**: Extract duplication into shared modules appropriate for the chosen stack
+2. **ALWAYS read orchestrator**: `.ai/codex.md`
+3. **Read Claude compatibility notes when needed**: `.ai/agents/claude.md`
+4. **If setup is incomplete, choose the stack first**: language, framework, runtime, package manager, deploy target, source dirs, test dirs, validation commands
+5. **ALWAYS run preflight for new stories**: `agent-preflight` brief before edits
+6. **ALWAYS run SDD scaffolding for features**: `.ai/workflows/spec-driven-delivery.md` + `.ai/docs/research/spec-driven-tdd-playbook.md` + `.ai/templates/spec/`
+7. **For UI scope, use design philosophy as tie-breaker**: `.ai/docs/design/DESIGN_PHILOSOPHY_AND_LANGUAGE.md`
+8. **For UI scope, apply the frontend design skill**: `.ai/skills/frontend-design.md`
+9. **For strategic or reusable UI prompting, create a UI prompt brief**: `.ai/templates/spec/UI_PROMPT_BRIEF_TEMPLATE.md`
+10. **ALWAYS run lookup before coding**: `.ai/workflows/story-lookup.md` (local docs + web best practices)
+11. **If the user gives a narrow corrective note, triage it first**: `.ai/workflows/user-correction-triage.md`
+12. **Coordinate flight slots before edits**: `.ai/workflows/parallel-flight.md` + `bash scripts/flight_slot.sh claim ...` (default mode is single)
+13. **For AI-behavior changes, run eval design first**: `.ai/workflows/eval-driven-development.md`
+14. **Before coding/review work**: read `.ai/docs/AGENTIC_ENGINEERING_PRINCIPLES.md`
+15. **Test-first**: Write tests before implementation (TDD)
+16. **Test prompt and review tasks neutrally**: ask for evidence, severity, and risk rather than assuming defects
+17. **File limits**: <250 lines max, target 150 lines
+18. **DRY principle**: Extract duplication into shared modules appropriate for the chosen stack
 
 ## Code Standards
 - **Type hints**: Required on all functions

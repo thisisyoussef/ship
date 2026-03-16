@@ -8,6 +8,7 @@
   "rules": {
     "alwaysReadFirst": [
       ".ai/docs/SINGLE_SOURCE_OF_TRUTH.md",
+      ".ai/codex.md",
       ".ai/agents/claude.md"
     ],
     "beforeCoding": [

@@ -129,3 +129,17 @@ Capture reusable patterns that repeatedly work in this project.
 - **Benefits**: Keeps the live demo aligned with merged work and prevents provider-side tribal knowledge from becoming a release dependency.
 - **Tradeoffs**: Adds another deployment surface to track alongside production.
 - **References**: `scripts/deploy-render-demo.sh`, `.ai/workflows/deployment-setup.md`, `README.md`
+
+- **Pattern**: Root trace metadata plus adapter child spans
+- **Use when**: A FleetGraph story needs observability before full LangGraph orchestration exists.
+- **Approach**: Stamp workspace, trigger, branch, outcome, provider, and model on the root `fleetgraph.run`, then decorate the provider-agnostic adapter so `generate()` emits a child `fleetgraph.llm.generate` span without leaking tracing into graph-node code.
+- **Benefits**: Keeps branch-level visibility consistent from day one and gives future graph code a reusable tracing boundary instead of ad hoc spans.
+- **Tradeoffs**: Adds a small composition layer around the adapter and requires one shared runtime helper for trace-link handling.
+- **References**: `api/src/services/fleetgraph/tracing/runtime.ts`, `api/src/services/fleetgraph/tracing/types.ts`
+
+- **Pattern**: Explicit branch shell before real graph behavior
+- **Use when**: A LangGraph-based feature needs stable control flow and checkpoint semantics before real fetch, scoring, or mutation nodes exist.
+- **Approach**: Define a typed runtime input, compile a `StateGraph` with explicit branch nodes (`quiet_exit`, `reason_and_deliver`, `approval_interrupt`, `fallback`), and persist thread-scoped checkpoints with `MemorySaver` so later stories inherit one control-flow contract.
+- **Benefits**: Keeps future node work aligned to one state shape, makes quiet vs non-quiet paths testable early, and prevents feature stories from inventing ad hoc branching semantics.
+- **Tradeoffs**: Adds substrate code that does not deliver end-user value by itself and must be kept intentionally minimal until real nodes arrive.
+- **References**: `api/src/services/fleetgraph/graph/runtime.ts`, `api/src/services/fleetgraph/graph/state.ts`, `api/src/services/fleetgraph/graph/runtime.test.ts`

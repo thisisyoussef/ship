@@ -16,15 +16,22 @@
   - `.ai/docs/SINGLE_SOURCE_OF_TRUTH.md`
   - `.ai/memory/project/*`
   - `docs/specs/fleetgraph/FLEETGRAPH-FOUNDATION-PHASE/`
+  - `api/src/services/fleetgraph/llm/`
+  - `api/src/services/fleetgraph/tracing/`
+  - `api/src/services/fleetgraph/graph/`
+  - `api/vitest.fleetgraph.config.ts`
+  - `api/package.json`
 - Public interfaces/contracts:
   - `LLMAdapter`: provider-agnostic model adapter; OpenAI default path
   - `TriggerEnvelope`: event or scheduled-sweep entry contract
   - `FleetGraphState`: shared graph state for proactive and on-demand modes
+  - `FleetGraphRuntimeInput`: validated graph input envelope before checkpointed execution
   - `ShipContextEnvelope`: normalized contextual input from Ship routes
   - `InsightLedger`: dedupe/checkpoint metadata contract
 - Data flow summary:
   - Repo docs point future agents to the PDF, PRD reference, presearch, and foundation spec pack.
   - The foundation spec pack sequences future implementation into reconnaissance -> provider contract -> tracing -> graph runtime -> normalization -> worker substrate -> deployment -> UI/HITL integration.
+  - The current substrate path is adapter -> tracing -> graph shell, with real Ship fetch/normalize nodes deferred to T005+.
 
 ## Architecture Decisions
 - Decision: Treat the next FleetGraph phase as substrate-first instead of feature-first.
@@ -50,15 +57,16 @@
 
 ## Dependency Plan
 - Existing dependencies used:
-  - None added in this story.
-- New dependencies proposed (if any):
   - `@langchain/langgraph`
   - `langsmith`
-  - `openai`
-  - typed schema validation helpers such as `zod` if the implementation layer needs stricter state contracts
+  - `zod`
+- New dependencies proposed (if any):
+  - none in this story beyond the graph runtime package already added
 - Risk and mitigation:
   - Risk: dependency decisions get copied from adjacent repos without checking fit.
   - Mitigation: make the first foundation story a gauntlet-wide inventory of reusable patterns and known bad fits.
+  - Risk: later stories bypass the shared graph shell and reintroduce ad hoc branch names or per-story state.
+  - Mitigation: keep T005+ work behind `api/src/services/fleetgraph/graph/` and extend shared runtime types instead of creating parallel graph entry points.
 
 ## Test Strategy
 - Unit tests:
@@ -91,7 +99,7 @@
 
 ## Rollout and Risk Mitigation
 - Rollback strategy:
-  - because this story is docs/spec only, rollback is path-level revert if future implementation disagrees
+  - because this story adds only local substrate modules and tests, rollback is a path-level revert of `api/src/services/fleetgraph/graph/` plus the associated docs/memory notes
 - Feature flags/toggles:
   - foundation stories should assume separate toggles for proactive worker, embedded chat surface, and any write-capable actions
 - Observability checks:
@@ -100,6 +108,7 @@
 
 ## Validation Commands
 ```bash
-rg -n "APPROACH_REFERENCE.md|provider-agnostic|OpenAI|PRESEARCH.md|FleetGraph_PRD.pdf" docs/assignments/fleetgraph/README.md .ai/docs/SINGLE_SOURCE_OF_TRUTH.md .ai/docs/references/fleetgraph-prd.md docs/assignments/fleetgraph/PRESEARCH.md docs/assignments/fleetgraph/FLEETGRAPH.md
-find docs/specs/fleetgraph/FLEETGRAPH-FOUNDATION-PHASE -maxdepth 1 -type f | sort
+cd api && pnpm exec vitest run --config vitest.fleetgraph.config.ts
+pnpm --filter @ship/api type-check
+pnpm --filter @ship/api build
 ```

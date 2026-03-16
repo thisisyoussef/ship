@@ -108,3 +108,17 @@ Record durable architecture decisions.
 - **Decision**: Keep AWS as the production baseline and formalize Render `ship-demo` as the sanctioned public demo environment, deployed through a checked-in script (`scripts/deploy-render-demo.sh`) and referenced in story/finalization workflows.
 - **Alternatives Considered**: Ignore the Render demo because it is not production; repoint production documentation to Render; keep the demo path as an unwritten manual provider-side detail.
 - **Consequences**: Deploy-relevant stories now need both production-path review and public-demo status, but future releases are less likely to drift away from the live demo the team actually uses.
+
+- **ADR-ID**: ADR-0016
+- **Date**: 2026-03-16
+- **Context**: FleetGraph now has a provider-agnostic `LLMAdapter`, but T003 needs durable observability before LangGraph and worker behavior arrive. The trace contract must differentiate quiet versus non-quiet branches, preserve workspace/trigger metadata, and avoid making public trace exposure automatic.
+- **Decision**: Add a FleetGraph-local tracing runtime under `api/src/services/fleetgraph/tracing/` with three parts: resolved LangSmith settings/client creation, an adapter decorator that emits `fleetgraph.llm.generate` spans, and a root `fleetgraph.run` helper that stamps workspace/trigger/branch/outcome metadata and creates share links only when `FLEETGRAPH_LANGSMITH_SHARE_TRACES=true`.
+- **Alternatives Considered**: Wait until LangGraph exists before tracing anything; instrument only the future graph root and skip adapter-level spans; create public share links automatically whenever tracing is enabled.
+- **Consequences**: Future FleetGraph nodes can inherit tracing from one entry point, quiet and advisory runs can be compared in LangSmith with consistent metadata, and public trace URLs remain an explicit operational choice instead of an accidental default.
+
+- **ADR-ID**: ADR-0017
+- **Date**: 2026-03-16
+- **Context**: FleetGraph now has a provider boundary and trace contract, but T004 needs a durable graph shell before normalization, workers, or UI entry can be added safely. The runtime must distinguish quiet, reasoned, approval-required, and fallback outcomes while preserving checkpoint state by `thread_id`.
+- **Decision**: Add a FleetGraph-local LangGraph runtime under `api/src/services/fleetgraph/graph/` that validates typed runtime input, compiles a `StateGraph` with `MemorySaver`, and routes through explicit `quiet_exit`, `reason_and_deliver`, `approval_interrupt`, and `fallback` nodes backed by one shared `FleetGraphState` contract.
+- **Alternatives Considered**: Wait to add LangGraph until real REST fetch nodes exist; build the first feature as a prompt chain and retrofit branches later; implement human interrupts in T004 instead of keeping this story substrate-only.
+- **Consequences**: Future stories can plug real fetch/normalize/worker logic into a stable branch taxonomy and checkpoint boundary, but graph-node implementations must continue using the shared state contract rather than inventing branch-local state shapes.

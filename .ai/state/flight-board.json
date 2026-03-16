@@ -287,6 +287,43 @@
       "slot": "ai_arch",
       "status": "completed",
       "story_ref": "DEPLOY-DEMO"
+    },
+    {
+      "branch": "codex/fleetgraph-t003-tracing",
+      "claimed_at": "2026-03-16T19:05:43Z",
+      "flight_id": "fleetgraph-t003",
+      "lock_paths": [
+        ".ai/docs/SINGLE_SOURCE_OF_TRUTH.md",
+        ".ai/memory",
+        "api/src/services/fleetgraph",
+        "api/vitest.fleetgraph.config.ts",
+        "docs/specs/fleetgraph"
+      ],
+      "notes": "Bootstrap LangSmith tracing and trace metadata taxonomy around FleetGraph adapter boundary",
+      "owner": "codex",
+      "release_summary": "T003 LangSmith tracing bootstrap handoff delivered",
+      "released_at": "2026-03-16T19:16:13Z",
+      "slot": "code",
+      "status": "completed",
+      "story_ref": "T003"
+    },
+    {
+      "branch": "codex/fleetgraph-t004-graph-runtime",
+      "claimed_at": "2026-03-16T19:17:47Z",
+      "flight_id": "fleetgraph-t004",
+      "lock_paths": [
+        ".ai/docs",
+        ".ai/memory",
+        "api/src/services/fleetgraph",
+        "docs/specs/fleetgraph"
+      ],
+      "notes": "Stand up LangGraph runtime skeleton, shared state schema, branch taxonomy, and checkpoint boundaries",
+      "owner": "codex",
+      "release_summary": "Implemented LangGraph runtime shell with typed state, explicit branch taxonomy, and thread_id checkpoint boundaries for proactive and on-demand modes.",
+      "released_at": "2026-03-16T19:24:31Z",
+      "slot": "code",
+      "status": "completed",
+      "story_ref": "T004"
     }
   ],
   "parallel_max_active_flights": 3,
@@ -297,6 +334,6 @@
     "docs": 2,
     "infra": 1
   },
-  "updated_at": "2026-03-16T18:55:07Z",
+  "updated_at": "2026-03-16T19:24:31Z",
   "version": 1
 }

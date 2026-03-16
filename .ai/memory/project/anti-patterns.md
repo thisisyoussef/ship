@@ -98,3 +98,13 @@ Capture failures so they are not repeated.
 - **Example**: The team actively uses `ship-demo.onrender.com`, but the repo workflows only mention AWS and treat the Render demo as a manual rumor instead of a wired deployment surface.
 - **Why it failed**: Story handoffs can say "not deployed" even when a sanctioned demo path exists, and future agents may never refresh the environment users are actually looking at.
 - **Prevention rule**: If a live demo environment matters to the team, give it a repo-owned deploy script and document it explicitly in the deployment workflows.
+
+- **Problem**: Auto-sharing LangSmith traces whenever tracing is enabled
+- **Example**: Making every FleetGraph trace public by default as soon as the API key and tracing toggle are present.
+- **Why it failed**: Anyone with the shared URL can view the trace, so automatic public sharing turns normal observability into accidental data exposure.
+- **Prevention rule**: Keep tracing enablement separate from public sharing and require an explicit FleetGraph share flag before creating public LangSmith links.
+
+- **Problem**: Letting branch taxonomy drift across presearch, traces, and runtime code
+- **Example**: Presearch talks about `quiet_exit` and `approval_interrupt`, tracing records `branch:quiet`, and runtime nodes improvise different names or state fields for the same path.
+- **Why it failed**: Tests, traces, and future graph stories stop lining up, which makes checkpoint history harder to interpret and encourages branch-local hacks.
+- **Prevention rule**: Keep one explicit FleetGraph branch contract and map node names, branch labels, and outcomes through shared runtime types.

@@ -23,6 +23,12 @@
 - Implemented FleetGraph foundation story `T002` with a dedicated provider-agnostic `LLMAdapter` factory under `api/src/services/fleetgraph/llm/`.
 - Decided FleetGraph should default to OpenAI Responses and keep Bedrock Anthropic behind the same adapter contract for compatibility only.
 - Added a DB-free Vitest config for FleetGraph pure unit modules so substrate tests can run without the API integration database harness.
+- Implemented FleetGraph foundation story `T003` with LangSmith settings resolution, adapter-level `fleetgraph.llm.generate` spans, and a root `fleetgraph.run` helper under `api/src/services/fleetgraph/tracing/`.
+- Decided FleetGraph root traces should carry workspace, trigger, branch, outcome, provider, and model metadata so quiet and non-quiet runs are queryable before LangGraph exists.
+- Decided public LangSmith trace links must stay explicit opt-in through `FLEETGRAPH_LANGSMITH_SHARE_TRACES` instead of becoming an automatic side effect of tracing.
+- Implemented FleetGraph foundation story `T004` with a LangGraph runtime shell under `api/src/services/fleetgraph/graph/`.
+- Decided FleetGraph runtime input should be validated before invocation and should always resolve to one shared `FleetGraphState` contract.
+- Decided T004 should keep the branch shell explicit and checkpointed by `thread_id`, but should defer true HITL pause semantics and real business nodes to later stories.
 - Decided every new story must start with remote sync plus a fresh `codex/` branch instead of continuing on the previous story's branch.
 - Decided every story must review impact against Ship's real AWS deployment contract and either update deploy surfaces or explicitly record `deployment impact: none`.
 - Decided story packs and phase packs must define higher-level objectives first and write the full story set in one pass before implementation begins.

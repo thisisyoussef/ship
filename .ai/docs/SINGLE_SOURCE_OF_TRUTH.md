@@ -2,7 +2,7 @@
 
 **Last Updated**: 2026-03-16
 **Current Phase**: FleetGraph foundation-phase execution
-**Active Sprint**: T002 provider adapter and runtime config
+**Active Sprint**: T004 graph runtime skeleton and checkpoint boundaries
 **Project Status**: Active
 **Canonical Deployment Baseline**: API on AWS Elastic Beanstalk, frontend on S3/CloudFront, config/secrets on AWS-native services
 **Sanctioned Public Demo**: Render `ship-demo` at `https://ship-demo.onrender.com/`, deployed with `scripts/deploy-render-demo.sh`
@@ -12,14 +12,14 @@
 ## Current Focus
 
 ### Active Task
-- **Title**: Execute FleetGraph foundation story T002 by adding the provider-agnostic `LLMAdapter` with OpenAI as the default path
-- **Status**: In Progress
+- **Title**: Execute FleetGraph foundation story T004 by standing up the LangGraph runtime skeleton, shared state schema, branch taxonomy, and checkpoint boundaries for proactive and on-demand modes
+- **Status**: Implemented locally, pending audit/finalization
 - **Owner**: Codex
 
 ### Next Immediate Actions
-1. Use the new `LLMAdapter` boundary as the only provider entry point for FleetGraph nodes.
-2. Bootstrap LangSmith tracing and trace metadata taxonomy around the adapter boundary before graph implementation begins.
-3. Start the LangGraph skeleton only after adapter and tracing decisions are locked.
+1. Treat `api/src/services/fleetgraph/graph/` as the only shared FleetGraph runtime shell for future substrate work.
+2. Build T005 normalization against the typed `FleetGraphState` and `TriggerEnvelope` contract instead of raw Ship payloads.
+3. Keep future HITL behavior on top of the explicit `approval_required` branch instead of inventing separate pause pathways.
 
 ---
 
@@ -44,6 +44,7 @@
 - Working presearch assumption: FleetGraph is provider-agnostic with OpenAI as the preferred default, though Ship already has Bedrock Claude code that can be reused as fallback/reference.
 - LangGraph is recommended. If another framework is used, manual LangSmith instrumentation is required.
 - LangSmith tracing is required from day one.
+- Public LangSmith share links must be explicit opt-in because anyone with the link can view the trace.
 - Implement both proactive and on-demand modes through the same graph architecture.
 - The chat interface must be embedded in Ship context. No standalone chatbot page.
 - Consequential actions require a human-in-the-loop confirmation gate.
@@ -69,6 +70,8 @@
 - `docs/specs/fleetgraph/FLEETGRAPH-FOUNDATION-PHASE/`
 - `docs/specs/fleetgraph/FLEETGRAPH-FOUNDATION-PHASE/reconnaissance-note.md`
 - `api/src/services/fleetgraph/llm/`
+- `api/src/services/fleetgraph/tracing/`
+- `api/src/services/fleetgraph/graph/`
 - Shared LangSmith trace links showing different execution paths
 
 ---

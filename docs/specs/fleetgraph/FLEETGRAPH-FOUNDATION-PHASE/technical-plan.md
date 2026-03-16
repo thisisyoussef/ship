@@ -19,6 +19,7 @@
   - `api/src/services/fleetgraph/llm/`
   - `api/src/services/fleetgraph/tracing/`
   - `api/src/services/fleetgraph/graph/`
+  - `api/src/services/fleetgraph/normalize/`
   - `api/vitest.fleetgraph.config.ts`
   - `api/package.json`
 - Public interfaces/contracts:
@@ -26,12 +27,13 @@
   - `TriggerEnvelope`: event or scheduled-sweep entry contract
   - `FleetGraphState`: shared graph state for proactive and on-demand modes
   - `FleetGraphRuntimeInput`: validated graph input envelope before checkpointed execution
+  - `NormalizedShipDocument`: one internal FleetGraph document model derived from canonical + legacy Ship payloads
   - `ShipContextEnvelope`: normalized contextual input from Ship routes
   - `InsightLedger`: dedupe/checkpoint metadata contract
 - Data flow summary:
   - Repo docs point future agents to the PDF, PRD reference, presearch, and foundation spec pack.
   - The foundation spec pack sequences future implementation into reconnaissance -> provider contract -> tracing -> graph runtime -> normalization -> worker substrate -> deployment -> UI/HITL integration.
-  - The current substrate path is adapter -> tracing -> graph shell, with real Ship fetch/normalize nodes deferred to T005+.
+  - The current substrate path is adapter -> tracing -> graph shell -> normalization boundary, with real Ship fetch and worker nodes deferred to T006+.
 
 ## Architecture Decisions
 - Decision: Treat the next FleetGraph phase as substrate-first instead of feature-first.
@@ -67,6 +69,8 @@
   - Mitigation: make the first foundation story a gauntlet-wide inventory of reusable patterns and known bad fits.
   - Risk: later stories bypass the shared graph shell and reintroduce ad hoc branch names or per-story state.
   - Mitigation: keep T005+ work behind `api/src/services/fleetgraph/graph/` and extend shared runtime types instead of creating parallel graph entry points.
+  - Risk: normalization drifts from live route payloads and silently drops legacy relationship hints that still matter in team/accountability flows.
+  - Mitigation: keep the normalization layer fixture-tested against canonical + legacy combinations and treat route/context shaping as its own boundary.
 
 ## Test Strategy
 - Unit tests:

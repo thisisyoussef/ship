@@ -2,7 +2,7 @@
 
 **Last Updated**: 2026-03-16
 **Current Phase**: FleetGraph foundation-phase execution
-**Active Sprint**: T004 graph runtime skeleton and checkpoint boundaries
+**Active Sprint**: T005 REST normalization and context envelopes
 **Project Status**: Active
 **Canonical Deployment Baseline**: API on AWS Elastic Beanstalk, frontend on S3/CloudFront, config/secrets on AWS-native services
 **Sanctioned Public Demo**: Render `ship-demo` at `https://ship-demo.onrender.com/`, deployed with `scripts/deploy-render-demo.sh`
@@ -12,14 +12,14 @@
 ## Current Focus
 
 ### Active Task
-- **Title**: Execute FleetGraph foundation story T004 by standing up the LangGraph runtime skeleton, shared state schema, branch taxonomy, and checkpoint boundaries for proactive and on-demand modes
+- **Title**: Execute FleetGraph foundation story T005 by building the Ship REST normalization layer and trigger/context envelopes for mixed canonical and legacy payloads
 - **Status**: Implemented locally, pending audit/finalization
 - **Owner**: Codex
 
 ### Next Immediate Actions
-1. Treat `api/src/services/fleetgraph/graph/` as the only shared FleetGraph runtime shell for future substrate work.
-2. Build T005 normalization against the typed `FleetGraphState` and `TriggerEnvelope` contract instead of raw Ship payloads.
-3. Keep future HITL behavior on top of the explicit `approval_required` branch instead of inventing separate pause pathways.
+1. Treat `api/src/services/fleetgraph/normalize/` as the only FleetGraph boundary for mixed Ship REST payloads and route-derived context.
+2. Build T006 worker and enqueue code against `TriggerEnvelope` plus normalized documents instead of raw route responses.
+3. Build T007 same-origin entry/HITL contracts on top of `ShipContextEnvelope` rather than recreating frontend context shaping.
 
 ---
 
@@ -72,6 +72,7 @@
 - `api/src/services/fleetgraph/llm/`
 - `api/src/services/fleetgraph/tracing/`
 - `api/src/services/fleetgraph/graph/`
+- `api/src/services/fleetgraph/normalize/`
 - Shared LangSmith trace links showing different execution paths
 
 ---

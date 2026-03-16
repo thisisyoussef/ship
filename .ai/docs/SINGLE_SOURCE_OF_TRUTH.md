@@ -1,8 +1,8 @@
 # Ship - Single Source of Truth
 
 **Last Updated**: 2026-03-16
-**Current Phase**: FleetGraph foundation-phase execution
-**Active Sprint**: T007 same-origin entry and HITL contract
+**Current Phase**: AI harness trim and startup-contract consolidation
+**Active Sprint**: Minimal harness trim with Codex as canonical orchestrator
 **Project Status**: Active
 **Canonical Deployment Baseline**: API on AWS Elastic Beanstalk, frontend on S3/CloudFront, config/secrets on AWS-native services
 **Sanctioned Public Demo**: Render `ship-demo` at `https://ship-demo.onrender.com/`, deployed with `scripts/deploy-render-demo.sh`
@@ -12,20 +12,22 @@
 ## Current Focus
 
 ### Active Task
-- **Title**: Execute FleetGraph foundation story T007 by adding the same-origin entry contract, embedded document-page surface, and HITL approval envelope
-- **Status**: Implemented locally, pending audit/finalization
+- **Title**: Trim duplicated startup and handoff prose while keeping workflow wiring intact and making Codex canonical
+- **Status**: In progress
 - **Owner**: Codex
 
 ### Next Immediate Actions
-1. Treat `api/src/routes/fleetgraph.ts` plus `api/src/services/fleetgraph/entry/` as the same-origin entry boundary for on-demand FleetGraph runs.
-2. Treat `web/src/components/FleetGraphEntryCard.tsx` and `web/src/hooks/useFleetGraphEntry.ts` as the embedded Ship page surface for contextual FleetGraph entry and approval previews.
-3. Build T008 deployment/auth/secrets readiness around the new API route, worker runtime, demo deploy, and service-token path.
+1. Keep `AGENTS.md`, `.ai/codex.md`, and `.ai/agents/claude.md` aligned around one Codex-first startup contract.
+2. Trim repeated validation, memory-update, and handoff prose by deferring to canonical workflows instead of restating them.
+3. Update `scripts/check_ai_wiring.sh`, workspace/index docs, and compatibility config files to enforce the Codex-first canonical model.
 
 ---
 
 ## Repo Baseline
 
 - **Canonical repo handbook**: `.claude/CLAUDE.md`
+- **Canonical orchestrator**: `.ai/codex.md`
+- **Compatibility mirrors**: `.ai/agents/claude.md`, `.ai/agents/cursor-agent.md`
 - **Root agent entrypoints**: `AGENTS.md`, `CLAUDE.md`
 - **Live AI workspace**: `.ai/`
 - **Story branch rule**: every new story starts on a fresh `codex/` branch after remote sync; do not continue a new story on the previous story's branch
@@ -83,27 +85,11 @@
 
 ---
 
-## Validation Commands
-
-```bash
-pnpm test
-pnpm type-check
-pnpm lint
-pnpm --filter @ship/api test -- --coverage
-pnpm audit --prod
-```
-
 ## Story Execution Guardrails
 
-- Sync remotes before and after every new story or branch transition with:
-  - `git fetch --all --prune`
-  - `git status -sb`
-  - `git branch -vv`
-- Review deployment impact on every story against Ship's AWS production surfaces and the sanctioned Render public demo path.
-- If a story does not affect deployment surfaces, record `deployment impact: none` in handoff instead of skipping the review silently.
-- For deploy-relevant stories, deployment status must be explicit: `deployed`, `not deployed`, or `blocked`.
-- For deploy-relevant stories, refresh the Render public demo after merge with `scripts/deploy-render-demo.sh <commit>` unless the handoff records an explicit block.
-- For story packs or phase packs, define the higher-level objectives first and write the whole story set together before implementation starts.
+- Follow `AGENTS.md`, `.ai/codex.md`, and the active workflow for validation commands, branch rollover, deployment review, and handoff requirements.
+- Keep the sanctioned public demo reference current: `scripts/deploy-render-demo.sh` -> `https://ship-demo.onrender.com/`.
+- For deploy-relevant stories, deployment status must still be explicit: `deployed`, `not deployed`, or `blocked`.
 
 ---
 
@@ -116,4 +102,5 @@ pnpm audit --prod
 5. `.ai/docs/references/fleetgraph-prd.md`
 6. `docs/assignments/fleetgraph/PRESEARCH.md`
 7. `docs/specs/fleetgraph/FLEETGRAPH-FOUNDATION-PHASE/feature-spec.md`
-8. `.ai/agents/claude.md`
+8. `.ai/codex.md`
+9. `.ai/agents/claude.md`

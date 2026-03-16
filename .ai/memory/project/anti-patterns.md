@@ -123,3 +123,8 @@ Capture failures so they are not repeated.
 - **Example**: A page-specific FleetGraph widget reads `useParams()` and document fields ad hoc, or the backend jumps straight to the database to reconstruct context, instead of going through the normalized page-context contract.
 - **Why it failed**: Context drift appears between the page shell, the API route, and the graph runtime, which makes approval behavior and thread lineage inconsistent.
 - **Prevention rule**: Always build on-demand entry through the normalized page-context payload and `/api/fleetgraph/entry`, with the backend deriving the final trigger envelope and `thread_id`.
+
+- **Problem**: Multiple full orchestrators competing as startup source of truth
+- **Example**: `AGENTS.md`, `.ai/agents/claude.md`, and `.ai/codex.md` each restate the same gates, routing, validation commands, and handoff prose with slightly different emphasis.
+- **Why it failed**: Startup token load grows, canonical ownership gets ambiguous, and trimming one file becomes risky because the others may silently drift.
+- **Prevention rule**: Keep one canonical orchestrator and make the other agent entrypoints thin compatibility mirrors that defer to it.

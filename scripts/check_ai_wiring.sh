@@ -343,6 +343,7 @@ import sys
 root = Path.cwd()
 targets = [
     "AGENTS.md",
+    ".ai/agents/claude.md",
     ".ai/codex.md",
     ".ai/agents/cursor-agent.md",
     ".ai/docs/WORKSPACE_INDEX.md",
@@ -350,7 +351,7 @@ targets = [
     ".clauderc",
     ".cursorrules",
 ]
-canonical = ".ai/agents/claude.md"
+canonical = ".ai/codex.md"
 missing: list[str] = []
 for rel in targets:
     text = (root / rel).read_text(encoding="utf-8")

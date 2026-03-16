@@ -5,9 +5,10 @@ Ensure Cursor follows the same orchestration contract as Claude and Codex.
 
 ## Required Startup Order
 1. Read `.ai/docs/SINGLE_SOURCE_OF_TRUTH.md`
-2. Read `.ai/agents/claude.md` (canonical orchestrator)
-3. Route to the correct workflow in `.ai/workflows/`
-4. Use specialist agents in `.ai/agents/` for task-specific execution
+2. Read `.ai/codex.md` (canonical orchestrator)
+3. Read `.ai/agents/claude.md` (compatibility mirror)
+4. Route to the correct workflow in `.ai/workflows/`
+5. Use specialist agents in `.ai/agents/` for task-specific execution
 
 ## New Story Preflight Gate (Required)
 Before starting any new story:
@@ -77,14 +78,7 @@ Before final story handoff:
 - Frontend design skill (UI only): `.ai/skills/frontend-design.md`
 
 ## Quality Gates
-Run the project-specific validation commands defined during setup before any commit:
-```bash
-pnpm test
-pnpm type-check
-pnpm lint
-pnpm --filter @ship/api test -- --coverage
-pnpm audit --prod
-```
+Follow `.ai/codex.md`, `.claude/CLAUDE.md`, and the active workflow for the current validation command set before any commit.
 
 ## Shared Standards
 Cursor must follow the same standards in:
@@ -95,21 +89,7 @@ Cursor must follow the same standards in:
 - `.ai/skills/performance-checklist.md`
 
 ## Memory Bank Updates
-After completing work, update:
-- `.ai/docs/SINGLE_SOURCE_OF_TRUTH.md`
-- `.ai/memory/project/architecture.md`
-- `.ai/memory/project/patterns.md`
-- `.ai/memory/project/anti-patterns.md`
-- `.ai/memory/session/decisions-today.md`
+Follow `.ai/codex.md` for the standard memory-update set after work.
 
 ## Post-Story User Audit Handoff (Required)
-After each story completion:
-1. Run `.ai/workflows/story-handoff.md`
-2. Include a **User Audit Checklist (Run This Now)** with:
-   - copy/paste commands + URLs,
-   - expected outcomes for each step,
-   - failure-triage hints.
-3. If AI-architecture files changed, run `.ai/workflows/ai-architecture-change.md` and include the outcome.
-4. Release claimed flight slot with `bash scripts/flight_slot.sh release ...`.
-5. Run `.ai/workflows/git-finalization.md` and include `git_finalize_guard.sh` outcome.
-6. Wait for user feedback before starting the next story.
+After each story completion, follow `.ai/workflows/story-handoff.md`, include a **User Audit Checklist (Run This Now)**, run `.ai/workflows/ai-architecture-change.md` when needed, release `bash scripts/flight_slot.sh`, run `.ai/workflows/git-finalization.md`, and wait for user feedback before the next story.

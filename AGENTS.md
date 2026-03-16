@@ -9,8 +9,8 @@
 ## Canonical Startup Sequence (Required)
 
 1. Read `.ai/docs/SINGLE_SOURCE_OF_TRUTH.md`
-2. Read `.ai/agents/claude.md` (canonical orchestrator)
-3. Read `.ai/codex.md` (Codex-specific mirror)
+2. Read `.ai/codex.md` (canonical orchestrator)
+3. Read `.ai/agents/claude.md` (compatibility mirror / agent-specific deltas)
 4. Identify task type and route to the matching workflow under `.ai/workflows/`
 5. Use the specialized agent playbooks under `.ai/agents/` as needed
 
@@ -20,55 +20,25 @@ Do not start implementation before completing steps 1-3.
 
 ## New Story Preflight Gate (Required)
 
-Before starting **any new story**, run the `agent-preflight` skill and provide a concise preflight brief before code edits.
-
-Minimum preflight output:
-- Constraints checklist
-- Architecture/runtime path summary
-- Key risks/open questions
-- Implementation + test plan
-
-Do not begin story implementation until preflight is complete.
+Before starting **any new story**, run the `agent-preflight` skill and provide a concise preflight brief before code edits. Follow the skill as the canonical preflight workflow.
 
 ---
 
 ## Story Lookup Gate (Required)
 
-Before implementing **any new story**, run `.ai/workflows/story-lookup.md`.
-
-Minimum lookup output:
-- local findings from project docs/memory,
-- external findings from official docs/best-practice sources,
-- concise lookup brief with implementation and test implications.
-
-Do not begin story implementation until lookup brief is complete.
+Before implementing **any new story**, run `.ai/workflows/story-lookup.md` and publish the lookup brief it requires before coding.
 
 ---
 
 ## User Correction Triage Gate (Required for Narrow Feedback and Clarifications)
 
-When the user gives a narrow corrective note during a story or after handoff, such as "ignore that bullet", "use OpenAI instead", or "that assumption is wrong":
-- run `.ai/workflows/user-correction-triage.md`,
-- classify the correction's blast radius before editing,
-- patch only the minimum affected surfaces for low-blast-radius corrections,
-- escalate back to the full preflight/lookup/spec flow only if the change is truly architectural or scope-shaping.
-
-Do not turn a small correction into a new broad planning cycle unless the blast radius justifies it.
+When the user gives a narrow corrective note during a story or after handoff, run `.ai/workflows/user-correction-triage.md`, classify blast radius first, and keep low-blast-radius fixes bounded.
 
 ---
 
 ## Eval-Driven Development Gate (Required for AI-Behavior Changes)
 
-Before implementing any story that changes prompts, tools, retrieval, routing, graders, or other AI behavior, run `.ai/workflows/eval-driven-development.md`.
-
-Minimum eval brief output:
-- eval objective,
-- dataset slices (production-like, edge, adversarial),
-- evaluator/metric choice,
-- threshold or baseline comparison,
-- regression/continuous-eval plan.
-
-Do not begin AI-behavior implementation until the eval brief is complete.
+Before implementing any story that changes prompts, tools, retrieval, routing, graders, or other AI behavior, run `.ai/workflows/eval-driven-development.md` and publish the required eval brief before coding.
 
 ---
 
@@ -76,34 +46,13 @@ Do not begin AI-behavior implementation until the eval brief is complete.
 
 Before implementing any feature story, run `.ai/workflows/spec-driven-delivery.md` and apply `.ai/skills/spec-driven-development.md`.
 Use `.ai/docs/research/spec-driven-tdd-playbook.md` as the methodology reference.
-
-Minimum required artifacts (using `.ai/templates/spec/`):
-- constitution check,
-- feature spec,
-- technical plan,
-- task breakdown,
-- UI component spec when UI scope exists.
-- `.ai/templates/spec/UI_PROMPT_BRIEF_TEMPLATE.md` when UI scope needs explicit design prompting or reuse.
-When the work is a story pack, phase pack, or multi-story foundation plan:
-- define the higher-level objectives for the whole pack first,
-- write the full set of stories for the pack in one planning pass,
-- ensure story scopes, sequencing, and acceptance criteria are cohesive and non-overlapping before implementation begins.
-For UI scope, use `.ai/docs/design/DESIGN_PHILOSOPHY_AND_LANGUAGE.md` as the ambiguity tiebreaker, apply `.ai/skills/frontend-design.md`, and log non-obvious tradeoffs.
-
-Do not begin feature implementation until these artifacts exist and align with acceptance criteria.
+Follow the workflow and `.ai/templates/spec/` for the exact artifact set. When the work is a story pack, phase pack, or multi-story foundation plan, define the higher-level objectives for the whole pack first and write the full set of stories for the pack in one planning pass. For UI scope, use `.ai/docs/design/DESIGN_PHILOSOPHY_AND_LANGUAGE.md`, `.ai/skills/frontend-design.md`, and `.ai/templates/spec/UI_PROMPT_BRIEF_TEMPLATE.md`.
 
 ---
 
 ## Flight Slot Coordination (Flexible Single/Parallel)
 
-Before implementation edits for a flight, run `.ai/workflows/parallel-flight.md`.
-
-- Default mode is `single` (existing one-flight behavior).
-- Switch to `parallel` mode only when intentionally running multiple chats/agents.
-- Claim slot before edits with `bash scripts/flight_slot.sh claim ...`.
-- Release slot at handoff with `bash scripts/flight_slot.sh release ...`.
-
-This adds parallel-flight flexibility without removing existing preflight/lookup/handoff gates.
+Before implementation edits for a flight, run `.ai/workflows/parallel-flight.md`, claim with `bash scripts/flight_slot.sh claim ...`, and release with `bash scripts/flight_slot.sh release ...`. Default mode remains `single`.
 
 ---
 
@@ -116,7 +65,6 @@ Before starting work:
   - `git branch -vv`
 - If this is a new story, create or switch to a fresh branch named `codex/<short-task-name>` before editing.
 - Do not start story N+1 on story N's branch. The only time a branch may continue is when you are still addressing feedback for that same story.
-- Start each discrete task on a fresh branch named `codex/<short-task-name>`.
 - Stay in the single local Ship repo folder. Do not create helper worktrees unless the user explicitly asks for one.
 - If the current branch has unrelated local edits, park them safely in this repo and switch branches here instead of mixing changes.
 - Keep one concern per branch; do not combine unrelated fixes, docs, and feature work.
@@ -129,52 +77,13 @@ Before starting work:
   - `not deployed` with reason,
   - or `blocked` with the exact missing access or prerequisite.
 - For deploy-relevant stories, refresh the sanctioned Render public demo after merge with `scripts/deploy-render-demo.sh <commit>` unless the handoff explicitly records why that demo deploy is `blocked`.
-
-While working:
-- Make small, reviewable commits once the relevant checks for that slice pass.
-- Use clear, descriptive, imperative commit messages that explain the outcome.
-- Good: `Add FleetGraph pre-search scaffolding`
-- Good: `Clarify sprint risk detection routing`
-- Bad: `updates`
-- Bad: `misc fixes`
-
-Before merge:
-- Push the branch and create or update a PR with scope, verification, and any remaining risks.
-- Sync remotes first with `git fetch --all --prune` and confirm branch tracking status before PR update or merge.
-- If the canonical upstream is archived or read-only, switch PR/merge operations to the writable remote and record that fallback in handoff notes.
-- Resolve review comments on the branch, rerun required checks, and keep the PR diff focused.
-- Do not rewrite shared history or force-push unless explicitly requested.
-
-After approval:
-- Merge only after required checks pass and the branch is up to date with its base branch.
-- Prefer a clean final history: one focused commit or a small set of meaningful commits.
-- Sync with remote again after merge or branch finalization so the local repo reflects the current remote state.
-- Delete stale worktrees/branches after merge when safe.
+While working and before merge, follow `.ai/workflows/git-finalization.md` for commit shape, push/PR flow, writable-remote fallback, merge readiness, remote re-sync, and cleanup.
 
 ---
 
 ## Git Finalization Gate (Required)
 
-Before final story handoff, run `.ai/workflows/git-finalization.md`.
-
-Minimum required outcome:
-- work performed on a dedicated `codex/` branch,
-- branch name reflects the current story rather than a previous completed story,
-- clear commit(s) created for the story changes,
-- remotes fetched before branch/story work begins,
-- remotes fetched and branch sync status checked,
-- push completed to a writable remote,
-- PR created or updated with verification notes,
-- review feedback resolved before merge,
-- merge completed only after checks pass and the branch is current,
-- merged branch cleaned up locally/remotely when safe,
-- deployment impact reviewed and recorded for the story,
-- deployment execution status recorded for deploy-relevant stories,
-- `bash scripts/git_finalize_guard.sh` passes.
-
-Do not commit, push, open a PR, or merge until the user has completed the User Audit Checklist and explicitly approved finalization.
-
-Do not mark story handoff complete without this gate.
+Before final story handoff, run `.ai/workflows/git-finalization.md`. Do not commit, push, open a PR, or merge until the user has completed the User Audit Checklist and explicitly approved finalization, and do not mark handoff complete until `bash scripts/git_finalize_guard.sh` passes.
 
 ---
 
@@ -221,63 +130,27 @@ Apply the following defaults from `.ai/docs/AGENTIC_ENGINEERING_PRINCIPLES.md`:
 
 ## Required Checks Before Commit
 
-Run the project-specific validation commands defined during setup.
-
-Typical categories:
-- tests
-- type checking (if applicable)
-- linting/format validation
-- coverage (if applicable)
-- security scanning (if applicable)
-
-```bash
-pnpm test
-pnpm type-check
-pnpm lint
-pnpm --filter @ship/api test -- --coverage
-pnpm audit --prod
-```
+Follow `.ai/codex.md`, `.claude/CLAUDE.md`, and the active workflow for the current validation command set before commit.
 
 ---
 
 ## Post-Story User Audit Checklist (Required)
 
-At the end of every story, follow `.ai/workflows/story-handoff.md` and include a **User Audit Checklist (Run This Now)** section.
-
-Minimum required content:
-- exact commands and URLs the user should run/open,
-- expected result per step,
-- quick "if this fails, check" hints,
-- changed behavior vs unchanged behavior.
-
-Run `bash scripts/check_ai_wiring.sh` only when AI-architecture files are changed (per `.ai/workflows/ai-architecture-change.md`), not for every story.
-
-After the audit, pause and wait for explicit user permission before:
-- creating the final commit,
-- pushing the branch,
-- opening or updating the PR,
-- merging the PR.
-
-Do not begin the next story until the user audits and says to proceed.
+At the end of every story, follow `.ai/workflows/story-handoff.md` and include a **User Audit Checklist (Run This Now)** section. Run `bash scripts/check_ai_wiring.sh` only when AI-architecture files are changed (per `.ai/workflows/ai-architecture-change.md`), and wait for explicit user audit approval before final git actions or the next story.
 
 ---
 
 ## Memory Bank Updates (After Work)
 
-Update the following:
-- `.ai/docs/SINGLE_SOURCE_OF_TRUTH.md`
-- `.ai/memory/project/architecture.md`
-- `.ai/memory/project/patterns.md`
-- `.ai/memory/project/anti-patterns.md`
-- `.ai/memory/session/decisions-today.md`
+Follow `.ai/codex.md` for the standard memory-update set after work.
 
 ---
 
 ## Codex + Claude Compatibility
 
 - Codex canonical guide: `.ai/codex.md`
-- Claude canonical guide: `.ai/agents/claude.md`
-- Cursor canonical guide: `.ai/agents/cursor-agent.md`
+- Claude compatibility guide: `.ai/agents/claude.md`
+- Cursor compatibility guide: `.ai/agents/cursor-agent.md`
 - Shared source of truth: `.ai/docs/SINGLE_SOURCE_OF_TRUTH.md`
 - Project Codex skills: `.ai/docs/CODEX_SKILLS.md`
 

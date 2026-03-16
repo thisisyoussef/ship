@@ -386,6 +386,46 @@
       "slot": "code",
       "status": "completed",
       "story_ref": "T007"
+    },
+    {
+      "branch": "",
+      "claimed_at": "2026-03-16T20:27:05Z",
+      "flight_id": "flight-ai-minimal-harness-trim",
+      "lock_paths": [
+        ".ai",
+        ".clauderc",
+        ".cursorrules",
+        "AGENTS.md",
+        "CLAUDE.md",
+        "scripts/check_ai_wiring.sh"
+      ],
+      "notes": "",
+      "owner": "codex",
+      "release_summary": "Trimmed duplicate startup prose, made Codex canonical, and preserved AI wiring checks.",
+      "released_at": "2026-03-16T20:34:16Z",
+      "slot": "ai_arch",
+      "status": "completed",
+      "story_ref": ""
+    },
+    {
+      "branch": "",
+      "claimed_at": "2026-03-16T20:35:59Z",
+      "flight_id": "flight-ai-codex-quick-reference",
+      "lock_paths": [
+        ".ai",
+        ".clauderc",
+        ".cursorrules",
+        "AGENTS.md",
+        "CLAUDE.md",
+        "scripts/check_ai_wiring.sh"
+      ],
+      "notes": "",
+      "owner": "codex",
+      "release_summary": "Restored a compact quick-reference block in .ai/codex.md without undoing the minimal trim.",
+      "released_at": "2026-03-16T20:36:19Z",
+      "slot": "ai_arch",
+      "status": "completed",
+      "story_ref": ""
     }
   ],
   "parallel_max_active_flights": 3,
@@ -396,6 +436,6 @@
     "docs": 2,
     "infra": 1
   },
-  "updated_at": "2026-03-16T20:18:55Z",
+  "updated_at": "2026-03-16T20:37:28Z",
   "version": 1
 }

@@ -15,6 +15,7 @@ import { projectKeys, useProjectWeeksQuery } from '@/hooks/useProjectsQuery';
 import { TabBar } from '@/components/ui/TabBar';
 import { useCurrentDocument } from '@/contexts/CurrentDocumentContext';
 import { FleetGraphEntryCard } from '@/components/FleetGraphEntryCard';
+import { FleetGraphFindingsPanel } from '@/components/FleetGraphFindingsPanel';
 import { useDocumentContextQuery } from '@/hooks/useDocumentContextQuery';
 import type { BelongsTo } from '@ship/shared';
 import {
@@ -636,20 +637,27 @@ export function UnifiedDocumentPage() {
 
   const fleetGraphCard = (
     <div className="border-b border-border px-4 py-3">
-      <FleetGraphEntryCard
-        activeTab={activeTab || undefined}
-        context={documentContextQuery.data}
-        contextError={documentContextQuery.error instanceof Error ? documentContextQuery.error.message : undefined}
-        document={{
-          documentType: document.document_type,
-          id: document.id,
-          title: document.title,
-          workspaceId: document.workspace_id,
-        }}
-        loading={documentContextQuery.isLoading}
-        nestedPath={nestedPath}
-        userId={user.id}
-      />
+      <div className="space-y-3">
+        <FleetGraphFindingsPanel
+          context={documentContextQuery.data}
+          currentDocumentId={document.id}
+          loading={documentContextQuery.isLoading}
+        />
+        <FleetGraphEntryCard
+          activeTab={activeTab || undefined}
+          context={documentContextQuery.data}
+          contextError={documentContextQuery.error instanceof Error ? documentContextQuery.error.message : undefined}
+          document={{
+            documentType: document.document_type,
+            id: document.id,
+            title: document.title,
+            workspaceId: document.workspace_id,
+          }}
+          loading={documentContextQuery.isLoading}
+          nestedPath={nestedPath}
+          userId={user.id}
+        />
+      </div>
     </div>
   );
 

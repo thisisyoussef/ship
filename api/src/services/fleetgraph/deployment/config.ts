@@ -1,4 +1,5 @@
 import { resolveLLMConfig, type FleetGraphEnv } from '../llm/factory.js'
+import type { FleetGraphShipApiEnv } from '../proactive/index.js'
 import { resolveFleetGraphTracingSettings } from '../tracing/config.js'
 import type { FleetGraphTracingEnv } from '../tracing/types.js'
 import type {
@@ -9,9 +10,11 @@ import type {
 
 export interface FleetGraphDeploymentEnv
   extends FleetGraphEnv,
+    FleetGraphShipApiEnv,
     FleetGraphTracingEnv {
   APP_BASE_URL?: string
   FLEETGRAPH_ENTRY_ENABLED?: string
+  FLEETGRAPH_API_TOKEN?: string
   FLEETGRAPH_SERVICE_TOKEN?: string
   FLEETGRAPH_WORKER_ENABLED?: string
   NODE_ENV?: string
@@ -75,6 +78,12 @@ export function resolveFleetGraphSurfaceReadiness(
     issues.push({
       key: 'FLEETGRAPH_WORKER_ENABLED',
       message: 'FleetGraph worker must be explicitly enabled for deployed worker readiness.',
+    })
+  }
+  if (surface === 'worker' && !nonBlank(deploymentEnv.FLEETGRAPH_API_TOKEN)) {
+    issues.push({
+      key: 'FLEETGRAPH_API_TOKEN',
+      message: 'FLEETGRAPH_API_TOKEN is required for proactive FleetGraph REST access from the worker.',
     })
   }
 

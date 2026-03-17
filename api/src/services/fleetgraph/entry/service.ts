@@ -36,6 +36,11 @@ const ACTION_SHAPE_BY_TYPE = {
     path: (targetId: string) => `/api/documents/${targetId}/comments`,
     targetType: 'document',
   },
+  start_week: {
+    method: 'POST',
+    path: (targetId: string) => `/api/weeks/${targetId}/start`,
+    targetType: 'sprint',
+  },
 } as const
 
 const APPROVAL_OPTIONS = [

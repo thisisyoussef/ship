@@ -158,3 +158,8 @@ Capture failures so they are not repeated.
 - **Example**: A Render deploy with explicit runtime env still crashes during boot because optional FleetGraph or LangSmith SSM reads throw `CredentialsProviderError` before readiness can be evaluated.
 - **Why it failed**: The host is not meant to have AWS credentials, so an optional fallback path becomes a hard availability dependency and hides the real configuration state.
 - **Prevention rule**: Use explicit runtime env as the primary config source on non-AWS hosts and make optional secret-store fallbacks credential-tolerant so readiness can report the true missing settings.
+
+- **Problem**: Reading Ship product data directly from FleetGraph tables or the Ship database for proactive scoring
+- **Example**: Building week-start drift by selecting Ship weeks or projects from SQL because the worker already has database access for its own queue and findings tables.
+- **Why it failed**: It breaks the assignment constraint that Ship REST is the data source and blurs the ownership boundary between Ship product state and FleetGraph-owned state.
+- **Prevention rule**: Fetch Ship product context through Ship REST only; reserve database writes and reads for FleetGraph-owned queue, checkpoint, and proactive finding state.

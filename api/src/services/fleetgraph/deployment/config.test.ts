@@ -11,6 +11,7 @@ function makeEnv(
 ): FleetGraphDeploymentEnv {
   return {
     APP_BASE_URL: 'https://ship-demo.onrender.com',
+    FLEETGRAPH_API_TOKEN: 'ship-rest-token',
     FLEETGRAPH_ENTRY_ENABLED: 'true',
     FLEETGRAPH_SERVICE_TOKEN: 'fleetgraph-service-token',
     FLEETGRAPH_WORKER_ENABLED: 'true',

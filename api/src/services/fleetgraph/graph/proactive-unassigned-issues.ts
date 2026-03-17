@@ -8,6 +8,7 @@ import {
   type UnassignedIssuesCandidate,
 } from '../proactive/unassigned-issues.js'
 import type { FleetGraphShipApiClient } from '../proactive/types.js'
+import { calculateWeekStartDate } from '../proactive/sprint-utils.js'
 import {
   runFleetGraphTrace,
   type FleetGraphTracingSettings,
@@ -118,8 +119,10 @@ export function createUnassignedIssuesScenarioRunner(
   return async function runUnassignedIssuesScenario(
     state: FleetGraphRuntimeInput
   ): Promise<FleetGraphScenarioResult> {
-    const activeFindings = await listActiveFindingsTask(state.workspaceId)
-    const weeks = await listWeeksTask()
+    const [activeFindings, weeks] = await Promise.all([
+      listActiveFindingsTask(state.workspaceId),
+      listWeeksTask(),
+    ])
 
     // Find active sprint (prefer 'active', fall back to 'planning') whose start date has passed
     const now = deps.now()
@@ -223,12 +226,3 @@ function findActiveSprint(
   return eligible[0] ?? null
 }
 
-function calculateWeekStartDate(
-  workspaceSprintStartDate: string,
-  sprintNumber: number
-): Date {
-  const baseDate = new Date(`${workspaceSprintStartDate.slice(0, 10)}T00:00:00.000Z`)
-  const startDate = new Date(baseDate)
-  startDate.setUTCDate(baseDate.getUTCDate() + (sprintNumber - 1) * 7)
-  return startDate
-}

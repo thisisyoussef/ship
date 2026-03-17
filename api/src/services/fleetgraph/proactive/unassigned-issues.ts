@@ -6,6 +6,7 @@ import {
   ShipWeekSummarySchema,
   type ShipSprintIssuesResponse,
 } from './types.js'
+import { calculateWeekStartDate } from './sprint-utils.js'
 
 interface ShipWeeksResponse {
   weeks: Array<z.infer<typeof ShipWeekSummarySchema>>
@@ -128,12 +129,3 @@ function buildUnassignedIssuesRecommendedAction(
   }
 }
 
-function calculateWeekStartDate(
-  workspaceSprintStartDate: string,
-  sprintNumber: number
-): Date {
-  const baseDate = new Date(`${workspaceSprintStartDate.slice(0, 10)}T00:00:00.000Z`)
-  const startDate = new Date(baseDate)
-  startDate.setUTCDate(baseDate.getUTCDate() + (sprintNumber - 1) * 7)
-  return startDate
-}

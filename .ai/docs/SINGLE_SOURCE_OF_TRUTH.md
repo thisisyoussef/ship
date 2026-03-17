@@ -1,8 +1,8 @@
 # Ship - Single Source of Truth
 
 **Last Updated**: 2026-03-17
-**Current Phase**: FleetGraph feedback QA refresh
-**Active Sprint**: Close the feedback pack cleanly, then start the next FleetGraph polish sequence from live QA findings
+**Current Phase**: FleetGraph polish pack planning
+**Active Sprint**: Turn the remaining live FleetGraph UI roughness into a bounded polish sequence, then execute it story by story on the Railway demo
 **Project Status**: Active
 **Canonical Deployment Baseline**: API on AWS Elastic Beanstalk, frontend on S3/CloudFront, config/secrets on AWS-native services
 **Sanctioned Public Demo**: Railway public demo, deployed with `scripts/deploy-railway-demo.sh`
@@ -12,14 +12,14 @@
 ## Current Focus
 
 ### Active Task
-- **Title**: Complete T204 QA refresh and roll the remaining live feedback into the next polish sequence
+- **Title**: Define the FleetGraph polish pack from the remaining live UI findings, then execute T301 next
 - **Status**: In progress
 - **Owner**: Codex
 
 ### Next Immediate Actions
-1. Finalize `T204` so the feedback pack ends with a current live QA guide, screenshot set, and pack-level audit checklist.
-2. Start the next FleetGraph polish sequence for any still-open prod issues surfaced by the pack audit and user feedback.
-3. Preserve the REST-only Ship runtime data boundary while continuing the UI polish work.
+1. Finalize the FleetGraph polish-pack planning artifacts and start `T301` on a fresh branch.
+2. Keep the Railway demo refreshed after each shipped runtime/UI story so prod remains the primary inspection surface.
+3. Preserve the REST-only Ship runtime data boundary while continuing the remaining UI polish work.
 
 ---
 

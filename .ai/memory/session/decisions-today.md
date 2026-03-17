@@ -113,6 +113,7 @@
 - Decided FleetGraph thread ids, endpoints, and route details belong behind an explicit `Debug details` disclosure instead of the primary card surface.
 - Refreshed the FleetGraph feedback-pack audit path with current Railway screenshots, a pack-level checklist, and live UI wording that matches the shipped `Review and apply`, `Start week in Ship`, and `Preview approval step` flow.
 - Decided any remaining live QA issues after the feedback pack should move into a separate polish sequence rather than silently extending the completed feedback pack.
+- Decided the FleetGraph polish sequence should stay intentionally narrow: human-language cleanup first, a better secondary debug surface second, light visual hierarchy polish third, and a final prod QA refresh last.
 
 Record session-level technical decisions.
 

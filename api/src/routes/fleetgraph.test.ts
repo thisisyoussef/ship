@@ -102,6 +102,25 @@ function createEntryPayload() {
   }
 }
 
+function createEntryPayloadWithNullableTicketNumbers() {
+  const payload = createEntryPayload()
+  return {
+    ...payload,
+    context: {
+      ...payload.context,
+      breadcrumbs: payload.context.breadcrumbs.map((crumb, index) => (
+        index === payload.context.breadcrumbs.length - 1
+          ? { ...crumb, ticket_number: null }
+          : crumb
+      )),
+      current: {
+        ...payload.context.current,
+        ticket_number: null,
+      },
+    },
+  }
+}
+
 describe('FleetGraph routes', () => {
   let app: express.Express
   const originalEnv = { ...process.env }
@@ -201,6 +220,16 @@ describe('FleetGraph routes', () => {
     })
     expect(response.body.approval.options.map((option: { id: string }) => option.id))
       .toEqual(['apply', 'dismiss', 'snooze'])
+  })
+
+  it('accepts nullable ticket numbers from the live document context payload', async () => {
+    const response = await request(app)
+      .post('/api/fleetgraph/entry')
+      .send(createEntryPayloadWithNullableTicketNumbers())
+
+    expect(response.status).toBe(200)
+    expect(response.body.run.outcome).toBe('advisory')
+    expect(response.body.entry.current.id).toBe(DOCUMENT_ID)
   })
 
   it('rejects readiness checks without the FleetGraph service token', async () => {

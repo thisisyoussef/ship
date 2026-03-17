@@ -35,6 +35,10 @@ const nonEmptyString = z.string().min(1)
 const optionalNullableString = nonEmptyString.nullable().optional()
 
 function toInteger(value: unknown) {
+  if (value === null) {
+    return undefined
+  }
+
   if (typeof value === 'string' && value.trim()) {
     return Number.parseInt(value, 10)
   }

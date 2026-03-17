@@ -207,11 +207,34 @@ For each use case, record the triggering Ship state, the expected output, and th
 
 | # | Ship State | Expected Output | Trace Link |
 |---|------------|-----------------|------------|
-| 1 | Active week, no standup posted by noon | Missing-standup insight with direct action choices | Pending T105 |
-| 2 | Week is still `planning` or empty after it should be active | Week-start drift insight with week owner and missing setup details | Pending T105 |
-| 3 | Review or plan is `changes_requested` or unapproved beyond the threshold | Approval-gap summary with approver and next step | Pending T105 |
-| 4 | Target date within 7 days and high-priority work is still open or stale | Deadline-risk brief with named stale work and likely impact | Pending T105 |
-| 5 | Work distribution is materially skewed | Load-imbalance brief with overloaded assignee and candidate rebalance options | Pending T105 |
+| 1 | Active week, no standup posted by noon | Missing-standup insight with direct action choices | Deferred beyond Tuesday MVP; no live trace captured yet |
+| 2 | Week is still `planning` or empty after it should be active | Week-start drift insight with week owner and missing setup details | Proactive worker path: [shared trace](https://smith.langchain.com/public/d5f1a274-6f81-4c42-b8be-924791429323/r). Approval-preview/HITL path: [shared trace](https://smith.langchain.com/public/e969f90a-ef5a-45e5-bded-9d6de7233311/r). |
+| 3 | Review or plan is `changes_requested` or unapproved beyond the threshold | Approval-gap summary with approver and next step | Deferred beyond Tuesday MVP; no live trace captured yet |
+| 4 | Target date within 7 days and high-priority work is still open or stale | Deadline-risk brief with named stale work and likely impact | Deferred beyond Tuesday MVP; no live trace captured yet |
+| 5 | Work distribution is materially skewed | Load-imbalance brief with overloaded assignee and candidate rebalance options | Deferred beyond Tuesday MVP; no live trace captured yet |
+
+## Tuesday MVP Evidence
+
+- Public demo URL: `https://ship-demo-production.up.railway.app`
+- Public demo readiness: authenticated FleetGraph readiness returned HTTP `200` during the final evidence capture on `2026-03-17T12:36:53Z`
+- Demo inspection guide: `docs/guides/fleetgraph-demo-inspection.md`
+- Evidence bundle: `docs/evidence/fleetgraph-mvp-evidence.json` and `docs/evidence/fleetgraph-mvp-evidence.md`
+- Named public demo inspection targets:
+  - `FleetGraph Demo Week - Review and Apply`
+  - `FleetGraph Demo Week - Worker Generated`
+- Screenshot artifacts:
+  - `docs/evidence/screenshots/fleetgraph-review-apply-live.png`
+  - `docs/evidence/screenshots/fleetgraph-approval-preview-live.png`
+  - `docs/evidence/screenshots/fleetgraph-worker-generated-live.png`
+- Shared trace links showing different execution paths:
+  - Proactive worker advisory path: [worker trace](https://smith.langchain.com/public/d5f1a274-6f81-4c42-b8be-924791429323/r)
+  - On-demand approval-preview path: [approval-preview trace](https://smith.langchain.com/public/e969f90a-ef5a-45e5-bded-9d6de7233311/r)
+
+- Tuesday MVP slice shipped:
+  - one proactive week-start drift detection wired end to end
+  - one human-confirmed `start week` gate routed through Ship REST
+  - real Ship data on the public Railway deployment
+  - visible Ship UI proof for both the seeded review/apply lane and the worker-generated proactive lane
 
 ## Architecture Decisions
 
@@ -274,10 +297,17 @@ Cover:
 
 | Item | Amount |
 |------|--------|
-| Selected LLM API - input tokens | Pending T105 live trace totals |
-| Selected LLM API - output tokens | Pending T105 live trace totals |
-| Total invocations during development | Pending T105 live run export |
-| Total development spend | Pending T105 live run export |
+| Selected LLM API - input tokens | Not exposed separately by the current LangSmith payload for this repo's FleetGraph traces |
+| Selected LLM API - output tokens | Not exposed separately by the current LangSmith payload for this repo's FleetGraph traces |
+| Total invocations during development | 9 `fleetgraph.llm.generate` invocations in the captured Tuesday evidence window |
+| Total development spend | Not exposed by the current LangSmith/OpenAI integration on these traces |
+
+Observed live trace totals for the Tuesday evidence window (`2026-03-17T12:02:20Z` to `2026-03-17T12:32:47Z`):
+
+- `fleetgraph.runtime` root traces: 13
+- `fleetgraph.llm.generate` child invocations: 9
+- Total tokens recorded on child runs: 6,310
+- Trace limitation: the current payload records `total_tokens`, but not a reliable prompt/completion token split or dollar cost field for these runs
 
 ### Production Cost Projections
 

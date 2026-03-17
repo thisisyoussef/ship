@@ -67,6 +67,13 @@ All items are required to pass:
 - Deployed and publicly accessible
 - Trigger model decision documented and defended in `docs/assignments/fleetgraph/FLEETGRAPH.md`
 
+## Current MVP Proof Lane
+
+- Public demo: `https://ship-demo-production.up.railway.app`
+- Demo inspection guide: `docs/guides/fleetgraph-demo-inspection.md`
+- Final evidence bundle: `docs/evidence/fleetgraph-mvp-evidence.json` and `docs/evidence/fleetgraph-mvp-evidence.md`
+- Submission workbook: `docs/assignments/fleetgraph/FLEETGRAPH.md`
+
 ## What to lock down before coding
 
 1. What the agent monitors proactively.

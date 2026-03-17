@@ -213,3 +213,10 @@ Record durable architecture decisions.
 - **Decision**: Keep the Railway demo on a shared image with explicit `SHIP_RUNTIME_ROLE=api|worker`, normalize the real Ship weeks payload into FleetGraph's canonical week schema, and have the demo bootstrap both preserve the seeded HITL lane and enqueue one fresh proactive worker job after clearing stale FleetGraph-owned worker ledger state for the named demo workspace.
 - **Alternatives Considered**: Depend only on due sweep schedules for the worker proof lane; keep the stricter mocked `/api/weeks` schema and fix prod by hand; seed the worker-generated finding directly instead of letting the worker produce it.
 - **Consequences**: The public demo now proves a real worker-generated finding on real Ship REST data, and repeated deploys stay inspectable without manual DB cleanup, but the demo fixture and proactive client schema must stay aligned with the live Ship API shape.
+
+- **ADR-ID**: ADR-0031
+- **Date**: 2026-03-17
+- **Context**: The Tuesday MVP needs a submission-ready evidence set from the live Railway demo, but the deployed findings API does not always carry a pre-shared `tracePublicUrl`, and the current LangSmith payload for FleetGraph traces exposes total tokens without a reliable prompt/completion split or dollar-cost field.
+- **Decision**: Capture FleetGraph MVP evidence through a repo-owned script that can authenticate to the live Railway demo, verify FleetGraph readiness, promote matching LangSmith run ids to shared links when the API surface only exposes ids, and record usage honestly as total-token counts when finer-grained cost fields are unavailable.
+- **Alternatives Considered**: Depend on the findings API to always return a ready-made public trace URL; fill the workbook with estimated token/cost splits; treat screenshots and trace links as manual post-story chores.
+- **Consequences**: Evidence capture becomes reproducible and less brittle, and the workbook can stay truthful about the current observability limits, but the capture script must stay aligned with live trace metadata and demo fixture names.

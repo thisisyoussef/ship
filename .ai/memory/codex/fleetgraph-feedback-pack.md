@@ -18,7 +18,8 @@
 - Sequence:
   - `T201` discoverability/navigation first
   - `T202` scroll/layout recovery second
-  - `T203` refreshed QA checklist and tail follow-ons last
+  - `T203` action-state trust and human-facing copy cleanup third
+  - `T204` refreshed QA checklist and tail follow-ons last
 
 ## Constraints
 - Keep Ship product data REST-only.

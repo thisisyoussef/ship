@@ -128,7 +128,7 @@ export function WeekDetailView({
     : 0;
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex min-h-[36rem] flex-col" data-testid="week-detail-view">
       {/* Sprint header */}
       <div className="border-b border-border p-4">
         <div className="flex items-center gap-3 mb-3">
@@ -171,7 +171,7 @@ export function WeekDetailView({
       </div>
 
       {/* Two-column layout: Left (1/3 - Progress + Standups) | Right (2/3 - Issues) */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex min-h-[28rem] flex-1 overflow-hidden">
         {/* Left Column: Sprint Progress (fixed) + Standups (scrollable) */}
         <div className="w-1/3 min-w-[320px] max-w-[400px] flex-shrink-0 border-r border-border flex flex-col overflow-hidden">
           {/* Sprint Progress - Fixed */}

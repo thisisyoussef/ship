@@ -227,3 +227,10 @@ Record durable architecture decisions.
 - **Decision**: Add a lightweight post-story `ui-qa-critic` workflow for visible UI stories, make human-centered copy, truthful feedback, and debug-detail containment explicit workflow checks, and require a pack-level `user-audit-checklist.md` when a visible story pack completes.
 - **Alternatives Considered**: Leave those concerns implicit in design philosophy only; create a heavyweight separate QA phase for every UI story; keep pack-level QA entirely manual.
 - **Consequences**: Visible UI stories get one more bounded review pass and completed packs gain a single reusable audit artifact, but the harness must enforce the new workflow references to avoid drift.
+
+- **ADR-ID**: ADR-0033
+- **Date**: 2026-03-17
+- **Context**: After T301, FleetGraph’s main cards were calmer, but technical QA detail was still scattered across separate inline disclosures inside the proactive and entry cards. That kept technical language visually close to the primary user copy and made QA inspection more fragmented than it needed to be.
+- **Decision**: Replace the per-card FleetGraph debug disclosure with one page-level secondary debug dock on `UnifiedDocumentPage`. The proactive and entry surfaces publish already-fetched debug state into a shared local context, and the dock exposes threads, endpoints, route/result surfaces, and trace links from one persistent bottom-right overlay.
+- **Alternatives Considered**: Keep one inline disclosure per card; add a heavier modal dialog; create a new debug-only route or API surface.
+- **Consequences**: FleetGraph pages now keep technical QA data in one consistent secondary surface, which preserves the calmer main cards and makes future QA easier, but the page gains a small shared UI state layer that future FleetGraph surfaces should reuse instead of adding new inline debug blocks.

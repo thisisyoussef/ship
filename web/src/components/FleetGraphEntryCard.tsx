@@ -1,8 +1,9 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 
-import { FleetGraphDebugDisclosure } from '@/components/FleetGraphDebugDisclosure';
+import { useFleetGraphDebugSurface } from '@/components/FleetGraphDebugSurface';
 import type { DocumentContext } from '@/hooks/useDocumentContextQuery';
 import { useFleetGraphEntry } from '@/hooks/useFleetGraphEntry';
+import { buildEntryDebugSnapshot } from '@/lib/fleetgraph-debug';
 import type { FleetGraphEntryDocument } from '@/lib/fleetgraph-entry';
 
 const buttonClassName =
@@ -18,17 +19,6 @@ interface FleetGraphEntryCardProps {
   loading?: boolean;
   nestedPath?: string;
   userId: string;
-}
-
-function routeLabel(activeTab?: string, nestedPath?: string) {
-  const parts = ['document-page'];
-  if (activeTab) {
-    parts.push(activeTab);
-  }
-  if (nestedPath) {
-    parts.push(nestedPath);
-  }
-  return parts.join(' / ');
 }
 
 export function FleetGraphEntryCard({
@@ -54,6 +44,7 @@ export function FleetGraphEntryCard({
     };
   }, [activeTab, context, document, nestedPath, userId]);
   const fleetGraph = useFleetGraphEntry();
+  const { setEntry } = useFleetGraphDebugSurface();
 
   const disabled = loading || !entry || !document.workspaceId;
   const helperText =
@@ -63,6 +54,14 @@ export function FleetGraphEntryCard({
       : document.workspaceId
         ? 'FleetGraph can review the page you are on and suggest the next step.'
         : 'This page is missing workspace details, so FleetGraph is unavailable here.');
+
+  useEffect(() => {
+    setEntry(
+      fleetGraph.result
+        ? buildEntryDebugSnapshot(fleetGraph.result, activeTab, nestedPath)
+        : null
+    );
+  }, [activeTab, fleetGraph.result, nestedPath, setEntry]);
 
   return (
     <section className="rounded-lg border border-border bg-background px-4 py-3 shadow-sm">
@@ -146,31 +145,6 @@ export function FleetGraphEntryCard({
               No approval step is needed for this page right now.
             </p>
           )}
-
-          <FleetGraphDebugDisclosure>
-            <div className="space-y-1">
-              <p className="font-medium text-foreground">Thread</p>
-              <p>{fleetGraph.result.entry.threadId}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="font-medium text-foreground">Route surface</p>
-              <p>{routeLabel(activeTab, nestedPath)}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="font-medium text-foreground">Result surface</p>
-              <p>{fleetGraph.result.summary.surfaceLabel}</p>
-            </div>
-            {fleetGraph.result.approval ? (
-              <div className="space-y-1">
-                <p className="font-medium text-foreground">Approval endpoint</p>
-                <p>
-                  {fleetGraph.result.approval.endpoint.method}
-                  {' '}
-                  {fleetGraph.result.approval.endpoint.path}
-                </p>
-              </div>
-            ) : null}
-          </FleetGraphDebugDisclosure>
         </div>
       ) : null}
     </section>

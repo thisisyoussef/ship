@@ -47,9 +47,9 @@ For each task, list associated tests first:
   - [x] test_worker_generated_finding_summary_stays_clear_without_system_jargon
   - [x] test_primary_copy_preserves_meaning_while_removing_awkward_phrasing
 - T302 tests:
-  - [ ] test_debug_console_surfaces_secondary_fleetgraph_details_without_replacing_main_copy
-  - [ ] test_debug_console_is_keyboard_reachable_and_dismissible
-  - [ ] test_debug_console_handles_missing_optional_fields_cleanly
+  - [x] test_debug_console_surfaces_secondary_fleetgraph_details_without_replacing_main_copy
+  - [x] test_debug_console_is_keyboard_reachable_and_dismissible
+  - [x] test_debug_console_handles_missing_optional_fields_cleanly
 - T303 tests:
   - [ ] test_fleetgraph_cards_group_evidence_and_actions_with_clearer_hierarchy
   - [ ] test_visual_polish_preserves_existing_action_behavior

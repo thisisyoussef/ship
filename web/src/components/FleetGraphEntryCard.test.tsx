@@ -71,7 +71,7 @@ describe('FleetGraphEntryCard', () => {
     vi.mocked(apiPost).mockReset()
   })
 
-  it('posts the current Ship context and hides debug details by default', async () => {
+  it('posts the current Ship context without technical details in the main card', async () => {
     vi.mocked(apiPost).mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -143,11 +143,6 @@ describe('FleetGraphEntryCard', () => {
       .toBeInTheDocument()
     expect(screen.queryByText('fleetgraph:workspace-1:document:project')).not.toBeInTheDocument()
     expect(screen.queryByText('document-page / details')).not.toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('button', { name: /debug details/i }))
-
-    expect(await screen.findByText('fleetgraph:workspace-1:document:project')).toBeInTheDocument()
-    expect(screen.getByText('document-page / details')).toBeInTheDocument()
   })
 
   it('renders the approval gate when the backend marks the run as approval required', async () => {
@@ -225,9 +220,5 @@ describe('FleetGraphEntryCard', () => {
     expect(screen.getByRole('button', { name: 'Dismiss' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Snooze' })).toBeInTheDocument()
     expect(screen.queryByText(`POST /api/projects/${DOCUMENT_ID}/approve-plan`)).not.toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('button', { name: /debug details/i }))
-
-    expect(await screen.findByText(`POST /api/projects/${DOCUMENT_ID}/approve-plan`)).toBeInTheDocument()
   })
 })

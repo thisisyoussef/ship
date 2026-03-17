@@ -207,6 +207,13 @@ Capture reusable patterns that repeatedly work in this project.
 - **Tradeoffs**: Adds one more visible-story step and requires discipline to keep the critic bounded instead of turning it into an endless redesign loop.
 - **References**: `.ai/workflows/ui-qa-critic.md`, `.ai/workflows/story-handoff.md`, `docs/specs/fleetgraph/FLEETGRAPH-MVP-PHASE/user-audit-checklist.md`
 
+- **Pattern**: Page-level debug dock for secondary QA detail
+- **Use when**: A visible product surface needs technical QA detail such as endpoints, trace links, or thread ids without pushing that language back into the main card copy.
+- **Approach**: Publish already-fetched technical state into a page-level secondary dock or overlay that stays easy to open, easy to ignore, and clearly separate from the primary human-facing surface.
+- **Benefits**: Keeps the main UI calm and human-readable while still giving QA one consistent place to inspect internals.
+- **Tradeoffs**: Adds a small shared state layer between visible cards and the secondary debug surface.
+- **References**: `web/src/components/FleetGraphDebugDock.tsx`, `web/src/components/FleetGraphDebugSurface.tsx`, `docs/specs/fleetgraph/FLEETGRAPH-POLISH-PHASE/task-breakdown.md`
+
 - **Pattern**: Shared deploy contract plus service-auth readiness route
 - **Use when**: A feature now spans an authenticated UI route, a background worker process, provider secrets, and tracing configuration, and the team needs one deploy-readiness proof path.
 - **Approach**: Resolve API and worker readiness from the same env contract, expose a token-protected readiness endpoint that reports both surfaces together, and pair it with a smoke script that requires both the readiness response and an explicit trace URL.

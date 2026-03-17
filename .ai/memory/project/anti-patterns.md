@@ -184,6 +184,11 @@ Capture failures so they are not repeated.
 - **Why it failed**: Users lose the main task narrative, copy feels colder and more technical than necessary, and debugging detail competes with trust-building status language.
 - **Prevention rule**: Keep primary copy in user language, keep success/failure messaging tied to confirmed outcomes, and demote diagnostics into progressive disclosure or a secondary debug surface.
 
+- **Problem**: Fragmenting debug detail inside each FleetGraph card
+- **Example**: Each proactive or entry card grows its own inline `Debug details` block, so QA has to open multiple spots and the main card layout stays visually noisy even after copy cleanup.
+- **Why it failed**: Secondary diagnostic language keeps leaking into the primary surface and technical QA becomes scattered instead of inspectable in one place.
+- **Prevention rule**: Consolidate technical FleetGraph detail into one page-level secondary dock when the page contains multiple related FleetGraph surfaces.
+
 - **Problem**: Letting the sanctioned public demo depend on provider-side predeploy magic
 - **Example**: Treating a hosted demo as reliable even though migrations or seed/bootstrap depend on free-plan hooks, blocked DB access, or manual dashboard steps outside the repo.
 - **Why it failed**: The live demo can look healthy while FleetGraph routes or tables are broken, and story finalization drifts away from what users are actually seeing.

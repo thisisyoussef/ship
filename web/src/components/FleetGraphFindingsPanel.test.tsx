@@ -74,7 +74,7 @@ describe('FleetGraphFindingsPanel', () => {
     vi.mocked(apiPost).mockReset();
   });
 
-  it('renders an active week-start drift finding and hides debug details by default', async () => {
+  it('renders an active week-start drift finding without technical details in the main card', async () => {
     vi.mocked(apiGet).mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -138,10 +138,6 @@ describe('FleetGraphFindingsPanel', () => {
     expect(screen.queryByText(`POST /api/weeks/${SPRINT_ID}/start`)).not.toBeInTheDocument();
     expect(screen.queryByText('fleetgraph:workspace-1:scheduled-sweep')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /debug details/i }));
-
-    expect(await screen.findByText(`POST /api/weeks/${SPRINT_ID}/start`)).toBeInTheDocument();
-    expect(screen.getByText('fleetgraph:workspace-1:scheduled-sweep')).toBeInTheDocument();
     expect(apiGet).toHaveBeenCalledWith(
       `/api/fleetgraph/findings?documentIds=${encodeURIComponent(`${DOCUMENT_ID},${SPRINT_ID}`)}`
     );

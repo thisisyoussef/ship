@@ -12,13 +12,13 @@
 ## Current Focus
 
 ### Active Task
-- **Title**: Finish T301 language polish, deploy it to Railway, and then continue into T302
+- **Title**: Finish T302 debug surface, deploy it to Railway, and then continue into T303
 - **Status**: In progress
 - **Owner**: Codex
 
 ### Next Immediate Actions
-1. Finalize `T301` so the approval-preview and worker-summary copy are calmer on the live Railway demo.
-2. Start `T302` next for the secondary debug surface once `T301` is merged and deployed.
+1. Finalize `T302` so FleetGraph technical QA details live in a persistent debug dock instead of the primary cards.
+2. Start `T303` next for the light visual hierarchy polish once `T302` is merged and deployed.
 3. Preserve the REST-only Ship runtime data boundary while continuing the remaining UI polish work.
 
 ---

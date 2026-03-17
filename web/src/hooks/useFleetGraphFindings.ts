@@ -74,8 +74,13 @@ async function reviewFleetGraphFinding(id: string) {
   return response.json() as Promise<FleetGraphFindingReviewResponse>;
 }
 
-async function snoozeFleetGraphFinding(id: string, minutes: number) {
-  const response = await apiPost(`/api/fleetgraph/findings/${id}/snooze`, { minutes });
+interface FleetGraphSnoozeInput {
+  minutes?: number
+  seconds?: number
+}
+
+async function snoozeFleetGraphFinding(id: string, input: FleetGraphSnoozeInput) {
+  const response = await apiPost(`/api/fleetgraph/findings/${id}/snooze`, input);
   if (!response.ok) {
     const error = new Error(
       'FleetGraph could not snooze this finding right now. Nothing changed.'
@@ -120,8 +125,8 @@ export function useFleetGraphFindings(documentIds: string[]) {
   });
 
   const snoozeMutation = useMutation({
-    mutationFn: ({ id, minutes }: { id: string; minutes: number }) =>
-      snoozeFleetGraphFinding(id, minutes),
+    mutationFn: ({ id, input }: { id: string; input: FleetGraphSnoozeInput }) =>
+      snoozeFleetGraphFinding(id, input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
     },
@@ -157,8 +162,8 @@ export function useFleetGraphFindings(documentIds: string[]) {
     async reviewFinding(id: string) {
       return reviewMutation.mutateAsync(id);
     },
-    async snoozeFinding(id: string, minutes = 240) {
-      return snoozeMutation.mutateAsync({ id, minutes });
+    async snoozeFinding(id: string, input: FleetGraphSnoozeInput = { minutes: 240 }) {
+      return snoozeMutation.mutateAsync({ id, input });
     },
   };
 }

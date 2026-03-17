@@ -72,10 +72,10 @@ export function buildDismissNotice() {
   return 'Hidden for now. FleetGraph will only bring this back if a new signal shows up.';
 }
 
-export function buildSnoozeNotice(snoozedUntil?: string) {
+export function buildSnoozeNotice(snoozedUntil?: string, durationLabel = '4 hours') {
   const timestamp = formatFleetGraphTimestamp(snoozedUntil);
   if (!timestamp) {
-    return 'Snoozed for 4 hours. FleetGraph will stay quiet until the snooze expires.';
+    return `Snoozed for ${durationLabel}. FleetGraph will stay quiet until the snooze expires.`;
   }
 
   return `Snoozed until ${timestamp}. FleetGraph will stay quiet until then.`;

@@ -212,6 +212,7 @@ describe('FleetGraph routes', () => {
   }
 
   beforeEach(() => {
+    vi.useRealTimers()
     process.env = { ...originalEnv }
     ;[
       applyStartWeekFinding,
@@ -591,6 +592,30 @@ describe('FleetGraph routes', () => {
       'finding-1',
       '22222222-2222-4222-8222-222222222222',
       expect.any(Date)
+    )
+  })
+
+  it('accepts second-level snoozes for demo flows', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-03-17T12:00:00.000Z'))
+
+    snoozeFinding.mockResolvedValue(
+      makeFinding({
+        snoozedUntil: new Date('2026-03-17T12:00:10.000Z'),
+        status: 'snoozed',
+        summary: 'Snoozed summary',
+      })
+    )
+
+    const response = await request(app)
+      .post('/api/fleetgraph/findings/finding-1/snooze')
+      .send({ seconds: 10 })
+
+    expect(response.status).toBe(200)
+    expect(snoozeFinding).toHaveBeenCalledWith(
+      'finding-1',
+      '22222222-2222-4222-8222-222222222222',
+      new Date('2026-03-17T12:00:10.000Z')
     )
   })
 })

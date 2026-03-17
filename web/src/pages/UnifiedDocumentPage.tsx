@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useEffect, Suspense } from 'react';
+import { useCallback, useMemo, useEffect, useState, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { UnifiedEditor } from '@/components/UnifiedEditor';
@@ -634,34 +634,73 @@ export function UnifiedDocumentPage() {
     );
   }
 
+  const [fleetGraphExpanded, setFleetGraphExpanded] = useState(() => {
+    try {
+      return localStorage.getItem('fleetgraph-panel-expanded') !== 'false';
+    } catch {
+      return true;
+    }
+  });
+
+  const toggleFleetGraph = useCallback(() => {
+    setFleetGraphExpanded((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('fleetgraph-panel-expanded', String(next));
+      } catch {
+        // localStorage unavailable
+      }
+      return next;
+    });
+  }, []);
+
   if (!user || !unifiedDocument) {
     return null;
   }
 
   const fleetGraphCard = (
     <FleetGraphDebugSurfaceProvider>
-      <div className="border-b border-border px-4 py-3">
-        <div className="space-y-3">
-          <FleetGraphFindingsPanel
-            context={documentContextQuery.data}
-            currentDocumentId={document.id}
-            loading={documentContextQuery.isLoading}
-          />
-          <FleetGraphEntryCard
-            activeTab={activeTab || undefined}
-            context={documentContextQuery.data}
-            contextError={documentContextQuery.error instanceof Error ? documentContextQuery.error.message : undefined}
-            document={{
-              documentType: document.document_type,
-              id: document.id,
-              title: document.title,
-              workspaceId: document.workspace_id,
-            }}
-            loading={documentContextQuery.isLoading}
-            nestedPath={nestedPath}
-            userId={user.id}
-          />
-        </div>
+      <div className="border-b border-border">
+        <button
+          className="flex w-full items-center justify-between px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted hover:bg-muted/30 transition-colors"
+          onClick={toggleFleetGraph}
+          type="button"
+        >
+          <span>FleetGraph</span>
+          <svg
+            className={`h-4 w-4 transition-transform ${fleetGraphExpanded ? 'rotate-180' : ''}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path d="M19 9l-7 7-7-7" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} />
+          </svg>
+        </button>
+        {fleetGraphExpanded && (
+          <div className="px-4 pb-3">
+            <div className="space-y-3">
+              <FleetGraphFindingsPanel
+                context={documentContextQuery.data}
+                currentDocumentId={document.id}
+                loading={documentContextQuery.isLoading}
+              />
+              <FleetGraphEntryCard
+                activeTab={activeTab || undefined}
+                context={documentContextQuery.data}
+                contextError={documentContextQuery.error instanceof Error ? documentContextQuery.error.message : undefined}
+                document={{
+                  documentType: document.document_type,
+                  id: document.id,
+                  title: document.title,
+                  workspaceId: document.workspace_id,
+                }}
+                loading={documentContextQuery.isLoading}
+                nestedPath={nestedPath}
+                userId={user.id}
+              />
+            </div>
+          </div>
+        )}
       </div>
       <FleetGraphDebugDock />
     </FleetGraphDebugSurfaceProvider>

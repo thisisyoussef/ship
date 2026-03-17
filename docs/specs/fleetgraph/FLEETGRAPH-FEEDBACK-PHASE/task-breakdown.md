@@ -43,9 +43,9 @@
 For each task, list associated tests first:
 
 - T201 tests:
-  - [ ] test_docs_navigation_surfaces_named_fleetgraph_week_rows
-  - [ ] test_documents_list_includes_fleetgraph_demo_weeks_through_standard_ui_path
-  - [ ] test_navigation_keeps_existing_visibility_rules
+  - [x] test_docs_navigation_surfaces_named_fleetgraph_week_rows
+  - [x] test_documents_list_includes_fleetgraph_demo_weeks_through_standard_ui_path
+  - [x] test_navigation_keeps_existing_visibility_rules
 - T202 tests:
   - [ ] test_week_document_page_scroll_container_remains_reachable_with_fleetgraph_panels
   - [ ] test_seeded_review_apply_week_page_renders_without_scroll_trap

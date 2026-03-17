@@ -7,9 +7,11 @@ import { buildEntryDebugSnapshot } from '@/lib/fleetgraph-debug';
 import type { FleetGraphEntryDocument } from '@/lib/fleetgraph-entry';
 
 const buttonClassName =
-  'rounded-md border border-border px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50';
+  'rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50';
 const optionClassName =
   'rounded-md border border-border bg-background px-2.5 py-1 text-xs font-medium text-foreground';
+const sectionLabelClassName =
+  'text-[11px] font-semibold uppercase tracking-[0.16em] text-muted';
 
 interface FleetGraphEntryCardProps {
   activeTab?: string;
@@ -64,33 +66,39 @@ export function FleetGraphEntryCard({
   }, [activeTab, fleetGraph.result, nestedPath, setEntry]);
 
   return (
-    <section className="rounded-lg border border-border bg-background px-4 py-3 shadow-sm">
-      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-        <div className="space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
-            FleetGraph entry
-          </p>
+    <section className="rounded-xl border border-border bg-background px-4 py-4 shadow-sm">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
+        <div className="space-y-1.5">
+          <p className={sectionLabelClassName}>FleetGraph entry</p>
           <h2 className="text-sm font-semibold text-foreground">Help for this page</h2>
           <p className="text-sm text-muted">{helperText}</p>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <button
-            className={buttonClassName}
-            disabled={disabled || fleetGraph.isLoading}
-            onClick={() => entry && fleetGraph.checkCurrentContext(entry)}
-            type="button"
-          >
-            Check this page
-          </button>
-          <button
-            className={buttonClassName}
-            disabled={disabled || fleetGraph.isLoading}
-            onClick={() => entry && fleetGraph.previewApproval(entry)}
-            type="button"
-          >
-            Preview approval step
-          </button>
+        <div className="space-y-3 rounded-xl border border-border/80 bg-muted/20 px-3 py-3">
+          <div className="space-y-1">
+            <p className={sectionLabelClassName}>Quick actions</p>
+            <p className="text-sm text-muted">
+              Ask FleetGraph to review this page or show the approval path first.
+            </p>
+          </div>
+          <div className="flex flex-col gap-2">
+            <button
+              className={buttonClassName}
+              disabled={disabled || fleetGraph.isLoading}
+              onClick={() => entry && fleetGraph.checkCurrentContext(entry)}
+              type="button"
+            >
+              Check this page
+            </button>
+            <button
+              className={buttonClassName}
+              disabled={disabled || fleetGraph.isLoading}
+              onClick={() => entry && fleetGraph.previewApproval(entry)}
+              type="button"
+            >
+              Preview approval step
+            </button>
+          </div>
         </div>
       </div>
 
@@ -105,14 +113,16 @@ export function FleetGraphEntryCard({
       ) : null}
 
       {fleetGraph.result ? (
-        <div className="mt-3 space-y-3 rounded-md border border-border bg-muted/30 px-3 py-3">
+        <div className="mt-4 space-y-3 rounded-xl border border-border bg-muted/20 px-3 py-3">
           <div className="space-y-1">
+            <p className={sectionLabelClassName}>Current guidance</p>
             <p className="text-sm font-semibold text-foreground">{fleetGraph.result.summary.title}</p>
             <p className="text-sm text-muted">{fleetGraph.result.summary.detail}</p>
           </div>
 
           {fleetGraph.result.approval ? (
-            <div className="space-y-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-3">
+            <div className="space-y-3 rounded-xl border border-amber-300 bg-amber-50 px-3 py-3">
+              <p className={sectionLabelClassName}>Approval step</p>
               <span className="inline-flex rounded-full border border-amber-200 bg-white/70 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-900">
                 Needs your approval
               </span>
@@ -141,7 +151,7 @@ export function FleetGraphEntryCard({
               </div>
             </div>
           ) : (
-            <p className="rounded-md border border-border bg-background px-3 py-2 text-sm text-muted">
+            <p className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-muted">
               No approval step is needed for this page right now.
             </p>
           )}

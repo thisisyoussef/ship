@@ -73,12 +73,8 @@ export function resolveLLMConfig(
     provider,
   };
 
-  if (provider === 'openai' && !config.openai.apiKey) {
-    throw new Error(
-      'OPENAI_API_KEY is required when FleetGraph uses the OpenAI provider.'
-    );
-  }
-
+  // Don't throw here - validate at LLM call time to allow server startup.
+  // This enables the server to run with FleetGraph disabled when API keys aren't set.
   return config;
 }
 
@@ -130,6 +126,11 @@ class OpenAIResponsesAdapter implements LLMAdapter {
   public async generate(
     request: LLMGenerateRequest
   ): Promise<LLMGenerateResponse> {
+    if (!this.config.apiKey) {
+      throw new Error(
+        'OPENAI_API_KEY is required for FleetGraph OpenAI provider.'
+      );
+    }
     const response = await this.fetchFn(`${this.config.baseUrl}/responses`, {
       body: JSON.stringify({
         input: request.input,

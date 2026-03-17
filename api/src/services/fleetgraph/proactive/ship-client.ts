@@ -46,6 +46,11 @@ function buildReadHeaders(
   requestContext?: ShipRestRequestContext
 ) {
   if (!requestContext) {
+    if (!config.token) {
+      throw new Error(
+        'FleetGraph proactive mode requires FLEETGRAPH_API_TOKEN environment variable.'
+      )
+    }
     return {
       Authorization: `Bearer ${config.token}`,
     } satisfies Record<string, string>
@@ -72,24 +77,23 @@ function buildReadUrl(
   requestContext?: ShipRestRequestContext
 ) {
   const baseUrl = requestContext?.baseUrl ?? config.baseUrl
+  if (!baseUrl) {
+    throw new Error(
+      'FleetGraph Ship REST requires either a request context or APP_BASE_URL environment variable.'
+    )
+  }
   return `${baseUrl}${path}`
 }
 
 export function resolveFleetGraphShipApiConfig(
   env: FleetGraphShipApiEnv | NodeJS.ProcessEnv = process.env
 ): FleetGraphShipApiConfig {
-  const baseUrl = trimUrl(env.APP_BASE_URL)
-  const token = env.FLEETGRAPH_API_TOKEN?.trim()
-
-  if (!baseUrl) {
-    throw new Error('APP_BASE_URL is required for FleetGraph Ship REST access.')
+  // Don't throw here - on-demand analysis uses requestContext instead of token-based auth.
+  // Methods that require proactive/token-based auth will validate at call time.
+  return {
+    baseUrl: trimUrl(env.APP_BASE_URL) ?? '',
+    token: env.FLEETGRAPH_API_TOKEN?.trim() ?? '',
   }
-
-  if (!token) {
-    throw new Error('FLEETGRAPH_API_TOKEN is required for FleetGraph proactive Ship REST access.')
-  }
-
-  return { baseUrl, token }
 }
 
 export function createFleetGraphShipApiClient(

@@ -28,3 +28,12 @@
 - Keep Ship product data REST-only.
 - Keep the Railway public demo as the proof surface for this pack.
 - Keep the work modest and human-centered; do not turn this into a broad redesign.
+
+## Current Status
+- `T301`, `T302`, and `T303` are merged and live on the Railway public demo.
+- `T304` is closing the pack with refreshed screenshots, the updated inspection guide, and a dedicated polish-pack user audit checklist.
+- The current live proof lane now shows the calmer labeled structure:
+  - `Active finding`
+  - `Why this matters`
+  - `Suggested next step`
+  - `Quick actions`

@@ -2,7 +2,7 @@
 
 **Last Updated**: 2026-03-17
 **Current Phase**: FleetGraph polish implementation
-**Active Sprint**: Finish T303/T304 and refresh the polished Railway audit path
+**Active Sprint**: Close T304 and publish the polished FleetGraph Railway audit path
 **Project Status**: Active
 **Canonical Deployment Baseline**: API on AWS Elastic Beanstalk, frontend on S3/CloudFront, config/secrets on AWS-native services
 **Sanctioned Public Demo**: Railway public demo, deployed with `scripts/deploy-railway-demo.sh`
@@ -12,14 +12,14 @@
 ## Current Focus
 
 ### Active Task
-- **Title**: Finish T303 visual hierarchy polish, deploy it to Railway, and then close T304
+- **Title**: Finish T304 QA refresh and close the FleetGraph polish pack
 - **Status**: In progress
 - **Owner**: Codex
 
 ### Next Immediate Actions
-1. Finalize `T303` so FleetGraph cards gain the calmer hierarchy and action grouping intended by the polish pack.
-2. Refresh the Railway demo after `T303` merges, then complete `T304` with the updated audit guide, screenshots, and final pack QA pass.
-3. Preserve the REST-only Ship runtime data boundary while finishing the remaining UI polish work.
+1. Finish `T304` with the refreshed demo inspection guide, polish-pack checklist, screenshots, and consistency test coverage.
+2. Finalize `T304` and close the FleetGraph polish pack on the live Railway demo.
+3. Preserve the REST-only Ship runtime data boundary while preparing the next full user inspection.
 
 ---
 

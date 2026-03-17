@@ -118,6 +118,7 @@
 - Decided T302 should consolidate technical FleetGraph QA detail into one page-level secondary debug dock instead of keeping separate inline debug disclosures inside each card.
 - Removed the per-card FleetGraph inline debug disclosure in favor of a persistent bottom-right dock that reuses already-fetched entry and finding state.
 - Decided T303 should improve FleetGraph scanability through labeled content/action sections, softer evidence rows, and a clearly secondary quick-actions block instead of a broader page redesign.
+- Decided T304 should publish a dedicated polish-pack audit checklist and refreshed Railway screenshots so future inspections can QA the whole polished FleetGraph slice from one reproducible path.
 
 Record session-level technical decisions.
 

@@ -1,10 +1,10 @@
 # Active Context
 
 - **Session Started**: 2026-03-16
-- **Current Task**: Complete the remaining FleetGraph polish stories, with T303 visual hierarchy in flight
+- **Current Task**: Close the FleetGraph polish pack with T304 QA refresh
 - **Status**: In Progress
 
 ## Next 3 Actions
-1. [ ] Finalize and deploy `T303` so the calmer FleetGraph hierarchy is live on Railway.
-2. [ ] Finish `T304` with refreshed screenshots, audit guidance, and any tail-end QA follow-ons.
-3. [ ] Close the FleetGraph polish pack and prepare the next full user inspection.
+1. [ ] Finish `T304` with refreshed screenshots, audit guidance, and any tail-end QA follow-ons.
+2. [ ] Finalize the FleetGraph polish pack on Railway.
+3. [ ] Prepare the next full user inspection from the pack-level checklist.

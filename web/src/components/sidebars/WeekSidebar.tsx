@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { PropertyRow } from '@/components/ui/PropertyRow';
 import { Combobox } from '@/components/ui/Combobox';
 import { ApprovalButton } from '@/components/ApprovalButton';
@@ -96,6 +96,7 @@ export function WeekSidebar({
   onApprovalUpdate,
 }: WeekSidebarProps) {
   const navigate = useNavigate();
+  const { id: currentDocumentId } = useParams<{ id: string }>();
   const [selectedReviewRating, setSelectedReviewRating] = useState<number | null>(sprint.review_rating?.value ?? null);
   const [ratingInProgress, setRatingInProgress] = useState(false);
   // Helper to check if a field should be highlighted
@@ -298,14 +299,16 @@ export function WeekSidebar({
         </PropertyRow>
       )}
 
-      <div className="border-t border-border pt-4">
-        <button
-          onClick={() => navigate(`/documents/${sprint.id}`)}
-          className="w-full rounded-md bg-accent px-3 py-2 text-sm font-medium text-white hover:bg-accent/90 transition-colors"
-        >
-          Plan Week
-        </button>
-      </div>
+      {sprint.id !== currentDocumentId && (
+        <div className="border-t border-border pt-4">
+          <button
+            onClick={() => navigate(`/documents/${sprint.id}`)}
+            className="w-full rounded-md bg-accent px-3 py-2 text-sm font-medium text-white hover:bg-accent/90 transition-colors"
+          >
+            Plan Week
+          </button>
+        </div>
+      )}
     </div>
   );
 }

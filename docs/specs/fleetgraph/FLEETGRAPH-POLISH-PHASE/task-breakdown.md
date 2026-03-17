@@ -55,16 +55,16 @@ For each task, list associated tests first:
   - [x] test_visual_polish_preserves_existing_action_behavior
   - [x] test_dismiss_and_snooze_remain_truthful_regression_checks
 - T304 tests:
-  - [ ] test_polish_demo_inspection_guide_matches_current_named_targets
-  - [ ] test_polish_pack_user_audit_checklist_matches_live_ui_path
-  - [ ] test_follow_on_feedback_items_append_at_tail_not_mid_sequence
+  - [x] test_polish_demo_inspection_guide_matches_current_named_targets
+  - [x] test_polish_pack_user_audit_checklist_matches_live_ui_path
+  - [x] test_follow_on_feedback_items_append_at_tail_not_mid_sequence
 
 ## Completion Criteria
-- [ ] All must-have tasks complete
-- [ ] Acceptance criteria mapped to completed tasks
-- [ ] Tests added and passing for each implemented task
-- [ ] Approval-preview language feels natural and non-technical on prod
-- [ ] Technical FleetGraph details are easy to inspect without dominating the main UI
-- [ ] The visible FleetGraph cards are modestly calmer and easier to scan
-- [ ] The public Railway demo remains the inspection surface after each story
-- [ ] The refreshed pack-level audit checklist is ready for the next user pass
+- [x] All must-have tasks complete
+- [x] Acceptance criteria mapped to completed tasks
+- [x] Tests added and passing for each implemented task
+- [x] Approval-preview language feels natural and non-technical on prod
+- [x] Technical FleetGraph details are easy to inspect without dominating the main UI
+- [x] The visible FleetGraph cards are modestly calmer and easier to scan
+- [x] The public Railway demo remains the inspection surface after each story
+- [x] The refreshed pack-level audit checklist is ready for the next user pass

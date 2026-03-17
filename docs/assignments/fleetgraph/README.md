@@ -76,6 +76,7 @@ All items are required to pass:
 - Final evidence bundle: `docs/evidence/fleetgraph-mvp-evidence.json` and `docs/evidence/fleetgraph-mvp-evidence.md`
 - Submission workbook: `docs/assignments/fleetgraph/FLEETGRAPH.md`
 - Post-MVP feedback pack: `docs/specs/fleetgraph/FLEETGRAPH-FEEDBACK-PHASE/`
+- Post-feedback polish pack audit: `docs/specs/fleetgraph/FLEETGRAPH-POLISH-PHASE/user-audit-checklist.md`
 
 ## What to lock down before coding
 
@@ -98,4 +99,5 @@ All items are required to pass:
 7. Decide the proactive trigger model and defend it.
 8. After MVP feedback arrives, use `docs/specs/fleetgraph/FLEETGRAPH-FEEDBACK-PHASE/` to restore discoverability, scrolling, and trust.
 9. Use `docs/specs/fleetgraph/FLEETGRAPH-POLISH-PHASE/` for the remaining human-language, debug-surface, and light visual polish sequence.
-10. Only then start any new extension planning beyond the current FleetGraph proof lane.
+10. Run `docs/specs/fleetgraph/FLEETGRAPH-POLISH-PHASE/user-audit-checklist.md` for the full polished UI inspection path once that pack is complete.
+11. Only then start any new extension planning beyond the current FleetGraph proof lane.

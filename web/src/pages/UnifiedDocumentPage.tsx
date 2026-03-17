@@ -668,7 +668,7 @@ export function UnifiedDocumentPage() {
     const TabComponent = currentTabConfig?.component;
 
     return (
-      <div className="flex h-full flex-col">
+      <div className="flex h-full min-h-0 flex-col">
         {fleetGraphCard}
         {/* Tab bar */}
         <div className="border-b border-border px-4">
@@ -687,7 +687,7 @@ export function UnifiedDocumentPage() {
         </div>
 
         {/* Content area with lazy-loaded tab component */}
-        <div className="flex-1 overflow-hidden">
+        <div className="min-h-0 flex-1 overflow-hidden" data-testid="document-tab-content">
           <Suspense
             fallback={
               <div className="flex h-full items-center justify-center">
@@ -706,9 +706,9 @@ export function UnifiedDocumentPage() {
 
   // Non-tabbed documents render directly in editor
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full min-h-0 flex-col">
       {fleetGraphCard}
-      <div className="min-h-0 flex-1">
+      <div className="min-h-0 flex-1" data-testid="document-editor-content">
         <UnifiedEditor
           document={unifiedDocument}
           sidebarData={sidebarData}

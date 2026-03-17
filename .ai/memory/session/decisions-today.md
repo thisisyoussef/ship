@@ -115,6 +115,8 @@
 - Decided any remaining live QA issues after the feedback pack should move into a separate polish sequence rather than silently extending the completed feedback pack.
 - Decided the FleetGraph polish sequence should stay intentionally narrow: human-language cleanup first, a better secondary debug surface second, light visual hierarchy polish third, and a final prod QA refresh last.
 - Decided T301 should fix the worker-summary tone in the presentation layer instead of changing the proactive LLM prompt, so the story stays out of eval-driven AI-behavior scope.
+- Decided T302 should consolidate technical FleetGraph QA detail into one page-level secondary debug dock instead of keeping separate inline debug disclosures inside each card.
+- Removed the per-card FleetGraph inline debug disclosure in favor of a persistent bottom-right dock that reuses already-fetched entry and finding state.
 
 Record session-level technical decisions.
 

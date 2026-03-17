@@ -1,4 +1,3 @@
-import { FleetGraphDebugDisclosure } from '@/components/FleetGraphDebugDisclosure';
 import type { FleetGraphFinding } from '@/lib/fleetgraph-findings';
 import {
   buildFindingSummary,
@@ -131,32 +130,6 @@ export function FleetGraphFindingCard({
             </div>
           ) : null}
 
-          <FleetGraphDebugDisclosure>
-            <div className="space-y-1">
-              <p className="font-medium text-foreground">Thread</p>
-              <p>{finding.threadId}</p>
-            </div>
-            {finding.recommendedAction ? (
-              <div className="space-y-1">
-                <p className="font-medium text-foreground">Action endpoint</p>
-                <p>
-                  {finding.recommendedAction.endpoint.method}
-                  {' '}
-                  {finding.recommendedAction.endpoint.path}
-                </p>
-              </div>
-            ) : null}
-            {finding.tracePublicUrl ? (
-              <a
-                className="inline-flex font-medium text-accent hover:underline"
-                href={finding.tracePublicUrl}
-                rel="noreferrer"
-                target="_blank"
-              >
-                Open trace evidence
-              </a>
-            ) : null}
-          </FleetGraphDebugDisclosure>
         </div>
 
         <div className="flex flex-wrap gap-2 md:justify-end">

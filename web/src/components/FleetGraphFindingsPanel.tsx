@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { FleetGraphFindingCard } from '@/components/FleetGraphFindingCard';
+import { useFleetGraphDebugSurface } from '@/components/FleetGraphDebugSurface';
 import type { DocumentContext } from '@/hooks/useDocumentContextQuery';
+import { buildFindingDebugSnapshot } from '@/lib/fleetgraph-debug';
 import { useFleetGraphFindings } from '@/hooks/useFleetGraphFindings';
 import { buildFleetGraphFindingDocumentIds } from '@/lib/fleetgraph-findings';
 import {
@@ -34,12 +36,17 @@ export function FleetGraphFindingsPanel({
 }: FleetGraphFindingsPanelProps) {
   const documentIds = buildFleetGraphFindingDocumentIds(currentDocumentId, context);
   const findings = useFleetGraphFindings(documentIds);
+  const { setFindings } = useFleetGraphDebugSurface();
   const [confirmingFindingId, setConfirmingFindingId] = useState<string | null>(null);
   const [localNotice, setLocalNotice] = useState<LocalNotice | null>(null);
 
   const helperText = loading
     ? 'Loading the surrounding Ship context for FleetGraph.'
     : 'FleetGraph is watching this page and related project context for anything that may need attention.';
+
+  useEffect(() => {
+    setFindings(findings.findings.map(buildFindingDebugSnapshot));
+  }, [findings.findings, setFindings]);
 
   async function handleDismiss(findingId: string) {
     setLocalNotice(null);

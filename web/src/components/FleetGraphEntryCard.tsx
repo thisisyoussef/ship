@@ -46,6 +46,7 @@ export function FleetGraphEntryCard({
     };
   }, [activeTab, context, document, nestedPath, userId]);
   const fleetGraph = useFleetGraphEntry();
+  const approval = fleetGraph.result?.approval;
   const { setEntry } = useFleetGraphDebugSurface();
 
   const disabled = loading || !entry || !document.workspaceId;
@@ -120,7 +121,7 @@ export function FleetGraphEntryCard({
             <p className="text-sm text-muted">{fleetGraph.result.summary.detail}</p>
           </div>
 
-          {fleetGraph.result.approval ? (
+          {approval ? (
             <div className="space-y-3 rounded-xl border border-amber-300 bg-amber-50 px-3 py-3">
               <p className={sectionLabelClassName}>Approval step</p>
               <span className="inline-flex rounded-full border border-amber-200 bg-white/70 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-900">
@@ -128,21 +129,26 @@ export function FleetGraphEntryCard({
               </span>
               <div className="space-y-1">
                 <p className="text-sm font-semibold text-amber-950">
-                  {fleetGraph.result.approval.title}
+                  {approval.title}
                 </p>
                 <p className="text-sm text-amber-900/85">
-                  {fleetGraph.result.approval.summary}
+                  {approval.summary}
                 </p>
                 <p className="text-xs text-amber-900/75">
                   You stay in control. FleetGraph only acts after you confirm.
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
-                {fleetGraph.result.approval.options.map((option) => (
+                {approval.options.map((option) => (
                   <button
                     className={optionClassName}
-                    disabled
+                    disabled={fleetGraph.isApplying}
                     key={option.id}
+                    onClick={() => {
+                      if (option.id === 'apply') fleetGraph.applyApproval(approval)
+                      else if (option.id === 'dismiss') fleetGraph.dismissApproval()
+                      else if (option.id === 'snooze') fleetGraph.snoozeApproval()
+                    }}
                     type="button"
                   >
                     {option.label}

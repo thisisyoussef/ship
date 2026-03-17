@@ -153,3 +153,8 @@ Capture failures so they are not repeated.
 - **Example**: The API surface reads one set of provider/tracing/service-auth variables while the worker CLI expects a different or partially implicit set, and deploy smoke relies only on `/health`.
 - **Why it failed**: One FleetGraph surface can look alive while the other is misconfigured, and the team ends up “verifying” deploys without a real service-auth or trace proof path.
 - **Prevention rule**: Resolve API and worker readiness from the same FleetGraph deployment module, expose a token-protected readiness route, and require trace evidence alongside deploy smoke.
+
+- **Problem**: Treating optional AWS secret-store lookups as mandatory on non-AWS hosts
+- **Example**: A Render deploy with explicit runtime env still crashes during boot because optional FleetGraph or LangSmith SSM reads throw `CredentialsProviderError` before readiness can be evaluated.
+- **Why it failed**: The host is not meant to have AWS credentials, so an optional fallback path becomes a hard availability dependency and hides the real configuration state.
+- **Prevention rule**: Use explicit runtime env as the primary config source on non-AWS hosts and make optional secret-store fallbacks credential-tolerant so readiness can report the true missing settings.

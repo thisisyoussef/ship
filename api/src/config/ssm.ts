@@ -80,6 +80,17 @@ async function getOptionalSSMSecret(name: string): Promise<string | undefined> {
   }
 }
 
+function isCredentialProviderError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  return (
+    error.name === 'CredentialsProviderError' ||
+    error.message.includes('Could not load credentials from any providers')
+  );
+}
+
 export async function loadProductionSecrets(): Promise<void> {
   if (process.env.NODE_ENV !== 'production') {
     return; // Use .env files for local dev
@@ -118,12 +129,29 @@ export async function loadProductionSecrets(): Promise<void> {
     console.log('Using explicit production environment variables for core app config');
   }
 
-  const optionalValues = await Promise.all(
-    OPTIONAL_FLEETGRAPH_KEYS.map(async (key) => [
-      key,
-      await getOptionalSSMSecret(`${basePath}/${key}`),
-    ] as const)
-  );
+  const missingOptionalKeys = OPTIONAL_FLEETGRAPH_KEYS.filter((key) => !process.env[key]);
+  if (missingOptionalKeys.length === 0) {
+    return;
+  }
+
+  let optionalValues: ReadonlyArray<readonly [typeof OPTIONAL_FLEETGRAPH_KEYS[number], string | undefined]>;
+  try {
+    optionalValues = await Promise.all(
+      missingOptionalKeys.map(async (key) => [
+        key,
+        await getOptionalSSMSecret(`${basePath}/${key}`),
+      ] as const)
+    );
+  } catch (error) {
+    if (isCredentialProviderError(error)) {
+      console.warn(
+        'Skipping optional FleetGraph/LangSmith SSM loading because AWS credentials are unavailable; continuing with explicit environment variables only.'
+      );
+      return;
+    }
+
+    throw error;
+  }
 
   let loadedOptionalCount = 0;
   for (const [key, value] of optionalValues) {

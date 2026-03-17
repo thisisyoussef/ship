@@ -7,6 +7,7 @@ export default defineConfig({
     globals: true,
     hookTimeout: 120_000,
     include: [
+      'src/config/ssm.test.ts',
       'src/routes/fleetgraph.test.ts',
       'src/services/fleetgraph/**/*.test.ts',
     ],

@@ -1,8 +1,8 @@
 # Ship - Single Source of Truth
 
 **Last Updated**: 2026-03-17
-**Current Phase**: FleetGraph MVP `T104B` Railway worker lane
-**Active Sprint**: Run the FleetGraph Railway worker lane end to end on real Ship REST data and capture MVP evidence
+**Current Phase**: FleetGraph MVP `T105` evidence capture
+**Active Sprint**: Finish the FleetGraph Tuesday MVP evidence set from the live Railway demo and prepare the submission handoff
 **Project Status**: Active
 **Canonical Deployment Baseline**: API on AWS Elastic Beanstalk, frontend on S3/CloudFront, config/secrets on AWS-native services
 **Sanctioned Public Demo**: Railway public demo, deployed with `scripts/deploy-railway-demo.sh`
@@ -12,13 +12,13 @@
 ## Current Focus
 
 ### Active Task
-- **Title**: Complete `T104B` so the Railway public demo has a real FleetGraph worker lane and two named UI proof targets
+- **Title**: Complete `T105` so the Tuesday MVP has two shared traces, deployed UI proof, and a submission-ready workbook/evidence bundle
 - **Status**: In progress
 - **Owner**: Codex
 
 ### Next Immediate Actions
-1. Finish `T104B`: keep the Railway worker lane live with both the seeded HITL lane and the worker-generated lane visible on the public demo.
-2. Capture `T105` evidence next: at least two shared traces, deployed UI proof, and final workbook linkage.
+1. Finalize `T105` with the live Railway evidence bundle, screenshot artifacts, and updated `FLEETGRAPH.md`.
+2. Keep the Railway public demo stable with both named UI proof targets visible for final user audit.
 3. Preserve the REST-only Ship runtime data boundary while using DB-backed seed/bootstrap only for FleetGraph-owned state and named demo fixtures.
 
 ---

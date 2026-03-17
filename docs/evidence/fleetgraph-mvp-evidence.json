@@ -1,0 +1,28 @@
+{
+  "capturedAt": "2026-03-17T12:36:53Z",
+  "publicDemoUrl": "https://ship-demo-production.up.railway.app",
+  "readiness": {
+    "httpStatus": "200"
+  },
+  "inspectionTargets": {
+    "reviewAndApply": {
+      "documentId": "77ae8e61-144a-4e05-a83a-f090eddb8caf",
+      "findingTitle": "Week start drift: FleetGraph Demo Week - Review and Apply"
+    },
+    "workerGenerated": {
+      "documentId": "a1e33dd0-7bef-4a97-817e-f0eb1bde5343",
+      "findingTitle": "Week start drift: FleetGraph Demo Week - Worker Generated"
+    }
+  },
+  "traces": {
+    "proactiveWorker": {
+      "title": "Week start drift: FleetGraph Demo Week - Worker Generated",
+      "runId": "019cfbca-b3b2-7000-8000-039b145de959",
+      "publicUrl": "https://smith.langchain.com/public/d5f1a274-6f81-4c42-b8be-924791429323/r"
+    },
+    "approvalPreview": {
+      "runId": "019cfbcc-919b-7510-9c84-9b72267c1382",
+      "publicUrl": "https://smith.langchain.com/public/e969f90a-ef5a-45e5-bded-9d6de7233311/r"
+    }
+  }
+}

@@ -98,6 +98,14 @@
 - Fixed the proactive Ship REST client to accept the real `/api/weeks` payload shape, including extra live fields and root/row sprint-start normalization.
 - Decided the public demo bootstrap should preserve the seeded HITL lane but also clear stale FleetGraph worker ledger state and enqueue one fresh proactive worker job so the worker-generated lane reliably reappears after each refresh.
 - Verified the Railway public demo now reaches full FleetGraph readiness and shows both named findings: the seeded HITL lane and the live worker-generated lane with a public LangSmith trace URL.
+- Started `T105` on `codex/fleetgraph-t105-evidence-capture` to close the Tuesday MVP with final trace, deploy, screenshot, and workbook evidence from the live Railway demo.
+- Fixed the live approval-preview blocker by teaching FleetGraph's integer normalizer to treat `null` Ship fields as `undefined`, which lets real document-context payloads produce the expected `approval_required` path.
+- Added `scripts/capture_fleetgraph_mvp_evidence.sh` so the repo can log into the public Railway demo, verify FleetGraph readiness, capture named inspection targets, and write a machine-readable evidence bundle.
+- Captured two fresh shared traces for the deployed Tuesday MVP:
+  - proactive worker path: `https://smith.langchain.com/public/d5f1a274-6f81-4c42-b8be-924791429323/r`
+  - on-demand approval-preview path: `https://smith.langchain.com/public/e969f90a-ef5a-45e5-bded-9d6de7233311/r`
+- Captured live UI proof screenshots for the seeded review/apply lane, the approval-preview lane, and the worker-generated lane under `docs/evidence/screenshots/`.
+- Updated `docs/assignments/fleetgraph/FLEETGRAPH.md` and `docs/evidence/fleetgraph-mvp-evidence.md` so the Tuesday MVP workbook now points at real deployed traces, a real public demo URL, named inspection targets, and honest token accounting.
 
 Record session-level technical decisions.
 

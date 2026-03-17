@@ -193,3 +193,8 @@ Capture failures so they are not repeated.
 - **Example**: A redeploy resets the seeded HITL lane, but an old dedupe ledger or retry window prevents the worker-generated proof lane from reappearing quickly enough for a UI audit.
 - **Why it failed**: The demo becomes timing-sensitive and reviewers cannot tell whether the worker is broken or just waiting on old FleetGraph-owned state.
 - **Prevention rule**: For the named demo workspace, clear stale FleetGraph worker ledger state and enqueue one fresh proactive job during bootstrap so the worker-generated lane stays inspectable after each refresh.
+
+- **Problem**: Assuming live evidence APIs already contain final share links and detailed token-cost splits
+- **Example**: Treating `tracePublicUrl`, prompt/output token counts, or dollar-cost fields as guaranteed in the FleetGraph findings response and LangSmith payload, then blocking handoff when the live system only exposes run ids or total tokens.
+- **Why it failed**: The deployed system can still be healthy and fully traceable, but the evidence surface needs one more promotion/query step and the current integration does not emit granular cost data.
+- **Prevention rule**: Capture evidence through a repo-owned script that can share runs by id when needed, and record only the usage fields the live trace payload actually exposes.

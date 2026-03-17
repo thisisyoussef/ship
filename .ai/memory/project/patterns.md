@@ -269,3 +269,10 @@ Capture reusable patterns that repeatedly work in this project.
 - **Benefits**: Prevents deploy-only failures caused by mocked schemas being stricter than the real Ship API, while keeping the worker/detector logic strongly typed.
 - **Tradeoffs**: Response schemas must be maintained against real API shape drift instead of assuming tests alone define the contract.
 - **References**: `api/src/services/fleetgraph/proactive/types.ts`, `api/src/services/fleetgraph/proactive/ship-client.ts`, `api/src/services/fleetgraph/proactive/ship-client.test.ts`
+
+- **Pattern**: Repo-owned live evidence capture with trace-share fallback
+- **Use when**: A deployed FleetGraph story needs submission-ready proof from the live public demo, including shared traces and visible UI evidence.
+- **Approach**: Use a checked-in capture script that logs into the public demo, verifies readiness, captures named inspection targets, and promotes LangSmith run ids to shared URLs when the live API surface does not already include a public trace link.
+- **Benefits**: Keeps evidence capture reproducible, reduces manual audit chores, and avoids false failures when the runtime stores a run id before a shared URL exists.
+- **Tradeoffs**: The script must stay aligned with live trace metadata and demo fixture names.
+- **References**: `scripts/capture_fleetgraph_mvp_evidence.sh`, `docs/evidence/fleetgraph-mvp-evidence.json`, `docs/evidence/fleetgraph-mvp-evidence.md`

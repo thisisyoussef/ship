@@ -1,16 +1,23 @@
 import type { Pool } from 'pg'
 
 import { createFleetGraphFindingStore } from '../findings/store.js'
+import { createFleetGraphWorkerStore } from '../worker/store.js'
+import {
+  buildFleetGraphDedupeKey,
+  buildFleetGraphThreadId,
+} from '../worker/keys.js'
 import { buildWeekStartFindingDraft } from '../proactive/week-start-drift.js'
 import type { WeekStartDriftCandidate } from '../proactive/types.js'
 import {
   FLEETGRAPH_DEMO_FINDING_SUMMARY,
   FLEETGRAPH_DEMO_PROJECT_TITLE,
   FLEETGRAPH_DEMO_THREAD_PREFIX,
+  FLEETGRAPH_DEMO_WORKER_FINDING_TITLE,
+  FLEETGRAPH_DEMO_WORKER_WEEK_TITLE,
   FLEETGRAPH_DEMO_WEEK_TITLE,
 } from './constants.js'
 
-type Queryable = Pick<Pool, 'query'>
+type Queryable = Pick<Pool, 'connect' | 'query'>
 
 export interface FleetGraphDemoFixtureInput {
   currentSprintNumber: number
@@ -27,8 +34,18 @@ export interface FleetGraphDemoFixtureResult {
   findingTitle: string
   projectId: string
   projectTitle: string
+  workerFindingTitle: string
+  workerWeekId: string
+  workerWeekTitle: string
   weekId: string
   weekTitle: string
+}
+
+interface DemoWeekInput {
+  plan: string
+  sprintNumber: number
+  successCriteria: string
+  title: string
 }
 
 function calculateWeekStartDate(
@@ -108,7 +125,8 @@ async function ensureDemoProject(
 async function ensureDemoWeek(
   queryable: Queryable,
   input: FleetGraphDemoFixtureInput,
-  projectId: string
+  projectId: string,
+  week: DemoWeekInput
 ) {
   const existing = await queryable.query(
     `SELECT d.id
@@ -120,17 +138,17 @@ async function ensureDemoWeek(
      WHERE d.workspace_id = $1
        AND d.document_type = 'sprint'
        AND d.title = $2`,
-    [input.workspaceId, FLEETGRAPH_DEMO_WEEK_TITLE, projectId]
+    [input.workspaceId, week.title, projectId]
   ) as { rows: Array<{ id: string }> }
 
   const properties = {
     confidence: 90,
     owner_id: input.ownerUserId,
-    plan: 'Review the visible FleetGraph finding and use the apply confirmation path.',
+    plan: week.plan,
     project_id: projectId,
-    sprint_number: input.currentSprintNumber,
+    sprint_number: week.sprintNumber,
     status: 'planning',
-    success_criteria: 'The public demo shows a visible proactive finding with Review and apply.',
+    success_criteria: week.successCriteria,
   }
 
   if (existing.rows[0]?.id) {
@@ -149,7 +167,7 @@ async function ensureDemoWeek(
     `INSERT INTO documents (workspace_id, document_type, title, properties)
      VALUES ($1, 'sprint', $2, $3::jsonb)
      RETURNING id`,
-    [input.workspaceId, FLEETGRAPH_DEMO_WEEK_TITLE, JSON.stringify(properties)]
+    [input.workspaceId, week.title, JSON.stringify(properties)]
   ) as { rows: Array<{ id: string }> }
 
   const weekId = inserted.rows[0]!.id
@@ -158,14 +176,67 @@ async function ensureDemoWeek(
   return weekId
 }
 
+async function resetFindingByKey(
+  queryable: Queryable,
+  findingStore: ReturnType<typeof createFleetGraphFindingStore>,
+  findingKey: string
+) {
+  const existingFinding = await findingStore.getFindingByKey(findingKey)
+  if (!existingFinding) {
+    return
+  }
+
+  await queryable.query(
+    'DELETE FROM fleetgraph_finding_action_runs WHERE finding_id = $1',
+    [existingFinding.id]
+  )
+  await queryable.query(
+    'DELETE FROM fleetgraph_proactive_findings WHERE id = $1',
+    [existingFinding.id]
+  )
+}
+
+async function resetWorkerDemoProofLane(
+  queryable: Queryable,
+  workspaceId: string
+) {
+  const dedupeKey = buildFleetGraphDedupeKey({
+    mode: 'proactive',
+    routeSurface: 'workspace-sweep',
+    trigger: 'scheduled-sweep',
+    workspaceId,
+  })
+
+  await queryable.query(
+    'DELETE FROM fleetgraph_queue_jobs WHERE dedupe_key = $1',
+    [dedupeKey]
+  )
+  await queryable.query(
+    'DELETE FROM fleetgraph_dedupe_ledger WHERE dedupe_key = $1',
+    [dedupeKey]
+  )
+}
+
 export async function ensureFleetGraphDemoProofLane(
   queryable: Queryable,
   input: FleetGraphDemoFixtureInput,
   now = new Date()
 ): Promise<FleetGraphDemoFixtureResult> {
   const findingStore = createFleetGraphFindingStore(queryable)
+  const workerStore = createFleetGraphWorkerStore(queryable)
   const projectId = await ensureDemoProject(queryable, input)
-  const weekId = await ensureDemoWeek(queryable, input, projectId)
+  const weekId = await ensureDemoWeek(queryable, input, projectId, {
+    plan: 'Review the visible FleetGraph finding and use the apply confirmation path.',
+    sprintNumber: input.currentSprintNumber,
+    successCriteria: 'The public demo shows a visible proactive finding with Review and apply.',
+    title: FLEETGRAPH_DEMO_WEEK_TITLE,
+  })
+  const workerWeekId = await ensureDemoWeek(queryable, input, projectId, {
+    plan: 'Let the deployed FleetGraph worker generate this finding through the real proactive path.',
+    sprintNumber: input.currentSprintNumber,
+    successCriteria: 'The public demo shows a worker-generated proactive finding without seeding it directly.',
+    title: FLEETGRAPH_DEMO_WORKER_WEEK_TITLE,
+  })
   const startDate = calculateWeekStartDate(
     input.workspaceSprintStartDate,
     input.currentSprintNumber
@@ -195,18 +266,10 @@ export async function ensureFleetGraphDemoProofLane(
     input.workspaceId,
     FLEETGRAPH_DEMO_FINDING_SUMMARY
   )
-
-  const existingFinding = await findingStore.getFindingByKey(draft.findingKey)
-  if (existingFinding) {
-    await queryable.query(
-      'DELETE FROM fleetgraph_finding_action_runs WHERE finding_id = $1',
-      [existingFinding.id]
-    )
-    await queryable.query(
-      'DELETE FROM fleetgraph_proactive_findings WHERE id = $1',
-      [existingFinding.id]
-    )
-  }
+  const workerFindingKey = `week-start-drift:${input.workspaceId}:${workerWeekId}`
+  await resetFindingByKey(queryable, findingStore, draft.findingKey)
+  await resetFindingByKey(queryable, findingStore, workerFindingKey)
+  await resetWorkerDemoProofLane(queryable, input.workspaceId)
 
   await findingStore.upsertFinding({
     dedupeKey: `demo:${draft.findingKey}`,
@@ -220,6 +283,8 @@ export async function ensureFleetGraphDemoProofLane(
       demoFixture: true,
       inspectionProjectTitle: FLEETGRAPH_DEMO_PROJECT_TITLE,
       inspectionWeekTitle: FLEETGRAPH_DEMO_WEEK_TITLE,
+      preserveDemoLane: true,
+      proofLane: 'seeded-hitl',
     },
     recommendedAction: draft.recommendedAction,
     summary: draft.summary,
@@ -227,11 +292,35 @@ export async function ensureFleetGraphDemoProofLane(
     title: draft.title,
     workspaceId: input.workspaceId,
   }, now)
+  await workerStore.enqueue(
+    {
+      dedupeKey: buildFleetGraphDedupeKey({
+        mode: 'proactive',
+        routeSurface: 'workspace-sweep',
+        trigger: 'scheduled-sweep',
+        workspaceId: input.workspaceId,
+      }),
+      mode: 'proactive',
+      routeSurface: 'workspace-sweep',
+      threadId: buildFleetGraphThreadId({
+        trigger: 'scheduled-sweep',
+        workspaceId: input.workspaceId,
+      }),
+      trigger: 'scheduled-sweep',
+      workspaceId: input.workspaceId,
+    },
+    now,
+    3
+  )
+  await workerStore.registerWorkspaceSweep(input.workspaceId, now)
 
   return {
     findingTitle: draft.title,
     projectId,
     projectTitle: FLEETGRAPH_DEMO_PROJECT_TITLE,
+    workerFindingTitle: FLEETGRAPH_DEMO_WORKER_FINDING_TITLE,
+    workerWeekId,
+    workerWeekTitle: FLEETGRAPH_DEMO_WORKER_WEEK_TITLE,
     weekId,
     weekTitle: FLEETGRAPH_DEMO_WEEK_TITLE,
   }

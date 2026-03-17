@@ -183,3 +183,13 @@ Capture failures so they are not repeated.
 - **Example**: Treating a hosted demo as reliable even though migrations or seed/bootstrap depend on free-plan hooks, blocked DB access, or manual dashboard steps outside the repo.
 - **Why it failed**: The live demo can look healthy while FleetGraph routes or tables are broken, and story finalization drifts away from what users are actually seeing.
 - **Prevention rule**: Keep the public demo on a repo-owned deploy path that runs the boot sequence you control and verify behavior beyond `/health`.
+
+- **Problem**: Treating mocked Ship route shapes as stricter than the live API
+- **Example**: FleetGraph accepts a hand-written `/api/weeks` test fixture but rejects the real Ship response because the live payload includes extra fields and exposes the workspace sprint origin on the week rows instead of the root object.
+- **Why it failed**: The worker can stay healthy yet silently fail every real-data job in production, which hides behind mocked tests until deploy time.
+- **Prevention rule**: Validate proactive client schemas against the real Ship REST payload shape and normalize only the fields FleetGraph actually needs.
+
+- **Problem**: Relying only on sweep schedules for a named public-demo worker proof lane
+- **Example**: A redeploy resets the seeded HITL lane, but an old dedupe ledger or retry window prevents the worker-generated proof lane from reappearing quickly enough for a UI audit.
+- **Why it failed**: The demo becomes timing-sensitive and reviewers cannot tell whether the worker is broken or just waiting on old FleetGraph-owned state.
+- **Prevention rule**: For the named demo workspace, clear stale FleetGraph worker ledger state and enqueue one fresh proactive job during bootstrap so the worker-generated lane stays inspectable after each refresh.

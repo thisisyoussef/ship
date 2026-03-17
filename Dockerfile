@@ -31,6 +31,6 @@ ENV NODE_ENV=production
 ENV VITE_APP_ENV=production
 ENV PORT=80
 
-# Start the application (run migrations first and optionally seed the public demo lane)
+# Start the selected runtime role
 WORKDIR /app/api
-CMD ["sh", "-c", "node dist/db/migrate.js && if [ \"${SHIP_PUBLIC_DEMO_BOOTSTRAP:-false}\" = \"true\" ]; then node dist/db/seed.js; fi && node dist/index.js"]
+CMD ["node", "dist/runtime-entry.js"]

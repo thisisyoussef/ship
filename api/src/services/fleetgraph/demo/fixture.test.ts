@@ -3,6 +3,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createWorkerTestDatabase } from '../worker/test-helpers.js'
 import {
   FLEETGRAPH_DEMO_PROJECT_TITLE,
+  FLEETGRAPH_DEMO_WORKER_FINDING_TITLE,
+  FLEETGRAPH_DEMO_WORKER_WEEK_TITLE,
   FLEETGRAPH_DEMO_WEEK_TITLE,
 } from './constants.js'
 import { ensureFleetGraphDemoProofLane } from './fixture.js'
@@ -18,7 +20,7 @@ describe('FleetGraph demo fixture', () => {
     await testDb?.close()
   })
 
-  it('creates and resets a named demo proof lane with a visible finding', async () => {
+  it('creates a seeded HITL lane and a worker-generated lane', async () => {
     const workspaceId = '00000000-0000-4000-8000-000000000001'
     const userId = '00000000-0000-4000-8000-000000000002'
     const programId = '00000000-0000-4000-8000-000000000003'
@@ -69,6 +71,8 @@ describe('FleetGraph demo fixture', () => {
     expect(first.projectTitle).toBe(FLEETGRAPH_DEMO_PROJECT_TITLE)
     expect(first.weekTitle).toBe(FLEETGRAPH_DEMO_WEEK_TITLE)
     expect(first.findingTitle).toContain(FLEETGRAPH_DEMO_WEEK_TITLE)
+    expect(first.workerWeekTitle).toBe(FLEETGRAPH_DEMO_WORKER_WEEK_TITLE)
+    expect(first.workerFindingTitle).toBe(FLEETGRAPH_DEMO_WORKER_FINDING_TITLE)
 
     const finding = await testDb.pool.query(
       `SELECT status, title, metadata
@@ -85,7 +89,28 @@ describe('FleetGraph demo fixture', () => {
       demoFixture: true,
       inspectionProjectTitle: FLEETGRAPH_DEMO_PROJECT_TITLE,
       inspectionWeekTitle: FLEETGRAPH_DEMO_WEEK_TITLE,
+      preserveDemoLane: true,
+      proofLane: 'seeded-hitl',
     })
+
+    const sweepSchedules = await testDb.pool.query(
+      'SELECT workspace_id FROM fleetgraph_sweep_schedules WHERE workspace_id = $1',
+      [workspaceId]
+    )
+    const queueJobs = await testDb.pool.query(
+      `SELECT status, trigger, route_surface
+       FROM fleetgraph_queue_jobs
+       WHERE workspace_id = $1`,
+      [workspaceId]
+    )
+    expect(sweepSchedules.rows).toHaveLength(1)
+    expect(queueJobs.rows).toEqual([
+      {
+        route_surface: 'workspace-sweep',
+        status: 'queued',
+        trigger: 'scheduled-sweep',
+      },
+    ])
 
     await testDb.pool.query(
       `INSERT INTO fleetgraph_finding_action_runs (
@@ -124,18 +149,30 @@ describe('FleetGraph demo fixture', () => {
       'SELECT * FROM fleetgraph_finding_action_runs WHERE workspace_id = $1',
       [workspaceId]
     )
+    const rerunQueueJobs = await testDb.pool.query(
+      'SELECT status FROM fleetgraph_queue_jobs WHERE workspace_id = $1',
+      [workspaceId]
+    )
     const documents = await testDb.pool.query(
       `SELECT title, document_type, properties
        FROM documents
        WHERE workspace_id = $1
          AND title = ANY($2::text[])`,
-      [workspaceId, [FLEETGRAPH_DEMO_PROJECT_TITLE, FLEETGRAPH_DEMO_WEEK_TITLE]]
+      [
+        workspaceId,
+        [
+          FLEETGRAPH_DEMO_PROJECT_TITLE,
+          FLEETGRAPH_DEMO_WEEK_TITLE,
+          FLEETGRAPH_DEMO_WORKER_WEEK_TITLE,
+        ],
+      ]
     )
 
     expect(rerunFinding.rows).toHaveLength(1)
     expect(rerunFinding.rows[0]?.status).toBe('active')
     expect(actionRuns.rows).toHaveLength(0)
-    expect(documents.rows).toHaveLength(2)
+    expect(rerunQueueJobs.rows).toEqual([{ status: 'queued' }])
+    expect(documents.rows).toHaveLength(3)
     expect(
       documents.rows.find((row) => row.title === FLEETGRAPH_DEMO_WEEK_TITLE)?.properties
     ).toMatchObject({
@@ -143,5 +180,18 @@ describe('FleetGraph demo fixture', () => {
       sprint_number: 2,
       status: 'planning',
     })
+    expect(
+      documents.rows.find((row) => row.title === FLEETGRAPH_DEMO_WORKER_WEEK_TITLE)?.properties
+    ).toMatchObject({
+      project_id: first.projectId,
+      sprint_number: 2,
+      status: 'planning',
+    })
+
+    const workerFinding = await testDb.pool.query(
+      'SELECT * FROM fleetgraph_proactive_findings WHERE finding_key = $1',
+      [`week-start-drift:${workspaceId}:${first.workerWeekId}`]
+    )
+    expect(workerFinding.rows).toHaveLength(0)
   })
 })

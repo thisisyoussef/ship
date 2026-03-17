@@ -44,6 +44,30 @@ interface FleetGraphProactiveRuntimeDeps {
   tracingSettings?: FleetGraphTracingSettings
 }
 
+function shouldPreserveDemoFinding(metadata: Record<string, unknown> | undefined) {
+  return metadata?.preserveDemoLane === true
+}
+
+function excludePreservedDemoWeeks(
+  weeks: Awaited<ReturnType<FleetGraphShipApiClient['listWeeks']>>,
+  activeFindings: Awaited<ReturnType<FleetGraphFindingStore['listActiveFindings']>>
+) {
+  const preservedWeekIds = new Set(
+    activeFindings
+      .filter((finding) => shouldPreserveDemoFinding(finding.metadata))
+      .map((finding) => finding.documentId)
+  )
+
+  if (preservedWeekIds.size === 0) {
+    return weeks
+  }
+
+  return {
+    ...weeks,
+    weeks: weeks.weeks.filter((week) => !preservedWeekIds.has(week.id)),
+  }
+}
+
 function buildSummaryPrompt(input: {
   issueCount: number
   ownerName?: string
@@ -95,17 +119,24 @@ export function createFleetGraphProactiveRuntime(
         return baseRuntime.invoke(input)
       }
 
+      const activeFindings = await findings.listActiveFindings({
+        workspaceId: stateInput.workspaceId,
+      })
       const weeks = await shipClient.listWeeks()
-      const candidate = selectWeekStartDriftCandidate(weeks, now())
+      const candidate = selectWeekStartDriftCandidate(
+        excludePreservedDemoWeeks(weeks, activeFindings),
+        now()
+      )
       const candidateKey = candidate
         ? buildWeekStartFindingKey(stateInput.workspaceId, candidate.week.id)
         : null
 
-      const activeFindings = await findings.listActiveFindings({
-        workspaceId: stateInput.workspaceId,
-      })
       for (const finding of activeFindings) {
-        if (finding.findingType === 'week_start_drift' && finding.findingKey !== candidateKey) {
+        if (
+          finding.findingType === 'week_start_drift'
+          && finding.findingKey !== candidateKey
+          && !shouldPreserveDemoFinding(finding.metadata)
+        ) {
           await findings.resolveFinding(finding.findingKey, now())
         }
       }

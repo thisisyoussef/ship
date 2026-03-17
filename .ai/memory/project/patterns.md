@@ -255,3 +255,17 @@ Capture reusable patterns that repeatedly work in this project.
 - **Benefits**: Moves deploy proof into the repo, reduces provider-side tribal knowledge, and makes the demo smoke check visible-product aware.
 - **Tradeoffs**: Requires local Railway access plus public-demo env variables to be present before deploys can succeed.
 - **References**: `scripts/deploy-railway-demo.sh`, `railway.json`, `docs/guides/fleetgraph-deployment-readiness.md`
+
+- **Pattern**: Preserve the seeded HITL lane, queue the worker proof lane
+- **Use when**: The public demo needs one deterministic UI audit target and one live worker-generated proof target at the same time.
+- **Approach**: Seed the named HITL finding directly for stable review/apply inspection, but clear stale FleetGraph worker ledger state and enqueue one fresh proactive worker job so the second named finding is produced by the live worker path.
+- **Benefits**: Keeps the demo visually stable while still proving end-to-end proactive execution on real Ship REST data.
+- **Tradeoffs**: Demo bootstrap has to manage two proof lanes intentionally instead of assuming one lane can cover every audit need.
+- **References**: `api/src/services/fleetgraph/demo/fixture.ts`, `api/src/services/fleetgraph/proactive/runtime.ts`, `docs/guides/fleetgraph-demo-inspection.md`
+
+- **Pattern**: Normalize real Ship REST payloads before proactive scoring
+- **Use when**: FleetGraph consumes a Ship route whose live payload shape includes extra fields or a different root metadata contract than the narrow test fixture shape.
+- **Approach**: Let the proactive client accept the live response shape, strip or ignore fields FleetGraph does not use, and explicitly normalize required metadata like `workspace_sprint_start_date` into one canonical output contract.
+- **Benefits**: Prevents deploy-only failures caused by mocked schemas being stricter than the real Ship API, while keeping the worker/detector logic strongly typed.
+- **Tradeoffs**: Response schemas must be maintained against real API shape drift instead of assuming tests alone define the contract.
+- **References**: `api/src/services/fleetgraph/proactive/types.ts`, `api/src/services/fleetgraph/proactive/ship-client.ts`, `api/src/services/fleetgraph/proactive/ship-client.test.ts`

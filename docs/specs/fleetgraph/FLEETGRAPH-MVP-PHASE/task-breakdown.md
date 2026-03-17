@@ -24,14 +24,15 @@
   - `T103` proactive week-start drift slice
   - `T104` real HITL execution path
   - `T104A` demo proof seed and bootstrap repair
+  - `T104B` Railway worker deployment lane
   - `T105` trace capture and final submission evidence
 - Why this story set is cohesive:
   - every story advances one or more explicit Tuesday pass items directly and avoids non-required breadth.
 - Coverage check: which objective each story advances:
-  - Objective 1 -> `T101`, `T102`, `T103`, `T104`, `T104A`, `T105`
-  - Objective 2 -> `T102`, `T103`, `T104`, `T104A`
-  - Objective 3 -> `T102`, `T104`, `T104A`, `T105`
-  - Objective 4 -> `T103`, `T104`, `T104A`, `T105`
+  - Objective 1 -> `T101`, `T102`, `T103`, `T104`, `T104A`, `T104B`, `T105`
+  - Objective 2 -> `T102`, `T103`, `T104`, `T104B`
+  - Objective 3 -> `T102`, `T104`, `T104A`, `T104B`, `T105`
+  - Objective 4 -> `T103`, `T104`, `T104A`, `T104B`, `T105`
 
 ## Tasks
 
@@ -42,7 +43,8 @@
 | T103 | Implement the proactive MVP slice for week-start drift from hybrid trigger to surfaced finding, including dedupe/cooldown behavior and the first visible Ship-facing output on real Ship data. | blocked-by:T102 | no | Integration tests prove trigger -> reasoning -> surfaced finding on real-data code paths, and manual/demo proof shows the finding is visible and actionable |
 | T104 | Extend the visible FleetGraph surface first, then turn the MVP path into one real human-confirmed action with duplicate-execution protection, approval UX, and result handling. | blocked-by:T103 | no | Tests prove confirm/deny behavior, one-time execution, and real HITL gating for the chosen action, with the result visible in Ship |
 | T104A | Repair the public demo proof lane: move the sanctioned FleetGraph demo to Railway, seed named Ship inspection targets plus a repeatable visible finding/apply state, and strengthen deploy proof beyond `/health`. | blocked-by:T104 | no | The public demo can log in with the demo user, open a named FleetGraph demo week, and see a visible proactive finding with the HITL apply path ready for UI inspection |
-| T105 | Capture the Tuesday evidence set from the visible deployed MVP path: at least two shared traces with different execution paths, public deploy proof, final `FLEETGRAPH.md` evidence sections, and submission-ready links/screenshots/checklists. | blocked-by:T104A | yes | Trace URLs, deploy status, visible UI proof, and final workbook evidence are all recorded in the story handoff and assignment docs |
+| T104B | Deploy a dedicated Railway worker lane, preserve the seeded HITL proof lane, and expose a second named week whose finding is produced by the live worker path on real Ship data. | blocked-by:T104A | no | The public demo reaches worker-ready status, and a named worker-generated FleetGraph finding appears through the deployed proactive path rather than direct seed insertion |
+| T105 | Capture the Tuesday evidence set from the visible deployed MVP path: at least two shared traces with different execution paths, public deploy proof, final `FLEETGRAPH.md` evidence sections, and submission-ready links/screenshots/checklists. | blocked-by:T104B | yes | Trace URLs, deploy status, visible UI proof, and final workbook evidence are all recorded in the story handoff and assignment docs |
 
 ## TDD Mapping
 
@@ -65,9 +67,13 @@ For each task, list associated tests first:
   - [ ] test_approved_action_executes_once_and_records_result
   - [ ] test_denied_or_timed_out_action_leaves_ship_state_unchanged
 - T104A tests:
-  - [ ] test_render_demo_bootstrap_applies_fleetgraph_schema_on_demo_hosts
+  - [ ] test_railway_demo_bootstrap_applies_fleetgraph_schema_on_demo_hosts
   - [ ] test_seed_creates_named_fleetgraph_demo_week_and_visible_finding
-  - [ ] test_render_demo_deploy_smoke_verifies_demo_login_and_fleetgraph_surface
+  - [ ] test_railway_demo_deploy_smoke_verifies_demo_login_and_fleetgraph_surface
+- T104B tests:
+  - [ ] test_worker_role_boots_fleetgraph_worker_on_railway
+  - [ ] test_seed_registers_named_worker_demo_target_without_direct_finding_insert
+  - [ ] test_railway_demo_smoke_waits_for_worker_generated_finding
 - T105 tests:
   - [ ] test_trace_capture_includes_distinct_execution_paths
   - [ ] test_demo_or_blocked_deploy_status_is_recorded_with_evidence

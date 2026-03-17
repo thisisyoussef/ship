@@ -18,12 +18,33 @@ export const ShipWeekSummarySchema = z.object({
   sprint_number: z.number().int().positive(),
   status: z.enum(['planning', 'active', 'completed']),
   workspace_sprint_start_date: z.string(),
-}).strict()
+}).passthrough()
 
-export const ShipWeeksResponseSchema = z.object({
+const RawShipWeeksResponseSchema = z.object({
   weeks: z.array(ShipWeekSummarySchema),
-  workspace_sprint_start_date: z.string(),
-}).strict()
+  sprint_start_date: z.string().optional(),
+  workspace_sprint_start_date: z.string().optional(),
+}).passthrough()
+
+export const ShipWeeksResponseSchema = RawShipWeeksResponseSchema.transform((input, ctx) => {
+  const workspaceSprintStartDate = input.workspace_sprint_start_date
+    ?? input.weeks[0]?.workspace_sprint_start_date
+    ?? input.sprint_start_date
+
+  if (!workspaceSprintStartDate) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'workspace_sprint_start_date is required in Ship weeks responses.',
+      path: ['workspace_sprint_start_date'],
+    })
+    return z.NEVER
+  }
+
+  return {
+    weeks: input.weeks,
+    workspace_sprint_start_date: workspaceSprintStartDate,
+  }
+})
 
 export interface WeekStartDriftCandidate {
   startDate: Date

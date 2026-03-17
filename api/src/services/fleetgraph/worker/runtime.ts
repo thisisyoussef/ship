@@ -137,6 +137,12 @@ export function createFleetGraphWorkerRuntime(
           status: 'completed',
         }
       } catch (error) {
+        console.error('FleetGraph worker job failed', {
+          error: error instanceof Error ? error.message : String(error),
+          jobId: job.id,
+          threadId: job.threadId,
+          workspaceId: job.workspaceId,
+        })
         const checkpoint = await safeGetState(deps.runtime, job.threadId)
         const updatedJob = await deps.store.failJob(
           job.id,

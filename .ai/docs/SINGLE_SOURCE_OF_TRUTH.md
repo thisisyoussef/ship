@@ -1,8 +1,8 @@
 # Ship - Single Source of Truth
 
 **Last Updated**: 2026-03-16
-**Current Phase**: FleetGraph MVP T102 public deploy and real-data baseline
-**Active Sprint**: Clear the Render public-demo blocker and keep the MVP pack moving toward the Tuesday checklist
+**Current Phase**: FleetGraph MVP T101 submission contract docs
+**Active Sprint**: Lock the workbook contract on `FLEETGRAPH.md` before the proactive MVP slice
 **Project Status**: Active
 **Canonical Deployment Baseline**: API on AWS Elastic Beanstalk, frontend on S3/CloudFront, config/secrets on AWS-native services
 **Sanctioned Public Demo**: Render `ship-demo` at `https://ship-demo.onrender.com/`, deployed with `scripts/deploy-render-demo.sh`
@@ -12,14 +12,14 @@
 ## Current Focus
 
 ### Active Task
-- **Title**: Make FleetGraph production-style boot work on the Render public demo without AWS credentials and keep the public baseline explicit
+- **Title**: Complete the Tuesday-required `FLEETGRAPH.md` sections and keep the assignment brief aligned with the MVP pack
 - **Status**: In progress
 - **Owner**: Codex
 
 ### Next Immediate Actions
-1. Keep `api/src/services/fleetgraph/deployment/` as the canonical shared deploy/env contract for API and worker surfaces.
-2. Treat explicit runtime environment variables as the primary FleetGraph config source on non-AWS hosts such as Render, with SSM as the AWS fallback.
-3. Finalize T102, merge it, and refresh the Render public demo so `/api/fleetgraph/ready` stops returning `404` on the live service.
+1. Finalize the completed `FLEETGRAPH.md` contract sections: Agent Responsibility, graph outline, use cases, and trigger-model defense.
+2. Keep the assignment README aligned with the Tuesday checklist and the merged MVP pack.
+3. After T101 finalization, move to the proactive week-start drift implementation story on a fresh branch.
 
 ---
 

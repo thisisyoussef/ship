@@ -8,6 +8,8 @@ Supporting repo docs:
 - `docs/assignments/fleetgraph/PRESEARCH.md`
 - `docs/assignments/fleetgraph/FLEETGRAPH.md`
 - `docs/guides/fleetgraph-deployment-readiness.md`
+- `docs/specs/fleetgraph/FLEETGRAPH-FOUNDATION-PHASE/`
+- `docs/specs/fleetgraph/FLEETGRAPH-MVP-PHASE/`
 
 ## What this assignment is asking for
 
@@ -51,6 +53,19 @@ Both modes must use the same graph architecture. The trigger changes, not the gr
 - Early Submission: Friday, 11:59 PM
 - Final Submission: Sunday, 11:59 PM
 
+## Tuesday MVP Pass Checklist
+
+All items are required to pass:
+
+- Graph running with at least one proactive detection wired end to end
+- LangSmith tracing enabled with at least two shared trace links showing different execution paths
+- `docs/assignments/fleetgraph/FLEETGRAPH.md` submitted with Agent Responsibility and Use Cases completed, with at least 5 use cases defined
+- Graph outline complete in `docs/assignments/fleetgraph/FLEETGRAPH.md`, including node types, edges, and branching conditions
+- At least one human-in-the-loop gate implemented
+- Running against real Ship data, with no mocked responses
+- Deployed and publicly accessible
+- Trigger model decision documented and defended in `docs/assignments/fleetgraph/FLEETGRAPH.md`
+
 ## What to lock down before coding
 
 1. What the agent monitors proactively.
@@ -65,6 +80,9 @@ Both modes must use the same graph architecture. The trigger changes, not the gr
 
 1. Read the PRD PDF once end to end.
 2. Fill in `PRESEARCH.md`.
-3. Draft the Agent Responsibility, Use Cases, and Trigger Model sections in `FLEETGRAPH.md`.
-4. Decide the proactive trigger model and defend it.
-5. Only then start implementation planning and graph design.
+3. Read `docs/specs/fleetgraph/FLEETGRAPH-FOUNDATION-PHASE/` for the substrate sequencing.
+4. Read `docs/specs/fleetgraph/FLEETGRAPH-MVP-PHASE/` for the PRD-aligned MVP execution order.
+5. Use `docs/guides/fleetgraph-deployment-readiness.md` once you reach deploy-relevant MVP stories.
+6. Draft the Agent Responsibility, Use Cases, and Trigger Model sections in `FLEETGRAPH.md`.
+7. Decide the proactive trigger model and defend it.
+8. Only then start implementation planning and graph design.

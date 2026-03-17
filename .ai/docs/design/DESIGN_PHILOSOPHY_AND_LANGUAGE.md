@@ -172,6 +172,7 @@ Use this table as precedent (case law) for future ambiguity:
 | 2026-03-04 | Use progressive metadata disclosure in query UI | Keeps default answer flow calm while preserving expert depth | Progressive Disclosure |
 | 2026-03-04 | Prefer evidence-first cards over decorative containers | Reinforces trust and grounding | Honest Interfaces |
 | 2026-03-04 | Keep Phase 4 gate controls inside collapsible console with explicit run/blocker text | Preserves low-noise default state while making release risk visible on demand | Earned Complexity + Honest Interfaces |
+| 2026-03-17 | Separate FleetGraph quick actions from the main finding narrative | Keeps finding/evidence/next-step content scan-friendly while preserving dismiss and snooze as clearly secondary controls | Typography as Architecture + Calm Over Clever |
 | YYYY-MM-DD | ... | ... | ... |
 
 When making meaningful UI tradeoffs, add a row in the story handoff.

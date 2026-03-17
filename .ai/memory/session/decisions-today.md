@@ -117,6 +117,7 @@
 - Decided T301 should fix the worker-summary tone in the presentation layer instead of changing the proactive LLM prompt, so the story stays out of eval-driven AI-behavior scope.
 - Decided T302 should consolidate technical FleetGraph QA detail into one page-level secondary debug dock instead of keeping separate inline debug disclosures inside each card.
 - Removed the per-card FleetGraph inline debug disclosure in favor of a persistent bottom-right dock that reuses already-fetched entry and finding state.
+- Decided T303 should improve FleetGraph scanability through labeled content/action sections, softer evidence rows, and a clearly secondary quick-actions block instead of a broader page redesign.
 
 Record session-level technical decisions.
 

@@ -51,9 +51,9 @@ For each task, list associated tests first:
   - [x] test_debug_console_is_keyboard_reachable_and_dismissible
   - [x] test_debug_console_handles_missing_optional_fields_cleanly
 - T303 tests:
-  - [ ] test_fleetgraph_cards_group_evidence_and_actions_with_clearer_hierarchy
-  - [ ] test_visual_polish_preserves_existing_action_behavior
-  - [ ] test_dismiss_and_snooze_remain_truthful_regression_checks
+  - [x] test_fleetgraph_cards_group_evidence_and_actions_with_clearer_hierarchy
+  - [x] test_visual_polish_preserves_existing_action_behavior
+  - [x] test_dismiss_and_snooze_remain_truthful_regression_checks
 - T304 tests:
   - [ ] test_polish_demo_inspection_guide_matches_current_named_targets
   - [ ] test_polish_pack_user_audit_checklist_matches_live_ui_path

@@ -214,6 +214,13 @@ Capture reusable patterns that repeatedly work in this project.
 - **Tradeoffs**: Adds a small shared state layer between visible cards and the secondary debug surface.
 - **References**: `web/src/components/FleetGraphDebugDock.tsx`, `web/src/components/FleetGraphDebugSurface.tsx`, `docs/specs/fleetgraph/FLEETGRAPH-POLISH-PHASE/task-breakdown.md`
 
+- **Pattern**: Labeled secondary-actions sidecar for FleetGraph cards
+- **Use when**: A FleetGraph card needs to keep the main narrative focused on the signal and suggested next step while still offering low-stakes lifecycle actions like dismiss or snooze.
+- **Approach**: Keep the main card flow as finding -> evidence -> suggested next step, then place secondary lifecycle controls in a clearly labeled quick-actions panel with supportive copy.
+- **Benefits**: Improves scanability, reduces button clutter in the main narrative, and keeps secondary actions visually subordinate without hiding them.
+- **Tradeoffs**: Uses a little more vertical and horizontal space than a bare button row.
+- **References**: `web/src/components/FleetGraphFindingCard.tsx`, `docs/specs/fleetgraph/FLEETGRAPH-POLISH-PHASE/task-breakdown.md`
+
 - **Pattern**: Shared deploy contract plus service-auth readiness route
 - **Use when**: A feature now spans an authenticated UI route, a background worker process, provider secrets, and tracing configuration, and the team needs one deploy-readiness proof path.
 - **Approach**: Resolve API and worker readiness from the same env contract, expose a token-protected readiness endpoint that reports both surfaces together, and pair it with a smoke script that requires both the readiness response and an explicit trace URL.

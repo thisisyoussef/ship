@@ -111,6 +111,8 @@
 - Decided completed visible packs should publish a pack-level `user-audit-checklist.md`; added the FleetGraph MVP checklist as the first concrete artifact.
 - Decided FleetGraph’s main cards should only show dismiss, snooze, and apply success copy after the mutation result confirms success, not on click.
 - Decided FleetGraph thread ids, endpoints, and route details belong behind an explicit `Debug details` disclosure instead of the primary card surface.
+- Refreshed the FleetGraph feedback-pack audit path with current Railway screenshots, a pack-level checklist, and live UI wording that matches the shipped `Review and apply`, `Start week in Ship`, and `Preview approval step` flow.
+- Decided any remaining live QA issues after the feedback pack should move into a separate polish sequence rather than silently extending the completed feedback pack.
 
 Record session-level technical decisions.
 

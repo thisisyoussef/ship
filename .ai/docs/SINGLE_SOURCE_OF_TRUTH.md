@@ -1,8 +1,8 @@
 # Ship - Single Source of Truth
 
 **Last Updated**: 2026-03-17
-**Current Phase**: FleetGraph feedback implementation
-**Active Sprint**: Complete the remaining FleetGraph feedback stories so the public demo is trustworthy to inspect end-to-end
+**Current Phase**: FleetGraph feedback QA refresh
+**Active Sprint**: Close the feedback pack cleanly, then start the next FleetGraph polish sequence from live QA findings
 **Project Status**: Active
 **Canonical Deployment Baseline**: API on AWS Elastic Beanstalk, frontend on S3/CloudFront, config/secrets on AWS-native services
 **Sanctioned Public Demo**: Railway public demo, deployed with `scripts/deploy-railway-demo.sh`
@@ -12,14 +12,14 @@
 ## Current Focus
 
 ### Active Task
-- **Title**: Finalize T203 trust/copy cleanup, then refresh the whole-pack audit path in T204
+- **Title**: Complete T204 QA refresh and roll the remaining live feedback into the next polish sequence
 - **Status**: In progress
 - **Owner**: Codex
 
 ### Next Immediate Actions
-1. Finalize and deploy `T203` so the FleetGraph cards are calmer, more human, and truthful on the Railway demo.
-2. Implement `T204` to refresh the live audit checklist, screenshots, and any tail follow-ons.
-3. Preserve the REST-only Ship runtime data boundary while closing the feedback pack.
+1. Finalize `T204` so the feedback pack ends with a current live QA guide, screenshot set, and pack-level audit checklist.
+2. Start the next FleetGraph polish sequence for any still-open prod issues surfaced by the pack audit and user feedback.
+3. Preserve the REST-only Ship runtime data boundary while continuing the UI polish work.
 
 ---
 

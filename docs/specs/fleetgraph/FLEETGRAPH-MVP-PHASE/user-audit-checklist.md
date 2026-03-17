@@ -42,13 +42,15 @@ This checklist covers the full FleetGraph MVP slice:
    - `Review and apply`, `Dismiss`, and `Snooze 4h` are visible
    - `FleetGraph entry` is visible below the proactive panel
    - the main panel speaks in human-facing language rather than endpoint or thread jargon
+   - diagnostics are tucked behind `Debug details`
    If this fails:
    - the seeded HITL proof lane may have regressed, or the UI may still be surfacing overly technical copy
 
 4. Click `Review and apply`.
    Expected:
    - an inline review state appears
-   - `Apply start week` and `Cancel` are visible
+   - `Start week in Ship` and `Cancel` are visible
+   - the inline headline reads `Review before starting this week`
    - the copy explains the outcome in user terms, not transport or route terms
    If this fails:
    - the human-in-the-loop UI state or copy quality regressed
@@ -79,6 +81,7 @@ This checklist covers the full FleetGraph MVP slice:
    - the entry card shows `FleetGraph paused for human approval.`
    - approval-option chips are visible
    - technical diagnostics are secondary, not the dominant content
+   - `Debug details` is available if you want to inspect the underlying context
    If this fails:
    - the entry route, context normalization, or user-facing copy hierarchy likely regressed
 
@@ -113,6 +116,7 @@ This checklist covers the full FleetGraph MVP slice:
 - Whether any debug detail feels too exposed in the primary UI
 - Layout, hierarchy, bulleting, or visual clarity issues in the FleetGraph surfaces
 - Any friction or ambiguity between the proactive panel and the entry card
+- Whether the current visible surface would benefit from a demo-only persistent debug overlay rather than more primary-surface technical text
 
 ## Next Step
 

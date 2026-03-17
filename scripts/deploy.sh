@@ -26,6 +26,9 @@ set -euo pipefail
 #     /ship/{env}/CORS_ORIGIN         - Allowed CORS origin
 #     /ship/{env}/CDN_DOMAIN          - CloudFront domain for assets
 #     /ship/{env}/APP_BASE_URL        - Frontend app URL
+#     /ship/{env}/FLEETGRAPH_*        - FleetGraph feature flags, worker settings, and service auth
+#     /ship/{env}/LANGSMITH_*         - FleetGraph tracing bootstrap
+#     /ship/{env}/OPENAI_*            - FleetGraph default provider credentials/config
 #
 #   Secrets Manager (for OAuth - configured via configure-caia.sh):
 #     /ship/{env}/caia-credentials    - JSON with issuer_url, client_id, client_secret

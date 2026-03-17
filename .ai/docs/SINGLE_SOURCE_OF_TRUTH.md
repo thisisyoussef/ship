@@ -1,8 +1,8 @@
 # Ship - Single Source of Truth
 
 **Last Updated**: 2026-03-16
-**Current Phase**: AI harness TDD pipeline hardening
-**Active Sprint**: Multi-agent TDD split, property tests, and mutation gating
+**Current Phase**: FleetGraph foundation T008 deployment readiness
+**Active Sprint**: Shared deploy contract, service auth, worker/API env parity, and deployed smoke evidence
 **Project Status**: Active
 **Canonical Deployment Baseline**: API on AWS Elastic Beanstalk, frontend on S3/CloudFront, config/secrets on AWS-native services
 **Sanctioned Public Demo**: Render `ship-demo` at `https://ship-demo.onrender.com/`, deployed with `scripts/deploy-render-demo.sh`
@@ -12,14 +12,14 @@
 ## Current Focus
 
 ### Active Task
-- **Title**: Replace single-agent TDD with an isolated three-agent pipeline and file-based handoff
+- **Title**: Lock FleetGraph deployment, secrets, and public-access readiness across API, worker, and tracing
 - **Status**: In progress
 - **Owner**: Codex
 
 ### Next Immediate Actions
-1. Wire `.ai/workflows/tdd-pipeline.md` through startup docs, task workflows, and compatibility configs.
-2. Keep `.ai/state/tdd-handoff/`, `scripts/tdd_handoff.sh`, and `scripts/run_targeted_mutation.sh` as the canonical file-based TDD substrate.
-3. Validate the new contract with `bash scripts/check_ai_wiring.sh` plus smoke checks for the handoff helper and mutation tooling.
+1. Keep `api/src/services/fleetgraph/deployment/` as the canonical shared deploy/env contract for API and worker surfaces.
+2. Use `scripts/fleetgraph_deploy_smoke.sh` plus the service-auth readiness route to prove deployed FleetGraph access and attach trace evidence together.
+3. Record explicit deployment status for Render and AWS after story finalization; AWS remains credential-blocked until access is provided.
 
 ---
 
@@ -76,11 +76,14 @@
 - `api/src/services/fleetgraph/graph/`
 - `api/src/services/fleetgraph/normalize/`
 - `api/src/services/fleetgraph/worker/`
+- `api/src/services/fleetgraph/deployment/`
 - `api/src/services/fleetgraph/entry/`
 - `api/src/routes/fleetgraph.ts`
 - `api/src/openapi/schemas/fleetgraph.ts`
 - `web/src/components/FleetGraphEntryCard.tsx`
 - `web/src/hooks/useFleetGraphEntry.ts`
+- `scripts/fleetgraph_deploy_smoke.sh`
+- `docs/guides/fleetgraph-deployment-readiness.md`
 - Shared LangSmith trace links showing different execution paths
 
 ---

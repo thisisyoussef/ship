@@ -37,7 +37,8 @@
     "audit:app:worker": "pnpm --filter @ship/audit-app worker",
     "prepare": "husky",
     "postinstall": "if [ \"${AUDIT_SKIP_GIT_CONFIG:-0}\" != \"1\" ]; then git config merge.ours.driver true; fi && (command -v comply >/dev/null 2>&1 || echo '\\n⚠️  comply CLI not installed - pre-commit hooks require it\\n   Install with: pip install comply-cli\\n')",
-    "test:mutation:changed": "./scripts/run_targeted_mutation.sh"
+    "test:mutation:changed": "./scripts/run_targeted_mutation.sh",
+    "fleetgraph:deploy:smoke": "./scripts/fleetgraph_deploy_smoke.sh"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.0",

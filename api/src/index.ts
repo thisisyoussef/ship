@@ -15,6 +15,12 @@ async function main() {
   if (process.env.NODE_ENV === 'production') {
     const { loadProductionSecrets } = await import('./config/ssm.js');
     await loadProductionSecrets();
+    if (process.env.FLEETGRAPH_ENTRY_ENABLED === 'true') {
+      const { assertFleetGraphSurfaceReadiness } = await import(
+        './services/fleetgraph/deployment/index.js'
+      );
+      assertFleetGraphSurfaceReadiness('api');
+    }
   }
 
   // Now import app after secrets are loaded

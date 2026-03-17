@@ -61,6 +61,9 @@
 - Added file-based handoff state under `.ai/state/tdd-handoff/<story-id>/` plus `scripts/tdd_handoff.sh` for RED/GREEN checkpoints, loop-limit enforcement, and stage metadata.
 - Decided property-based testing should be generated with `fast-check` for qualifying stories after example tests are green.
 - Decided targeted mutation testing should run after green using Stryker on changed files, with a 70% starting threshold and up to two mutation feedback rounds.
+- Implemented FleetGraph foundation story `T008` with a shared deployment/readiness contract under `api/src/services/fleetgraph/deployment/`.
+- Decided FleetGraph deploy proof should require both a service-authenticated readiness smoke path and an explicit LangSmith trace URL.
+- Decided production secret loading must cover optional FleetGraph, LangSmith, and OpenAI settings for both the API boot path and the worker CLI instead of leaving those surfaces to drift independently.
 
 Record session-level technical decisions.
 

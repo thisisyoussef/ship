@@ -12,6 +12,7 @@ Supporting repo docs:
 - `docs/specs/fleetgraph/FLEETGRAPH-FOUNDATION-PHASE/`
 - `docs/specs/fleetgraph/FLEETGRAPH-MVP-PHASE/`
 - `docs/specs/fleetgraph/FLEETGRAPH-FEEDBACK-PHASE/`
+- `docs/specs/fleetgraph/FLEETGRAPH-POLISH-PHASE/`
 
 ## What this assignment is asking for
 
@@ -95,5 +96,6 @@ All items are required to pass:
 5. Use `docs/guides/fleetgraph-deployment-readiness.md` and `docs/guides/fleetgraph-demo-inspection.md` once you reach deploy-relevant MVP stories.
 6. Draft the Agent Responsibility, Use Cases, and Trigger Model sections in `FLEETGRAPH.md`.
 7. Decide the proactive trigger model and defend it.
-8. After MVP feedback arrives, use `docs/specs/fleetgraph/FLEETGRAPH-FEEDBACK-PHASE/` to turn the UI audit findings into the next bounded implementation sequence.
-9. Only then start implementation planning and graph design.
+8. After MVP feedback arrives, use `docs/specs/fleetgraph/FLEETGRAPH-FEEDBACK-PHASE/` to restore discoverability, scrolling, and trust.
+9. Use `docs/specs/fleetgraph/FLEETGRAPH-POLISH-PHASE/` for the remaining human-language, debug-surface, and light visual polish sequence.
+10. Only then start any new extension planning beyond the current FleetGraph proof lane.

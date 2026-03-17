@@ -70,6 +70,9 @@
 - Added `api/src/config/ssm.test.ts` and expanded `api/vitest.fleetgraph.config.ts` so the Render-shaped explicit-env/no-AWS-credentials failure mode is covered by the standard FleetGraph validation command.
 - Verified locally that a production-shaped boot with explicit env and no AWS credentials now reaches `200 /health` and a ready FleetGraph service-auth response instead of crashing during secret loading.
 - Verified the current live public demo still returns `404 Cannot GET /api/fleetgraph/ready`, which means the sanctioned Render surface is still on a pre-T008 build and needs a merged refresh after T102 finalization.
+- Finalized T102 and refreshed Render to merged commit `cda917a`; the live public demo now returns `200 /health` and `403 /api/fleetgraph/ready`, confirming the readiness route is live behind service auth instead of missing.
+- Restored the parked T101 workbook draft onto `codex/fleetgraph-t101-submission-contract-docs` and confirmed the Tuesday-required sections are now filled in `docs/assignments/fleetgraph/FLEETGRAPH.md`.
+- Aligned `docs/assignments/fleetgraph/README.md` with the Tuesday MVP checklist so the assignment brief and the workbook now point at the same pass bar.
 
 Record session-level technical decisions.
 

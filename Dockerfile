@@ -22,8 +22,8 @@ RUN pnpm install --frozen-lockfile --ignore-scripts
 # Copy source and workspace files
 COPY . .
 
-# Build all runtime artifacts inside Docker
-RUN pnpm build
+# Build only runtime-required artifacts inside Docker
+RUN pnpm run build:shared && pnpm run build:api && pnpm run build:web
 
 # Expose port
 EXPOSE 80

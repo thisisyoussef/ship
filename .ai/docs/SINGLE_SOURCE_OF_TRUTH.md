@@ -1,8 +1,8 @@
 # Ship - Single Source of Truth
 
 **Last Updated**: 2026-03-17
-**Current Phase**: FleetGraph MVP `T105` evidence capture
-**Active Sprint**: Finish the FleetGraph Tuesday MVP evidence set from the live Railway demo and prepare the submission handoff
+**Current Phase**: FleetGraph feedback pack planning
+**Active Sprint**: Turn the first live UI audit findings from the shipped FleetGraph MVP into the next bounded implementation sequence
 **Project Status**: Active
 **Canonical Deployment Baseline**: API on AWS Elastic Beanstalk, frontend on S3/CloudFront, config/secrets on AWS-native services
 **Sanctioned Public Demo**: Railway public demo, deployed with `scripts/deploy-railway-demo.sh`
@@ -12,14 +12,14 @@
 ## Current Focus
 
 ### Active Task
-- **Title**: Complete `T105` so the Tuesday MVP has two shared traces, deployed UI proof, and a submission-ready workbook/evidence bundle
+- **Title**: Define the first FleetGraph feedback implementation pack for navigation discoverability and document-page usability
 - **Status**: In progress
 - **Owner**: Codex
 
 ### Next Immediate Actions
-1. Finalize `T105` with the live Railway evidence bundle, screenshot artifacts, and updated `FLEETGRAPH.md`.
-2. Keep the Railway public demo stable with both named UI proof targets visible for final user audit.
-3. Preserve the REST-only Ship runtime data boundary while using DB-backed seed/bootstrap only for FleetGraph-owned state and named demo fixtures.
+1. Turn the two verified live UI findings into a cohesive follow-on FleetGraph feedback pack.
+2. Keep the Railway public demo stable so the feedback stories can be verified against the same named proof lanes.
+3. Preserve the REST-only Ship runtime data boundary while fixing only navigation and UI usability in the next pack.
 
 ---
 

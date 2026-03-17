@@ -87,3 +87,9 @@ For each task, list associated tests first:
 - [ ] Every Tuesday MVP pass item has a concrete artifact or proof link
 - [ ] The public demo includes at least one named FleetGraph inspection target that future user audits can open directly
 - [ ] Deferred post-MVP use cases documented with rationale
+
+## Post-Pack QA Follow-Ons
+- The first feedback implementation pack for shipped MVP audit findings lives in `docs/specs/fleetgraph/FLEETGRAPH-FEEDBACK-PHASE/`.
+- Current verified user-audit findings feeding that pack:
+  - FleetGraph demo week pages are not discoverable from standard documents navigation.
+  - The affected FleetGraph week page can become non-scrollable on the public demo.

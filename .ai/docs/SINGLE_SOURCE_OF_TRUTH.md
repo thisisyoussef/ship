@@ -1,8 +1,8 @@
 # Ship - Single Source of Truth
 
 **Last Updated**: 2026-03-17
-**Current Phase**: FleetGraph MVP T103 proactive week-start drift
-**Active Sprint**: Prove one real proactive FleetGraph detection end to end against Ship REST and render it visibly in Ship
+**Current Phase**: FleetGraph workflow adjustment for UI-first MVP monitoring
+**Active Sprint**: Make FleetGraph MVP stories visually inspectable earlier and require UI inspection steps in future handoffs
 **Project Status**: Active
 **Canonical Deployment Baseline**: API on AWS Elastic Beanstalk, frontend on S3/CloudFront, config/secrets on AWS-native services
 **Sanctioned Public Demo**: Render `ship-demo` at `https://ship-demo.onrender.com/`, deployed with `scripts/deploy-render-demo.sh`
@@ -12,14 +12,14 @@
 ## Current Focus
 
 ### Active Task
-- **Title**: Implement proactive week-start drift detection, durable finding lifecycle state, and the visible Ship-facing finding surface
+- **Title**: Adjust the FleetGraph MVP sequence and handoff workflow so visible UI proof lands early and future audits include UI inspection steps
 - **Status**: In progress
 - **Owner**: Codex
 
 ### Next Immediate Actions
-1. Finalize `T103` after user audit with evidence for the proactive worker/runtime path, visible Ship surface, and dismiss/snooze lifecycle.
-2. Refresh the Render public demo after merge because `T103` changes deployed API and web runtime behavior.
-3. Move to `T104` next to turn the advisory `start week` recommendation into a real HITL write path.
+1. Finalize the UI-first workflow adjustment after user audit.
+2. Keep the next FleetGraph runtime stories anchored to the visible document-page proof lane established in `T103`.
+3. Move to `T104` next to extend the visible surface first, then add the real `start week` HITL write path.
 
 ---
 

@@ -79,6 +79,10 @@
 - Added `/api/fleetgraph/findings` plus dismiss/snooze routes so Ship can render and manage proactive findings through the same-origin API surface.
 - Added a visible `FleetGraphFindingsPanel` to `UnifiedDocumentPage` so proactive week-start drift appears in Ship without requiring an on-demand FleetGraph entry first.
 - Decided the visible proactive panel should query FleetGraph-owned findings for the current document plus related `belongs_to` ids so sprint-linked findings can surface on project pages without violating the REST-only Ship data rule.
+- Finalized `T103` as PR #31 with merge commit `b3755df0db08b5c0a99d98524bbfc0ab81b7f322`.
+- Decided future FleetGraph runtime stories should keep a visible Ship-facing UI proof lane early in the story so behavior can be monitored from the public demo as work lands.
+- Updated the combined completion gate to require UI inspection steps for visible behavior stories, with the sanctioned public demo preferred when deployable.
+- Updated the FleetGraph MVP pack so `T103` is the established visible baseline, `T104` extends that visible surface first, and `T105` captures evidence from the visible deployed path.
 
 Record session-level technical decisions.
 

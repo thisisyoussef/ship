@@ -90,6 +90,11 @@ Do not assume defaults that have not been recorded.
 - Keep boundaries explicit
 - For UI scope, define typography/layout/color/motion constraints, not vague design adjectives
 
+### Step 3.5: Establish an Inspectable UI Surface Early
+- For stories that change visible product behavior, establish or extend the minimum Ship-facing UI surface early in the implementation sequence.
+- Prefer landing an inspectable route, panel, or state before deeper backend expansion so the user can monitor behavior visually on the sanctioned demo as stories merge.
+- Do not leave the first visible proof to the end of the story if an earlier thin UI slice can make progress reviewable.
+
 ### Step 4: Define Test Plan
 - Unit behavior
 - Integration boundaries

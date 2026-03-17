@@ -44,9 +44,9 @@
 - Story ordering rationale:
   - `T101` fills the required `FLEETGRAPH.md` sections up front so the Tuesday checklist items that define the product shape are locked before implementation starts.
   - `T102` fixes and validates the deployed/public real-data baseline so later stories do not build on a broken Render/AWS readiness path.
-  - `T103` implements the proactive week-start drift slice because it is grounded in Ship data, matches the required proactive MVP bar, and creates a natural path to a human-confirmed action.
-  - `T104` converts the MVP path into one real implemented HITL gate so Tuesday has more than a preview shell.
-  - `T105` captures the shared traces, public deploy proof, and final `FLEETGRAPH.md` evidence sections once the real path exists.
+  - `T103` implements the proactive week-start drift slice and establishes the visible document-page findings surface so the MVP becomes visually monitorable in Ship immediately.
+  - `T104` extends that visible surface first, then converts the MVP path into one real implemented HITL gate so Tuesday has more than a preview shell.
+  - `T105` captures the shared traces, public deploy proof, and final `FLEETGRAPH.md` evidence sections once the visible, deployed path exists.
 - Gaps/overlap check:
   - No story is reserved for "miscellaneous docs cleanup"; required docs are split between upfront design-defense work and final evidence completion.
   - No on-demand expansion is on the Tuesday critical path unless a later implementation story proves it is necessary to satisfy one of the explicit pass items.
@@ -67,6 +67,10 @@
 - Decision: Use one narrow proactive slice plus one narrow on-demand slice before expanding use-case breadth.
 - Alternatives considered: keep on-demand contextual synthesis on the Tuesday critical path; implement several partial proactive rules in parallel.
 - Rationale: the explicit Tuesday checklist does not require a separate on-demand feature slice, so the pack should optimize for proactive + HITL + deploy + trace + docs proof first and defer broader surface breadth.
+
+- Decision: Establish or extend the visible Ship-facing UI surface early in each runtime MVP story.
+- Alternatives considered: finish backend/runtime behavior first and add visible proof late in the story; rely on traces and tests alone until the closing evidence story.
+- Rationale: the user needs to monitor FleetGraph from the public demo as stories land, so the MVP sequence should keep a visible proof lane alive instead of deferring UI until the end.
 
 ## Data Model / API Contracts
 - Request shape:

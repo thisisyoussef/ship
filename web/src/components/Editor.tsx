@@ -822,7 +822,7 @@ export function Editor({
   }, [onTitleChange]);
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full min-h-0 flex-col">
       {/* Compact header - breadcrumb, title, status, presence all in one row */}
       <div className="flex items-center gap-3 border-b border-border px-4 py-2">
           {/* Back button with optional parent label */}
@@ -921,9 +921,9 @@ export function Editor({
       )}
 
       {/* Content area with optional sidebar */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex min-h-0 flex-1 overflow-hidden">
         {/* Editor area - clickable to focus at end */}
-        <div className="flex flex-1 flex-col overflow-auto cursor-text pb-32">
+        <div className="flex min-h-0 flex-1 flex-col overflow-auto cursor-text pb-32">
           <div className="mx-auto max-w-3xl w-full py-8 pr-8 pl-12">
             {/* Breadcrumbs above title */}
             {breadcrumbs && (
@@ -1048,7 +1048,7 @@ export function Editor({
             rightSidebarCollapsed ? 'w-0 border-l-0' : 'w-64'
           )}
         >
-          <div className="flex w-64 flex-col h-full">
+          <div className="flex h-full min-h-0 w-64 flex-col">
             {/* Sidebar header with collapse button */}
             <div className="flex h-10 items-center justify-between border-b border-border px-3">
               <span className="text-sm font-medium text-foreground">Properties</span>

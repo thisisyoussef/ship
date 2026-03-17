@@ -374,7 +374,7 @@ export function UnifiedEditor({
 
     // Add type selector at the top
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex h-full min-h-0 flex-col">
         {/* Type Selector */}
         <div className="p-4 border-b border-border">
           <DocumentTypeSelector
@@ -389,7 +389,7 @@ export function UnifiedEditor({
           )}
         </div>
         {/* Type-specific sidebar */}
-        <div className="flex-1 overflow-auto pb-20">
+        <div className="min-h-0 flex-1 overflow-auto pb-20">
           {typeSpecificSidebar}
         </div>
       </div>

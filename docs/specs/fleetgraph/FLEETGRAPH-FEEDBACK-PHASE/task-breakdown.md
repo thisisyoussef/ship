@@ -47,9 +47,9 @@ For each task, list associated tests first:
   - [x] test_documents_list_includes_fleetgraph_demo_weeks_through_standard_ui_path
   - [x] test_navigation_keeps_existing_visibility_rules
 - T202 tests:
-  - [ ] test_week_document_page_scroll_container_remains_reachable_with_fleetgraph_panels
-  - [ ] test_seeded_review_apply_week_page_renders_without_scroll_trap
-  - [ ] test_worker_generated_week_page_renders_without_scroll_trap
+  - [x] test_week_document_page_scroll_container_remains_reachable_with_fleetgraph_panels
+  - [x] test_seeded_review_apply_week_page_renders_without_scroll_trap
+  - [x] test_worker_generated_week_page_renders_without_scroll_trap
 - T203 tests:
   - [ ] test_dismiss_and_snooze_success_copy_waits_for_confirmed_mutation_success
   - [ ] test_primary_fleetgraph_ui_hides_endpoint_and_thread_details_by_default

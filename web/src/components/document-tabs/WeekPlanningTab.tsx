@@ -65,7 +65,7 @@ export default function SprintPlanningTab({ documentId, document }: DocumentTabP
   }, [startSprintMutation]);
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full min-h-0 flex-col" data-testid="week-planning-tab">
       {/* Header with status and action */}
       <div className="flex items-center justify-between border-b border-border px-4 py-2">
         <div className="flex items-center gap-2">
@@ -88,7 +88,7 @@ export default function SprintPlanningTab({ documentId, document }: DocumentTabP
       </div>
 
       {/* Issues list */}
-      <div className="flex-1 overflow-hidden">
+      <div className="min-h-0 flex-1 overflow-hidden">
         <IssuesList
           // Lock to sprint context - shows only issues in this sprint by default
           lockedSprintId={documentId}

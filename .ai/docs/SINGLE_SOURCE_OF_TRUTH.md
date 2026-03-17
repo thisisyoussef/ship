@@ -12,14 +12,14 @@
 ## Current Focus
 
 ### Active Task
-- **Title**: Land FleetGraph feedback fixes one by one, starting with completed discoverability and moving next to week-page scroll recovery
+- **Title**: Land FleetGraph feedback fixes one by one, with discoverability complete and scroll recovery ready to finalize
 - **Status**: In progress
 - **Owner**: Codex
 
 ### Next Immediate Actions
-1. Finalize and deploy `T201` so the FleetGraph demo weeks are reachable from standard UI navigation on Railway.
-2. Implement `T202` through `T204` one by one against the live Railway demo.
-3. Preserve the REST-only Ship runtime data boundary while fixing scrollability and human-facing UI trust issues.
+1. Finalize and deploy `T202` so the FleetGraph week pages scroll normally on Railway.
+2. Implement `T203` and `T204` against the live Railway demo.
+3. Preserve the REST-only Ship runtime data boundary while fixing human-facing UI trust issues.
 
 ---
 

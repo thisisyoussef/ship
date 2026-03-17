@@ -32,9 +32,10 @@ Ship is a production monorepo with:
 15. **For AI-behavior changes, run eval design first**: `.ai/workflows/eval-driven-development.md`
 16. **Before coding/review work**: read `.ai/docs/AGENTIC_ENGINEERING_PRINCIPLES.md`
 17. **Run the isolated TDD pipeline for behavior changes**: `.ai/workflows/tdd-pipeline.md` + `bash scripts/tdd_handoff.sh ...`
-18. **Test prompt and review tasks neutrally**: ask for evidence, severity, and risk rather than assuming defects
-19. **File limits**: <250 lines max, target 150 lines
-20. **DRY principle**: Extract duplication into shared modules appropriate for the chosen stack
+18. **Run the UI QA critic for visible stories**: `.ai/workflows/ui-qa-critic.md` after validation, checking human-centered copy, truthful state feedback, and secondary debug disclosure
+19. **Test prompt and review tasks neutrally**: ask for evidence, severity, and risk rather than assuming defects
+20. **File limits**: <250 lines max, target 150 lines
+21. **DRY principle**: Extract duplication into shared modules appropriate for the chosen stack
 
 ## Code Standards
 - **Type hints**: Required on all functions
@@ -81,6 +82,7 @@ The pre-commit hook and finalization guard should also run this automatically fo
 ## End-of-Story Completion Gate (Required)
 - Run `.ai/workflows/story-handoff.md` first.
 - Include the finalization plan in the same packet as the user audit checklist.
+- If the story changed visible UI behavior, run `.ai/workflows/ui-qa-critic.md`; if the story completed a visible pack, include or reference the pack-level `user-audit-checklist.md`.
 - After user approval, run `.ai/workflows/git-finalization.md`.
 - Run `bash scripts/git_finalize_guard.sh`; if finalization fails, route to `.ai/workflows/finalization-recovery.md`.
 

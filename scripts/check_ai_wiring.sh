@@ -74,6 +74,7 @@ required = (
     "spec-driven-delivery.md",
     "parallel-flight.md",
     "story-handoff.md",
+    "ui-qa-critic.md",
     "git-finalization.md",
 )
 errors: list[str] = []
@@ -383,6 +384,58 @@ if errors:
     raise SystemExit(1)
 
 print("Combined completion gate wiring check passed.")
+PY
+
+run_check "UI QA critic wiring" python3 - <<'PY'
+from pathlib import Path
+import sys
+
+critic = Path(".ai/workflows/ui-qa-critic.md").read_text(encoding="utf-8")
+critic_tokens = (
+    "user language",
+    "confirmed mutation outcomes",
+    "progressive disclosure",
+    "up to 3 follow-on stories",
+    "user-audit-checklist.md",
+)
+errors: list[str] = []
+for token in critic_tokens:
+    if token not in critic:
+        errors.append(f"ui-qa-critic.md missing '{token}'")
+
+targets = [
+    "AGENTS.md",
+    ".ai/codex.md",
+    ".ai/agents/claude.md",
+    ".ai/agents/cursor-agent.md",
+    ".ai/docs/WORKSPACE_INDEX.md",
+    ".clauderc",
+    ".cursorrules",
+    ".ai/workflows/feature-development.md",
+    ".ai/workflows/story-handoff.md",
+    ".ai/workflows/spec-driven-delivery.md",
+]
+for rel in targets:
+    text = Path(rel).read_text(encoding="utf-8")
+    if "ui-qa-critic.md" not in text:
+        errors.append(f"{rel} missing ui-qa-critic.md reference")
+
+ui_prompt = Path(".ai/templates/spec/UI_PROMPT_BRIEF_TEMPLATE.md").read_text(encoding="utf-8")
+for token in (
+    "Primary user-facing language rules",
+    "Feedback honesty and state rules",
+    "Diagnostic/debug disclosure policy",
+):
+    if token not in ui_prompt:
+        errors.append(f"UI_PROMPT_BRIEF_TEMPLATE.md missing '{token}'")
+
+if errors:
+    print("ERROR: UI QA critic wiring issues detected:", file=sys.stderr)
+    for item in errors:
+        print(f"- {item}", file=sys.stderr)
+    raise SystemExit(1)
+
+print("UI QA critic wiring check passed.")
 PY
 
 run_check "Recovery workflow wiring" python3 - <<'PY'

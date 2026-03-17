@@ -1,8 +1,8 @@
 # Ship - Single Source of Truth
 
 **Last Updated**: 2026-03-17
-**Current Phase**: FleetGraph feedback pack planning
-**Active Sprint**: Turn the first live UI audit findings from the shipped FleetGraph MVP into the next bounded implementation sequence
+**Current Phase**: FleetGraph feedback implementation
+**Active Sprint**: Complete the first post-MVP FleetGraph product fixes so the public demo is easier to reach, inspect, trust, and scroll
 **Project Status**: Active
 **Canonical Deployment Baseline**: API on AWS Elastic Beanstalk, frontend on S3/CloudFront, config/secrets on AWS-native services
 **Sanctioned Public Demo**: Railway public demo, deployed with `scripts/deploy-railway-demo.sh`
@@ -12,14 +12,14 @@
 ## Current Focus
 
 ### Active Task
-- **Title**: Define the first FleetGraph feedback implementation pack for navigation discoverability and document-page usability
+- **Title**: Implement the FleetGraph feedback pack stories starting with navigation discoverability and week-page usability
 - **Status**: In progress
 - **Owner**: Codex
 
 ### Next Immediate Actions
-1. Turn the two verified live UI findings into a cohesive follow-on FleetGraph feedback pack.
-2. Keep the Railway public demo stable so the feedback stories can be verified against the same named proof lanes.
-3. Preserve the REST-only Ship runtime data boundary while fixing only navigation and UI usability in the next pack.
+1. Finalize and merge the FleetGraph feedback implementation pack so the product fixes can branch cleanly from it.
+2. Implement `T201` through `T204` one by one against the live Railway demo.
+3. Preserve the REST-only Ship runtime data boundary while fixing navigation, scrollability, and human-facing UI trust issues.
 
 ---
 
@@ -103,6 +103,7 @@
 - AI-architecture diffs trigger `bash scripts/check_ai_wiring.sh` automatically in pre-commit and again in `bash scripts/git_finalize_guard.sh`.
 - `.ai/workflows/story-handoff.md` is the single user-facing completion gate; after approval, `.ai/workflows/git-finalization.md` executes or routes to `.ai/workflows/finalization-recovery.md`.
 - Use `.ai/workflows/tdd-pipeline.md` for behavior stories that change tests plus production code; do not fall back to a single shared-context TDD loop.
+- Visible UI stories should run `.ai/workflows/ui-qa-critic.md` after validation, and completed visible packs should publish `user-audit-checklist.md`.
 - Keep the sanctioned public demo reference current: `scripts/deploy-railway-demo.sh` -> the active Railway public URL.
 - For deploy-relevant stories, deployment status must still be explicit: `deployed`, `not deployed`, or `blocked`.
 

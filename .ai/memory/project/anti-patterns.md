@@ -179,6 +179,11 @@ Capture failures so they are not repeated.
 - **Why it failed**: UI audits become ambiguous, regressions look like missing data instead of missing behavior, and future stories have no stable visual baseline to extend.
 - **Prevention rule**: Seed and document one named FleetGraph demo proof lane, then keep that exact page and finding title usable across future stories.
 
+- **Problem**: Letting primary UI surfaces lead with technical diagnostics
+- **Example**: Showing endpoint paths, route names, thread ids, or transport phrasing in the main user-facing card instead of behind optional debug disclosure.
+- **Why it failed**: Users lose the main task narrative, copy feels colder and more technical than necessary, and debugging detail competes with trust-building status language.
+- **Prevention rule**: Keep primary copy in user language, keep success/failure messaging tied to confirmed outcomes, and demote diagnostics into progressive disclosure or a secondary debug surface.
+
 - **Problem**: Letting the sanctioned public demo depend on provider-side predeploy magic
 - **Example**: Treating a hosted demo as reliable even though migrations or seed/bootstrap depend on free-plan hooks, blocked DB access, or manual dashboard steps outside the repo.
 - **Why it failed**: The live demo can look healthy while FleetGraph routes or tables are broken, and story finalization drifts away from what users are actually seeing.

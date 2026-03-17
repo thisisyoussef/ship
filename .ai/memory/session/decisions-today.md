@@ -106,6 +106,9 @@
   - on-demand approval-preview path: `https://smith.langchain.com/public/e969f90a-ef5a-45e5-bded-9d6de7233311/r`
 - Captured live UI proof screenshots for the seeded review/apply lane, the approval-preview lane, and the worker-generated lane under `docs/evidence/screenshots/`.
 - Updated `docs/assignments/fleetgraph/FLEETGRAPH.md` and `docs/evidence/fleetgraph-mvp-evidence.md` so the Tuesday MVP workbook now points at real deployed traces, a real public demo URL, named inspection targets, and honest token accounting.
+- Decided recent FleetGraph MVP QA findings should become a dedicated AI harness follow-on instead of staying as ad hoc review comments.
+- Added a lightweight `ui-qa-critic` workflow so future visible UI stories explicitly check human-centered copy, truthful feedback, and secondary debug disclosure after validation.
+- Decided completed visible packs should publish a pack-level `user-audit-checklist.md`; added the FleetGraph MVP checklist as the first concrete artifact.
 
 Record session-level technical decisions.
 

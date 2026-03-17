@@ -101,6 +101,10 @@ Do not assume defaults that have not been recorded.
 - End-to-end or smoke path
 - Error and edge cases
 - Eval coverage for AI stories
+- For visible UI scope, define:
+  - primary user-facing copy expectations,
+  - truthful success/pending/failure feedback behavior,
+  - whether technical diagnostics belong behind progressive disclosure
 
 ---
 
@@ -130,6 +134,13 @@ Run the project-specific commands defined during setup and required by the activ
 - Accessibility and visual regression for UI work
 - Performance checks if the feature changes critical paths
 
+### Step 9.5: Run the UI QA Critic for Visible Stories
+- If the story changed visible UI behavior, run `.ai/workflows/ui-qa-critic.md`
+- Capture a small evidence-based critic brief from the best available visible surface
+- Check whether primary copy uses user language, whether mutation feedback reflects confirmed outcomes, and whether debug details stay secondary
+- If the critic finds non-blocking improvements, suggest follow-on stories at the tail of the active sequence instead of silently expanding the current story
+- If the story closes a visible pack, update or create the pack-level `user-audit-checklist.md`
+
 ---
 
 ## Phase 5: Completion
@@ -139,6 +150,7 @@ Run the project-specific commands defined during setup and required by the activ
 - Record durable patterns or decisions
 - Update design decisions when UI tradeoffs were made
 - Record deployment impact review outcome
+- For completed visible packs, update the pack-level `user-audit-checklist.md`
 
 ### Step 11: Run the Combined Completion Gate
 - Run `.ai/workflows/story-handoff.md`

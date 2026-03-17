@@ -200,6 +200,13 @@ Capture reusable patterns that repeatedly work in this project.
 - **Tradeoffs**: Adds orchestration overhead and more helper tooling before coding starts.
 - **References**: `.ai/workflows/tdd-pipeline.md`, `scripts/tdd_handoff.sh`, `scripts/run_targeted_mutation.sh`, `.ai/state/tdd-handoff/README.md`
 
+- **Pattern**: Human-centered UI critic after visible stories
+- **Use when**: A story changes user-visible behavior and the team wants one lightweight, evidence-based pass for copy clarity, truthful feedback, debug-detail containment, and modest polish.
+- **Approach**: Run `.ai/workflows/ui-qa-critic.md` after validation, inspect the best visible surface, record bounded findings neutrally, and append up to 3 non-blocking follow-on stories at the tail of the active sequence or pack.
+- **Benefits**: Captures UX debt while it is still visible, keeps primary UI language calmer and more trustworthy, and turns ad hoc feedback into reusable next work.
+- **Tradeoffs**: Adds one more visible-story step and requires discipline to keep the critic bounded instead of turning it into an endless redesign loop.
+- **References**: `.ai/workflows/ui-qa-critic.md`, `.ai/workflows/story-handoff.md`, `docs/specs/fleetgraph/FLEETGRAPH-MVP-PHASE/user-audit-checklist.md`
+
 - **Pattern**: Shared deploy contract plus service-auth readiness route
 - **Use when**: A feature now spans an authenticated UI route, a background worker process, provider secrets, and tracing configuration, and the team needs one deploy-readiness proof path.
 - **Approach**: Resolve API and worker readiness from the same env contract, expose a token-protected readiness endpoint that reports both surfaces together, and pair it with a smoke script that requires both the readiness response and an explicit trace URL.

@@ -7,6 +7,7 @@ import {
 } from '../actions/types.js'
 
 export const FLEETGRAPH_FINDING_TYPES = [
+  'sprint_no_owner',
   'week_start_drift',
 ] as const
 

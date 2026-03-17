@@ -15,6 +15,7 @@ import {
 } from '../actions/index.js'
 import {
   createFleetGraphFindingStore,
+  FLEETGRAPH_FINDING_TYPES,
   type FleetGraphFindingStore,
 } from '../findings/index.js'
 import {
@@ -37,6 +38,7 @@ import {
 import { createFleetGraphCheckpointer } from './checkpointer.js'
 import { runFindingActionReviewScenario } from './finding-action-review.js'
 import { runOnDemandEntryScenario } from './on-demand-entry.js'
+import { createSprintNoOwnerScenarioRunner } from './proactive-sprint-no-owner.js'
 import { createWeekStartDriftScenarioRunner } from './proactive-week-start.js'
 import { FleetGraphStateAnnotation } from './state.js'
 import {
@@ -126,7 +128,7 @@ function selectScenarios(state: FleetGraphState) {
     case 'finding_review':
       return ['finding_action_review'] satisfies FleetGraphScenario[]
     default:
-      return ['week_start_drift'] satisfies FleetGraphScenario[]
+      return ['week_start_drift', 'sprint_no_owner'] satisfies FleetGraphScenario[]
   }
 }
 
@@ -172,6 +174,14 @@ export function createFleetGraphRuntime(
     tracingClient,
     tracingSettings,
   })
+  const runSprintNoOwnerScenario = createSprintNoOwnerScenarioRunner({
+    findings: findingStore,
+    llmAdapter,
+    now,
+    shipClient,
+    tracingClient,
+    tracingSettings,
+  })
   const upsertFindingTask = task(
     'fleetgraph.findings.upsert',
     async (input: {
@@ -179,6 +189,7 @@ export function createFleetGraphRuntime(
       documentType: string
       evidence: string[]
       findingKey: string
+      findingType: (typeof FLEETGRAPH_FINDING_TYPES)[number]
       metadata: Record<string, unknown>
       nowIso: string
       recommendedAction?: FleetGraphState['selectedAction']
@@ -194,7 +205,7 @@ export function createFleetGraphRuntime(
       documentType: input.documentType,
       evidence: input.evidence,
       findingKey: input.findingKey,
-      findingType: 'week_start_drift',
+      findingType: input.findingType,
       metadata: input.metadata,
       recommendedAction: input.recommendedAction,
       summary: input.summary,
@@ -257,9 +268,11 @@ export function createFleetGraphRuntime(
     .addNode('run_scenario', async (state) => {
       const result = state.activeScenario === 'week_start_drift'
         ? await runWeekStartDriftScenario(state as FleetGraphRuntimeInput)
-        : state.activeScenario === 'finding_action_review'
-          ? runFindingActionReviewScenario(state as FleetGraphRuntimeInput)
-          : runOnDemandEntryScenario(state as FleetGraphRuntimeInput)
+        : state.activeScenario === 'sprint_no_owner'
+          ? await runSprintNoOwnerScenario(state as FleetGraphRuntimeInput)
+          : state.activeScenario === 'finding_action_review'
+            ? runFindingActionReviewScenario(state as FleetGraphRuntimeInput)
+            : runOnDemandEntryScenario(state as FleetGraphRuntimeInput)
 
       return {
         path: `run_scenario:${result.scenario}`,
@@ -434,12 +447,18 @@ export function createFleetGraphRuntime(
     }))
     .addNode('persist_result', async (state) => {
       const selected = state.scenarioResults.find((result) => result.scenario === state.selectedScenario)
+      const findingType = FLEETGRAPH_FINDING_TYPES.includes(
+        selected?.scenario as (typeof FLEETGRAPH_FINDING_TYPES)[number]
+      )
+        ? selected?.scenario as (typeof FLEETGRAPH_FINDING_TYPES)[number]
+        : null
       if (
         !selected?.findingKey
         || !selected.documentId
         || !selected.documentType
         || !selected.summary
         || !selected.title
+        || !findingType
       ) {
         return { path: 'persist_result' }
       }
@@ -449,6 +468,7 @@ export function createFleetGraphRuntime(
         documentType: selected.documentType,
         evidence: selected.evidence,
         findingKey: selected.findingKey,
+        findingType,
         metadata: selected.metadata,
         nowIso: now().toISOString(),
         recommendedAction: selected.recommendedAction,

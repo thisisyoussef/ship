@@ -31,6 +31,11 @@ const ACTION_SHAPE_BY_TYPE = {
     path: (targetId: string) => `/api/weeks/${targetId}/approve-plan`,
     targetType: 'sprint',
   },
+  assign_owner: {
+    method: 'PATCH',
+    path: (targetId: string) => `/api/documents/${targetId}`,
+    targetType: 'sprint',
+  },
   post_comment: {
     method: 'POST',
     path: (targetId: string) => `/api/documents/${targetId}/comments`,

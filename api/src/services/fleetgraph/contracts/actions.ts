@@ -5,6 +5,7 @@ const nonEmptyString = z.string().min(1)
 export const FLEETGRAPH_ACTION_TYPES = [
   'approve_project_plan',
   'approve_week_plan',
+  'assign_owner',
   'post_comment',
   'start_week',
 ] as const

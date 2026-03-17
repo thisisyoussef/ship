@@ -21,6 +21,16 @@
   - `T203` action-state trust and human-facing copy cleanup third
   - `T204` refreshed QA checklist and tail follow-ons last
 
+## Outcome
+- `T201`, `T202`, and `T203` are merged and live on the Railway public demo.
+- `T204` refreshed the live inspection guide, added a pack-level feedback audit checklist, and captured updated Railway screenshots that match the current UI.
+- The feedback pack is complete; any remaining UI roughness should move into a separate polish sequence instead of extending this pack.
+
+## Tail Follow-Ons
+- Verify and fix any remaining prod-only dismiss/snooze failures if they still reproduce during live audit.
+- Further humanize any approval-preview or worker-summary copy that still reads awkwardly or too technical.
+- Add modest visual polish and evaluate whether a demo-only persistent debug overlay would improve QA without cluttering the primary experience.
+
 ## Constraints
 - Keep Ship product data REST-only.
 - Keep the Railway public demo as the proof surface for this feedback cycle.

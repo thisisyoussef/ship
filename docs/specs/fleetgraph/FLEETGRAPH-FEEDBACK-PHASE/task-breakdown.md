@@ -55,16 +55,16 @@ For each task, list associated tests first:
   - [x] test_primary_fleetgraph_ui_hides_endpoint_and_thread_details_by_default
   - [x] test_fleetgraph_panels_use_human_friendly_action_copy
 - T204 tests:
-  - [ ] test_demo_inspection_guide_matches_current_named_targets
-  - [ ] test_pack_level_user_audit_checklist_matches_live_ui_path
-  - [ ] test_follow_on_feedback_items_append_at_tail_not_mid_sequence
+  - [x] test_demo_inspection_guide_matches_current_named_targets
+  - [x] test_pack_level_user_audit_checklist_matches_live_ui_path
+  - [x] test_follow_on_feedback_items_append_at_tail_not_mid_sequence
 
 ## Completion Criteria
-- [ ] All must-have tasks complete
-- [ ] Acceptance criteria mapped to completed tasks
-- [ ] Tests added and passing for each implemented task
-- [ ] The public Railway demo supports normal navigation to the named FleetGraph proof lanes
-- [ ] The affected FleetGraph week pages are comfortably scrollable in prod
-- [ ] The main FleetGraph UI no longer exposes technical route/thread details by default
-- [ ] Dismiss and snooze feedback reflects actual outcome instead of optimistic local success text
-- [ ] The refreshed pack-level UI audit checklist is ready for the next feedback round
+- [x] All must-have tasks complete
+- [x] Acceptance criteria mapped to completed tasks
+- [x] Tests added and passing for each implemented task
+- [x] The public Railway demo supports normal navigation to the named FleetGraph proof lanes
+- [x] The affected FleetGraph week pages are comfortably scrollable in prod
+- [x] The main FleetGraph UI no longer exposes technical route/thread details by default
+- [x] Dismiss and snooze feedback reflects actual outcome instead of optimistic local success text
+- [x] The refreshed pack-level UI audit checklist is ready for the next feedback round

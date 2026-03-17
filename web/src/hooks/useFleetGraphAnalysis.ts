@@ -126,10 +126,12 @@ export function useFleetGraphAnalysis() {
 
   const [pendingActionFindingId, setPendingActionFindingId] = useState<string | null>(null)
   const [isApplying, setIsApplying] = useState(false)
+  const [applyError, setApplyError] = useState<string | null>(null)
 
   const applyFindingAction = useCallback(async (finding: FleetGraphFinding) => {
     if (!finding.proposedAction) return
     const key = `${finding.findingType}:${finding.title}`
+    setApplyError(null)
     setPendingActionFindingId(key)
     setIsApplying(true)
     try {
@@ -148,9 +150,11 @@ export function useFleetGraphAnalysis() {
       }
       if (!response.ok) {
         console.error(`FleetGraph action failed: ${response.status} ${response.statusText}`)
+        setApplyError('Failed to apply this action. Please try again.')
       }
     } catch (err) {
       console.error('FleetGraph applyFindingAction error:', err)
+      setApplyError('Failed to apply this action. Please try again.')
     } finally {
       setPendingActionFindingId(null)
       setIsApplying(false)
@@ -164,6 +168,7 @@ export function useFleetGraphAnalysis() {
 
   return {
     analyze,
+    applyError,
     applyFindingAction,
     conversation,
     isAnalyzing: analyzeMutation.isPending,

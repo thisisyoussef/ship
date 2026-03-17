@@ -146,6 +146,7 @@ export function FleetGraphFab({
 
   const {
     analyze,
+    applyError,
     applyFindingAction,
     conversation,
     isAnalyzing,
@@ -254,6 +255,11 @@ export function FleetGraphFab({
               </div>
             )}
           </div>
+
+          {/* Action error */}
+          {applyError && (
+            <p className="text-xs text-red-500 mt-1 px-4 pb-1">{applyError}</p>
+          )}
 
           {/* Chat input */}
           <form className="px-4 py-3 border-t border-gray-200" onSubmit={handleSubmit}>

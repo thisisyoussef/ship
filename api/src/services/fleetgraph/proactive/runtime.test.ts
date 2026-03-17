@@ -199,4 +199,118 @@ describe('FleetGraph proactive runtime', () => {
     )
     expect(findings.upsertFinding).not.toHaveBeenCalled()
   })
+
+  it('preserves the seeded demo lane while resolving other stale findings', async () => {
+    const baseRuntime = {
+      getState: vi.fn(),
+      invoke: vi.fn(async () => makeState({
+        branch: 'reasoned',
+        documentId: 'week-2',
+      })),
+    }
+    const findings = createFindingStoreMock()
+    vi.mocked(findings.listActiveFindings).mockResolvedValue([
+      {
+        cooldownUntil: undefined,
+        dedupeKey: 'seeded-lane',
+        documentId: 'week-1',
+        documentType: 'sprint',
+        evidence: [],
+        findingKey: 'week-start-drift:workspace-1:week-1',
+        findingType: 'week_start_drift',
+        id: 'finding-1',
+        metadata: { preserveDemoLane: true, proofLane: 'seeded-hitl' },
+        status: 'active',
+        summary: 'summary',
+        threadId: 'thread-1',
+        title: 'seeded lane',
+        updatedAt: new Date('2026-03-17T12:00:00.000Z'),
+        workspaceId: 'workspace-1',
+      },
+      {
+        cooldownUntil: undefined,
+        dedupeKey: 'stale-lane',
+        documentId: 'week-3',
+        documentType: 'sprint',
+        evidence: [],
+        findingKey: 'week-start-drift:workspace-1:week-3',
+        findingType: 'week_start_drift',
+        id: 'finding-2',
+        metadata: {},
+        status: 'active',
+        summary: 'summary',
+        threadId: 'thread-2',
+        title: 'stale lane',
+        updatedAt: new Date('2026-03-17T12:00:00.000Z'),
+        workspaceId: 'workspace-1',
+      },
+    ])
+
+    const runtime = createFleetGraphProactiveRuntime({
+      baseRuntime,
+      findings,
+      llmAdapter: {
+        generate: vi.fn(async () => ({
+          model: 'gpt-5-mini',
+          provider: 'openai' as const,
+          text: 'Worker lane finding',
+        })),
+        model: 'gpt-5-mini',
+        provider: 'openai' as const,
+      },
+      shipClient: {
+        listWeeks: vi.fn(async () => ({
+          weeks: [
+            {
+              id: 'week-1',
+              issue_count: 0,
+              name: 'Seeded demo lane',
+              owner: { id: 'person-1', name: 'Morgan PM' },
+              program_name: 'North Star',
+              sprint_number: 1,
+              status: 'planning' as const,
+              workspace_sprint_start_date: '2026-03-10T00:00:00.000Z',
+            },
+            {
+              id: 'week-2',
+              issue_count: 0,
+              name: 'Worker lane',
+              owner: { id: 'person-1', name: 'Morgan PM' },
+              program_name: 'North Star',
+              sprint_number: 1,
+              status: 'planning' as const,
+              workspace_sprint_start_date: '2026-03-10T00:00:00.000Z',
+            },
+          ],
+          workspace_sprint_start_date: '2026-03-10T00:00:00.000Z',
+        })),
+      },
+      tracingSettings: {
+        enabled: false,
+        flushTimeoutMs: 1000,
+        projectName: 'ship-fleetgraph',
+        sharePublicTraces: false,
+      },
+    })
+
+    await runtime.invoke({
+      mode: 'proactive',
+      threadId: 'fleetgraph:workspace-1:scheduled-sweep',
+      trigger: 'scheduled-sweep',
+      workspaceId: 'workspace-1',
+    })
+
+    expect(findings.resolveFinding).toHaveBeenCalledTimes(1)
+    expect(findings.resolveFinding).toHaveBeenCalledWith(
+      'week-start-drift:workspace-1:week-3',
+      expect.any(Date)
+    )
+    expect(findings.upsertFinding).toHaveBeenCalledWith(
+      expect.objectContaining({
+        documentId: 'week-2',
+        findingKey: 'week-start-drift:workspace-1:week-2',
+      }),
+      expect.any(Date)
+    )
+  })
 })

@@ -91,16 +91,39 @@ function isCredentialProviderError(error: unknown): boolean {
   );
 }
 
+function resolveExplicitCoreConfigState(
+  env: NodeJS.ProcessEnv = process.env
+): {
+  hasExplicitCoreConfig: boolean
+  runtimeRole: 'api' | 'worker'
+} {
+  const runtimeRole = (env.SHIP_RUNTIME_ROLE || 'api').trim().toLowerCase() === 'worker'
+    ? 'worker'
+    : 'api';
+
+  if (runtimeRole === 'worker') {
+    return {
+      hasExplicitCoreConfig: Boolean(env.DATABASE_URL && env.APP_BASE_URL),
+      runtimeRole,
+    };
+  }
+
+  return {
+    hasExplicitCoreConfig: Boolean(
+      env.DATABASE_URL &&
+      env.SESSION_SECRET &&
+      env.CORS_ORIGIN
+    ),
+    runtimeRole,
+  };
+}
+
 export async function loadProductionSecrets(): Promise<void> {
   if (process.env.NODE_ENV !== 'production') {
     return; // Use .env files for local dev
   }
 
-  const hasExplicitCoreConfig = Boolean(
-    process.env.DATABASE_URL &&
-    process.env.SESSION_SECRET &&
-    process.env.CORS_ORIGIN
-  );
+  const { hasExplicitCoreConfig, runtimeRole } = resolveExplicitCoreConfigState();
 
   const environment = process.env.ENVIRONMENT || 'prod';
   const basePath = `/ship/${environment}`;
@@ -126,7 +149,11 @@ export async function loadProductionSecrets(): Promise<void> {
     console.log(`CDN_DOMAIN: ${cdnDomain}`);
     console.log(`APP_BASE_URL: ${appBaseUrl}`);
   } else {
-    console.log('Using explicit production environment variables for core app config');
+    console.log(
+      runtimeRole === 'worker'
+        ? 'Using explicit production environment variables for worker core config'
+        : 'Using explicit production environment variables for core app config'
+    );
   }
 
   const missingOptionalKeys = OPTIONAL_FLEETGRAPH_KEYS.filter((key) => !process.env[key]);

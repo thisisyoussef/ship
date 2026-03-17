@@ -93,6 +93,22 @@ describe('loadProductionSecrets', () => {
     )
   })
 
+  it('allows worker runtimes to skip core SSM loading when their explicit config is present', async () => {
+    process.env.NODE_ENV = 'production'
+    process.env.SHIP_RUNTIME_ROLE = 'worker'
+    process.env.DATABASE_URL = 'postgres://railway-worker'
+    process.env.APP_BASE_URL = 'https://ship-demo-production.up.railway.app'
+    delete process.env.SESSION_SECRET
+    delete process.env.CORS_ORIGIN
+
+    for (const key of OPTIONAL_KEYS) {
+      process.env[key] = `${key.toLowerCase()}-value`
+    }
+
+    await expect(loadProductionSecrets()).resolves.toBeUndefined()
+    expect(sendMock).not.toHaveBeenCalled()
+  })
+
   it('still fails when core production config depends on SSM and credentials are missing', async () => {
     process.env.NODE_ENV = 'production'
     delete process.env.DATABASE_URL

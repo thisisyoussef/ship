@@ -8,6 +8,7 @@ Use this guide when enabling FleetGraph on a deployed Ship environment.
 - On-demand entry route: `POST /api/fleetgraph/entry`
 - Worker command: `pnpm --filter @ship/api fleetgraph:worker`
 - Trace evidence: a shared LangSmith trace URL captured from the deployed environment
+- Shared image role selector: `SHIP_RUNTIME_ROLE=api|worker`
 
 ## Required Environment Contract
 
@@ -33,6 +34,7 @@ Ship's production loader reads these from `/ship/{env}/...` SSM parameters when 
 - AWS-hosted Ship environments may rely on SSM-backed fallback loading for FleetGraph and LangSmith settings.
 - Non-AWS hosts such as the Railway public demo should prefer explicit runtime environment variables for FleetGraph, LangSmith, and provider credentials.
 - Optional FleetGraph/LangSmith SSM lookups should not crash a non-AWS host when AWS credentials are unavailable; the runtime should continue with explicit environment variables and let readiness report any still-missing required settings.
+- Worker runtimes on non-AWS hosts only need explicit worker-core config (`DATABASE_URL` and `APP_BASE_URL`) before FleetGraph readiness validates the remaining worker requirements.
 
 ## Deploy Smoke
 
@@ -62,15 +64,18 @@ The smoke command requires:
 - Public demo URL: `RAILWAY_PUBLIC_DEMO_URL`
 - Demo deploy path: `./scripts/deploy-railway-demo.sh <commit-ish>`
 - Required local deploy vars:
-  - `RAILWAY_PUBLIC_DEMO_PROJECT_ID`
-  - `RAILWAY_PUBLIC_DEMO_SERVICE`
-  - `RAILWAY_PUBLIC_DEMO_URL`
+- `RAILWAY_PUBLIC_DEMO_PROJECT_ID`
+- `RAILWAY_PUBLIC_DEMO_SERVICE`
+- `RAILWAY_PUBLIC_DEMO_WORKER_SERVICE`
+- `RAILWAY_PUBLIC_DEMO_URL`
 
-Railway now covers the public web/API demo surface. AWS remains the canonical production path.
+Railway now covers the public web/API demo surface and the dedicated FleetGraph worker lane. AWS remains the canonical production path.
 
 For the named UI proof target and demo-user flow, use `docs/guides/fleetgraph-demo-inspection.md`.
 
 ## Current Public-Demo Baseline
 
-- The public demo should expose `GET /api/fleetgraph/ready` once a FleetGraph-ready build is live.
-- The deploy proof lane should also allow demo login plus `GET /api/fleetgraph/findings` returning the seeded FleetGraph demo finding instead of a 500 or empty stale state.
+- The Railway public demo now exposes a fully ready `GET /api/fleetgraph/ready` when called with the service token.
+- The deploy proof lane should allow demo login plus `GET /api/fleetgraph/findings` returning both:
+  - the seeded HITL lane `Week start drift: FleetGraph Demo Week - Review and Apply`
+  - the live worker-generated lane `Week start drift: FleetGraph Demo Week - Worker Generated`

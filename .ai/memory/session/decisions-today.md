@@ -92,6 +92,12 @@
 - Added a resettable seeded proactive finding titled `Week start drift: FleetGraph Demo Week - Review and Apply` so future UI audits can immediately exercise the visible `Review and apply` lane.
 - Added a repo-owned Railway deploy script at `scripts/deploy-railway-demo.sh` that verifies the public demo through demo login plus the seeded FleetGraph findings surface instead of relying on `/health` alone.
 - Added `docs/guides/fleetgraph-demo-inspection.md` so future handoffs can point to one exact Ship page and one exact finding title for UI inspection.
+- Started `T104B` on `codex/fleetgraph-t104b-railway-worker` to deploy the dedicated Railway worker lane required for end-to-end proactive proof on the public demo.
+- Decided the shared Railway image should boot through `SHIP_RUNTIME_ROLE=api|worker` so the Ship API and FleetGraph worker stay on one repo-owned deploy path.
+- Decided worker runtimes on non-AWS hosts should only require explicit worker-core config (`DATABASE_URL` plus `APP_BASE_URL`) before FleetGraph readiness validates the rest of the worker contract.
+- Fixed the proactive Ship REST client to accept the real `/api/weeks` payload shape, including extra live fields and root/row sprint-start normalization.
+- Decided the public demo bootstrap should preserve the seeded HITL lane but also clear stale FleetGraph worker ledger state and enqueue one fresh proactive worker job so the worker-generated lane reliably reappears after each refresh.
+- Verified the Railway public demo now reaches full FleetGraph readiness and shows both named findings: the seeded HITL lane and the live worker-generated lane with a public LangSmith trace URL.
 
 Record session-level technical decisions.
 

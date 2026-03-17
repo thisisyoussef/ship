@@ -43,6 +43,7 @@ export const FLEETGRAPH_SCENARIOS = [
   'entry_requested_action',
   'finding_action_review',
   'sprint_no_owner',
+  'unassigned_sprint_issues',
   'week_start_drift',
 ] as const
 

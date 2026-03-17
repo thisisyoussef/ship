@@ -52,7 +52,17 @@ export interface WeekStartDriftCandidate {
   week: z.infer<typeof ShipWeekSummarySchema>
 }
 
+export interface ShipSprintIssuesResponse {
+  issues: Array<{
+    id: string
+    title: string
+    assignee_id: string | null
+    status: string
+  }>
+}
+
 export interface FleetGraphShipApiClient {
+  listSprintIssues(sprintId: string): Promise<ShipSprintIssuesResponse>
   listWeeks(): Promise<z.infer<typeof ShipWeeksResponseSchema>>
 }
 

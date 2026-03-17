@@ -39,6 +39,7 @@ import { createFleetGraphCheckpointer } from './checkpointer.js'
 import { runFindingActionReviewScenario } from './finding-action-review.js'
 import { runOnDemandEntryScenario } from './on-demand-entry.js'
 import { createSprintNoOwnerScenarioRunner } from './proactive-sprint-no-owner.js'
+import { createUnassignedIssuesScenarioRunner } from './proactive-unassigned-issues.js'
 import { createWeekStartDriftScenarioRunner } from './proactive-week-start.js'
 import { FleetGraphStateAnnotation } from './state.js'
 import {
@@ -128,7 +129,7 @@ function selectScenarios(state: FleetGraphState) {
     case 'finding_review':
       return ['finding_action_review'] satisfies FleetGraphScenario[]
     default:
-      return ['week_start_drift', 'sprint_no_owner'] satisfies FleetGraphScenario[]
+      return ['week_start_drift', 'sprint_no_owner', 'unassigned_sprint_issues'] satisfies FleetGraphScenario[]
   }
 }
 
@@ -175,6 +176,14 @@ export function createFleetGraphRuntime(
     tracingSettings,
   })
   const runSprintNoOwnerScenario = createSprintNoOwnerScenarioRunner({
+    findings: findingStore,
+    llmAdapter,
+    now,
+    shipClient,
+    tracingClient,
+    tracingSettings,
+  })
+  const runUnassignedIssuesScenario = createUnassignedIssuesScenarioRunner({
     findings: findingStore,
     llmAdapter,
     now,
@@ -270,9 +279,11 @@ export function createFleetGraphRuntime(
         ? await runWeekStartDriftScenario(state as FleetGraphRuntimeInput)
         : state.activeScenario === 'sprint_no_owner'
           ? await runSprintNoOwnerScenario(state as FleetGraphRuntimeInput)
-          : state.activeScenario === 'finding_action_review'
-            ? runFindingActionReviewScenario(state as FleetGraphRuntimeInput)
-            : runOnDemandEntryScenario(state as FleetGraphRuntimeInput)
+          : state.activeScenario === 'unassigned_sprint_issues'
+            ? await runUnassignedIssuesScenario(state as FleetGraphRuntimeInput)
+            : state.activeScenario === 'finding_action_review'
+              ? runFindingActionReviewScenario(state as FleetGraphRuntimeInput)
+              : runOnDemandEntryScenario(state as FleetGraphRuntimeInput)
 
       return {
         path: `run_scenario:${result.scenario}`,

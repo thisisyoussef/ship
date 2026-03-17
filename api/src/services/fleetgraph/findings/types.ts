@@ -8,6 +8,7 @@ import {
 
 export const FLEETGRAPH_FINDING_TYPES = [
   'sprint_no_owner',
+  'unassigned_sprint_issues',
   'week_start_drift',
 ] as const
 

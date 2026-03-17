@@ -1,8 +1,7 @@
 import type { Request } from 'express'
 
 import {
-  resolveShipRestBaseUrl,
-  type ShipRestRequestContext,
+  buildShipRestRequestContext,
 } from './executor.js'
 import {
   createFleetGraphFindingActionStore,
@@ -83,16 +82,6 @@ function buildActionThreadId(finding: FleetGraphFindingRecord) {
     finding.id,
     'start-week',
   ].join(':')
-}
-
-function buildRequestContext(
-  request: Pick<Request, 'get' | 'header' | 'protocol'>
-): ShipRestRequestContext {
-  return {
-    baseUrl: resolveShipRestBaseUrl(request),
-    cookieHeader: request.header('cookie') ?? undefined,
-    csrfToken: request.header('x-csrf-token') ?? undefined,
-  }
 }
 
 function buildReview(finding: FleetGraphFindingRecord) {
@@ -211,7 +200,7 @@ export function createFleetGraphFindingActionService(
         threadId,
         'approved',
         {
-          fleetgraphActionRequestContext: buildRequestContext(input.request),
+          fleetgraphActionRequestContext: buildShipRestRequestContext(input.request),
         }
       )
 

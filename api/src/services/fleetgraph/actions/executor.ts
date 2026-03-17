@@ -12,6 +12,16 @@ export interface ShipRestRequestContext {
   csrfToken?: string
 }
 
+export function buildShipRestRequestContext(
+  request: Pick<Request, 'get' | 'header' | 'protocol'>
+): ShipRestRequestContext {
+  return {
+    baseUrl: resolveShipRestBaseUrl(request),
+    cookieHeader: request.header('cookie') ?? undefined,
+    csrfToken: request.header('x-csrf-token') ?? undefined,
+  }
+}
+
 export type ShipRestExecutor = (
   path: string,
   requestContext: ShipRestRequestContext,

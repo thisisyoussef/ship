@@ -1,3 +1,6 @@
+import { getConfig } from '@langchain/langgraph'
+
+import type { ShipRestRequestContext } from '../../actions/executor.js'
 import type { FleetGraphShipApiClient } from '../../proactive/types.js';
 import type { FleetGraphContextEnvelope } from '../types.js';
 
@@ -33,10 +36,14 @@ export function createFetchMediumNode(deps: FetchMediumDeps) {
       return { fetchedData: state.fetchedData };
     }
 
+    const requestContext = getConfig()?.configurable?.fleetgraphReadRequestContext as
+      | ShipRestRequestContext
+      | undefined
+
     // Parallel fetch: document + children
     const [document, children] = await Promise.all([
-      deps.shipClient.fetchDocument(ctx.documentId, ctx.documentType),
-      deps.shipClient.fetchChildren(ctx.documentId, ctx.documentType),
+      deps.shipClient.fetchDocument(ctx.documentId, ctx.documentType, requestContext),
+      deps.shipClient.fetchChildren(ctx.documentId, ctx.documentType, requestContext),
     ]);
 
     return {

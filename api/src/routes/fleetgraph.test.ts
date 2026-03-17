@@ -453,6 +453,36 @@ describe('FleetGraph routes', () => {
     })
   })
 
+  it('passes the current Ship request context into on-demand analysis reads', async () => {
+    const response = await request(app)
+      .post('/api/fleetgraph/analyze')
+      .set('cookie', 'ship_session=demo')
+      .set('host', 'ship-demo-production.up.railway.app')
+      .set('x-csrf-token', 'csrf-token')
+      .set('x-forwarded-proto', 'https')
+      .send({
+        documentId: DOCUMENT_ID,
+        documentTitle: 'Launch planner',
+        documentType: 'project',
+      })
+
+    expect(response.status).toBe(200)
+    expect(runtime.invoke).toHaveBeenCalledWith(expect.objectContaining({
+      contextKind: 'entry',
+      documentId: DOCUMENT_ID,
+      documentTitle: 'Launch planner',
+      documentType: 'project',
+      mode: 'on_demand',
+      threadId: `fleetgraph:22222222-2222-4222-8222-222222222222:analyze:${DOCUMENT_ID}`,
+    }), {
+      fleetgraphReadRequestContext: {
+        baseUrl: 'https://ship-demo-production.up.railway.app',
+        cookieHeader: 'ship_session=demo',
+        csrfToken: 'csrf-token',
+      },
+    })
+  })
+
   it('returns checkpoint history and pending interrupts for requested threads', async () => {
     const debugRuntime = {
       checkpointer: new MemorySaver(),

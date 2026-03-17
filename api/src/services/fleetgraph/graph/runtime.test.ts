@@ -209,4 +209,70 @@ describe('createFleetGraphRuntime', () => {
       'persist_result',
     ]))
   })
+
+  it('uses request-bound Ship reads for on-demand analysis when the route provides them', async () => {
+    const shipClient = createShipClientMock()
+    const runtime = createFleetGraphRuntime({
+      actionStore: createActionStoreMock(),
+      checkpointer: new MemorySaver(),
+      findingStore: createFindingStoreMock(),
+      llmAdapter: {
+        generate: vi.fn(async () => ({
+          model: 'gpt-5-mini',
+          provider: 'openai' as const,
+          text: JSON.stringify({
+            analysisText: 'Everything looks healthy.',
+            deeperContextHint: null,
+            findings: [],
+            needsDeeperContext: false,
+          }),
+        })),
+        model: 'gpt-5-mini',
+        provider: 'openai',
+      },
+      shipClient,
+      tracingSettings: {
+        enabled: false,
+        flushTimeoutMs: 1000,
+        projectName: 'ship-fleetgraph',
+        sharePublicTraces: false,
+      },
+    })
+
+    await runtime.invoke({
+      contextKind: 'entry',
+      documentId: 'doc-123',
+      documentTitle: 'Launch planner',
+      documentType: 'project',
+      mode: 'on_demand',
+      threadId: 'thread-doc',
+      trigger: 'document-context',
+      workspaceId: 'workspace-123',
+    }, {
+      fleetgraphReadRequestContext: {
+        baseUrl: 'https://ship-demo-production.up.railway.app',
+        cookieHeader: 'ship_session=demo',
+        csrfToken: 'csrf-token',
+      },
+    })
+
+    expect(shipClient.fetchDocument).toHaveBeenCalledWith(
+      'doc-123',
+      'project',
+      expect.objectContaining({
+        baseUrl: 'https://ship-demo-production.up.railway.app',
+        cookieHeader: 'ship_session=demo',
+        csrfToken: 'csrf-token',
+      })
+    )
+    expect(shipClient.fetchChildren).toHaveBeenCalledWith(
+      'doc-123',
+      'project',
+      expect.objectContaining({
+        baseUrl: 'https://ship-demo-production.up.railway.app',
+        cookieHeader: 'ship_session=demo',
+        csrfToken: 'csrf-token',
+      })
+    )
+  })
 })

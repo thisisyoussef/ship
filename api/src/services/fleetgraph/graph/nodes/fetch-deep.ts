@@ -1,3 +1,6 @@
+import { getConfig } from '@langchain/langgraph'
+
+import type { ShipRestRequestContext } from '../../actions/executor.js'
 import type { FleetGraphShipApiClient } from '../../proactive/types.js';
 import type { FleetGraphContextEnvelope, FleetGraphDepthHint } from '../types.js';
 
@@ -25,13 +28,17 @@ export function createFetchDeepNode(deps: FetchDeepDeps) {
 
     const hint = state.deeperContextHint;
     const ctx = state.context;
+    const requestContext = getConfig()?.configurable?.fleetgraphReadRequestContext as
+      | ShipRestRequestContext
+      | undefined
     let deepData: unknown;
 
     switch (hint.type) {
       case 'assignee_workload': {
         deepData = await deps.shipClient.fetchMembers(
           hint.ids,
-          ctx?.workspaceId ?? ''
+          ctx?.workspaceId ?? '',
+          requestContext
         );
         break;
       }
@@ -41,7 +48,11 @@ export function createFetchDeepNode(deps: FetchDeepDeps) {
         // Fetch each linked document in parallel
         deepData = await Promise.all(
           hint.ids.map((id) =>
-            deps.shipClient.fetchDocument(id, hint.type === 'sprint_issues' ? 'sprint' : 'project')
+            deps.shipClient.fetchDocument(
+              id,
+              hint.type === 'sprint_issues' ? 'sprint' : 'project',
+              requestContext
+            )
           )
         );
         break;
@@ -50,7 +61,8 @@ export function createFetchDeepNode(deps: FetchDeepDeps) {
       case 'project_members': {
         deepData = await deps.shipClient.fetchMembers(
           hint.ids,
-          ctx?.workspaceId ?? ''
+          ctx?.workspaceId ?? '',
+          requestContext
         );
         break;
       }

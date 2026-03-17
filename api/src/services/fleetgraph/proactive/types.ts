@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import type { ShipRestRequestContext } from '../actions/executor.js'
 import { FleetGraphRequestedActionSchema } from '../contracts/actions.js'
 
 const nonEmptyString = z.string().min(1)
@@ -62,11 +63,26 @@ export interface ShipSprintIssuesResponse {
 }
 
 export interface FleetGraphShipApiClient {
-  fetchChildren(documentId: string, documentType: string): Promise<unknown[]>
-  fetchDocument(documentId: string, documentType: string): Promise<unknown>
-  fetchMembers(userIds: string[], workspaceId: string): Promise<unknown[]>
-  listSprintIssues(sprintId: string): Promise<ShipSprintIssuesResponse>
-  listWeeks(): Promise<z.infer<typeof ShipWeeksResponseSchema>>
+  fetchChildren(
+    documentId: string,
+    documentType: string,
+    requestContext?: ShipRestRequestContext
+  ): Promise<unknown[]>
+  fetchDocument(
+    documentId: string,
+    documentType: string,
+    requestContext?: ShipRestRequestContext
+  ): Promise<unknown>
+  fetchMembers(
+    userIds: string[],
+    workspaceId: string,
+    requestContext?: ShipRestRequestContext
+  ): Promise<unknown[]>
+  listSprintIssues(
+    sprintId: string,
+    requestContext?: ShipRestRequestContext
+  ): Promise<ShipSprintIssuesResponse>
+  listWeeks(requestContext?: ShipRestRequestContext): Promise<z.infer<typeof ShipWeeksResponseSchema>>
 }
 
 export interface FleetGraphProactiveFindingDraft {

@@ -14,14 +14,16 @@ RUN npm install -g pnpm@9.15.4 && pnpm config set strict-ssl false
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY api/package.json ./api/
 COPY shared/package.json ./shared/
+COPY web/package.json ./web/
 
-# Install production dependencies only (ignore prepare scripts that require dev deps)
-RUN pnpm install --frozen-lockfile --prod --ignore-scripts && pnpm store prune
+# Install dependencies needed for build
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
-# Copy pre-built dist directories (built locally before deployment)
-COPY shared/dist/ ./shared/dist/
-COPY api/dist/ ./api/dist/
-COPY web/dist/ ./web/dist/
+# Copy source and workspace files
+COPY . .
+
+# Build all runtime artifacts inside Docker
+RUN pnpm build
 
 # Expose port
 EXPOSE 80

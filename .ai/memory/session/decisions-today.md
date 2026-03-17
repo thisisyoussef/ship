@@ -83,6 +83,10 @@
 - Decided future FleetGraph runtime stories should keep a visible Ship-facing UI proof lane early in the story so behavior can be monitored from the public demo as work lands.
 - Updated the combined completion gate to require UI inspection steps for visible behavior stories, with the sanctioned public demo preferred when deployable.
 - Updated the FleetGraph MVP pack so `T103` is the established visible baseline, `T104` extends that visible surface first, and `T105` captures evidence from the visible deployed path.
+- Started `T104` on `codex/fleetgraph-t104-start-week-hitl` with the explicit rule that the real `start_week` action must execute through `POST /api/weeks/:id/start`, not direct FleetGraph access to Ship product tables.
+- Implemented a FleetGraph-owned action-execution ledger in `fleetgraph_finding_action_runs` so apply attempts, duplicate suppression, and success/failure/already-applied outcomes persist independently from Ship product data.
+- Added `POST /api/fleetgraph/findings/:id/apply` plus a FleetGraph action service that forwards the approved request through the same-origin Ship REST route using the caller's auth and CSRF headers.
+- Extended `FleetGraphFindingsPanel` and `useFleetGraphFindings` so the visible proactive panel now supports inline review, cancel, apply, and refresh-safe outcome rendering for the real week-start HITL path.
 
 Record session-level technical decisions.
 

@@ -1,8 +1,8 @@
 # Ship - Single Source of Truth
 
 **Last Updated**: 2026-03-17
-**Current Phase**: FleetGraph workflow adjustment for UI-first MVP monitoring
-**Active Sprint**: Make FleetGraph MVP stories visually inspectable earlier and require UI inspection steps in future handoffs
+**Current Phase**: FleetGraph MVP `T104` start-week HITL execution
+**Active Sprint**: Turn the visible proactive week-start finding into one real human-confirmed Ship action
 **Project Status**: Active
 **Canonical Deployment Baseline**: API on AWS Elastic Beanstalk, frontend on S3/CloudFront, config/secrets on AWS-native services
 **Sanctioned Public Demo**: Render `ship-demo` at `https://ship-demo.onrender.com/`, deployed with `scripts/deploy-render-demo.sh`
@@ -12,14 +12,14 @@
 ## Current Focus
 
 ### Active Task
-- **Title**: Adjust the FleetGraph MVP sequence and handoff workflow so visible UI proof lands early and future audits include UI inspection steps
+- **Title**: Implement `T104` so FleetGraph can review, confirm, and apply the real `start week` action from the visible proactive panel
 - **Status**: In progress
 - **Owner**: Codex
 
 ### Next Immediate Actions
-1. Finalize the UI-first workflow adjustment after user audit.
-2. Keep the next FleetGraph runtime stories anchored to the visible document-page proof lane established in `T103`.
-3. Move to `T104` next to extend the visible surface first, then add the real `start week` HITL write path.
+1. Finalize `T104` after user audit and refresh the sanctioned Render demo because both API and web behavior changed.
+2. Capture `T105` evidence next: two shared traces, deployed UI proof, and final workbook linkage.
+3. Preserve the REST-only Ship data boundary while FleetGraph keeps its own durable finding and action-execution state.
 
 ---
 
@@ -80,6 +80,7 @@
 - `api/src/services/fleetgraph/deployment/`
 - `api/src/services/fleetgraph/entry/`
 - `api/src/services/fleetgraph/findings/`
+- `api/src/services/fleetgraph/actions/`
 - `api/src/services/fleetgraph/proactive/`
 - `api/src/routes/fleetgraph.ts`
 - `api/src/openapi/schemas/fleetgraph.ts`

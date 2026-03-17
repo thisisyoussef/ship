@@ -19,6 +19,7 @@ describe('FleetGraph finding store', () => {
 
   beforeEach(async () => {
     await testDb.pool.query(`TRUNCATE TABLE
+      fleetgraph_finding_action_runs,
       fleetgraph_proactive_findings,
       fleetgraph_sweep_schedules,
       fleetgraph_dedupe_ledger,

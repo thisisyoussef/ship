@@ -41,6 +41,18 @@ async function dismissFleetGraphFinding(id: string) {
   return response.json() as Promise<FleetGraphFindingLifecycleResponse>;
 }
 
+async function applyFleetGraphFinding(id: string) {
+  const response = await apiPost(`/api/fleetgraph/findings/${id}/apply`);
+  if (!response.ok) {
+    const error = new Error('Failed to apply the FleetGraph recommendation.') as Error & {
+      status?: number;
+    };
+    error.status = response.status;
+    throw error;
+  }
+  return response.json() as Promise<FleetGraphFindingLifecycleResponse>;
+}
+
 async function snoozeFleetGraphFinding(id: string, minutes: number) {
   const response = await apiPost(`/api/fleetgraph/findings/${id}/snooze`, { minutes });
   if (!response.ok) {
@@ -71,6 +83,15 @@ export function useFleetGraphFindings(documentIds: string[]) {
     },
   });
 
+  const applyMutation = useMutation({
+    mutationFn: applyFleetGraphFinding,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey });
+      queryClient.invalidateQueries({ queryKey: ['document'] });
+      queryClient.invalidateQueries({ queryKey: ['sprints'] });
+    },
+  });
+
   const snoozeMutation = useMutation({
     mutationFn: ({ id, minutes }: { id: string; minutes: number }) =>
       snoozeFleetGraphFinding(id, minutes),
@@ -80,17 +101,21 @@ export function useFleetGraphFindings(documentIds: string[]) {
   });
 
   return {
+    applyFinding(id: string) {
+      applyMutation.mutate(id);
+    },
     dismissFinding(id: string) {
       dismissMutation.mutate(id);
     },
     errorMessage:
       (query.error instanceof Error && query.error.message)
+      || (applyMutation.error instanceof Error && applyMutation.error.message)
       || (dismissMutation.error instanceof Error && dismissMutation.error.message)
       || (snoozeMutation.error instanceof Error && snoozeMutation.error.message)
       || null,
     findings: query.data?.findings ?? [],
     isLoading: query.isLoading,
-    isMutating: dismissMutation.isPending || snoozeMutation.isPending,
+    isMutating: applyMutation.isPending || dismissMutation.isPending || snoozeMutation.isPending,
     snoozeFinding(id: string, minutes = 240) {
       snoozeMutation.mutate({ id, minutes });
     },

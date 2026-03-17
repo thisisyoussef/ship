@@ -66,6 +66,16 @@ export function createFleetGraphFindingStore(
       return result.rows[0] ? mapFinding(result.rows[0]) : null
     },
 
+    async getFindingById(id, workspaceId) {
+      const result = await queryable.query(
+        `SELECT * FROM fleetgraph_proactive_findings
+         WHERE id = $1 AND workspace_id = $2`,
+        [id, workspaceId]
+      ) as { rows: Record<string, unknown>[] }
+
+      return result.rows[0] ? mapFinding(result.rows[0]) : null
+    },
+
     async getFindingByKey(findingKey) {
       const result = await queryable.query(
         `SELECT * FROM fleetgraph_proactive_findings

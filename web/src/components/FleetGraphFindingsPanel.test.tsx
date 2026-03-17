@@ -90,7 +90,10 @@ describe('FleetGraphFindingsPanel', () => {
             findingKey: 'week-start-drift:workspace-1:sprint-8',
             findingType: 'week_start_drift',
             id: 'finding-1',
-            metadata: {},
+            metadata: {
+              issueCount: 0,
+              statusReason: 'zero_issues_after_start',
+            },
             recommendedAction: {
               endpoint: {
                 method: 'POST',
@@ -105,7 +108,7 @@ describe('FleetGraphFindingsPanel', () => {
               type: 'start_week',
             },
             status: 'active',
-            summary: 'Sprint 8 looks late to start and still has no active week signal.',
+            summary: 'Sprint 8 starts 2026-03-17 and is active; prioritize attention to ensure demos run smoothly and catch any last-minute issues (0 reported).',
             threadId: 'fleetgraph:workspace-1:scheduled-sweep',
             title: 'Week start drift: Sprint 8',
             tracePublicUrl: 'https://smith.langchain.com/public/example/r',
@@ -126,6 +129,12 @@ describe('FleetGraphFindingsPanel', () => {
 
     expect(await screen.findByText('Week start drift: Sprint 8')).toBeInTheDocument();
     expect(screen.getByText('Start Sprint 8')).toBeInTheDocument();
+    expect(
+      screen.getByText('This week has reached its start window, but it still has no linked work.')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/prioritize attention to ensure demos run smoothly/i)
+    ).not.toBeInTheDocument();
     expect(screen.queryByText(`POST /api/weeks/${SPRINT_ID}/start`)).not.toBeInTheDocument();
     expect(screen.queryByText('fleetgraph:workspace-1:scheduled-sweep')).not.toBeInTheDocument();
 

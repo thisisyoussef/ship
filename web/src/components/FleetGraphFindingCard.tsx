@@ -1,6 +1,7 @@
 import { FleetGraphDebugDisclosure } from '@/components/FleetGraphDebugDisclosure';
 import type { FleetGraphFinding } from '@/lib/fleetgraph-findings';
 import {
+  buildFindingSummary,
   formatFleetGraphTimestamp,
   renderExecutionLabel,
   renderExecutionTone,
@@ -61,7 +62,7 @@ export function FleetGraphFindingCard({
         <div className="space-y-3">
           <div className="space-y-1">
             <p className="text-sm font-semibold text-foreground">{finding.title}</p>
-            <p className="text-sm text-muted">{finding.summary}</p>
+            <p className="text-sm text-muted">{buildFindingSummary(finding)}</p>
             <p className="text-xs text-muted">{renderFindingStatus(finding)}</p>
           </div>
 

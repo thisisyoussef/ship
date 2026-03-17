@@ -72,75 +72,70 @@ FleetGraph is a project-intelligence agent for Ship. Its job is to notice meanin
 
 ```mermaid
 flowchart TD
-  A["resolve_trigger_context"] --> B{"mode"}
-  B -->|proactive| C["fetch_workspace_snapshot"]
-  B -->|on_demand| D["fetch_primary_document"]
-  C --> E["fetch_actor_and_roles"]
-  D --> E
-  E --> F["normalize_ship_state"]
-  F --> G["score_candidates"]
-  G --> H{"candidate or question?"}
-  H -->|no| I["persist_run_state"]
-  I --> J["emit_result: quiet"]
-  H -->|yes| K["reason_findings"]
-  K --> L["policy_gate"]
-  L -->|read_only| M["emit_result: advisory"]
-  L -->|approval_required| N["approval_interrupt"]
-  N --> O["execute_confirmed_action"]
-  O --> P["emit_result: action_result"]
-  C --> Q["fallback"]
-  D --> Q
-  K --> Q
-  O --> Q
+  A["START"] --> B["resolve_trigger_context"]
+  B --> C["select_scenarios"]
+  C --> D["run_scenario via Send fan-out"]
+  D --> E["merge_candidates"]
+  E --> F["score_and_rank"]
+  F -->|quiet| G["quiet_exit"]
+  F -->|advisory| H["reason_and_deliver"]
+  F -->|action| I["approval_interrupt"]
+  F -->|fallback| J["fallback"]
+  G --> K["persist_result"]
+  H --> K
+  I -->|resume approved| L["execute_action"]
+  I -->|resume dismissed| M["persist_action_outcome"]
+  L --> M
+  K --> N["END"]
+  M --> N
+  J --> N
 ```
 
 ### Node types
 
 - Context nodes:
   - `resolve_trigger_context`
-- Fetch fan-out nodes:
-  - `fetch_actor_and_roles`
-  - `fetch_workspace_snapshot`
-  - `fetch_primary_document`
-  - `fetch_issue_cluster`
-  - `fetch_week_cluster`
-  - `fetch_project_cluster`
-  - `fetch_program_cluster`
-- State-shaping nodes:
-  - `normalize_ship_state`
-  - `score_candidates`
-- Reasoning and policy nodes:
-  - `reason_findings`
-  - `policy_gate`
+- Scenario-selection nodes:
+  - `select_scenarios`
+  - `run_scenario`
+- Current scenario families:
+  - `week_start_drift`
+  - `entry_context_check`
+  - `entry_requested_action`
+  - `finding_action_review`
+- Merge/rank nodes:
+  - `merge_candidates`
+  - `score_and_rank`
+- Delivery nodes:
+  - `quiet_exit`
+  - `reason_and_deliver`
 - Human gate and action nodes:
   - `approval_interrupt`
-  - `execute_confirmed_action`
+  - `execute_action`
+  - `persist_action_outcome`
 - Output and persistence nodes:
-  - `persist_run_state`
-  - `emit_result`
+  - `persist_result`
 - Failure node:
   - `fallback`
 
 ### Edges
 
-- `resolve_trigger_context -> fetch_workspace_snapshot` for proactive runs
-- `resolve_trigger_context -> fetch_primary_document` for on-demand runs
-- fetch fan-out nodes -> `normalize_ship_state` once required context is loaded
-- `normalize_ship_state -> score_candidates`
-- `score_candidates -> persist_run_state -> emit_result(quiet)` when no candidate survives thresholds
-- `score_candidates -> reason_findings` when a proactive candidate or on-demand question exists
-- `reason_findings -> policy_gate`
-- `policy_gate -> emit_result` for read-only/advisory output
-- `policy_gate -> approval_interrupt` for consequential actions
-- `approval_interrupt -> execute_confirmed_action -> emit_result` only after explicit user confirmation
-- any fetch or execution failure -> `fallback`
+- `resolve_trigger_context -> select_scenarios`
+- `select_scenarios -> run_scenario` uses LangGraph `Send` fan-out for the chosen scenario family
+- `run_scenario -> merge_candidates -> score_and_rank`
+- `score_and_rank -> quiet_exit -> persist_result` when no candidate survives thresholds
+- `score_and_rank -> reason_and_deliver -> persist_result` for read-only/advisory output
+- `score_and_rank -> approval_interrupt` for consequential actions
+- `approval_interrupt -> execute_action -> persist_action_outcome` only after explicit `resume(approved)`
+- `approval_interrupt -> persist_action_outcome` when the human dismisses the action
+- any unrecoverable graph-side failure -> `fallback`
 
 ### Branching conditions
 
-- `quiet`: no candidate survives deterministic thresholds
-- `reasoned`: candidate or on-demand request proceeds to LLM synthesis
-- `approval_required`: a consequential Ship action is proposed
-- `fallback`: required data fetch or action execution fails, or evidence is too partial for a confident result
+- `quiet`: scenario fan-out produced no candidate with a positive score
+- `reasoned`: a scenario produced advisory output that can be surfaced without a mutation
+- `approval_required`: a scenario produced a consequential action and the graph paused in `approval_interrupt`
+- `fallback`: the graph could not safely continue because required evidence or execution preconditions failed
 
 ## Use Cases
 
@@ -251,12 +246,15 @@ Cover:
 - LangGraph for the runtime and branching model
 - LangSmith from day one for traces and execution evidence
 - Provider-agnostic adapter boundary with OpenAI as the preferred default in this repo
+- The worker queue remains outside LangGraph; LangGraph owns workflow orchestration, not scheduling
 
 ### Node design rationale
 
-- Deterministic scoring happens before LLM reasoning so proactive sweeps do not spend tokens on obviously clean state
-- Fetch nodes call real Ship REST endpoints, not hidden ORM or direct DB helpers
-- Branches are explicit so traces can distinguish:
+- Deterministic scenario runners execute before branch selection so proactive sweeps do not spend tokens on obviously clean state
+- Scenario fan-out uses LangGraph `Send` so multiple scenario families can run in parallel under one thread
+- FleetGraph wraps side effects in LangGraph `task()` boundaries so replay/resume does not duplicate writes
+- Fetch/action nodes call real Ship REST endpoints, not hidden ORM or direct DB helpers
+- Branches remain explicit so traces can distinguish:
   - quiet runs
   - advisory/read-only runs
   - approval-required runs
@@ -264,13 +262,14 @@ Cover:
 
 ### State management approach
 
-- Rich run-local state lives inside the LangGraph execution
+- Rich run-local state lives inside the LangGraph execution and stores facts plus routing decisions, not just bookkeeping
 - Durable state is limited to the pieces needed for:
   - dedupe
   - cooldowns
   - dismiss/snooze lifecycle
   - approval tracking
   - checkpoints keyed by `thread_id`
+- Production checkpoint persistence should use Postgres-backed LangGraph checkpointing; tests should inject memory/custom savers
 
 ### Deployment model
 
@@ -278,6 +277,7 @@ Cover:
 - A separate worker process for proactive sweeps and dirty-context queue execution
 - Public demo now targets Railway through `scripts/deploy-railway-demo.sh`
 - Canonical production target remains AWS-backed Ship infrastructure
+- Debug support should expose checkpoint history and pending interrupts without putting those details into the primary user-facing cards
 
 ### Auth approach for proactive mode
 
@@ -288,8 +288,9 @@ Cover:
 ### Human-in-the-loop boundaries
 
 - Any consequential Ship mutation must pause in `approval_interrupt`
-- The user must confirm before `execute_confirmed_action` runs
+- The user must confirm before `execute_action` runs
 - Read-only summaries and advisory findings do not require confirmation
+- Human review threads should be resumable and inspectable later through checkpoint history
 
 ## Cost Analysis
 

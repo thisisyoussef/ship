@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { FleetGraphRequestedActionSchema } from '../entry/contracts.js'
+import { FleetGraphRequestedActionSchema } from '../contracts/actions.js'
 
 const nonEmptyString = z.string().min(1)
 

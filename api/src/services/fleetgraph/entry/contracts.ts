@@ -1,6 +1,10 @@
 import { z } from 'zod'
 
 import {
+  FleetGraphActionEndpointSchema,
+  FleetGraphRequestedActionSchema,
+} from '../contracts/actions.js'
+import {
   FLEETGRAPH_BRANCHES,
   FLEETGRAPH_OUTCOMES,
 } from '../graph/index.js'
@@ -11,23 +15,10 @@ import {
 
 const nonEmptyString = z.string().min(1)
 
-export const FLEETGRAPH_ENTRY_ACTION_TYPES = [
-  'approve_project_plan',
-  'approve_week_plan',
-  'post_comment',
-  'start_week',
-] as const
-
 const FLEETGRAPH_ENTRY_TARGET_TYPES = [
   'document',
   'project',
   'sprint',
-] as const
-
-const HTTP_METHODS = [
-  'DELETE',
-  'PATCH',
-  'POST',
 ] as const
 
 export const FleetGraphEntryTriggerSchema = z.object({
@@ -38,22 +29,6 @@ export const FleetGraphEntryTriggerSchema = z.object({
   threadId: nonEmptyString.optional(),
   trigger: z.literal('document-context').default('document-context'),
   workspaceId: nonEmptyString.optional(),
-}).strict()
-
-export const FleetGraphActionEndpointSchema = z.object({
-  method: z.enum(HTTP_METHODS),
-  path: nonEmptyString,
-}).strict()
-
-export const FleetGraphRequestedActionSchema = z.object({
-  endpoint: FleetGraphActionEndpointSchema,
-  evidence: z.array(nonEmptyString).min(1),
-  rationale: nonEmptyString,
-  summary: nonEmptyString,
-  targetId: nonEmptyString,
-  targetType: z.enum(FLEETGRAPH_ENTRY_TARGET_TYPES),
-  title: nonEmptyString,
-  type: z.enum(FLEETGRAPH_ENTRY_ACTION_TYPES),
 }).strict()
 
 export const FleetGraphEntryDraftSchema = z.object({
@@ -102,7 +77,7 @@ export const FleetGraphApprovalEnvelopeSchema = z.object({
   targetId: nonEmptyString,
   targetType: z.enum(FLEETGRAPH_ENTRY_TARGET_TYPES),
   title: nonEmptyString,
-  type: z.enum(FLEETGRAPH_ENTRY_ACTION_TYPES),
+  type: FleetGraphRequestedActionSchema.shape.type,
 }).strict()
 
 const FleetGraphEntrySummarySchema = z.object({

@@ -10,6 +10,7 @@ export interface FleetGraphDebugFindingSnapshot {
   actionEndpoint?: FleetGraphDebugEndpoint;
   findingKey: string;
   id: string;
+  reviewThreadId?: string;
   status: FleetGraphFinding['status'];
   threadId: string;
   title: string;
@@ -25,6 +26,32 @@ export interface FleetGraphDebugEntrySnapshot {
   title: string;
 }
 
+export interface FleetGraphDebugCheckpoint {
+  branch?: string;
+  createdAt?: string;
+  next?: string[];
+  outcome?: string;
+  path: string[];
+  taskCount: number;
+  threadId?: string;
+}
+
+export interface FleetGraphDebugInterrupt {
+  id?: string;
+  taskName: string;
+  value?: unknown;
+}
+
+export interface FleetGraphDebugThread {
+  checkpoints: FleetGraphDebugCheckpoint[];
+  pendingInterrupts: FleetGraphDebugInterrupt[];
+  threadId: string;
+}
+
+export interface FleetGraphDebugThreadResponse {
+  threads: FleetGraphDebugThread[];
+}
+
 export function buildFleetGraphRouteLabel(activeTab?: string, nestedPath?: string) {
   const parts = ['document-page'];
   if (activeTab) {
@@ -37,12 +64,14 @@ export function buildFleetGraphRouteLabel(activeTab?: string, nestedPath?: strin
 }
 
 export function buildFindingDebugSnapshot(
-  finding: FleetGraphFinding
+  finding: FleetGraphFinding,
+  reviewThreadId?: string
 ): FleetGraphDebugFindingSnapshot {
   return {
     actionEndpoint: finding.recommendedAction?.endpoint,
     findingKey: finding.findingKey,
     id: finding.id,
+    reviewThreadId,
     status: finding.status,
     threadId: finding.threadId,
     title: finding.title,

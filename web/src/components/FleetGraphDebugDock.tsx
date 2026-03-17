@@ -1,10 +1,27 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useQuery } from '@tanstack/react-query';
 
 import { useFleetGraphDebugSurface } from '@/components/FleetGraphDebugSurface';
+import { apiGet } from '@/lib/api';
 import { formatFleetGraphTimestamp } from '@/lib/fleetgraph-findings-presenter';
+import type {
+  FleetGraphDebugThreadResponse,
+} from '@/lib/fleetgraph-debug';
 
 function endpointLabel(endpoint?: { method: string; path: string }) {
   return endpoint ? `${endpoint.method} ${endpoint.path}` : null;
+}
+
+async function fetchThreadDetails(threadIds: string[]) {
+  const params = new URLSearchParams();
+  params.set('threadIds', threadIds.join(','));
+  const response = await apiGet(`/api/fleetgraph/debug/threads?${params.toString()}`);
+
+  if (!response.ok) {
+    throw new Error('FleetGraph debug details are unavailable right now.');
+  }
+
+  return response.json() as Promise<FleetGraphDebugThreadResponse>;
 }
 
 function DockSection({
@@ -28,6 +45,25 @@ export function FleetGraphDebugDock() {
   const debug = useFleetGraphDebugSurface();
   const itemCount = debug.findings.length + (debug.entry ? 1 : 0);
   const [isOpen, setIsOpen] = useState(false);
+  const threadIds = useMemo(() => {
+    const ids = new Set<string>();
+    if (debug.entry?.threadId) {
+      ids.add(debug.entry.threadId);
+    }
+    debug.findings.forEach((finding) => {
+      ids.add(finding.threadId);
+      if (finding.reviewThreadId) {
+        ids.add(finding.reviewThreadId);
+      }
+    });
+    return Array.from(ids);
+  }, [debug.entry?.threadId, debug.findings]);
+  const threadQuery = useQuery({
+    queryKey: ['fleetgraphDebugThreads', ...threadIds].sort(),
+    queryFn: () => fetchThreadDetails(threadIds),
+    enabled: isOpen && threadIds.length > 0,
+    staleTime: 15_000,
+  });
 
   useEffect(() => {
     if (!isOpen) {
@@ -116,6 +152,51 @@ export function FleetGraphDebugDock() {
                       ) : null}
                     </div>
                   ))}
+                </div>
+              </DockSection>
+            ) : null}
+
+            {threadQuery.error instanceof Error ? (
+              <DockSection title="Thread history">
+                <p className="text-xs text-red-700">{threadQuery.error.message}</p>
+              </DockSection>
+            ) : null}
+
+            {threadQuery.data?.threads.length ? (
+              <DockSection title="Thread history">
+                <div className="space-y-3">
+                  {threadQuery.data.threads.map((thread) => {
+                    const latestCheckpoint = thread.checkpoints[0];
+
+                    return (
+                      <div
+                        className="space-y-1 rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted"
+                        key={thread.threadId}
+                      >
+                        <p className="font-medium text-foreground">{thread.threadId}</p>
+                        {latestCheckpoint ? (
+                          <>
+                            <p>
+                              Latest: {latestCheckpoint.outcome ?? 'unknown'}
+                              {latestCheckpoint.branch ? ` / ${latestCheckpoint.branch}` : ''}
+                            </p>
+                            <p>Path: {latestCheckpoint.path.join(' -> ')}</p>
+                            <p>Task count: {latestCheckpoint.taskCount}</p>
+                          </>
+                        ) : (
+                          <p>No checkpoint history yet.</p>
+                        )}
+                        {thread.pendingInterrupts.length ? (
+                          <p>
+                            Pending interrupts:{' '}
+                            {thread.pendingInterrupts.map((interrupt) => interrupt.taskName).join(', ')}
+                          </p>
+                        ) : (
+                          <p>No pending interrupts.</p>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </DockSection>
             ) : null}

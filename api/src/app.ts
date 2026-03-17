@@ -31,7 +31,7 @@ import dashboardRoutes from './routes/dashboard.js';
 import associationsRoutes from './routes/associations.js';
 import accountabilityRoutes from './routes/accountability.js';
 import aiRoutes from './routes/ai.js';
-import fleetgraphRoutes from './routes/fleetgraph.js';
+import createFleetGraphRouter from './routes/fleetgraph.js';
 import weeklyPlansRoutes, { weeklyRetrosRouter } from './routes/weekly-plans.js';
 import { documentCommentsRouter, commentsRouter } from './routes/comments.js';
 import { setupSwagger } from './swagger.js';
@@ -223,7 +223,7 @@ export function createApp(corsOrigin: string = 'http://localhost:5173'): express
   app.use('/api/ai', conditionalCsrf, aiRoutes);
 
   // FleetGraph same-origin entry routes (CSRF protected)
-  app.use('/api/fleetgraph', conditionalCsrf, fleetgraphRoutes);
+  app.use('/api/fleetgraph', conditionalCsrf, createFleetGraphRouter());
 
   // Weekly plans routes - per-person accountability documents (CSRF protected)
   app.use('/api/weekly-plans', conditionalCsrf, weeklyPlansRoutes);

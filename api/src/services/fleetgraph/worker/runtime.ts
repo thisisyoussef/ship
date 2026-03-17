@@ -14,10 +14,11 @@ function runtimeInputFromJob(job: {
   mode: 'proactive' | 'on_demand'
   routeSurface?: string
   threadId: string
-  trigger: 'document-context' | 'event' | 'scheduled-sweep'
+  trigger: 'document-context' | 'event' | 'scheduled-sweep' | 'human-review'
   workspaceId: string
 }) {
   return {
+    contextKind: job.mode === 'on_demand' ? 'entry' as const : 'proactive' as const,
     documentId: job.documentId,
     mode: job.mode,
     routeSurface: job.routeSurface,
@@ -28,7 +29,7 @@ function runtimeInputFromJob(job: {
 }
 
 function cooldownForTrigger(
-  trigger: 'document-context' | 'event' | 'scheduled-sweep',
+  trigger: 'document-context' | 'event' | 'scheduled-sweep' | 'human-review',
   deps: FleetGraphWorkerRuntimeDeps
 ) {
   return trigger === 'scheduled-sweep'

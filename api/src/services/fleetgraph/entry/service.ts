@@ -124,11 +124,15 @@ function buildSummary(
 ) {
   const title = state.outcome === 'approval_required'
     ? 'FleetGraph paused for human approval.'
+    : state.outcome === 'quiet'
+      ? `FleetGraph has no action for this ${response.current.documentType} right now.`
     : `FleetGraph is ready in this ${response.current.documentType} context.`
 
   return {
     detail: state.outcome === 'approval_required'
       ? `Review the suggested next step for ${response.current.title}.`
+      : state.outcome === 'quiet'
+        ? `FleetGraph checked ${response.current.title} and did not find anything that needs action yet.`
       : `FleetGraph reviewed ${response.current.title} and can help from this page.`,
     surfaceLabel: buildSurfaceLabel(input),
     title,
@@ -179,10 +183,12 @@ export function createFleetGraphEntryService(
       })
 
       const state = await deps.runtime.invoke({
-        approvalRequired: Boolean(parsed.draft?.requestedAction),
-        candidateCount: 1,
+        contextKind: 'entry',
         documentId: entry.current.id,
+        documentTitle: entry.current.title,
+        documentType: entry.current.documentType,
         mode: entry.trigger.mode,
+        requestedAction: parsed.draft?.requestedAction,
         routeSurface: entry.route.surface,
         threadId: entry.trigger.threadId,
         trigger: entry.trigger.trigger,

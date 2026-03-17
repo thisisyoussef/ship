@@ -6,6 +6,7 @@ import type { DocumentContext } from '@/hooks/useDocumentContextQuery';
 import { buildFindingDebugSnapshot } from '@/lib/fleetgraph-debug';
 import { useFleetGraphFindings } from '@/hooks/useFleetGraphFindings';
 import { buildFleetGraphFindingDocumentIds } from '@/lib/fleetgraph-findings';
+import type { FleetGraphFindingReview } from '@/lib/fleetgraph-findings';
 import {
   buildApplyNotice,
   buildDismissNotice,
@@ -26,6 +27,7 @@ interface LocalNotice {
 interface ReviewState {
   findingId: string | null;
   openedAt: number | null;
+  review: FleetGraphFindingReview | null;
 }
 
 const REVIEW_GESTURE_GUARD_MS = 450;
@@ -47,6 +49,7 @@ export function FleetGraphFindingsPanel({
   const [reviewState, setReviewState] = useState<ReviewState>({
     findingId: null,
     openedAt: null,
+    review: null,
   });
   const [localNotice, setLocalNotice] = useState<LocalNotice | null>(null);
 
@@ -55,8 +58,13 @@ export function FleetGraphFindingsPanel({
     : 'FleetGraph is watching this page and related project context for anything that may need attention.';
 
   useEffect(() => {
-    setFindings(findings.findings.map(buildFindingDebugSnapshot));
-  }, [findings.findings, setFindings]);
+    setFindings(findings.findings.map((finding) =>
+      buildFindingDebugSnapshot(
+        finding,
+        reviewState.findingId === finding.id ? reviewState.review?.threadId : undefined
+      )
+    ));
+  }, [findings.findings, reviewState.findingId, reviewState.review, setFindings]);
 
   async function handleDismiss(findingId: string) {
     setLocalNotice(null);
@@ -66,7 +74,7 @@ export function FleetGraphFindingsPanel({
       await findings.dismissFinding(findingId);
       setReviewState((current) =>
         current.findingId === findingId
-          ? { findingId: null, openedAt: null }
+          ? { findingId: null, openedAt: null, review: null }
           : current
       );
       setLocalNotice({
@@ -86,7 +94,7 @@ export function FleetGraphFindingsPanel({
       const response = await findings.snoozeFinding(findingId, 240);
       setReviewState((current) =>
         current.findingId === findingId
-          ? { findingId: null, openedAt: null }
+          ? { findingId: null, openedAt: null, review: null }
           : current
       );
       setLocalNotice({
@@ -112,7 +120,7 @@ export function FleetGraphFindingsPanel({
 
     try {
       const response = await findings.applyFinding(findingId);
-      setReviewState({ findingId: null, openedAt: null });
+      setReviewState({ findingId: null, openedAt: null, review: null });
 
       const message = buildApplyNotice(response.finding);
       if (message) {
@@ -121,6 +129,22 @@ export function FleetGraphFindingsPanel({
           tone: 'success',
         });
       }
+    } catch {
+      // The hook surfaces the friendly error message.
+    }
+  }
+
+  async function handleReview(findingId: string) {
+    setLocalNotice(null);
+    findings.resetActionState();
+
+    try {
+      const response = await findings.reviewFinding(findingId);
+      setReviewState({
+        findingId,
+        openedAt: Date.now(),
+        review: response.review,
+      });
     } catch {
       // The hook surfaces the friendly error message.
     }
@@ -182,15 +206,14 @@ export function FleetGraphFindingsPanel({
               onDismiss={(findingId) => {
                 void handleDismiss(findingId);
               }}
-              onReview={(findingId) =>
-                setReviewState({
-                  findingId,
-                  openedAt: Date.now(),
-                })}
+              onReview={(findingId) => {
+                void handleReview(findingId);
+              }}
               onSnooze={(findingId) => {
                 void handleSnooze(findingId);
               }}
-              onCancelReview={() => setReviewState({ findingId: null, openedAt: null })}
+              onCancelReview={() => setReviewState({ findingId: null, openedAt: null, review: null })}
+              review={reviewState.findingId === finding.id ? reviewState.review : null}
             />
           ))}
         </div>

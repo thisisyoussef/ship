@@ -12,7 +12,7 @@ Run this when any of the following happen during `.ai/workflows/git-finalization
 - base-branch sync or merge hits a conflict
 - push or PR creation fails
 - post-push checks/CI fail
-- Render demo deployment fails after merge
+- Railway public demo deployment fails after merge
 
 ---
 

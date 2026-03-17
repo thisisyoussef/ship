@@ -31,22 +31,23 @@ FleetGraph now has most of the platform substrate defined or in progress, but th
 - [ ] AC-6: `docs/assignments/fleetgraph/FLEETGRAPH.md` documents and defends the trigger model decision.
 - [ ] AC-7: The MVP is deployed and publicly accessible, with explicit environment proof and exact blocked-state reporting if the deployment surface cannot be refreshed.
 - [ ] AC-8: Each runtime story after the docs/deploy baseline establishes or extends a visible Ship UI surface early enough that reviewers can monitor behavior on the public demo as the MVP evolves.
+- [ ] AC-9: The public demo includes a repeatable FleetGraph proof lane with named Ship inspection targets, a Railway-safe bootstrap path, and a seeded visible finding/action state that future stories can extend.
 
 ## Tuesday MVP Checklist Mapping
-- [ ] Graph running with at least one proactive detection wired end-to-end: `T103`
+- [ ] Graph running with at least one proactive detection wired end-to-end: `T103`, `T104A`
 - [ ] LangSmith tracing enabled with at least two shared trace links showing different execution paths: `T105`
 - [ ] `FLEETGRAPH.md` submitted with Agent Responsibility and Use Cases completed, at least 5 use cases defined: `T101`, `T105`
 - [ ] Graph outline complete in `FLEETGRAPH.md`: `T101`, `T105`
 - [ ] At least one human-in-the-loop gate implemented: `T104`
-- [ ] Running against real Ship data with no mocked responses: `T102`, `T103`, `T104`
-- [ ] Deployed and publicly accessible: `T102`, `T105`
+- [ ] Running against real Ship data with no mocked responses: `T102`, `T103`, `T104`, `T104A`
+- [ ] Deployed and publicly accessible: `T102`, `T104A`, `T105`
 - [ ] Trigger model decision documented and defended in `FLEETGRAPH.md`: `T101`
 
 ## Edge Cases
 - Empty/null inputs: proactive sweeps may find no qualifying candidates and should still leave a traceable quiet path.
 - Boundary values: a workspace may have only partial weekly/project data, so the MVP use case must tolerate sparse context without hallucinating missing state.
 - Invalid/malformed data: mixed Ship payloads and stale associations may leave the graph with incomplete project or assignee context.
-- External-service failures: LangSmith, OpenAI, Render, or AWS dependencies may be unavailable, so deploy and trace evidence stories need explicit blocked-state handling instead of vague failure notes.
+- External-service failures: LangSmith, OpenAI, Railway, or AWS dependencies may be unavailable, so deploy and trace evidence stories need explicit blocked-state handling instead of vague failure notes.
 
 ## Non-Functional Requirements
 - Security: all provider, LangSmith, service-user, and deploy credentials remain environment-backed only; public trace links stay explicit opt-in.

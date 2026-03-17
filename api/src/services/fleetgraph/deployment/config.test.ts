@@ -10,7 +10,7 @@ function makeEnv(
   overrides: Partial<FleetGraphDeploymentEnv> = {}
 ): FleetGraphDeploymentEnv {
   return {
-    APP_BASE_URL: 'https://ship-demo.onrender.com',
+    APP_BASE_URL: 'https://ship-demo-production.up.railway.app',
     FLEETGRAPH_API_TOKEN: 'ship-rest-token',
     FLEETGRAPH_ENTRY_ENABLED: 'true',
     FLEETGRAPH_SERVICE_TOKEN: 'fleetgraph-service-token',
@@ -32,9 +32,9 @@ describe('FleetGraph deployment readiness', () => {
     expect(worker.ready).toBe(true)
     expect(api.provider).toBe('openai')
     expect(worker.provider).toBe('openai')
-    expect(api.publicBaseUrl).toBe('https://ship-demo.onrender.com')
-    expect(api.readyUrl).toBe('https://ship-demo.onrender.com/api/fleetgraph/ready')
-    expect(worker.readyUrl).toBe('https://ship-demo.onrender.com/api/fleetgraph/ready')
+    expect(api.publicBaseUrl).toBe('https://ship-demo-production.up.railway.app')
+    expect(api.readyUrl).toBe('https://ship-demo-production.up.railway.app/api/fleetgraph/ready')
+    expect(worker.readyUrl).toBe('https://ship-demo-production.up.railway.app/api/fleetgraph/ready')
     expect(api.issues).toEqual([])
     expect(worker.issues).toEqual([])
   })
@@ -74,7 +74,7 @@ describe('FleetGraph deployment readiness', () => {
     )
 
     const complete = buildFleetGraphEvidenceChecklist(readiness, {
-      publicSmokeUrl: 'https://ship-demo.onrender.com/api/fleetgraph/ready',
+      publicSmokeUrl: 'https://ship-demo-production.up.railway.app/api/fleetgraph/ready',
       traceUrl: 'https://smith.langchain.com/public/trace/abc123',
     })
 

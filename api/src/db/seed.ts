@@ -2,11 +2,13 @@ import { config } from 'dotenv';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { readFileSync } from 'fs';
+import crypto from 'crypto';
 import pg from 'pg';
 import bcrypt from 'bcryptjs';
 import { loadProductionSecrets } from '../config/ssm.js';
 import { WELCOME_DOCUMENT_TITLE, WELCOME_DOCUMENT_CONTENT } from './welcomeDocument.js';
 import { getDatabaseSslConfig } from './connection.js';
+import { ensureFleetGraphDemoProofLane } from '../services/fleetgraph/demo/fixture.js';
 
 const { Pool } = pg;
 
@@ -44,7 +46,36 @@ function requireValue<T>(value: T | undefined, message: string): T {
   return value;
 }
 
-async function seed() {
+function hashSeedToken(token: string) {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+async function ensureSeedApiToken(
+  pool: pg.Pool,
+  input: {
+    name: string
+    token: string
+    userId: string
+    workspaceId: string
+  }
+) {
+  const tokenHash = hashSeedToken(input.token);
+  const tokenPrefix = input.token.slice(0, 12);
+
+  await pool.query(
+    `INSERT INTO api_tokens (user_id, workspace_id, name, token_hash, token_prefix, revoked_at, expires_at)
+     VALUES ($1, $2, $3, $4, $5, NULL, NULL)
+     ON CONFLICT (user_id, workspace_id, name)
+     DO UPDATE SET
+       token_hash = EXCLUDED.token_hash,
+       token_prefix = EXCLUDED.token_prefix,
+       revoked_at = NULL,
+       expires_at = NULL`,
+    [input.userId, input.workspaceId, input.name, tokenHash, tokenPrefix]
+  );
+}
+
+export async function seed() {
   // Load secrets from SSM in production (must happen before Pool creation)
   await loadProductionSecrets();
 
@@ -214,6 +245,18 @@ async function seed() {
     const emailToUserId = new Map<string, string>();
     for (const user of allUsersForMembership.rows) {
       emailToUserId.set(user.email, user.id);
+    }
+
+    const fleetGraphApiToken = process.env.FLEETGRAPH_API_TOKEN?.trim();
+    const devUserId = emailToUserId.get('dev@ship.local');
+    if (fleetGraphApiToken && devUserId) {
+      await ensureSeedApiToken(pool, {
+        name: 'FleetGraph Worker Demo',
+        token: fleetGraphApiToken,
+        userId: devUserId,
+        workspaceId,
+      });
+      console.log('✅ Seeded FleetGraph worker API token for demo automation');
     }
 
     // Set reports_to on person documents
@@ -429,7 +472,8 @@ async function seed() {
       'SELECT sprint_start_date FROM workspaces WHERE id = $1',
       [workspaceId]
     );
-    const sprintStartDate = new Date(wsResult.rows[0].sprint_start_date);
+    const rawSprintStartDate = wsResult.rows[0].sprint_start_date;
+    const sprintStartDate = new Date(rawSprintStartDate);
     const today = new Date();
     const daysSinceStart = Math.floor((today.getTime() - sprintStartDate.getTime()) / (1000 * 60 * 60 * 24));
     const currentSprintNumber = Math.max(1, Math.floor(daysSinceStart / 7) + 1);
@@ -579,6 +623,14 @@ async function seed() {
 
     // Get Ship Core program for comprehensive sprint testing
     const shipCoreProgram = requireValue(programs.find(p => p.prefix === 'SHIP'), 'Missing Ship Core program');
+    const devUser = await pool.query(
+      'SELECT id, email, name FROM users WHERE email = $1',
+      ['dev@ship.local']
+    );
+    const demoOwner = requireValue(
+      devUser.rows[0],
+      'Missing dev@ship.local user required for FleetGraph demo fixture'
+    );
 
     // Comprehensive issue templates for Ship Core covering all sprint/state combinations
     // This gives us realistic data to test all views
@@ -836,6 +888,18 @@ async function seed() {
     } else {
       console.log('ℹ️  All issues already exist');
     }
+
+    const demoFixture = await ensureFleetGraphDemoProofLane(pool, {
+      currentSprintNumber,
+      ownerEmail: String(demoOwner.email),
+      ownerName: String(demoOwner.name),
+      ownerUserId: String(demoOwner.id),
+      programId: shipCoreProgram.id,
+      programName: shipCoreProgram.name,
+      workspaceId,
+      workspaceSprintStartDate: new Date(rawSprintStartDate).toISOString().slice(0, 10),
+    })
+    console.log(`✅ FleetGraph demo proof lane ready: ${demoFixture.weekTitle}`)
 
     // Create welcome/tutorial wiki document
     const existingTutorial = await pool.query(

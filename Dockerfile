@@ -21,6 +21,7 @@ RUN pnpm install --frozen-lockfile --prod --ignore-scripts && pnpm store prune
 # Copy pre-built dist directories (built locally before deployment)
 COPY shared/dist/ ./shared/dist/
 COPY api/dist/ ./api/dist/
+COPY web/dist/ ./web/dist/
 
 # Expose port
 EXPOSE 80
@@ -30,6 +31,6 @@ ENV NODE_ENV=production
 ENV VITE_APP_ENV=production
 ENV PORT=80
 
-# Start the application (run migrations first to ensure schema exists)
+# Start the application (run migrations first and optionally seed the public demo lane)
 WORKDIR /app/api
-CMD ["sh", "-c", "node dist/db/migrate.js && node dist/index.js"]
+CMD ["sh", "-c", "node dist/db/migrate.js && if [ \"${SHIP_PUBLIC_DEMO_BOOTSTRAP:-false}\" = \"true\" ]; then node dist/db/seed.js; fi && node dist/index.js"]

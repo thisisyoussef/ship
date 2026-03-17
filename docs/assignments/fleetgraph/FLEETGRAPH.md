@@ -253,7 +253,7 @@ Cover:
 
 - Same-origin Ship API routes for on-demand entry and approval callbacks
 - A separate worker process for proactive sweeps and dirty-context queue execution
-- Public demo currently uses Render `ship-demo`
+- Public demo now targets Railway through `scripts/deploy-railway-demo.sh`
 - Canonical production target remains AWS-backed Ship infrastructure
 
 ### Auth approach for proactive mode

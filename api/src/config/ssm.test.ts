@@ -63,8 +63,8 @@ describe('loadProductionSecrets', () => {
     process.env.NODE_ENV = 'production'
     process.env.DATABASE_URL = 'postgres://render'
     process.env.SESSION_SECRET = 'session-secret'
-    process.env.CORS_ORIGIN = 'https://ship-demo.onrender.com'
-    process.env.APP_BASE_URL = 'https://ship-demo.onrender.com'
+    process.env.CORS_ORIGIN = 'https://ship-demo-production.up.railway.app'
+    process.env.APP_BASE_URL = 'https://ship-demo-production.up.railway.app'
     for (const key of OPTIONAL_KEYS) {
       process.env[key] = `${key.toLowerCase()}-value`
     }
@@ -77,8 +77,8 @@ describe('loadProductionSecrets', () => {
     process.env.NODE_ENV = 'production'
     process.env.DATABASE_URL = 'postgres://render'
     process.env.SESSION_SECRET = 'session-secret'
-    process.env.CORS_ORIGIN = 'https://ship-demo.onrender.com'
-    process.env.APP_BASE_URL = 'https://ship-demo.onrender.com'
+    process.env.CORS_ORIGIN = 'https://ship-demo-production.up.railway.app'
+    process.env.APP_BASE_URL = 'https://ship-demo-production.up.railway.app'
 
     const warning = vi.spyOn(console, 'warn').mockImplementation(() => {})
     sendMock.mockRejectedValueOnce(

@@ -31,7 +31,7 @@ Ship's production loader reads these from `/ship/{env}/...` SSM parameters when 
 ## Non-AWS Hosts
 
 - AWS-hosted Ship environments may rely on SSM-backed fallback loading for FleetGraph and LangSmith settings.
-- Non-AWS hosts such as the Render public demo should prefer explicit runtime environment variables for FleetGraph, LangSmith, and provider credentials.
+- Non-AWS hosts such as the Railway public demo should prefer explicit runtime environment variables for FleetGraph, LangSmith, and provider credentials.
 - Optional FleetGraph/LangSmith SSM lookups should not crash a non-AWS host when AWS credentials are unavailable; the runtime should continue with explicit environment variables and let readiness report any still-missing required settings.
 
 ## Deploy Smoke
@@ -40,7 +40,7 @@ After deploying the API surface, run:
 
 ```bash
 pnpm fleetgraph:deploy:smoke \
-  --base-url https://ship-demo.onrender.com \
+  --base-url "$RAILWAY_PUBLIC_DEMO_URL" \
   --service-token "$FLEETGRAPH_SERVICE_TOKEN" \
   --trace-url "https://smith.langchain.com/public/..."
 ```
@@ -57,14 +57,20 @@ The smoke command requires:
 - It requires `X-FleetGraph-Service-Token` or `Authorization: Bearer <token>`.
 - Treat `FLEETGRAPH_SERVICE_TOKEN` as a shared service secret for deployment smoke and future worker-to-API service calls.
 
-## Render Demo
+## Railway Public Demo
 
-- Public demo URL: `https://ship-demo.onrender.com/`
-- Demo deploy path: `./scripts/deploy-render-demo.sh <commit-ish>`
+- Public demo URL: `RAILWAY_PUBLIC_DEMO_URL`
+- Demo deploy path: `./scripts/deploy-railway-demo.sh <commit-ish>`
+- Required local deploy vars:
+  - `RAILWAY_PUBLIC_DEMO_PROJECT_ID`
+  - `RAILWAY_PUBLIC_DEMO_SERVICE`
+  - `RAILWAY_PUBLIC_DEMO_URL`
 
-Render currently covers the public web/API demo surface. AWS remains the canonical production path.
+Railway now covers the public web/API demo surface. AWS remains the canonical production path.
+
+For the named UI proof target and demo-user flow, use `docs/guides/fleetgraph-demo-inspection.md`.
 
 ## Current Public-Demo Baseline
 
 - The public demo should expose `GET /api/fleetgraph/ready` once a FleetGraph-ready build is live.
-- If `https://ship-demo.onrender.com/health` returns `200` but `GET /api/fleetgraph/ready` returns `404`, the public demo is still serving a pre-FleetGraph-readiness deploy and needs a merged refresh rather than a new code investigation.
+- The deploy proof lane should also allow demo login plus `GET /api/fleetgraph/findings` returning the seeded FleetGraph demo finding instead of a 500 or empty stale state.

@@ -46,12 +46,14 @@
   - `T102` fixes and validates the deployed/public real-data baseline so later stories do not build on a broken Render/AWS readiness path.
   - `T103` implements the proactive week-start drift slice and establishes the visible document-page findings surface so the MVP becomes visually monitorable in Ship immediately.
   - `T104` extends that visible surface first, then converts the MVP path into one real implemented HITL gate so Tuesday has more than a preview shell.
+  - `T104A` repairs the public demo proof lane by ensuring FleetGraph schema/bootstrap and repeatable seeded inspection targets on Render, so future stories can be monitored from prod instead of relying on lucky data or skipped predeploy hooks.
   - `T105` captures the shared traces, public deploy proof, and final `FLEETGRAPH.md` evidence sections once the visible, deployed path exists.
 - Gaps/overlap check:
   - No story is reserved for "miscellaneous docs cleanup"; required docs are split between upfront design-defense work and final evidence completion.
   - No on-demand expansion is on the Tuesday critical path unless a later implementation story proves it is necessary to satisfy one of the explicit pass items.
   - No second proactive use case is planned until the first slice is complete and evidenced.
   - The pack assumes the foundation substrate is the only graph/runtime path; stories should extend it, not fork it.
+  - The pack now reserves one explicit story for seeded demo inspectability because the public demo cannot be a trustworthy audit surface if schema setup and visible proof depend on free-plan predeploy behavior or incidental data.
 - Whole-pack success signal:
   - A reviewer can open the repo, the public deployment, the shared traces, and `FLEETGRAPH.md` and verify every Tuesday pass item without relying on implied future work.
 
@@ -94,8 +96,10 @@
 - New dependencies proposed (if any):
   - none by default; only add new packages if a concrete MVP story proves they are necessary
 - Risk and mitigation:
-- Risk: the public deploy path remains blocked even after T008 because Render and AWS credential assumptions still diverge.
-  - Mitigation: make `T102` treat explicit runtime environment variables as the primary config source on non-AWS hosts, keep SSM as an AWS fallback, and record any remaining missing Render prerequisite exactly before the proactive story is considered complete.
+- Risk: the public deploy path remains blocked even after T008 because non-AWS and AWS credential assumptions still diverge.
+  - Mitigation: make `T102` treat explicit runtime environment variables as the primary config source on non-AWS hosts, keep SSM as an AWS fallback, and record any remaining missing public-demo prerequisite exactly before the proactive story is considered complete.
+- Risk: the public demo can report healthy while FleetGraph tables or visible proof data are missing, which makes UI inspection misleading.
+  - Mitigation: add `T104A` to create a Railway-safe FleetGraph bootstrap path, seed named inspection targets, and strengthen the deploy smoke to check authenticated FleetGraph behavior instead of `/health` only.
   - Risk: proactive delivery remains invisible even if detection works.
   - Mitigation: reserve explicit surfaced-insight output in the proactive MVP story rather than stopping at queue or trace success.
   - Risk: `FLEETGRAPH.md` remains a placeholder until the end.

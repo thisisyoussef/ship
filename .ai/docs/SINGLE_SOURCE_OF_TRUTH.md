@@ -1,25 +1,25 @@
 # Ship - Single Source of Truth
 
 **Last Updated**: 2026-03-17
-**Current Phase**: FleetGraph MVP `T104` start-week HITL execution
-**Active Sprint**: Turn the visible proactive week-start finding into one real human-confirmed Ship action
+**Current Phase**: FleetGraph MVP `T104A` public demo proof lane
+**Active Sprint**: Seed and deploy a deterministic FleetGraph public-demo inspection target on Railway
 **Project Status**: Active
 **Canonical Deployment Baseline**: API on AWS Elastic Beanstalk, frontend on S3/CloudFront, config/secrets on AWS-native services
-**Sanctioned Public Demo**: Render `ship-demo` at `https://ship-demo.onrender.com/`, deployed with `scripts/deploy-render-demo.sh`
+**Sanctioned Public Demo**: Railway public demo, deployed with `scripts/deploy-railway-demo.sh`
 
 ---
 
 ## Current Focus
 
 ### Active Task
-- **Title**: Implement `T104` so FleetGraph can review, confirm, and apply the real `start week` action from the visible proactive panel
+- **Title**: Implement `T104A` so the public FleetGraph demo has a deterministic named inspection target and Railway-backed deploy path
 - **Status**: In progress
 - **Owner**: Codex
 
 ### Next Immediate Actions
-1. Finalize `T104` after user audit and refresh the sanctioned Render demo because both API and web behavior changed.
+1. Finish `T104A`: create the named demo week/finding proof lane and wire the sanctioned public demo deploy to Railway.
 2. Capture `T105` evidence next: two shared traces, deployed UI proof, and final workbook linkage.
-3. Preserve the REST-only Ship data boundary while FleetGraph keeps its own durable finding and action-execution state.
+3. Preserve the REST-only Ship runtime data boundary while using DB-backed seed/bootstrap only for Ship-owned demo fixture creation and FleetGraph-owned state.
 
 ---
 
@@ -103,7 +103,7 @@
 - AI-architecture diffs trigger `bash scripts/check_ai_wiring.sh` automatically in pre-commit and again in `bash scripts/git_finalize_guard.sh`.
 - `.ai/workflows/story-handoff.md` is the single user-facing completion gate; after approval, `.ai/workflows/git-finalization.md` executes or routes to `.ai/workflows/finalization-recovery.md`.
 - Use `.ai/workflows/tdd-pipeline.md` for behavior stories that change tests plus production code; do not fall back to a single shared-context TDD loop.
-- Keep the sanctioned public demo reference current: `scripts/deploy-render-demo.sh` -> `https://ship-demo.onrender.com/`.
+- Keep the sanctioned public demo reference current: `scripts/deploy-railway-demo.sh` -> the active Railway public URL.
 - For deploy-relevant stories, deployment status must still be explicit: `deployed`, `not deployed`, or `blocked`.
 
 ---

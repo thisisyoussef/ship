@@ -1,0 +1,73 @@
+# Task Breakdown
+
+## Story
+- Story ID: FLEETGRAPH-MVP-PHASE
+- Story Title: FleetGraph MVP execution pack
+
+## Execution Notes
+- Keep tasks small and verifiable.
+- Lock the Tuesday checklist items that live in `FLEETGRAPH.md` before starting implementation-heavy stories.
+- Build on the merged FleetGraph readiness baseline before starting MVP feature stories.
+- Prefer one narrow, complete proactive slice over multiple partial feature surfaces.
+- Do not put broader on-demand expansion on the Tuesday critical path unless it becomes necessary to satisfy an explicit pass item.
+
+## Story Pack Alignment (for phase packs or multi-story planning)
+- Higher-level pack objectives:
+  - Satisfy every Tuesday MVP pass requirement exactly.
+  - Deliver one proactive end-to-end FleetGraph slice on real Ship data.
+  - Deliver one real HITL action path plus public deploy/trace/docs evidence.
+- Planned stories in this pack:
+  - `T101` submission-contract docs
+  - `T102` public deploy and real-data baseline
+  - `T103` proactive week-start drift slice
+  - `T104` real HITL execution path
+  - `T105` trace capture and final submission evidence
+- Why this story set is cohesive:
+  - every story advances one or more explicit Tuesday pass items directly and avoids non-required breadth.
+- Coverage check: which objective each story advances:
+  - Objective 1 -> `T101`, `T102`, `T103`, `T104`, `T105`
+  - Objective 2 -> `T102`, `T103`, `T104`
+  - Objective 3 -> `T102`, `T104`, `T105`
+
+## Tasks
+
+| Task ID | Description | Dependency | Parallelizable | Validation |
+|---|---|---|---|---|
+| T101 | Complete the required `FLEETGRAPH.md` planning sections up front: Agent Responsibility, at least 5 use cases, trigger model decision/defense, and graph outline with node types, edges, and branching conditions. | must-have | no | `FLEETGRAPH.md` contains the required Tuesday sections and stops being a placeholder for the design-defining content |
+| T102 | Validate and fix the public deploy and real-data baseline on top of the merged FleetGraph readiness contract, including the current Render blocker and any required real-data auth/config path. | blocked-by:T101 | no | The MVP runtime is either publicly reachable on the sanctioned surface or recorded as explicitly `blocked` with the exact missing prerequisite |
+| T103 | Implement the proactive MVP slice for week-start drift from hybrid trigger to surfaced finding, including dedupe/cooldown behavior and visible output on real Ship data. | blocked-by:T102 | no | Integration tests prove trigger -> reasoning -> surfaced finding on real-data code paths, and manual/demo proof shows the finding is visible and actionable |
+| T104 | Turn the MVP path into one real human-confirmed action with duplicate-execution protection, approval UX, and result handling. | blocked-by:T103 | no | Tests prove confirm/deny behavior, one-time execution, and real HITL gating for the chosen action |
+| T105 | Capture the Tuesday evidence set: at least two shared traces with different execution paths, public deploy proof, final `FLEETGRAPH.md` evidence sections, and submission-ready links/screenshots/checklists. | blocked-by:T104 | yes | Trace URLs, deploy status, and final workbook evidence are all recorded in the story handoff and assignment docs |
+
+## TDD Mapping
+
+For each task, list associated tests first:
+
+- T101 tests:
+  - [ ] test_fleetgraph_md_contains_agent_responsibility_section
+  - [ ] test_fleetgraph_md_lists_at_least_five_use_cases
+  - [ ] test_fleetgraph_md_documents_trigger_model_and_graph_outline
+- T102 tests:
+  - [ ] test_readiness_contract_requires_api_worker_and_trace_settings
+  - [ ] test_readiness_route_rejects_invalid_service_auth
+  - [ ] test_public_demo_path_is_deployable_or_explicitly_blocked
+- T103 tests:
+  - [ ] test_week_start_drift_candidate_surfaces_one_proactive_finding
+  - [ ] test_duplicate_week_start_drift_respects_cooldown
+  - [ ] test_proactive_finding_surface_can_dismiss_or_snooze
+- T104 tests:
+  - [ ] test_recommendation_requires_explicit_approval_before_ship_write
+  - [ ] test_approved_action_executes_once_and_records_result
+  - [ ] test_denied_or_timed_out_action_leaves_ship_state_unchanged
+- T105 tests:
+  - [ ] test_trace_capture_includes_distinct_execution_paths
+  - [ ] test_demo_or_blocked_deploy_status_is_recorded_with_evidence
+  - [ ] test_fleetgraph_md_final_submission_sections_reference_trace_and_deploy_evidence
+
+## Completion Criteria
+- [ ] All must-have tasks complete
+- [ ] Acceptance criteria mapped to completed tasks
+- [ ] Tests added and passing for each implemented task
+- [ ] Trace/demo/workbook evidence captured, not implied
+- [ ] Every Tuesday MVP pass item has a concrete artifact or proof link
+- [ ] Deferred post-MVP use cases documented with rationale

@@ -1,8 +1,8 @@
 # Ship - Single Source of Truth
 
 **Last Updated**: 2026-03-16
-**Current Phase**: FleetGraph foundation T008 deployment readiness
-**Active Sprint**: Shared deploy contract, service auth, worker/API env parity, and deployed smoke evidence
+**Current Phase**: FleetGraph MVP T102 public deploy and real-data baseline
+**Active Sprint**: Clear the Render public-demo blocker and keep the MVP pack moving toward the Tuesday checklist
 **Project Status**: Active
 **Canonical Deployment Baseline**: API on AWS Elastic Beanstalk, frontend on S3/CloudFront, config/secrets on AWS-native services
 **Sanctioned Public Demo**: Render `ship-demo` at `https://ship-demo.onrender.com/`, deployed with `scripts/deploy-render-demo.sh`
@@ -12,14 +12,14 @@
 ## Current Focus
 
 ### Active Task
-- **Title**: Lock FleetGraph deployment, secrets, and public-access readiness across API, worker, and tracing
+- **Title**: Make FleetGraph production-style boot work on the Render public demo without AWS credentials and keep the public baseline explicit
 - **Status**: In progress
 - **Owner**: Codex
 
 ### Next Immediate Actions
 1. Keep `api/src/services/fleetgraph/deployment/` as the canonical shared deploy/env contract for API and worker surfaces.
-2. Use `scripts/fleetgraph_deploy_smoke.sh` plus the service-auth readiness route to prove deployed FleetGraph access and attach trace evidence together.
-3. Record explicit deployment status for Render and AWS after story finalization; AWS remains credential-blocked until access is provided.
+2. Treat explicit runtime environment variables as the primary FleetGraph config source on non-AWS hosts such as Render, with SSM as the AWS fallback.
+3. Finalize T102, merge it, and refresh the Render public demo so `/api/fleetgraph/ready` stops returning `404` on the live service.
 
 ---
 
@@ -71,6 +71,7 @@
 - `docs/assignments/fleetgraph/FLEETGRAPH.md`
 - `docs/specs/fleetgraph/FLEETGRAPH-FOUNDATION-PHASE/`
 - `docs/specs/fleetgraph/FLEETGRAPH-FOUNDATION-PHASE/reconnaissance-note.md`
+- `docs/specs/fleetgraph/FLEETGRAPH-MVP-PHASE/`
 - `api/src/services/fleetgraph/llm/`
 - `api/src/services/fleetgraph/tracing/`
 - `api/src/services/fleetgraph/graph/`
@@ -111,5 +112,6 @@
 5. `.ai/docs/references/fleetgraph-prd.md`
 6. `docs/assignments/fleetgraph/PRESEARCH.md`
 7. `docs/specs/fleetgraph/FLEETGRAPH-FOUNDATION-PHASE/feature-spec.md`
-8. `.ai/codex.md`
-9. `.ai/agents/claude.md`
+8. `docs/specs/fleetgraph/FLEETGRAPH-MVP-PHASE/feature-spec.md`
+9. `.ai/codex.md`
+10. `.ai/agents/claude.md`

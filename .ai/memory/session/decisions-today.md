@@ -64,6 +64,12 @@
 - Implemented FleetGraph foundation story `T008` with a shared deployment/readiness contract under `api/src/services/fleetgraph/deployment/`.
 - Decided FleetGraph deploy proof should require both a service-authenticated readiness smoke path and an explicit LangSmith trace URL.
 - Decided production secret loading must cover optional FleetGraph, LangSmith, and OpenAI settings for both the API boot path and the worker CLI instead of leaving those surfaces to drift independently.
+- Started FleetGraph MVP story `T102` on a fresh branch `codex/fleetgraph-t102-public-deploy-baseline` and restored the MVP pack artifacts as the live spec for the Tuesday checklist path.
+- Decided non-AWS hosts such as the Render public demo should treat explicit runtime environment variables as the primary FleetGraph config source, with SSM kept as the AWS fallback for missing settings.
+- Implemented a credential-tolerant optional SSM path in `api/src/config/ssm.ts` so Render-style production boots no longer fail with `CredentialsProviderError` before readiness can be evaluated.
+- Added `api/src/config/ssm.test.ts` and expanded `api/vitest.fleetgraph.config.ts` so the Render-shaped explicit-env/no-AWS-credentials failure mode is covered by the standard FleetGraph validation command.
+- Verified locally that a production-shaped boot with explicit env and no AWS credentials now reaches `200 /health` and a ready FleetGraph service-auth response instead of crashing during secret loading.
+- Verified the current live public demo still returns `404 Cannot GET /api/fleetgraph/ready`, which means the sanctioned Render surface is still on a pre-T008 build and needs a merged refresh after T102 finalization.
 
 Record session-level technical decisions.
 

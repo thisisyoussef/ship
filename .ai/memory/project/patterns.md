@@ -206,3 +206,10 @@ Capture reusable patterns that repeatedly work in this project.
 - **Benefits**: Prevents API/worker config drift, makes deploy proof reproducible, and keeps trace evidence part of the definition of “ready”.
 - **Tradeoffs**: Adds one more internal route and one more shared secret to manage.
 - **References**: `api/src/services/fleetgraph/deployment/config.ts`, `api/src/routes/fleetgraph.ts`, `scripts/fleetgraph_deploy_smoke.sh`, `docs/guides/fleetgraph-deployment-readiness.md`
+
+- **Pattern**: Explicit-env primary on non-AWS deploy hosts
+- **Use when**: The same runtime must boot on AWS-hosted production and on a non-AWS demo or preview host such as Render.
+- **Approach**: Treat explicit runtime environment variables as the primary config source on non-AWS hosts, keep secret-store reads as fallback for missing settings, and tolerate credential-provider failures for optional settings so the process can still expose readiness.
+- **Benefits**: Prevents non-AWS demo hosts from crashing on optional AWS credential lookups and keeps one shared deploy contract instead of host-specific forks.
+- **Tradeoffs**: The readiness route must still surface missing required settings clearly, because boot success alone no longer proves full deploy readiness.
+- **References**: `api/src/config/ssm.ts`, `docs/guides/fleetgraph-deployment-readiness.md`, `api/src/config/ssm.test.ts`

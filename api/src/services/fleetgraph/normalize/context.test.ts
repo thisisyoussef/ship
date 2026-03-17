@@ -121,4 +121,39 @@ describe('createShipContextEnvelope', () => {
       },
     ])
   })
+
+  it('accepts nullable current program metadata from live document context payloads', () => {
+    const envelope = createShipContextEnvelope({
+      context: {
+        ancestors: [],
+        belongs_to: [],
+        breadcrumbs: [
+          { id: 'wiki-1', title: 'Untitled', type: 'wiki' },
+        ],
+        children: [],
+        current: {
+          document_type: 'wiki',
+          id: 'wiki-1',
+          program_color: null,
+          program_id: null,
+          program_name: null,
+          title: 'Untitled',
+        },
+      },
+      route: {
+        nestedPath: [],
+        surface: 'document-page',
+      },
+      trigger: {
+        mode: 'on_demand',
+        threadId: 'thread-wiki-1',
+        trigger: 'document-context',
+        workspaceId: 'workspace-123',
+      },
+    })
+
+    expect(envelope.current.id).toBe('wiki-1')
+    expect(envelope.current.relationships.programId).toBeUndefined()
+    expect(envelope.current.title).toBe('Untitled')
+  })
 })

@@ -26,6 +26,8 @@ Every completion gate must include:
 - `Completion Plan`
 - `User Audit Checklist (Run This Now)`
 
+When a story completed a visible story pack, the completion gate must also reference the pack-level `user-audit-checklist.md`.
+
 The completion gate is incomplete if any of these sections are missing.
 
 ---
@@ -71,6 +73,7 @@ Checklist rules:
 - for stories that change visible behavior in `api/` or `web/`, include at least one UI inspection step
 - for deploy-relevant visible stories, make that UI inspection step point at the sanctioned public demo or the exact blocked deploy state
 - name the exact route, click path, or visible state the user should inspect instead of relying on terminal output alone
+- when a story closes a visible pack, include the pack-level `user-audit-checklist.md` as the whole-pack audit artifact
 - include `Changed in this story`
 - include `Should remain unchanged`
 - include `Estimated audit time`
@@ -80,8 +83,10 @@ Checklist rules:
 When a story changes user-visible behavior, the completion gate must treat UI inspection as first-class evidence:
 - include at least one browser-visible proof artifact in `Visible Proof`
 - include at least one UI inspection step in `## User Audit Checklist (Run This Now)`
+- run `.ai/workflows/ui-qa-critic.md` after validation so visible-story handoffs include a lightweight evidence-based critique and any non-blocking tail follow-ons
 - prefer sanctioned deployed surfaces when available so the user can monitor real behavior, not just code diffs
 - if the visible surface is blocked from deployment, say exactly why and point the user at the best available local proof instead
+- if the story completes a visible pack, point the user at the pack-level `user-audit-checklist.md` so they can inspect the whole shipped slice in one pass
 
 ---
 

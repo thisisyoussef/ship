@@ -63,6 +63,12 @@ Before implementing stories that change tests plus production code:
 4. Enforce RED/GREEN checks with `bash scripts/tdd_handoff.sh check ...`
 5. Run `bash scripts/run_targeted_mutation.sh ...` when the workflow requires mutation testing
 
+## UI QA Critic Gate (Required for Visible UI Stories)
+After validation for visible UI stories:
+1. Run `.ai/workflows/ui-qa-critic.md`
+2. Check for human-centered copy, truthful action feedback, and debug-detail containment
+3. Suggest only tail-end non-blocking follow-on stories
+
 ## Flight Lock Coordination (Standard Lane Only)
 Before implementation edits for a standard-lane story:
 1. Run `.ai/workflows/parallel-flight.md`
@@ -90,6 +96,7 @@ Before implementation edits for a standard-lane story:
 - Eval-driven development: `.ai/workflows/eval-driven-development.md`
 - Spec-driven delivery: `.ai/workflows/spec-driven-delivery.md`
 - Story handoff: `.ai/workflows/story-handoff.md`
+- UI QA critic: `.ai/workflows/ui-qa-critic.md`
 - Finalization recovery: `.ai/workflows/finalization-recovery.md`
 - Frontend design skill (UI only): `.ai/skills/frontend-design.md`
 
@@ -109,3 +116,4 @@ Follow `.ai/codex.md` for the standard memory-update set after work.
 
 ## Post-Story User Audit Handoff (Required)
 After each story completion, follow `.ai/workflows/story-handoff.md`, include a **User Audit Checklist (Run This Now)** plus the finalization plan, run `.ai/workflows/ai-architecture-change.md` when needed, release `bash scripts/flight_slot.sh` when a standard-lane lock was claimed, and wait for user approval before `.ai/workflows/git-finalization.md`.
+If the story changed visible UI behavior, run `.ai/workflows/ui-qa-critic.md`; if the story completed a visible pack, include or reference the pack-level `user-audit-checklist.md`.

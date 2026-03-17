@@ -20,6 +20,9 @@ The goal is to turn vague design intent into a reusable prompt contract.
 ## R: Rules and Constraints
 - Must preserve:
 - Must avoid:
+- Primary user-facing language rules:
+- Feedback honesty and state rules:
+- Diagnostic/debug disclosure policy:
 - Accessibility requirements:
 - Responsiveness requirements:
 - Performance/runtime constraints:

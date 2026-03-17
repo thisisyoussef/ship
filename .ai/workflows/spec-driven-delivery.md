@@ -59,6 +59,10 @@ Then apply `.ai/skills/frontend-design.md` to translate desired mood into concre
 - semantic color/material rules,
 - motion constraints,
 - anti-patterns to avoid.
+Also define:
+- primary user-facing copy rules,
+- action-feedback truth rules,
+- diagnostic/debug disclosure policy.
 Use `.ai/templates/spec/UI_PROMPT_BRIEF_TEMPLATE.md` when the UI prompt needs WIRE or WIRE+FRAME structure for reuse or multi-step direction.
 
 If AI behavior is in scope, explicitly define:
@@ -114,6 +118,7 @@ For story packs:
 - write all story-level tasks for the pack in one pass,
 - keep the story set cohesive and comprehensive,
 - verify each story advances at least one higher-level pack objective.
+- reserve a tail position for non-blocking QA-critic follow-ons when the pack contains visible UI work
 
 ---
 
@@ -137,6 +142,7 @@ For UI scope, also define:
 - behavior tests (component interactions + a11y),
 - visual regression snapshot matrix,
 - E2E flow coverage for critical screens.
+- Include user-facing copy and feedback-trust assertions when the UI performs mutations or shows system state.
 
 For AI-behavior scope, also define:
 - metric-based checks where possible,
@@ -181,6 +187,8 @@ At story handoff:
 - update spec artifacts to match delivered behavior,
 - mark deferred scope explicitly,
 - attach artifact paths in handoff checklist.
+- when a visible pack is completed, update or create the pack-level `user-audit-checklist.md`
+- when `.ai/workflows/ui-qa-critic.md` suggested non-blocking follow-ons, append them at the tail of the active sequence or pack as suggested work
 
 ---
 

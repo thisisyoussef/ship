@@ -27,6 +27,7 @@
       "If the user provides a narrow corrective note or clarification, run .ai/workflows/user-correction-triage.md and classify blast radius before expanding scope",
       "If the story changes prompts, retrieval, tools, routing, graders, or other AI behavior, run .ai/workflows/eval-driven-development.md and define objective, dataset, metrics, thresholds, and regression plan before implementation",
       "If the story changes tests plus production code, run .ai/workflows/tdd-pipeline.md and use scripts/tdd_handoff.sh for the isolated three-agent TDD handoff",
+      "If the story changes visible UI behavior, run .ai/workflows/ui-qa-critic.md after validation and check for human-centered copy, truthful action feedback, and progressive disclosure for diagnostics",
       "Use explicit completion criteria and avoid ending early when checks are unresolved",
       "For discovery/review tasks, avoid outcome-biased phrasing; request evidence and severity/risk first"
     ],
@@ -69,6 +70,7 @@
     "deployment": ".ai/workflows/deployment-setup.md",
     "tddPipeline": ".ai/workflows/tdd-pipeline.md",
     "specDriven": ".ai/workflows/spec-driven-delivery.md",
+    "uiQaCritic": ".ai/workflows/ui-qa-critic.md",
     "gitFinalization": ".ai/workflows/git-finalization.md",
     "parallelFlight": ".ai/workflows/parallel-flight.md",
     "storySizing": ".ai/workflows/story-sizing.md",

@@ -27,6 +27,7 @@ Then use as needed:
 - Flight lock coordination: standard-lane stories run `.ai/workflows/parallel-flight.md`, claim the single writer lock via `bash scripts/flight_slot.sh claim ...`, and release it via `bash scripts/flight_slot.sh release ...`; trivial-lane stories skip the lock.
 - Story finish: run `.ai/workflows/story-handoff.md` as the combined completion gate.
 - Visible behavior stories: establish or extend an inspectable UI surface early and include UI inspection steps in the completion gate.
+- Visible UI stories: run `.ai/workflows/ui-qa-critic.md` after validation; if the story completes a visible pack, update the pack-level `user-audit-checklist.md`.
 - Git finalization: after user approval of the completion gate, run `.ai/workflows/git-finalization.md`; use merge commits by default and require a passing `bash scripts/git_finalize_guard.sh`.
 - AI architecture changes: run `.ai/workflows/ai-architecture-change.md`; AI-architecture diffs trigger `bash scripts/check_ai_wiring.sh` automatically in pre-commit and again in the finalization guard.
 
@@ -47,6 +48,7 @@ Then use as needed:
 - Eval-driven development for AI-behavior changes -> `.ai/workflows/eval-driven-development.md`
 - Spec-driven scaffolding (feature stories) -> `.ai/workflows/spec-driven-delivery.md`
 - Mandatory post-story completion gate -> `.ai/workflows/story-handoff.md`
+- Post-UI critic and follow-on suggestion flow -> `.ai/workflows/ui-qa-critic.md`
 - Finalization recovery -> `.ai/workflows/finalization-recovery.md`
 
 ## Implementation Defaults
@@ -100,6 +102,7 @@ Then use as needed:
   - `.ai/memory/session/decisions-today.md`
 - Follow `.ai/workflows/story-handoff.md` for the exact combined completion gate, including the **User Audit Checklist (Run This Now)**, finalization plan, and explicit user approval before final git actions.
 - For stories that change visible behavior, make the user audit include UI inspection steps against the best available visible surface, preferably the sanctioned public demo.
+- For visible UI stories, run `.ai/workflows/ui-qa-critic.md` after validation and surface any non-blocking follow-ons as tail suggestions rather than expanding the current story silently.
 
 ## Specialist References
 

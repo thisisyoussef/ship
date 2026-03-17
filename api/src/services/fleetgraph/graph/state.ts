@@ -3,7 +3,11 @@ import { Annotation } from '@langchain/langgraph'
 import type { FleetGraphRequestedAction } from '../contracts/actions.js'
 import type {
   FleetGraphActionOutcomeStatus,
+  FleetGraphAnalysisFinding,
   FleetGraphBranch,
+  FleetGraphContextEnvelope,
+  FleetGraphConversationTurn,
+  FleetGraphDepthHint,
   FleetGraphMode,
   FleetGraphOutcome,
   FleetGraphRunContext,
@@ -35,7 +39,26 @@ function appendScenarioResults() {
   })
 }
 
+function mergeRecord<T extends Record<string, unknown>>() {
+  return Annotation<T>({
+    default: () => ({} as T),
+    reducer: (left, right) => ({ ...left, ...right }),
+  })
+}
+
 export const FleetGraphStateAnnotation = Annotation.Root({
+  // On-demand analysis fields
+  context: replaceValue<FleetGraphContextEnvelope | undefined>(undefined),
+  analysisFindings: replaceValue<FleetGraphAnalysisFinding[]>([]),
+  analysisText: replaceValue(''),
+  contextSummary: replaceValue<string | undefined>(undefined),
+  conversationHistory: replaceValue<FleetGraphConversationTurn[]>([]),
+  deeperContextHint: replaceValue<FleetGraphDepthHint | undefined>(undefined),
+  fetchedData: mergeRecord<Record<string, unknown>>(),
+  needsDeeperContext: replaceValue(false),
+  pendingAction: replaceValue<FleetGraphAnalysisFinding['proposedAction'] | undefined>(undefined),
+  turnCount: replaceValue(0),
+  userMessage: replaceValue<string | undefined>(undefined),
   approvalRequired: replaceValue(false),
   actionOutcome: replaceValue<
     | {

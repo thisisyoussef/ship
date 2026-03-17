@@ -35,6 +35,19 @@ function createFindingStoreMock(): FleetGraphFindingStore {
   }
 }
 
+function createShipClientMock() {
+  return {
+    fetchChildren: vi.fn(async () => []),
+    fetchDocument: vi.fn(async () => ({})),
+    fetchMembers: vi.fn(async () => []),
+    listSprintIssues: vi.fn(async () => ({ issues: [] })),
+    listWeeks: vi.fn(async () => ({
+      weeks: [],
+      workspace_sprint_start_date: '2026-03-10T00:00:00.000Z',
+    })),
+  }
+}
+
 function createActionStoreMock(): FleetGraphFindingActionStore {
   return {
     beginStartWeekExecution: vi.fn(async (input) => ({
@@ -75,13 +88,7 @@ describe('createFleetGraphRuntime', () => {
         model: 'gpt-5-mini',
         provider: 'openai',
       },
-      shipClient: {
-        listSprintIssues: vi.fn(async () => ({ issues: [] })),
-        listWeeks: vi.fn(async () => ({
-          weeks: [],
-          workspace_sprint_start_date: '2026-03-10T00:00:00.000Z',
-        })),
-      },
+      shipClient: createShipClientMock(),
       tracingSettings: {
         enabled: false,
         flushTimeoutMs: 1000,
@@ -110,13 +117,7 @@ describe('createFleetGraphRuntime', () => {
         model: 'gpt-5-mini',
         provider: 'openai',
       },
-      shipClient: {
-        listSprintIssues: vi.fn(async () => ({ issues: [] })),
-        listWeeks: vi.fn(async () => ({
-          weeks: [],
-          workspace_sprint_start_date: '2026-03-10T00:00:00.000Z',
-        })),
-      },
+      shipClient: createShipClientMock(),
       tracingSettings: {
         enabled: false,
         flushTimeoutMs: 1000,
@@ -157,23 +158,23 @@ describe('createFleetGraphRuntime', () => {
     }))
   })
 
-  it('routes on-demand runs through the reasoned path when page context is available', async () => {
+  it('routes on-demand runs through fetch_medium → reason when page context is available', async () => {
+    const llmResponse = JSON.stringify({
+      analysisText: 'Everything looks healthy.',
+      deeperContextHint: null,
+      findings: [],
+      needsDeeperContext: false,
+    })
     const runtime = createFleetGraphRuntime({
       actionStore: createActionStoreMock(),
       checkpointer: new MemorySaver(),
       findingStore: createFindingStoreMock(),
       llmAdapter: {
-        generate: vi.fn(),
+        generate: vi.fn(async () => ({ model: 'gpt-5-mini', provider: 'openai' as const, text: llmResponse })),
         model: 'gpt-5-mini',
         provider: 'openai',
       },
-      shipClient: {
-        listSprintIssues: vi.fn(async () => ({ issues: [] })),
-        listWeeks: vi.fn(async () => ({
-          weeks: [],
-          workspace_sprint_start_date: '2026-03-10T00:00:00.000Z',
-        })),
-      },
+      shipClient: createShipClientMock(),
       tracingSettings: {
         enabled: false,
         flushTimeoutMs: 1000,
@@ -202,10 +203,9 @@ describe('createFleetGraphRuntime', () => {
     expect(response.path).toEqual(expect.arrayContaining([
       'resolve_trigger_context',
       'select_scenarios',
-      'run_scenario:entry_context_check',
+      'run_scenario:on_demand_analysis',
       'merge_candidates',
       'score_and_rank',
-      'reason_and_deliver',
       'persist_result',
     ]))
   })

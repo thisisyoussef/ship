@@ -37,6 +37,10 @@ import {
 } from '../tracing/index.js'
 import { createFleetGraphCheckpointer } from './checkpointer.js'
 import { runFindingActionReviewScenario } from './finding-action-review.js'
+import { createFetchDeepNode } from './nodes/fetch-deep.js'
+import { createFetchMediumNode } from './nodes/fetch-medium.js'
+import { createReasonNode } from './nodes/reason.js'
+import { runOnDemandAnalysisScenario } from './on-demand-analysis.js'
 import { runOnDemandEntryScenario } from './on-demand-entry.js'
 import { createSprintNoOwnerScenarioRunner } from './proactive-sprint-no-owner.js'
 import { createUnassignedIssuesScenarioRunner } from './proactive-unassigned-issues.js'
@@ -45,6 +49,7 @@ import { FleetGraphStateAnnotation } from './state.js'
 import {
   FleetGraphStateSchema,
   parseFleetGraphRuntimeInput,
+  type FleetGraphContextEnvelope,
   type FleetGraphRuntimeInput,
   type FleetGraphScenario,
   type FleetGraphScenarioResult,
@@ -123,6 +128,9 @@ function parseState(snapshot: StateSnapshot) {
 function selectScenarios(state: FleetGraphState) {
   switch (state.contextKind) {
     case 'entry':
+      if (state.mode === 'on_demand' && !state.requestedAction) {
+        return ['on_demand_analysis'] satisfies FleetGraphScenario[]
+      }
       return [
         state.requestedAction ? 'entry_requested_action' : 'entry_context_check',
       ] satisfies FleetGraphScenario[]
@@ -191,6 +199,9 @@ export function createFleetGraphRuntime(
     tracingClient,
     tracingSettings,
   })
+  const fetchMediumNode = createFetchMediumNode({ shipClient })
+  const reasonNode = createReasonNode({ llm: llmAdapter })
+  const fetchDeepNode = createFetchDeepNode({ shipClient })
   const upsertFindingTask = task(
     'fleetgraph.findings.upsert',
     async (input: {
@@ -266,11 +277,26 @@ export function createFleetGraphRuntime(
   )
 
   const graph = new StateGraph(FleetGraphStateAnnotation)
-    .addNode('resolve_trigger_context', (state) => ({
-      checkpointNamespace: 'fleetgraph',
-      path: 'resolve_trigger_context',
-      routeSurface: state.routeSurface || 'workspace-sweep',
-    }))
+    .addNode('resolve_trigger_context', (state) => {
+      const context: FleetGraphContextEnvelope | undefined =
+        state.mode === 'on_demand' && state.documentId && state.documentType
+          ? {
+              actorId: '',
+              documentId: state.documentId,
+              documentTitle: state.documentTitle ?? '',
+              documentType: state.documentType,
+              surface: state.routeSurface || 'document-page',
+              workspaceId: state.workspaceId,
+            }
+          : undefined
+
+      return {
+        checkpointNamespace: 'fleetgraph',
+        context,
+        path: 'resolve_trigger_context',
+        routeSurface: state.routeSurface || 'workspace-sweep',
+      }
+    })
     .addNode('select_scenarios', () => ({
       path: 'select_scenarios',
     }))
@@ -283,7 +309,9 @@ export function createFleetGraphRuntime(
             ? await runUnassignedIssuesScenario(state as FleetGraphRuntimeInput)
             : state.activeScenario === 'finding_action_review'
               ? runFindingActionReviewScenario(state as FleetGraphRuntimeInput)
-              : runOnDemandEntryScenario(state as FleetGraphRuntimeInput)
+              : state.activeScenario === 'on_demand_analysis'
+                ? runOnDemandAnalysisScenario(state as FleetGraphRuntimeInput)
+                : runOnDemandEntryScenario(state as FleetGraphRuntimeInput)
 
       return {
         path: `run_scenario:${result.scenario}`,
@@ -316,7 +344,7 @@ export function createFleetGraphRuntime(
         goto: best.branch === 'approval_required'
           ? 'approval_interrupt'
           : best.branch === 'reasoned'
-            ? 'reason_and_deliver'
+            ? (best.scenario === 'on_demand_analysis' ? 'fetch_medium' : 'reason_and_deliver')
             : best.branch === 'fallback'
               ? 'fallback'
               : 'quiet_exit',
@@ -330,8 +358,11 @@ export function createFleetGraphRuntime(
         },
       })
     }, {
-      ends: ['approval_interrupt', 'fallback', 'quiet_exit', 'reason_and_deliver'],
+      ends: ['approval_interrupt', 'fallback', 'fetch_medium', 'quiet_exit', 'reason_and_deliver'],
     })
+    .addNode('fetch_medium', fetchMediumNode)
+    .addNode('reason', reasonNode)
+    .addNode('fetch_deep', fetchDeepNode)
     .addNode('quiet_exit', () => ({ path: 'quiet_exit' }))
     .addNode('reason_and_deliver', () => ({ path: 'reason_and_deliver' }))
     .addNode('approval_interrupt', async (state) => {
@@ -504,6 +535,13 @@ export function createFleetGraphRuntime(
     })
     .addEdge('run_scenario', 'merge_candidates')
     .addEdge('merge_candidates', 'score_and_rank')
+    .addEdge('fetch_medium', 'reason')
+    .addConditionalEdges('reason', (state) =>
+      (state as unknown as { needsDeeperContext?: boolean }).needsDeeperContext
+        ? 'fetch_deep'
+        : 'persist_result'
+    , { fetch_deep: 'fetch_deep', persist_result: 'persist_result' })
+    .addEdge('fetch_deep', 'reason')
     .addEdge('quiet_exit', 'persist_result')
     .addEdge('reason_and_deliver', 'persist_result')
     .addEdge('persist_result', END)

@@ -62,6 +62,9 @@ export interface ShipSprintIssuesResponse {
 }
 
 export interface FleetGraphShipApiClient {
+  fetchChildren(documentId: string, documentType: string): Promise<unknown[]>
+  fetchDocument(documentId: string, documentType: string): Promise<unknown>
+  fetchMembers(userIds: string[], workspaceId: string): Promise<unknown[]>
   listSprintIssues(sprintId: string): Promise<ShipSprintIssuesResponse>
   listWeeks(): Promise<z.infer<typeof ShipWeeksResponseSchema>>
 }

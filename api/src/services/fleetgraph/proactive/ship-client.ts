@@ -64,6 +64,62 @@ export function createFleetGraphShipApiClient(
   const fetchFn = deps.fetchFn ?? fetch
 
   return {
+    async fetchChildren(documentId: string, documentType: string) {
+      const url = `${config.baseUrl}/api/documents?parent_id=${encodeURIComponent(documentId)}&document_type=${encodeURIComponent(documentType)}`
+      const response = await fetchFn(url, {
+        headers: {
+          Authorization: `Bearer ${config.token}`,
+        },
+        method: 'GET',
+      })
+
+      if (!response.ok) {
+        throw new Error(`FleetGraph Ship fetch children request failed with ${response.status}.`)
+      }
+
+      const raw = await response.json() as { documents?: unknown[] }
+      return Array.isArray(raw.documents) ? raw.documents : []
+    },
+
+    async fetchDocument(documentId: string, _documentType: string) {
+      const url = `${config.baseUrl}/api/documents/${encodeURIComponent(documentId)}`
+      const response = await fetchFn(url, {
+        headers: {
+          Authorization: `Bearer ${config.token}`,
+        },
+        method: 'GET',
+      })
+
+      if (!response.ok) {
+        throw new Error(`FleetGraph Ship fetch document request failed with ${response.status}.`)
+      }
+
+      return response.json()
+    },
+
+    async fetchMembers(userIds: string[], workspaceId: string) {
+      if (userIds.length === 0) {
+        return []
+      }
+
+      const ids = userIds.map((id) => encodeURIComponent(id)).join(',')
+      const url = `${config.baseUrl}/api/people?workspace_id=${encodeURIComponent(workspaceId)}&ids=${ids}`
+      const response = await fetchFn(url, {
+        headers: {
+          Authorization: `Bearer ${config.token}`,
+        },
+        method: 'GET',
+      })
+
+      if (!response.ok) {
+        throw new Error(`FleetGraph Ship fetch members request failed with ${response.status}.`)
+      }
+
+      const raw = await response.json() as { documents?: unknown[]; people?: unknown[] }
+      const list = raw.people ?? raw.documents ?? []
+      return Array.isArray(list) ? list : []
+    },
+
     async listSprintIssues(sprintId: string) {
       const url = `${config.baseUrl}/api/documents?document_type=issue&sprint_id=${encodeURIComponent(sprintId)}`
       const response = await fetchFn(url, {

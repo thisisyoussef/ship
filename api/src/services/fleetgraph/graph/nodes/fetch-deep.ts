@@ -1,4 +1,5 @@
-import type { FleetGraphContextEnvelope, FleetGraphDepthHint, FleetGraphShipClient } from '../types.js';
+import type { FleetGraphShipApiClient } from '../../proactive/types.js';
+import type { FleetGraphContextEnvelope, FleetGraphDepthHint } from '../types.js';
 
 interface FetchDeepState {
   context?: FleetGraphContextEnvelope;
@@ -8,7 +9,7 @@ interface FetchDeepState {
 }
 
 interface FetchDeepDeps {
-  shipClient: FleetGraphShipClient;
+  shipClient: FleetGraphShipApiClient;
 }
 
 /**

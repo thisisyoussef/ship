@@ -5,6 +5,8 @@ const mockShipClient = {
   fetchChildren: vi.fn(),
   fetchDocument: vi.fn(),
   fetchMembers: vi.fn(),
+  listSprintIssues: vi.fn(),
+  listWeeks: vi.fn(),
 };
 
 describe('fetchMediumNode', () => {

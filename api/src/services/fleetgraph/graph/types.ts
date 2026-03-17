@@ -204,10 +204,3 @@ export interface FleetGraphContextEnvelope {
   surface: string
   workspaceId: string
 }
-
-// Ship API client interface for graph fetch nodes
-export interface FleetGraphShipClient {
-  fetchChildren(documentId: string, documentType: string): Promise<unknown[]>
-  fetchDocument(documentId: string, documentType: string): Promise<unknown>
-  fetchMembers(userIds: string[], workspaceId: string): Promise<unknown[]>
-}

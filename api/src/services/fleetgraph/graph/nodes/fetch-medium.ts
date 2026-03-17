@@ -1,4 +1,5 @@
-import type { FleetGraphContextEnvelope, FleetGraphShipClient } from '../types.js';
+import type { FleetGraphShipApiClient } from '../../proactive/types.js';
+import type { FleetGraphContextEnvelope } from '../types.js';
 
 interface FetchMediumState {
   context?: FleetGraphContextEnvelope;
@@ -7,7 +8,7 @@ interface FetchMediumState {
 }
 
 interface FetchMediumDeps {
-  shipClient: FleetGraphShipClient;
+  shipClient: FleetGraphShipApiClient;
 }
 
 /**

@@ -157,6 +157,12 @@ function parseReasonResponse(text: string): ReasonLLMResponse {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Loop-depth guard                                                  */
+/* ------------------------------------------------------------------ */
+
+const MAX_FETCH_DEPTH = 2
+
+/* ------------------------------------------------------------------ */
 /*  Node factory                                                      */
 /* ------------------------------------------------------------------ */
 
@@ -209,13 +215,17 @@ export function createReasonNode(deps: ReasonDeps) {
       (f) => f.proposedAction && (f.actionTier === 'B' || f.actionTier === 'C')
     );
 
+    // Cap fetch-depth loops: ignore the LLM's request for deeper context once
+    // we've already done MAX_FETCH_DEPTH round-trips to avoid infinite cycles.
+    const allowDeeperContext = parsed.needsDeeperContext && state.turnCount < MAX_FETCH_DEPTH
+
     return {
       analysisFindings: parsed.findings,
       analysisText: parsed.analysisText,
       contextSummary,
       conversationHistory: updatedHistory,
       deeperContextHint: parsed.deeperContextHint ?? undefined,
-      needsDeeperContext: parsed.needsDeeperContext,
+      needsDeeperContext: allowDeeperContext,
       pendingAction: actionFinding?.proposedAction,
       turnCount: state.turnCount + 1,
     };

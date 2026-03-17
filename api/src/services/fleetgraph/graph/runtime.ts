@@ -504,6 +504,8 @@ export function createFleetGraphRuntime(
         || !selected.title
         || !findingType
       ) {
+        // No-op for scenarios that don't produce a persistable finding (e.g. on_demand_analysis
+        // quiet path, or any scenario without a findingKey/summary/title). Safe to skip.
         return { path: 'persist_result' }
       }
 
@@ -537,9 +539,7 @@ export function createFleetGraphRuntime(
     .addEdge('merge_candidates', 'score_and_rank')
     .addEdge('fetch_medium', 'reason')
     .addConditionalEdges('reason', (state) =>
-      (state as unknown as { needsDeeperContext?: boolean }).needsDeeperContext
-        ? 'fetch_deep'
-        : 'persist_result'
+      state.needsDeeperContext ? 'fetch_deep' : 'persist_result'
     , { fetch_deep: 'fetch_deep', persist_result: 'persist_result' })
     .addEdge('fetch_deep', 'reason')
     .addEdge('quiet_exit', 'persist_result')

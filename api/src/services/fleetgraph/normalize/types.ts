@@ -97,9 +97,9 @@ const ContextDocumentSchema = z.object({
 }).strict()
 
 const CurrentContextDocumentSchema = ContextDocumentSchema.extend({
-  program_color: nonEmptyString.optional(),
-  program_id: nonEmptyString.optional(),
-  program_name: nonEmptyString.optional(),
+  program_color: optionalNullableString,
+  program_id: optionalNullableString,
+  program_name: optionalNullableString,
 })
 
 const BreadcrumbSchema = z.object({

@@ -122,6 +122,22 @@ function createEntryPayloadWithNullableTicketNumbers() {
   }
 }
 
+function createEntryPayloadWithNullableProgramContext() {
+  const payload = createEntryPayload()
+  return {
+    ...payload,
+    context: {
+      ...payload.context,
+      current: {
+        ...payload.context.current,
+        program_color: null,
+        program_id: null,
+        program_name: null,
+      },
+    },
+  }
+}
+
 describe('FleetGraph routes', () => {
   let app: express.Express
   const runtime = {
@@ -281,6 +297,16 @@ describe('FleetGraph routes', () => {
     const response = await request(app)
       .post('/api/fleetgraph/entry')
       .send(createEntryPayloadWithNullableTicketNumbers())
+
+    expect(response.status).toBe(200)
+    expect(response.body.run.outcome).toBe('advisory')
+    expect(response.body.entry.current.id).toBe(DOCUMENT_ID)
+  })
+
+  it('accepts nullable program metadata from the live document context payload', async () => {
+    const response = await request(app)
+      .post('/api/fleetgraph/entry')
+      .send(createEntryPayloadWithNullableProgramContext())
 
     expect(response.status).toBe(200)
     expect(response.body.run.outcome).toBe('advisory')

@@ -2,9 +2,10 @@
 node_modules
 **/node_modules
 
-# Build artifacts (but NOT api/dist and shared/dist which are needed)
+# Build artifacts (but NOT api/dist, shared/dist, and web/dist which are needed)
 !api/dist
 !shared/dist
+!web/dist
 *.tsbuildinfo
 **/*.tsbuildinfo
 
@@ -24,9 +25,8 @@ docs
 __tests__
 coverage
 
-# Frontend build artifacts - source needed for local dev, but not prod API image
+# Frontend build artifacts - source needed for local dev, but the built web/dist bundle ships with the API image
 web/node_modules
-web/dist
 
 # Logs
 *.log

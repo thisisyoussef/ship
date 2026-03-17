@@ -173,3 +173,13 @@ Capture failures so they are not repeated.
 - **Example**: Reusing internal week-start SQL/update helpers from FleetGraph because they are already in the same API process, instead of forwarding the approved action through `/api/weeks/:id/start`.
 - **Why it failed**: It bypasses the assignment’s REST boundary, makes FleetGraph harder to reason about as a same-origin client of Ship, and quietly expands its write surface beyond the documented API contract.
 - **Prevention rule**: Even for in-process apply flows, route real Ship mutations through the existing Ship REST endpoint and keep FleetGraph persistence limited to its own findings, queue, checkpoint, and action-execution records.
+
+- **Problem**: Depending on incidental workspace data for public-demo UI proof
+- **Example**: Asking reviewers to open any project or sprint page and hope a proactive finding happens to be visible there after the latest deploy.
+- **Why it failed**: UI audits become ambiguous, regressions look like missing data instead of missing behavior, and future stories have no stable visual baseline to extend.
+- **Prevention rule**: Seed and document one named FleetGraph demo proof lane, then keep that exact page and finding title usable across future stories.
+
+- **Problem**: Letting the sanctioned public demo depend on provider-side predeploy magic
+- **Example**: Treating a hosted demo as reliable even though migrations or seed/bootstrap depend on free-plan hooks, blocked DB access, or manual dashboard steps outside the repo.
+- **Why it failed**: The live demo can look healthy while FleetGraph routes or tables are broken, and story finalization drifts away from what users are actually seeing.
+- **Prevention rule**: Keep the public demo on a repo-owned deploy path that runs the boot sequence you control and verify behavior beyond `/health`.

@@ -32,9 +32,9 @@ If `lane: standard`:
   - Frontend/static: S3 + CloudFront
   - Infra/config/secrets: AWS-native scripts, SSM, and related services
 - For Ship today, the sanctioned public demo baseline is:
-  - Render service: `ship-demo`
-  - URL: `https://ship-demo.onrender.com/`
-  - Repo-owned deploy path: `scripts/deploy-render-demo.sh`
+  - Railway service selected through `RAILWAY_PUBLIC_DEMO_PROJECT_ID` + `RAILWAY_PUBLIC_DEMO_SERVICE`
+  - URL: `RAILWAY_PUBLIC_DEMO_URL`
+  - Repo-owned deploy path: `scripts/deploy-railway-demo.sh`
 
 ### Step 0.6: Verify Deployment Access Early
 - Before promising a deploy, verify the required provider access is available from the current machine/session
@@ -74,7 +74,7 @@ If `lane: standard`:
 ### Step 5: Configure the Git-Based Deploy Flow
 - Choose a single production deployment path
 - Prefer Git-linked auto-deploy where the provider supports it
-- For Ship's public demo, keep `scripts/deploy-render-demo.sh` current
+- For Ship's public demo, keep `scripts/deploy-railway-demo.sh` current
 
 ---
 
@@ -94,7 +94,7 @@ If `lane: standard`:
   - `deployed` with environment and command evidence
   - `not deployed` with rationale
   - `blocked` with the missing credential/access/prerequisite
-- For Ship deploy-relevant stories, include both production-path review status and public-demo Render status
+- For Ship deploy-relevant stories, include both production-path review status and public-demo Railway status
 
 ---
 

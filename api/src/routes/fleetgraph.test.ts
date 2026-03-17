@@ -215,7 +215,7 @@ describe('FleetGraph routes', () => {
 
   it('reports deploy readiness through the service-auth route', async () => {
     process.env.NODE_ENV = 'production'
-    process.env.APP_BASE_URL = 'https://ship-demo.onrender.com'
+    process.env.APP_BASE_URL = 'https://ship-demo-production.up.railway.app'
     process.env.FLEETGRAPH_ENTRY_ENABLED = 'true'
     process.env.FLEETGRAPH_API_TOKEN = 'ship_test_token'
     process.env.FLEETGRAPH_SERVICE_TOKEN = 'fleetgraph-service-token'
@@ -230,7 +230,7 @@ describe('FleetGraph routes', () => {
 
     expect(response.status).toBe(200)
     expect(response.body.api).toMatchObject({
-      publicBaseUrl: 'https://ship-demo.onrender.com',
+      publicBaseUrl: 'https://ship-demo-production.up.railway.app',
       ready: true,
       serviceAuthConfigured: true,
       tracingEnabled: true,

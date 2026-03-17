@@ -241,3 +241,17 @@ Capture reusable patterns that repeatedly work in this project.
 - **Benefits**: Preserves the Ship REST boundary, prevents duplicate execution, and gives refresh-safe UI rendering for success, already-applied, and failure states.
 - **Tradeoffs**: Adds one more FleetGraph-owned persistence layer and requires careful request-header forwarding for same-origin auth/CSRF.
 - **References**: `api/src/services/fleetgraph/actions/service.ts`, `api/src/routes/fleetgraph.ts`, `web/src/components/FleetGraphFindingsPanel.tsx`
+
+- **Pattern**: Named demo proof lane with resettable FleetGraph state
+- **Use when**: A visible FleetGraph story needs a public-demo inspection target that stays testable across repeated audits and deploys.
+- **Approach**: Seed one clearly named Ship project/week through the normal seed/bootstrap path, attach a FleetGraph-owned finding to that exact week, and clear prior action-execution state whenever the demo bootstrap reruns so the same `Review and apply` path is visible again.
+- **Benefits**: Gives user audits one stable page and one stable finding title, avoids “go search around” testing, and keeps UI proof tangible as new stories extend the same lane.
+- **Tradeoffs**: Demo fixtures add intentional non-product data that must stay clearly named and documented so reviewers do not confuse them with organic workspace content.
+- **References**: `api/src/services/fleetgraph/demo/fixture.ts`, `api/src/db/seed.ts`, `docs/guides/fleetgraph-demo-inspection.md`
+
+- **Pattern**: Repo-owned Railway public demo deploy
+- **Use when**: The team needs a sanctioned public demo surface that can run the containerized boot path, including migrations and optional demo seed/bootstrap, without free-plan provider workarounds.
+- **Approach**: Keep AWS as production, but deploy the public demo through `scripts/deploy-railway-demo.sh` with Railway project/service/url envs, then verify demo login plus FleetGraph findings instead of relying on `/health` alone.
+- **Benefits**: Moves deploy proof into the repo, reduces provider-side tribal knowledge, and makes the demo smoke check visible-product aware.
+- **Tradeoffs**: Requires local Railway access plus public-demo env variables to be present before deploys can succeed.
+- **References**: `scripts/deploy-railway-demo.sh`, `railway.json`, `docs/guides/fleetgraph-deployment-readiness.md`

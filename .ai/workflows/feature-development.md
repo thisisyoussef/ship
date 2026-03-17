@@ -35,7 +35,7 @@
   - Frontend/static assets: S3 + CloudFront
   - Config/secrets: AWS SSM/Secrets
 - For Ship, treat the sanctioned public demo surface as:
-  - Render `ship-demo` deployed through `scripts/deploy-render-demo.sh`
+  - Railway public demo deployed through `scripts/deploy-railway-demo.sh`
 - If the story changes deploy-relevant behavior, update the relevant scripts, env docs, or deployment notes in the same story.
 - If no deploy surface changes are needed, record `deployment impact: none` in the completion gate.
 

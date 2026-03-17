@@ -90,13 +90,13 @@ Before starting work:
 - Keep one concern per branch; do not combine unrelated fixes, docs, and feature work.
 - Review deployment impact for every story against Ship's real deployment surfaces:
   - Production: API on AWS Elastic Beanstalk, frontend on S3/CloudFront, and AWS-backed config/secrets.
-  - Public demo: Render `ship-demo` via `scripts/deploy-render-demo.sh`.
+  - Public demo: Railway via `scripts/deploy-railway-demo.sh`.
   Update those surfaces when impacted, or record `deployment impact: none` in handoff.
 - If a story changes deployed runtime behavior in `api/`, `web/`, deployment scripts, or production/demo config contracts, record explicit deployment status in handoff:
   - `deployed` with environment + command evidence,
   - `not deployed` with reason,
   - or `blocked` with the exact missing access or prerequisite.
-- For deploy-relevant stories, refresh the sanctioned Render public demo after merge with `scripts/deploy-render-demo.sh <commit>` unless the handoff explicitly records why that demo deploy is `blocked`.
+- For deploy-relevant stories, refresh the sanctioned Railway public demo after merge with `scripts/deploy-railway-demo.sh <commit>` unless the handoff explicitly records why that demo deploy is `blocked`.
 While working and before merge, follow `.ai/workflows/git-finalization.md` for commit shape, push/PR flow, writable-remote fallback, merge readiness, remote re-sync, and cleanup.
 
 ---

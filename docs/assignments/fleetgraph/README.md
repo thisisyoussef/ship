@@ -8,6 +8,7 @@ Supporting repo docs:
 - `docs/assignments/fleetgraph/PRESEARCH.md`
 - `docs/assignments/fleetgraph/FLEETGRAPH.md`
 - `docs/guides/fleetgraph-deployment-readiness.md`
+- `docs/guides/fleetgraph-demo-inspection.md`
 - `docs/specs/fleetgraph/FLEETGRAPH-FOUNDATION-PHASE/`
 - `docs/specs/fleetgraph/FLEETGRAPH-MVP-PHASE/`
 
@@ -82,7 +83,7 @@ All items are required to pass:
 2. Fill in `PRESEARCH.md`.
 3. Read `docs/specs/fleetgraph/FLEETGRAPH-FOUNDATION-PHASE/` for the substrate sequencing.
 4. Read `docs/specs/fleetgraph/FLEETGRAPH-MVP-PHASE/` for the PRD-aligned MVP execution order.
-5. Use `docs/guides/fleetgraph-deployment-readiness.md` once you reach deploy-relevant MVP stories.
+5. Use `docs/guides/fleetgraph-deployment-readiness.md` and `docs/guides/fleetgraph-demo-inspection.md` once you reach deploy-relevant MVP stories.
 6. Draft the Agent Responsibility, Use Cases, and Trigger Model sections in `FLEETGRAPH.md`.
 7. Decide the proactive trigger model and defend it.
 8. Only then start implementation planning and graph design.

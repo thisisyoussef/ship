@@ -87,6 +87,11 @@
 - Implemented a FleetGraph-owned action-execution ledger in `fleetgraph_finding_action_runs` so apply attempts, duplicate suppression, and success/failure/already-applied outcomes persist independently from Ship product data.
 - Added `POST /api/fleetgraph/findings/:id/apply` plus a FleetGraph action service that forwards the approved request through the same-origin Ship REST route using the caller's auth and CSRF headers.
 - Extended `FleetGraphFindingsPanel` and `useFleetGraphFindings` so the visible proactive panel now supports inline review, cancel, apply, and refresh-safe outcome rendering for the real week-start HITL path.
+- Decided the sanctioned public FleetGraph demo should pivot from Render to Railway because the Railway container boot path can run migrations and optional demo seed/bootstrap without the free-plan limitations that kept breaking the Render proof lane.
+- Added a deterministic FleetGraph demo proof lane seeded through `api/src/db/seed.ts`, with exact inspection targets `FleetGraph Demo Project` and `FleetGraph Demo Week - Review and Apply`.
+- Added a resettable seeded proactive finding titled `Week start drift: FleetGraph Demo Week - Review and Apply` so future UI audits can immediately exercise the visible `Review and apply` lane.
+- Added a repo-owned Railway deploy script at `scripts/deploy-railway-demo.sh` that verifies the public demo through demo login plus the seeded FleetGraph findings surface instead of relying on `/health` alone.
+- Added `docs/guides/fleetgraph-demo-inspection.md` so future handoffs can point to one exact Ship page and one exact finding title for UI inspection.
 
 Record session-level technical decisions.
 

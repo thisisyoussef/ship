@@ -131,7 +131,7 @@ bash scripts/triage_counter.sh clear
 For Ship deploy-relevant stories after merge:
 
 ```bash
-./scripts/deploy-render-demo.sh <merged-commit>
+./scripts/deploy-railway-demo.sh <merged-commit>
 ```
 
 If the demo deploy fails or access is missing, stop and route to `.ai/workflows/finalization-recovery.md`.

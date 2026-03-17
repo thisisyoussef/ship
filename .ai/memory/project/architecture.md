@@ -220,3 +220,10 @@ Record durable architecture decisions.
 - **Decision**: Capture FleetGraph MVP evidence through a repo-owned script that can authenticate to the live Railway demo, verify FleetGraph readiness, promote matching LangSmith run ids to shared links when the API surface only exposes ids, and record usage honestly as total-token counts when finer-grained cost fields are unavailable.
 - **Alternatives Considered**: Depend on the findings API to always return a ready-made public trace URL; fill the workbook with estimated token/cost splits; treat screenshots and trace links as manual post-story chores.
 - **Consequences**: Evidence capture becomes reproducible and less brittle, and the workbook can stay truthful about the current observability limits, but the capture script must stay aligned with live trace metadata and demo fixture names.
+
+- **ADR-ID**: ADR-0032
+- **Date**: 2026-03-17
+- **Context**: Recent FleetGraph MVP QA showed that visible proof and story-level UI inspection are necessary but not sufficient. Primary UI can still leak technical details, action feedback can overstate success before confirmation, and whole-pack QA becomes scattered across many handoffs unless a single audit artifact exists.
+- **Decision**: Add a lightweight post-story `ui-qa-critic` workflow for visible UI stories, make human-centered copy, truthful feedback, and debug-detail containment explicit workflow checks, and require a pack-level `user-audit-checklist.md` when a visible story pack completes.
+- **Alternatives Considered**: Leave those concerns implicit in design philosophy only; create a heavyweight separate QA phase for every UI story; keep pack-level QA entirely manual.
+- **Consequences**: Visible UI stories get one more bounded review pass and completed packs gain a single reusable audit artifact, but the harness must enforce the new workflow references to avoid drift.

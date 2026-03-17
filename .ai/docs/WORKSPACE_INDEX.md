@@ -33,10 +33,11 @@ This index links the full AI workspace so any agent can navigate it consistently
 28. Standard-lane flight lock gate: run `.ai/workflows/parallel-flight.md` before implementation edits
 29. Flight lock script: `scripts/flight_slot.sh`
 30. Combined completion gate: `.ai/workflows/story-handoff.md`
-31. Git finalization gate: run `.ai/workflows/git-finalization.md` after user approval of the completion gate
-32. Finalization recovery workflow: `.ai/workflows/finalization-recovery.md`
-33. Git finalization guard: `scripts/git_finalize_guard.sh`
-34. Agentic compression guide: `.ai/docs/AGENTIC_ENGINEERING_PRINCIPLES.md`
+31. Visible UI critic gate: `.ai/workflows/ui-qa-critic.md`
+32. Git finalization gate: run `.ai/workflows/git-finalization.md` after user approval of the completion gate
+33. Finalization recovery workflow: `.ai/workflows/finalization-recovery.md`
+34. Git finalization guard: `scripts/git_finalize_guard.sh`
+35. Agentic compression guide: `.ai/docs/AGENTIC_ENGINEERING_PRINCIPLES.md`
 
 ## Core Directories
 - `.ai/agents/`

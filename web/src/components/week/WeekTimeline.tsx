@@ -138,40 +138,38 @@ function WeekWindowCard({
         data-active={status === 'active'}
         data-selected={isSelected}
         className={cn(
-          'flex-shrink-0 w-40 rounded-lg border p-3 text-left transition-colors hover:bg-border/30',
+          'flex-shrink-0 w-48 rounded-lg border p-3 text-left transition-colors hover:bg-border/30',
           isSelected ? 'border-accent border-2 bg-accent/10' : status === 'active' ? 'border-accent/50 border' : 'border-border',
-          status === 'completed' && !isSelected && 'opacity-60'
+          status === 'completed' && !isSelected && 'opacity-75'
         )}
       >
-        <div className="flex items-center justify-between mb-1">
-          <span className="font-medium text-foreground text-sm">
+        <div className="flex items-start justify-between mb-1 gap-1">
+          <span className="font-semibold text-foreground text-sm leading-snug">
             {formatWeekName(start_date)}
-            {isCurrentWindow && <span className="text-accent ml-1">(Current)</span>}
+            {isCurrentWindow && <span className="text-accent ml-1 font-normal">(Current)</span>}
           </span>
-          <div className="flex items-center gap-1">
-            {sprint.is_complete === false && (
-              <span className="text-xs text-orange-500" title="Incomplete - missing required fields">●</span>
-            )}
-          </div>
+          {sprint.is_complete === false && (
+            <span className="text-xs text-orange-500 flex-shrink-0 mt-0.5" title="Incomplete - missing required fields">●</span>
+          )}
         </div>
         {sprint.owner && (
-          <div className="text-xs text-muted mb-2 truncate">{sprint.owner.name}</div>
+          <div className="text-xs text-foreground/70 mb-1.5 truncate font-medium">{sprint.owner.name}</div>
         )}
         <div className="text-xs text-muted mb-2">
-          {formatDate(start_date.toISOString())} - {formatDate(end_date.toISOString())}
+          {formatDate(start_date.toISOString())} – {formatDate(end_date.toISOString())}
         </div>
         {status === 'completed' ? (
-          <div className="text-xs text-muted">
+          <div className="text-xs text-foreground/60 mb-2">
             {sprint.completed_count}/{sprint.issue_count} ✓
             {(sprint.total_estimate_hours ?? 0) > 0 && ` · ${sprint.total_estimate_hours}h`}
           </div>
         ) : (
           <>
-            <div className="text-xs text-muted mb-1">
+            <div className="text-xs text-muted mb-1.5">
               {sprint.completed_count}/{sprint.issue_count} done
               {(sprint.total_estimate_hours ?? 0) > 0 && ` · ${sprint.total_estimate_hours}h`}
             </div>
-            <div className="h-1.5 rounded-full bg-border overflow-hidden">
+            <div className="h-2 rounded-full bg-border overflow-hidden mb-2">
               <div
                 className="h-full bg-accent transition-all"
                 style={{ width: `${progress}%` }}
@@ -179,19 +177,21 @@ function WeekWindowCard({
             </div>
           </>
         )}
-        <div className="mt-2 flex items-center justify-between text-xs">
+        <div className="flex items-center justify-between text-xs">
           <span className={cn(
-            'rounded px-1.5 py-0.5 whitespace-nowrap',
-            status === 'active' ? 'bg-accent/20 text-accent' : sprintStatusColors[status]
+            'rounded px-1.5 py-0.5 whitespace-nowrap font-medium',
+            status === 'active' ? 'bg-accent/25 text-accent' : sprintStatusColors[status]
           )}>
             {status.charAt(0).toUpperCase() + status.slice(1)}
           </span>
-          <div className="flex items-center gap-1.5">
-            <span className={cn(planStatus.color)} title={planStatus.tooltip}>
-              {sprint.has_plan ? '✓' : '○'} Plan
+          <div className="flex items-center gap-1.5 text-xs">
+            <span className={cn('flex items-center gap-0.5', planStatus.color)} title={planStatus.tooltip}>
+              <span>{sprint.has_plan ? '✓' : '○'}</span>
+              <span>Plan</span>
             </span>
-            <span className={cn(retroStatus.color)} title={retroStatus.tooltip}>
-              {sprint.has_retro ? '✓' : '○'} Retro
+            <span className={cn('flex items-center gap-0.5', retroStatus.color)} title={retroStatus.tooltip}>
+              <span>{sprint.has_retro ? '✓' : '○'}</span>
+              <span>Retro</span>
             </span>
           </div>
         </div>
@@ -204,22 +204,22 @@ function WeekWindowCard({
     <div
       data-active={isCurrentWindow}
       className={cn(
-        'flex-shrink-0 w-40 rounded-lg border border-dashed p-3 text-left',
+        'flex-shrink-0 w-48 rounded-lg border border-dashed p-3 text-left',
         'border-border/50',
         isCurrentWindow && 'border-accent/30'
       )}
     >
-      <div className="font-medium text-muted text-sm mb-1">
+      <div className="font-semibold text-muted text-sm mb-1 leading-snug">
         {formatWeekName(start_date)}
-        {isCurrentWindow && <span className="text-accent ml-1">(Current)</span>}
+        {isCurrentWindow && <span className="text-accent ml-1 font-normal">(Current)</span>}
       </div>
       <div className="text-xs text-muted mb-2">
-        {formatDate(start_date.toISOString())} - {formatDate(end_date.toISOString())}
+        {formatDate(start_date.toISOString())} – {formatDate(end_date.toISOString())}
       </div>
-      <div className="text-xs text-muted">No issues</div>
+      <div className="text-xs text-muted/60">No sprint</div>
       <div className="mt-2 text-xs">
         <span className={cn(
-          'rounded px-1.5 py-0.5 whitespace-nowrap',
+          'rounded px-1.5 py-0.5 whitespace-nowrap font-medium',
           sprintStatusColors[status]
         )}>
           {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -370,8 +370,8 @@ export function WeekTimeline({
     // Days into this window (0-6 for 1-week sprints)
     const daysIntoWindow = Math.floor((today.getTime() - windowStart.getTime()) / (1000 * 60 * 60 * 24));
 
-    // Card width = 160px, gap = 12px
-    const cardWidth = 160;
+    // Card width = 192px (w-48), gap = 12px
+    const cardWidth = 192;
     const gap = 12;
 
     // Position = (cards before * (width + gap)) + (days / 7 * width)
@@ -396,14 +396,14 @@ export function WeekTimeline({
       style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
     >
       {/* Wrapper with padding to allow centering first/last cards */}
-      <div style={{ paddingLeft: 'calc(50% - 80px)', paddingRight: 'calc(50% - 80px)' }}>
+      <div style={{ paddingLeft: 'calc(50% - 96px)', paddingRight: 'calc(50% - 96px)' }}>
         {/* Month headers row */}
         <div className="flex gap-3 mb-2">
           {monthGroups.map((group, idx) => (
             <div
               key={`${group.month}-${group.year}-${idx}`}
               className="flex-shrink-0"
-              style={{ width: `calc(${group.windows.length} * 160px + ${(group.windows.length - 1) * 12}px)` }}
+              style={{ width: `calc(${group.windows.length} * 192px + ${(group.windows.length - 1) * 12}px)` }}
             >
               <div className="text-xs font-medium text-muted uppercase tracking-wide px-1">
                 {group.month} {group.year !== new Date().getFullYear() ? group.year : ''}

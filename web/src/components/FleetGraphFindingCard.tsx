@@ -59,6 +59,8 @@ export function FleetGraphFindingCard({
   onReview,
   onSnooze,
 }: FleetGraphFindingCardProps) {
+  const executionLabel = finding.actionExecution ? renderExecutionLabel(finding) : null;
+
   return (
     <article className="rounded-xl border border-border bg-muted/20 px-4 py-4 shadow-sm">
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
@@ -76,7 +78,7 @@ export function FleetGraphFindingCard({
             <div className={`space-y-3 rounded-xl border px-3 py-3 ${renderExecutionTone(finding)}`}>
               <div className="space-y-2">
                 <p className={sectionLabelClassName}>Suggested next step</p>
-                <span className={actionClassName}>{renderExecutionLabel(finding)}</span>
+                {executionLabel ? <span className={actionClassName}>{executionLabel}</span> : null}
               </div>
               <div className="space-y-1">
                 <p className="text-sm font-medium">{finding.recommendedAction.title}</p>
@@ -94,22 +96,14 @@ export function FleetGraphFindingCard({
               ) : confirming ? (
                 <div className="space-y-3 rounded-md border border-emerald-200 bg-white/70 px-3 py-3">
                   <div className="space-y-1">
-                    <p className="text-sm font-medium text-foreground">
-                      Review before starting this week
+                    <p className="text-base font-semibold text-slate-950">
+                      Confirm before starting this week
                     </p>
-                    <p className="text-sm text-muted">
+                    <p className="text-sm text-slate-700">
                       FleetGraph thinks this week is ready to start. Nothing changes in Ship until you confirm.
                     </p>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      className={applyButtonClassName}
-                      disabled={isMutating}
-                      onClick={() => onApply(finding.id)}
-                      type="button"
-                    >
-                      Start week in Ship
-                    </button>
+                  <div className="flex flex-wrap justify-end gap-2">
                     <button
                       className={buttonClassName}
                       disabled={isMutating}
@@ -117,6 +111,14 @@ export function FleetGraphFindingCard({
                       type="button"
                     >
                       Cancel
+                    </button>
+                    <button
+                      className={applyButtonClassName}
+                      disabled={isMutating}
+                      onClick={() => onApply(finding.id)}
+                      type="button"
+                    >
+                      Start week in Ship
                     </button>
                   </div>
                 </div>

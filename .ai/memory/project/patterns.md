@@ -297,3 +297,17 @@ Capture reusable patterns that repeatedly work in this project.
 - **Benefits**: Keeps evidence capture reproducible, reduces manual audit chores, and avoids false failures when the runtime stores a run id before a shared URL exists.
 - **Tradeoffs**: The script must stay aligned with live trace metadata and demo fixture names.
 - **References**: `scripts/capture_fleetgraph_mvp_evidence.sh`, `docs/evidence/fleetgraph-mvp-evidence.json`, `docs/evidence/fleetgraph-mvp-evidence.md`
+
+- **Pattern**: Outer document shell owns FleetGraph page scroll
+- **Use when**: FleetGraph panels are inserted above an existing tabbed or editor-based document surface that already relies on nested flex layouts.
+- **Approach**: Let the outer `UnifiedDocumentPage` shell own vertical scrolling, keep the FleetGraph panels and the main document surface in the same scroll container, and avoid trapping the content behind an inner `overflow-hidden` wrapper.
+- **Benefits**: The page feels like one continuous document again and the top FleetGraph surfaces remain reachable during live inspection.
+- **Tradeoffs**: Inner editor/tab shells still need careful sizing so the outer scroll container does not fight them.
+- **References**: `web/src/pages/UnifiedDocumentPage.tsx`, `web/src/pages/UnifiedDocumentPage.test.tsx`, `docs/specs/fleetgraph/FLEETGRAPH-FEEDBACK-ROUND2-PHASE/feature-spec.md`
+
+- **Pattern**: Gesture-safe inline confirmation
+- **Use when**: A user-facing FleetGraph action escalates from `Review and apply` to a real Ship mutation inline rather than through a separate modal.
+- **Approach**: Open a distinct review state first, strengthen the review copy, put `Cancel` before the confirm action, and add a short gesture guard so the same click or fast double-click cannot immediately trigger the Ship mutation.
+- **Benefits**: Keeps the interaction lightweight while making intent clearer and preventing accidental confirmation.
+- **Tradeoffs**: Adds a tiny delay before a deliberate confirmation and requires explicit tests to keep the interaction stable.
+- **References**: `web/src/components/FleetGraphFindingsPanel.tsx`, `web/src/components/FleetGraphFindingCard.tsx`, `web/src/components/FleetGraphFindingsPanel.test.tsx`

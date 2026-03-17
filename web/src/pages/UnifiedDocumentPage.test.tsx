@@ -116,7 +116,7 @@ describe('UnifiedDocumentPage', () => {
     vi.mocked(apiGet).mockReset();
   });
 
-  it('keeps sprint tab content inside a shrinkable shell so the inner week surface can scroll', async () => {
+  it('keeps the FleetGraph week route in a page-level scroll shell', async () => {
     vi.mocked(apiGet).mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -135,7 +135,10 @@ describe('UnifiedDocumentPage', () => {
       wrapper: createWrapper('/documents/sprint-1'),
     });
 
+    const pageShell = await screen.findByTestId('fleetgraph-document-page-shell');
     const tabContent = await screen.findByTestId('document-tab-content');
-    expect(tabContent).toHaveClass('min-h-0');
+
+    expect(pageShell).toHaveClass('overflow-y-auto');
+    expect(tabContent).not.toHaveClass('overflow-hidden');
   });
 });

@@ -1,8 +1,8 @@
 # Ship - Single Source of Truth
 
 **Last Updated**: 2026-03-17
-**Current Phase**: FleetGraph polish implementation
-**Active Sprint**: Close T304 and publish the polished FleetGraph Railway audit path
+**Current Phase**: FleetGraph second live-inspection follow-on
+**Active Sprint**: Publish the round-two audit packet and wait for the next FleetGraph user inspection
 **Project Status**: Active
 **Canonical Deployment Baseline**: API on AWS Elastic Beanstalk, frontend on S3/CloudFront, config/secrets on AWS-native services
 **Sanctioned Public Demo**: Railway public demo, deployed with `scripts/deploy-railway-demo.sh`
@@ -12,14 +12,14 @@
 ## Current Focus
 
 ### Active Task
-- **Title**: Finish T304 QA refresh and close the FleetGraph polish pack
+- **Title**: Hand off the FleetGraph feedback round-two fixes for the next Railway inspection
 - **Status**: In progress
 - **Owner**: Codex
 
 ### Next Immediate Actions
-1. Finish `T304` with the refreshed demo inspection guide, polish-pack checklist, screenshots, and consistency test coverage.
-2. Finalize `T304` and close the FleetGraph polish pack on the live Railway demo.
-3. Preserve the REST-only Ship runtime data boundary while preparing the next full user inspection.
+1. Keep the round-two fixes stable on the Railway public demo for the next user inspection.
+2. Hand off the refreshed demo inspection guide and the round-two user audit checklist.
+3. Use the next user QA pass to decide whether another bounded FleetGraph follow-on pack is needed.
 
 ---
 
@@ -72,6 +72,9 @@
 - `docs/specs/fleetgraph/FLEETGRAPH-FOUNDATION-PHASE/`
 - `docs/specs/fleetgraph/FLEETGRAPH-FOUNDATION-PHASE/reconnaissance-note.md`
 - `docs/specs/fleetgraph/FLEETGRAPH-MVP-PHASE/`
+- `docs/specs/fleetgraph/FLEETGRAPH-FEEDBACK-PHASE/`
+- `docs/specs/fleetgraph/FLEETGRAPH-POLISH-PHASE/`
+- `docs/specs/fleetgraph/FLEETGRAPH-FEEDBACK-ROUND2-PHASE/`
 - `api/src/services/fleetgraph/llm/`
 - `api/src/services/fleetgraph/tracing/`
 - `api/src/services/fleetgraph/graph/`

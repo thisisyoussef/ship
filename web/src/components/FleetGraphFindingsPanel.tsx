@@ -23,6 +23,13 @@ interface LocalNotice {
   tone: 'info' | 'success';
 }
 
+interface ReviewState {
+  findingId: string | null;
+  openedAt: number | null;
+}
+
+const REVIEW_GESTURE_GUARD_MS = 450;
+
 function noticeToneClassName(tone: LocalNotice['tone']) {
   return tone === 'info'
     ? 'border-sky-200 bg-sky-50 text-sky-900'
@@ -37,7 +44,10 @@ export function FleetGraphFindingsPanel({
   const documentIds = buildFleetGraphFindingDocumentIds(currentDocumentId, context);
   const findings = useFleetGraphFindings(documentIds);
   const { setFindings } = useFleetGraphDebugSurface();
-  const [confirmingFindingId, setConfirmingFindingId] = useState<string | null>(null);
+  const [reviewState, setReviewState] = useState<ReviewState>({
+    findingId: null,
+    openedAt: null,
+  });
   const [localNotice, setLocalNotice] = useState<LocalNotice | null>(null);
 
   const helperText = loading
@@ -54,7 +64,11 @@ export function FleetGraphFindingsPanel({
 
     try {
       await findings.dismissFinding(findingId);
-      setConfirmingFindingId((current) => (current === findingId ? null : current));
+      setReviewState((current) =>
+        current.findingId === findingId
+          ? { findingId: null, openedAt: null }
+          : current
+      );
       setLocalNotice({
         message: buildDismissNotice(),
         tone: 'info',
@@ -70,7 +84,11 @@ export function FleetGraphFindingsPanel({
 
     try {
       const response = await findings.snoozeFinding(findingId, 240);
-      setConfirmingFindingId((current) => (current === findingId ? null : current));
+      setReviewState((current) =>
+        current.findingId === findingId
+          ? { findingId: null, openedAt: null }
+          : current
+      );
       setLocalNotice({
         message: buildSnoozeNotice(response.finding.snoozedUntil),
         tone: 'info',
@@ -81,12 +99,20 @@ export function FleetGraphFindingsPanel({
   }
 
   async function handleApply(findingId: string) {
+    if (
+      reviewState.findingId === findingId
+      && reviewState.openedAt !== null
+      && Date.now() - reviewState.openedAt < REVIEW_GESTURE_GUARD_MS
+    ) {
+      return;
+    }
+
     setLocalNotice(null);
     findings.resetActionState();
 
     try {
       const response = await findings.applyFinding(findingId);
-      setConfirmingFindingId(null);
+      setReviewState({ findingId: null, openedAt: null });
 
       const message = buildApplyNotice(response.finding);
       if (message) {
@@ -146,21 +172,25 @@ export function FleetGraphFindingsPanel({
         <div className="mt-3 space-y-3">
           {findings.findings.map((finding) => (
             <FleetGraphFindingCard
-              confirming={confirmingFindingId === finding.id}
+              confirming={reviewState.findingId === finding.id}
               finding={finding}
               isMutating={findings.isMutating}
               key={finding.id}
               onApply={(findingId) => {
                 void handleApply(findingId);
               }}
-              onCancelReview={() => setConfirmingFindingId(null)}
               onDismiss={(findingId) => {
                 void handleDismiss(findingId);
               }}
-              onReview={setConfirmingFindingId}
+              onReview={(findingId) =>
+                setReviewState({
+                  findingId,
+                  openedAt: Date.now(),
+                })}
               onSnooze={(findingId) => {
                 void handleSnooze(findingId);
               }}
+              onCancelReview={() => setReviewState({ findingId: null, openedAt: null })}
             />
           ))}
         </div>

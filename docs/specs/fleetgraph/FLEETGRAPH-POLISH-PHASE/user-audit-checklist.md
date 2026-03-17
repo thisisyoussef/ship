@@ -33,6 +33,7 @@ This checklist covers the full FleetGraph polish pack:
    Expected:
    - the document is visible from the normal docs list or sidebar
    - the page shows both `FleetGraph proactive` and `FleetGraph entry`
+   - the page scrolls naturally instead of trapping the FleetGraph panels above a separate inner scroller
    If this fails:
    - the public proof lane or discoverability path regressed
 
@@ -47,9 +48,10 @@ This checklist covers the full FleetGraph polish pack:
 4. Click `Review and apply`.
    Expected:
    - the inline review state appears
-   - headline: `Review before starting this week`
-   - buttons: `Start week in Ship` and `Cancel`
+   - headline: `Confirm before starting this week`
+   - buttons: `Cancel` and `Start week in Ship`
    - the copy explains the action in user terms
+   - the same click that opened review does not also start the week
    If this fails:
    - the review/apply lane regressed or became too technical again
 

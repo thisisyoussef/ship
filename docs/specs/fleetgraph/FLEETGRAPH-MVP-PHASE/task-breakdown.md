@@ -90,6 +90,7 @@ For each task, list associated tests first:
 
 ## Post-Pack QA Follow-Ons
 - The first feedback implementation pack for shipped MVP audit findings lives in `docs/specs/fleetgraph/FLEETGRAPH-FEEDBACK-PHASE/`.
+- The second live-inspection follow-on pack lives in `docs/specs/fleetgraph/FLEETGRAPH-FEEDBACK-ROUND2-PHASE/`.
 - Current verified user-audit findings feeding that pack:
   - FleetGraph demo week pages are not discoverable from standard documents navigation.
   - The affected FleetGraph week page can become non-scrollable on the public demo.

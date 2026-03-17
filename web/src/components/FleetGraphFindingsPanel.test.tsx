@@ -70,6 +70,8 @@ function createDeferred<T>() {
 
 describe('FleetGraphFindingsPanel', () => {
   beforeEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
     vi.mocked(apiGet).mockReset();
     vi.mocked(apiPost).mockReset();
   });
@@ -387,14 +389,156 @@ describe('FleetGraphFindingsPanel', () => {
       { wrapper: createWrapper() }
     );
 
+    let now = 1_000;
+    vi.spyOn(Date, 'now').mockImplementation(() => now);
     fireEvent.click(await screen.findByRole('button', { name: 'Review and apply' }));
 
-    expect(screen.getByText('Review before starting this week')).toBeInTheDocument();
+    expect(screen.getByText('Confirm before starting this week')).toBeInTheDocument();
 
+    now += 500;
     fireEvent.click(screen.getByRole('button', { name: 'Start week in Ship' }));
 
     await waitFor(() => {
       expect(apiPost).toHaveBeenCalledWith('/api/fleetgraph/findings/finding-1/apply');
     });
+  });
+
+  it('does not apply from the same click gesture that opens review', async () => {
+    let now = 1_000;
+    vi.spyOn(Date, 'now').mockImplementation(() => now);
+    vi.mocked(apiGet).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        findings: [
+          {
+            dedupeKey: 'dedupe-1',
+            documentId: SPRINT_ID,
+            documentType: 'sprint',
+            evidence: ['Sprint 8 is still planning after the expected week-start boundary.'],
+            findingKey: 'week-start-drift:workspace-1:sprint-8',
+            findingType: 'week_start_drift',
+            id: 'finding-1',
+            metadata: {},
+            recommendedAction: {
+              endpoint: {
+                method: 'POST',
+                path: `/api/weeks/${SPRINT_ID}/start`,
+              },
+              evidence: ['The week is still planning after the expected start date.'],
+              rationale: 'Starting the week is the recommended next Ship action.',
+              summary: 'Start Sprint 8 when the PM confirms the timing.',
+              targetId: SPRINT_ID,
+              targetType: 'sprint',
+              title: 'Start Sprint 8',
+              type: 'start_week',
+            },
+            status: 'active',
+            summary: 'Sprint 8 looks late to start.',
+            threadId: 'fleetgraph:workspace-1:scheduled-sweep',
+            title: 'Week start drift: Sprint 8',
+            updatedAt: '2026-03-17T12:00:00.000Z',
+            workspaceId: 'workspace-1',
+          },
+        ],
+      }),
+    } as Response);
+    vi.mocked(apiPost).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        finding: {
+          actionExecution: {
+            actionType: 'start_week',
+            appliedAt: '2026-03-17T12:05:00.000Z',
+            attemptCount: 1,
+            endpoint: {
+              method: 'POST',
+              path: `/api/weeks/${SPRINT_ID}/start`,
+            },
+            findingId: 'finding-1',
+            message: 'Week started successfully with 2 scoped issues.',
+            status: 'applied',
+            updatedAt: '2026-03-17T12:05:00.000Z',
+          },
+          id: 'finding-1',
+        },
+      }),
+    } as Response);
+
+    render(
+      <FleetGraphFindingsPanel
+        context={createContext()}
+        currentDocumentId={DOCUMENT_ID}
+      />,
+      { wrapper: createWrapper() }
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Review and apply' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Start week in Ship' }));
+
+    expect(apiPost).not.toHaveBeenCalled();
+
+    now += 500;
+    fireEvent.click(screen.getByRole('button', { name: 'Start week in Ship' }));
+    await waitFor(() => {
+      expect(apiPost).toHaveBeenCalledWith('/api/fleetgraph/findings/finding-1/apply');
+    });
+  });
+
+  it('uses one suggested-next-step label and stronger review emphasis', async () => {
+    vi.mocked(apiGet).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        findings: [
+          {
+            dedupeKey: 'dedupe-1',
+            documentId: SPRINT_ID,
+            documentType: 'sprint',
+            evidence: ['Sprint 8 is still planning after the expected week-start boundary.'],
+            findingKey: 'week-start-drift:workspace-1:sprint-8',
+            findingType: 'week_start_drift',
+            id: 'finding-1',
+            metadata: {},
+            recommendedAction: {
+              endpoint: {
+                method: 'POST',
+                path: `/api/weeks/${SPRINT_ID}/start`,
+              },
+              evidence: ['The week is still planning after the expected start date.'],
+              rationale: 'Starting the week is the recommended next Ship action.',
+              summary: 'Start Sprint 8 when the PM confirms the timing.',
+              targetId: SPRINT_ID,
+              targetType: 'sprint',
+              title: 'Start Sprint 8',
+              type: 'start_week',
+            },
+            status: 'active',
+            summary: 'Sprint 8 looks late to start.',
+            threadId: 'fleetgraph:workspace-1:scheduled-sweep',
+            title: 'Week start drift: Sprint 8',
+            updatedAt: '2026-03-17T12:00:00.000Z',
+            workspaceId: 'workspace-1',
+          },
+        ],
+      }),
+    } as Response);
+
+    render(
+      <FleetGraphFindingsPanel
+        context={createContext()}
+        currentDocumentId={DOCUMENT_ID}
+      />,
+      { wrapper: createWrapper() }
+    );
+
+    await screen.findByText('Week start drift: Sprint 8');
+
+    expect(screen.getAllByText('Suggested next step')).toHaveLength(1);
+    expect(screen.getByText('Start Sprint 8')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Review and apply' }));
+
+    const reviewHeading = screen.getByText('Confirm before starting this week');
+    expect(reviewHeading).toHaveClass('text-base');
+    expect(reviewHeading).toHaveClass('font-semibold');
   });
 });

@@ -1,8 +1,8 @@
 # Ship - Single Source of Truth
 
 **Last Updated**: 2026-03-17
-**Current Phase**: AI harness UI workflow guardrails
-**Active Sprint**: Turn the recent FleetGraph MVP QA findings into durable workflow guardrails for future visible UI stories
+**Current Phase**: FleetGraph feedback implementation
+**Active Sprint**: Complete the first post-MVP FleetGraph product fixes so the public demo is easier to reach, inspect, trust, and scroll
 **Project Status**: Active
 **Canonical Deployment Baseline**: API on AWS Elastic Beanstalk, frontend on S3/CloudFront, config/secrets on AWS-native services
 **Sanctioned Public Demo**: Railway public demo, deployed with `scripts/deploy-railway-demo.sh`
@@ -12,14 +12,14 @@
 ## Current Focus
 
 ### Active Task
-- **Title**: Add a human-centered UI critic workflow and the first pack-level FleetGraph MVP audit checklist artifact
+- **Title**: Implement the FleetGraph feedback pack stories starting with navigation discoverability and week-page usability
 - **Status**: In progress
 - **Owner**: Codex
 
 ### Next Immediate Actions
-1. Add the minimal UI QA critic workflow and wire it into the visible-story harness path.
-2. Add the FleetGraph MVP pack-level `user-audit-checklist.md` so the shipped slice has one reusable QA artifact.
-3. Preserve the existing story-level UI inspection flow while making human-centered copy, feedback-trust, and debug-detail containment explicit.
+1. Finalize and merge the FleetGraph feedback implementation pack so the product fixes can branch cleanly from it.
+2. Implement `T201` through `T204` one by one against the live Railway demo.
+3. Preserve the REST-only Ship runtime data boundary while fixing navigation, scrollability, and human-facing UI trust issues.
 
 ---
 

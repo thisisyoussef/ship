@@ -28,6 +28,15 @@ export interface FleetGraphFindingActionExecution {
   updatedAt: string;
 }
 
+export interface FleetGraphFindingReview {
+  cancelLabel: string;
+  confirmLabel: string;
+  evidence: string[];
+  summary: string;
+  threadId: string;
+  title: string;
+}
+
 export interface FleetGraphFinding {
   actionExecution?: FleetGraphFindingActionExecution;
   cooldownUntil?: string;
@@ -57,6 +66,11 @@ export interface FleetGraphFindingListResponse {
 
 export interface FleetGraphFindingLifecycleResponse {
   finding: FleetGraphFinding;
+}
+
+export interface FleetGraphFindingReviewResponse {
+  finding: FleetGraphFinding;
+  review: FleetGraphFindingReview;
 }
 
 export function buildFleetGraphFindingDocumentIds(

@@ -1,11 +1,14 @@
 export {
   createFleetGraphFindingActionService,
   FleetGraphFindingActionError,
+  type FleetGraphFindingActionReview,
 } from './service.js'
 
 export {
   createFleetGraphFindingActionStore,
 } from './store.js'
+
+export * from './executor.js'
 
 export {
   FLEETGRAPH_FINDING_ACTION_STATUSES,

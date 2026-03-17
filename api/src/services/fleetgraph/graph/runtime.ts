@@ -1,145 +1,531 @@
-import {
-  END,
-  MemorySaver,
-  START,
-  StateGraph,
-} from '@langchain/langgraph';
+import { Command, END, START, StateGraph, Send, getConfig, interrupt, task } from '@langchain/langgraph'
+import type { BaseCheckpointSaver, StateSnapshot } from '@langchain/langgraph'
 
-import { FleetGraphStateAnnotation } from './state.js';
+import {
+  buildShipActionSuccessMessage,
+  defaultShipRestExecutor,
+  isAlreadyActiveResult,
+  readShipActionMessage,
+  type ShipRestExecutor,
+  type ShipRestRequestContext,
+} from '../actions/executor.js'
+import {
+  createFleetGraphFindingActionStore,
+  type FleetGraphFindingActionStore,
+} from '../actions/index.js'
+import {
+  createFleetGraphFindingStore,
+  type FleetGraphFindingStore,
+} from '../findings/index.js'
+import {
+  createLLMAdapter,
+  resolveLLMConfig,
+  type LLMAdapter,
+} from '../llm/index.js'
+import {
+  createFleetGraphShipApiClient,
+  resolveFleetGraphShipApiConfig,
+} from '../proactive/ship-client.js'
+import type { FleetGraphShipApiClient } from '../proactive/types.js'
+import {
+  createLangSmithClient,
+  createTracedLLMAdapter,
+  resolveFleetGraphTracingSettings,
+  type FleetGraphTracingSettings,
+  type LangSmithClientLike,
+} from '../tracing/index.js'
+import { createFleetGraphCheckpointer } from './checkpointer.js'
+import { runFindingActionReviewScenario } from './finding-action-review.js'
+import { runOnDemandEntryScenario } from './on-demand-entry.js'
+import { createWeekStartDriftScenarioRunner } from './proactive-week-start.js'
+import { FleetGraphStateAnnotation } from './state.js'
 import {
   FleetGraphStateSchema,
   parseFleetGraphRuntimeInput,
-  type FleetGraphBranch,
   type FleetGraphRuntimeInput,
+  type FleetGraphScenario,
+  type FleetGraphScenarioResult,
   type FleetGraphState,
-} from './types.js';
-
-interface FleetGraphRuntime {
-  readonly checkpointer: MemorySaver;
-  getState(threadId: string): Promise<unknown>;
-  invoke(input: unknown): Promise<FleetGraphState>;
-}
+} from './types.js'
 
 interface FleetGraphRuntimeDeps {
-  checkpointer?: MemorySaver;
+  actionStore?: FleetGraphFindingActionStore
+  checkpointer?: BaseCheckpointSaver
+  executeShipRestAction?: ShipRestExecutor
+  findingStore?: FleetGraphFindingStore
+  llmAdapter?: LLMAdapter
+  now?: () => Date
+  shipClient?: FleetGraphShipApiClient
+  tracingClient?: LangSmithClientLike
+  tracingSettings?: FleetGraphTracingSettings
 }
 
-const BRANCH_TO_NODE: Record<FleetGraphBranch, string> = {
-  approval_required: 'approval_interrupt',
-  fallback: 'fallback',
-  quiet: 'quiet_exit',
-  reasoned: 'reason_and_deliver',
-};
+export interface FleetGraphInterruptSummary {
+  id?: string
+  taskName: string
+  value?: unknown
+}
+
+export interface FleetGraphRuntime {
+  readonly checkpointer: BaseCheckpointSaver
+  readonly checkpointerKind: string
+  getCheckpointHistory(threadId: string): Promise<StateSnapshot[]>
+  getPendingInterrupts(threadId: string): Promise<FleetGraphInterruptSummary[]>
+  getState(threadId: string): Promise<StateSnapshot>
+  invoke(input: unknown): Promise<FleetGraphState>
+  invokeRaw(input: unknown, configurable?: Record<string, unknown>): Promise<StateSnapshot>
+  resume(
+    threadId: string,
+    value: unknown,
+    configurable?: Record<string, unknown>
+  ): Promise<FleetGraphState>
+}
+
+function branchOutcome(branch: FleetGraphScenarioResult['branch']) {
+  switch (branch) {
+    case 'approval_required':
+      return 'approval_required' as const
+    case 'fallback':
+      return 'fallback' as const
+    case 'reasoned':
+      return 'advisory' as const
+    default:
+      return 'quiet' as const
+  }
+}
 
 function buildRouteSurface(input: FleetGraphRuntimeInput) {
   if (input.routeSurface) {
-    return input.routeSurface;
+    return input.routeSurface
   }
 
   return input.mode === 'on_demand'
     ? 'document-page'
-    : 'workspace-sweep';
+    : 'workspace-sweep'
 }
 
-function selectBranch(input: FleetGraphRuntimeInput): FleetGraphBranch {
-  if (input.hasError) {
-    return 'fallback';
+function buildConfig(threadId: string, configurable: Record<string, unknown> = {}) {
+  return {
+    configurable: {
+      thread_id: threadId,
+      ...configurable,
+    },
   }
-
-  if (input.approvalRequired) {
-    return 'approval_required';
-  }
-
-  if (input.mode === 'on_demand' || input.candidateCount > 0) {
-    return 'reasoned';
-  }
-
-  return 'quiet';
 }
 
-function branchOutcome(branch: FleetGraphBranch): FleetGraphState['outcome'] {
-  switch (branch) {
-    case 'approval_required':
-      return 'approval_required';
-    case 'fallback':
-      return 'fallback';
-    case 'reasoned':
-      return 'advisory';
+function parseState(snapshot: StateSnapshot) {
+  return FleetGraphStateSchema.parse(snapshot.values) as FleetGraphState
+}
+
+function selectScenarios(state: FleetGraphState) {
+  switch (state.contextKind) {
+    case 'entry':
+      return [
+        state.requestedAction ? 'entry_requested_action' : 'entry_context_check',
+      ] satisfies FleetGraphScenario[]
+    case 'finding_review':
+      return ['finding_action_review'] satisfies FleetGraphScenario[]
     default:
-      return 'quiet';
+      return ['week_start_drift'] satisfies FleetGraphScenario[]
   }
 }
 
-function buildCompiledGraph(checkpointer: MemorySaver) {
-  return new StateGraph(FleetGraphStateAnnotation)
+function buildReviewPayload(state: {
+  selectedAction?: FleetGraphState['selectedAction']
+  selectedFindingId?: string
+}) {
+  return {
+    evidence: state.selectedAction?.evidence ?? [],
+    findingId: state.selectedFindingId,
+    summary: state.selectedAction?.summary,
+    title: state.selectedAction?.title,
+    type: state.selectedAction?.type,
+  }
+}
+
+export function createFleetGraphRuntime(
+  deps: FleetGraphRuntimeDeps = {},
+  env: NodeJS.ProcessEnv = process.env
+): FleetGraphRuntime {
+  const findingStore = deps.findingStore ?? createFleetGraphFindingStore()
+  const actionStore = deps.actionStore ?? createFleetGraphFindingActionStore()
+  const shipClient = deps.shipClient
+    ?? createFleetGraphShipApiClient(resolveFleetGraphShipApiConfig(env))
+  const tracingSettings = deps.tracingSettings
+    ?? resolveFleetGraphTracingSettings(env)
+  const tracingClient = deps.tracingClient
+    ?? createLangSmithClient(tracingSettings)
+  const llmAdapter = deps.llmAdapter
+    ?? createTracedLLMAdapter(createLLMAdapter(resolveLLMConfig(env)), {
+      client: tracingClient,
+      settings: tracingSettings,
+    })
+  const now = deps.now ?? (() => new Date())
+  const { checkpointer, ensureReady, kind } = createFleetGraphCheckpointer({
+    checkpointer: deps.checkpointer,
+  })
+  const runWeekStartDriftScenario = createWeekStartDriftScenarioRunner({
+    findings: findingStore,
+    llmAdapter,
+    now,
+    shipClient,
+    tracingClient,
+    tracingSettings,
+  })
+  const upsertFindingTask = task(
+    'fleetgraph.findings.upsert',
+    async (input: {
+      documentId: string
+      documentType: string
+      evidence: string[]
+      findingKey: string
+      metadata: Record<string, unknown>
+      nowIso: string
+      recommendedAction?: FleetGraphState['selectedAction']
+      summary: string
+      threadId: string
+      title: string
+      tracePublicUrl?: string
+      traceRunId?: string
+      workspaceId: string
+    }) => findingStore.upsertFinding({
+      dedupeKey: input.findingKey,
+      documentId: input.documentId,
+      documentType: input.documentType,
+      evidence: input.evidence,
+      findingKey: input.findingKey,
+      findingType: 'week_start_drift',
+      metadata: input.metadata,
+      recommendedAction: input.recommendedAction,
+      summary: input.summary,
+      threadId: input.threadId,
+      title: input.title,
+      tracePublicUrl: input.tracePublicUrl,
+      traceRunId: input.traceRunId,
+      workspaceId: input.workspaceId,
+    }, new Date(input.nowIso))
+  )
+  const beginExecutionTask = task(
+    'fleetgraph.action.begin_execution',
+    async (input: {
+      endpoint: { method: 'POST'; path: string }
+      findingId: string
+      workspaceId: string
+      nowIso: string
+    }) => actionStore.beginStartWeekExecution({
+      endpoint: input.endpoint,
+      findingId: input.findingId,
+      workspaceId: input.workspaceId,
+    }, new Date(input.nowIso))
+  )
+  const finishExecutionTask = task(
+    'fleetgraph.action.finish_execution',
+    async (input: {
+      appliedAt?: string
+      endpoint: { method: 'POST'; path: string }
+      findingId: string
+      message: string
+      resultStatusCode?: number
+      status: 'applied' | 'already_applied' | 'failed'
+      workspaceId: string
+      nowIso: string
+    }) => actionStore.finishStartWeekExecution({
+      appliedAt: input.appliedAt ? new Date(input.appliedAt) : undefined,
+      endpoint: input.endpoint,
+      findingId: input.findingId,
+      message: input.message,
+      resultStatusCode: input.resultStatusCode,
+      status: input.status,
+      workspaceId: input.workspaceId,
+    }, new Date(input.nowIso))
+  )
+  const executeShipRestActionTask = task(
+    'fleetgraph.action.execute_ship_rest',
+    async (input: { path: string; requestContext: ShipRestRequestContext }) =>
+      (deps.executeShipRestAction ?? defaultShipRestExecutor)(input.path, input.requestContext)
+  )
+
+  const graph = new StateGraph(FleetGraphStateAnnotation)
     .addNode('resolve_trigger_context', (state) => ({
       checkpointNamespace: 'fleetgraph',
       path: 'resolve_trigger_context',
       routeSurface: state.routeSurface || 'workspace-sweep',
     }))
-    .addNode('determine_branch', (state) => {
-      const branch = selectBranch(state);
+    .addNode('select_scenarios', () => ({
+      path: 'select_scenarios',
+    }))
+    .addNode('run_scenario', async (state) => {
+      const result = state.activeScenario === 'week_start_drift'
+        ? await runWeekStartDriftScenario(state as FleetGraphRuntimeInput)
+        : state.activeScenario === 'finding_action_review'
+          ? runFindingActionReviewScenario(state as FleetGraphRuntimeInput)
+          : runOnDemandEntryScenario(state as FleetGraphRuntimeInput)
+
       return {
-        branch,
-        outcome: branchOutcome(branch),
-        path: 'determine_branch',
-      };
+        path: `run_scenario:${result.scenario}`,
+        scenarioResults: [result],
+      }
     })
-    .addNode('quiet_exit', () => ({
-      path: 'quiet_exit',
+    .addNode('merge_candidates', (state) => ({
+      candidateCount: state.scenarioResults.filter((result) => result.score > 0).length,
+      path: 'merge_candidates',
     }))
-    .addNode('reason_and_deliver', () => ({
-      path: 'reason_and_deliver',
+    .addNode('score_and_rank', (state) => {
+      const best = [...state.scenarioResults]
+        .sort((left, right) => right.score - left.score)[0]
+
+      if (!best || best.score <= 0) {
+        return new Command({
+          goto: 'quiet_exit',
+          update: {
+            branch: 'quiet',
+            outcome: 'quiet',
+            path: 'score_and_rank',
+            selectedAction: undefined,
+            selectedFindingId: undefined,
+            selectedScenario: undefined,
+          },
+        })
+      }
+
+      return new Command({
+        goto: best.branch === 'approval_required'
+          ? 'approval_interrupt'
+          : best.branch === 'reasoned'
+            ? 'reason_and_deliver'
+            : best.branch === 'fallback'
+              ? 'fallback'
+              : 'quiet_exit',
+        update: {
+          branch: best.branch,
+          outcome: branchOutcome(best.branch),
+          path: 'score_and_rank',
+          selectedAction: best.recommendedAction,
+          selectedFindingId: best.findingId,
+          selectedScenario: best.scenario,
+        },
+      })
+    }, {
+      ends: ['approval_interrupt', 'fallback', 'quiet_exit', 'reason_and_deliver'],
+    })
+    .addNode('quiet_exit', () => ({ path: 'quiet_exit' }))
+    .addNode('reason_and_deliver', () => ({ path: 'reason_and_deliver' }))
+    .addNode('approval_interrupt', async (state) => {
+      if (!state.selectedAction) {
+        return new Command({
+          goto: 'fallback',
+          update: { path: 'approval_interrupt' },
+        })
+      }
+
+      const decision = await interrupt(buildReviewPayload(state))
+      if (decision === 'approved') {
+        return new Command({
+          goto: 'execute_action',
+          update: { path: 'approval_interrupt' },
+        })
+      }
+
+      return new Command({
+        goto: 'persist_action_outcome',
+        update: {
+          actionOutcome: {
+            message: 'No change was applied in Ship.',
+            status: 'dismissed',
+          },
+          path: 'approval_interrupt',
+        },
+      })
+    }, {
+      ends: ['execute_action', 'fallback', 'persist_action_outcome'],
+    })
+    .addNode('execute_action', async (state) => {
+      if (!state.selectedAction || !state.selectedFindingId) {
+        return {
+          actionOutcome: {
+            message: 'FleetGraph could not resolve the requested Ship action.',
+            status: 'failed',
+          },
+          path: 'execute_action',
+        }
+      }
+
+      const config = getConfig()
+      const requestContext = config?.configurable?.fleetgraphActionRequestContext as
+        | ShipRestRequestContext
+        | undefined
+      const endpoint = {
+        method: 'POST' as const,
+        path: state.selectedAction.endpoint.path,
+      }
+      if (!requestContext) {
+        return {
+          actionOutcome: {
+            message: 'FleetGraph could not resolve the current Ship request context.',
+            status: 'failed',
+          },
+          path: 'execute_action',
+        }
+      }
+
+      const started = await beginExecutionTask({
+        endpoint,
+        findingId: state.selectedFindingId,
+        nowIso: now().toISOString(),
+        workspaceId: state.workspaceId,
+      })
+      if (!started.shouldExecute) {
+        return {
+          actionOutcome: {
+            message: started.execution.message,
+            resultStatusCode: started.execution.resultStatusCode,
+            status: started.execution.status,
+          },
+          path: 'execute_action',
+        }
+      }
+
+      const result = await executeShipRestActionTask({
+        path: endpoint.path,
+        requestContext,
+      })
+      const execution = result.ok
+        ? await finishExecutionTask({
+          appliedAt: now().toISOString(),
+          endpoint,
+          findingId: state.selectedFindingId,
+          message: buildShipActionSuccessMessage(result.body),
+          nowIso: now().toISOString(),
+          resultStatusCode: result.status,
+          status: 'applied',
+          workspaceId: state.workspaceId,
+        })
+        : isAlreadyActiveResult(result)
+          ? await finishExecutionTask({
+            endpoint,
+            findingId: state.selectedFindingId,
+            message: 'Week was already active when this FleetGraph action was applied.',
+            nowIso: now().toISOString(),
+            resultStatusCode: result.status,
+            status: 'already_applied',
+            workspaceId: state.workspaceId,
+          })
+          : await finishExecutionTask({
+            endpoint,
+            findingId: state.selectedFindingId,
+            message: readShipActionMessage(result.body, 'Ship could not apply the week-start action.'),
+            nowIso: now().toISOString(),
+            resultStatusCode: result.status,
+            status: 'failed',
+            workspaceId: state.workspaceId,
+          })
+
+      return {
+        actionOutcome: {
+          message: execution.message,
+          resultStatusCode: execution.resultStatusCode,
+          status: execution.status,
+        },
+        path: 'execute_action',
+      }
+    })
+    .addNode('persist_action_outcome', () => ({
+      path: 'persist_action_outcome',
     }))
-    .addNode('approval_interrupt', () => ({
-      path: 'approval_interrupt',
-    }))
-    .addNode('fallback', () => ({
-      path: 'fallback',
-    }))
+    .addNode('persist_result', async (state) => {
+      const selected = state.scenarioResults.find((result) => result.scenario === state.selectedScenario)
+      if (
+        !selected?.findingKey
+        || !selected.documentId
+        || !selected.documentType
+        || !selected.summary
+        || !selected.title
+      ) {
+        return { path: 'persist_result' }
+      }
+
+      await upsertFindingTask({
+        documentId: selected.documentId,
+        documentType: selected.documentType,
+        evidence: selected.evidence,
+        findingKey: selected.findingKey,
+        metadata: selected.metadata,
+        nowIso: now().toISOString(),
+        recommendedAction: selected.recommendedAction,
+        summary: selected.summary,
+        threadId: state.threadId,
+        title: selected.title,
+        tracePublicUrl: selected.tracePublicUrl,
+        traceRunId: selected.traceRunId,
+        workspaceId: state.workspaceId,
+      })
+
+      return { path: 'persist_result' }
+    })
+    .addNode('fallback', () => ({ path: 'fallback' }))
     .addEdge(START, 'resolve_trigger_context')
-    .addEdge('resolve_trigger_context', 'determine_branch')
-    .addConditionalEdges('determine_branch', (state) => {
-      return BRANCH_TO_NODE[state.branch];
+    .addEdge('resolve_trigger_context', 'select_scenarios')
+    .addConditionalEdges('select_scenarios', (state) => {
+      const scenarios = selectScenarios(state as FleetGraphState)
+      return scenarios.map((scenario) => new Send('run_scenario', { ...state, activeScenario: scenario }))
     })
-    .addEdge('quiet_exit', END)
-    .addEdge('reason_and_deliver', END)
-    .addEdge('approval_interrupt', END)
+    .addEdge('run_scenario', 'merge_candidates')
+    .addEdge('merge_candidates', 'score_and_rank')
+    .addEdge('quiet_exit', 'persist_result')
+    .addEdge('reason_and_deliver', 'persist_result')
+    .addEdge('persist_result', END)
+    .addEdge('persist_action_outcome', END)
+    .addEdge('execute_action', 'persist_action_outcome')
     .addEdge('fallback', END)
     .compile({
       checkpointer,
       name: 'fleetgraph.runtime',
-    });
-}
-
-export function createFleetGraphRuntime(
-  deps: FleetGraphRuntimeDeps = {}
-): FleetGraphRuntime {
-  const checkpointer = deps.checkpointer || new MemorySaver();
-  const graph = buildCompiledGraph(checkpointer);
+    })
 
   return {
     checkpointer,
+    checkpointerKind: kind,
+    async getCheckpointHistory(threadId: string) {
+      await ensureReady()
+      const history: StateSnapshot[] = []
+      for await (const snapshot of graph.getStateHistory(buildConfig(threadId))) {
+        history.push(snapshot)
+      }
+      return history
+    },
+    async getPendingInterrupts(threadId: string) {
+      const snapshot = await this.getState(threadId)
+      return snapshot.tasks.flatMap((taskState) =>
+        taskState.interrupts.map((item) => ({
+          id: item.id,
+          taskName: taskState.name,
+          value: item.value,
+        }))
+      )
+    },
     async getState(threadId: string) {
-      return graph.getState({
-        configurable: { thread_id: threadId },
-      });
+      await ensureReady()
+      return graph.getState(buildConfig(threadId))
     },
     async invoke(input: unknown) {
-      const parsed = parseFleetGraphRuntimeInput(input);
-      const initialState = {
-        ...parsed,
-        checkpointNamespace: 'fleetgraph' as const,
-        routeSurface: buildRouteSurface(parsed),
-      };
-      const result = await graph.invoke(initialState, {
-        configurable: {
-          thread_id: parsed.threadId,
-        },
-      });
-
-      return FleetGraphStateSchema.parse(result);
+      const snapshot = await this.invokeRaw(input)
+      return parseState(snapshot)
     },
-  };
+    async invokeRaw(input: unknown, configurable = {}) {
+      await ensureReady()
+      const parsed = parseFleetGraphRuntimeInput(input)
+      await graph.invoke({
+        ...parsed,
+        routeSurface: buildRouteSurface(parsed),
+        scenarioResults: [],
+      }, buildConfig(parsed.threadId, configurable))
+      return graph.getState(buildConfig(parsed.threadId, configurable))
+    },
+    async resume(threadId: string, value: unknown, configurable = {}) {
+      await ensureReady()
+      await graph.invoke(new Command({ resume: value }), buildConfig(threadId, configurable))
+      const snapshot = await graph.getState(buildConfig(threadId, configurable))
+      return parseState(snapshot)
+    },
+  }
 }
-

@@ -1,11 +1,21 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect } from 'react';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('@/lib/api', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/api')>('@/lib/api');
+  return {
+    ...actual,
+    apiGet: vi.fn(),
+  };
+});
 
 import {
   FleetGraphDebugSurfaceProvider,
   useFleetGraphDebugSurface,
 } from '@/components/FleetGraphDebugSurface';
+import { apiGet } from '@/lib/api';
 import type {
   FleetGraphDebugEntrySnapshot,
   FleetGraphDebugFindingSnapshot,
@@ -33,19 +43,68 @@ function renderDebugDock(options?: {
   entry?: FleetGraphDebugEntrySnapshot | null;
   findings?: FleetGraphDebugFindingSnapshot[];
 }) {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+    },
+  });
+
   render(
-    <FleetGraphDebugSurfaceProvider>
-      <p>Human-first FleetGraph copy stays in the main cards.</p>
-      <SeedDebugSurface
-        entry={options?.entry}
-        findings={options?.findings}
-      />
-      <FleetGraphDebugDock />
-    </FleetGraphDebugSurfaceProvider>
+    <QueryClientProvider client={queryClient}>
+      <FleetGraphDebugSurfaceProvider>
+        <p>Human-first FleetGraph copy stays in the main cards.</p>
+        <SeedDebugSurface
+          entry={options?.entry}
+          findings={options?.findings}
+        />
+        <FleetGraphDebugDock />
+      </FleetGraphDebugSurfaceProvider>
+    </QueryClientProvider>
   );
 }
 
 describe('FleetGraphDebugDock', () => {
+  beforeEach(() => {
+    vi.mocked(apiGet).mockReset();
+    vi.mocked(apiGet).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        threads: [
+          {
+            checkpoints: [
+              {
+                branch: 'reasoned',
+                outcome: 'advisory',
+                path: ['resolve_trigger_context', 'reason_and_deliver'],
+                taskCount: 0,
+                threadId: 'fleetgraph:workspace-1:scheduled-sweep',
+              },
+            ],
+            pendingInterrupts: [],
+            threadId: 'fleetgraph:workspace-1:scheduled-sweep',
+          },
+          {
+            checkpoints: [
+              {
+                branch: 'approval_required',
+                outcome: 'approval_required',
+                path: ['resolve_trigger_context', 'approval_interrupt'],
+                taskCount: 1,
+                threadId: 'fleetgraph:workspace-1:document:project',
+              },
+            ],
+            pendingInterrupts: [
+              {
+                taskName: 'approval_interrupt',
+              },
+            ],
+            threadId: 'fleetgraph:workspace-1:document:project',
+          },
+        ],
+      }),
+    } as Response);
+  });
+
   it('surfaces secondary FleetGraph details without putting them back into the main cards', async () => {
     renderDebugDock({
       entry: {
@@ -86,6 +145,12 @@ describe('FleetGraphDebugDock', () => {
     expect(screen.getByText(/POST \/api\/projects\/launch-planner\/approve-plan/)).toBeInTheDocument();
     expect(screen.getByText('fleetgraph:workspace-1:scheduled-sweep')).toBeInTheDocument();
     expect(screen.getByText('fleetgraph:workspace-1:document:project')).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Path: resolve_trigger_context -> reason_and_deliver/)
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Pending interrupts: approval_interrupt/)
+    ).toBeInTheDocument();
   });
 
   it('is keyboard reachable and dismissible', async () => {

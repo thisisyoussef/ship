@@ -1,8 +1,8 @@
 # Ship - Single Source of Truth
 
 **Last Updated**: 2026-03-17
-**Current Phase**: FleetGraph second live-inspection follow-on
-**Active Sprint**: Publish the round-two audit packet and wait for the next FleetGraph user inspection
+**Current Phase**: FleetGraph LangGraph orchestration pack
+**Active Sprint**: Finish the LangGraph-orchestrated runtime, debug surfacing, and docs refresh
 **Project Status**: Active
 **Canonical Deployment Baseline**: API on AWS Elastic Beanstalk, frontend on S3/CloudFront, config/secrets on AWS-native services
 **Sanctioned Public Demo**: Railway public demo, deployed with `scripts/deploy-railway-demo.sh`
@@ -12,14 +12,14 @@
 ## Current Focus
 
 ### Active Task
-- **Title**: Hand off the FleetGraph feedback round-two fixes for the next Railway inspection
+- **Title**: Complete the FleetGraph LangGraph orchestration refactor pack
 - **Status**: In progress
 - **Owner**: Codex
 
 ### Next Immediate Actions
-1. Keep the round-two fixes stable on the Railway public demo for the next user inspection.
-2. Hand off the refreshed demo inspection guide and the round-two user audit checklist.
-3. Use the next user QA pass to decide whether another bounded FleetGraph follow-on pack is needed.
+1. Finish the local LangGraph orchestration pack while keeping Ship product data REST-only.
+2. Refresh the workbook, inspection guide, and proof notes to match the graph-owned review/debug flow.
+3. Hand off the LangGraph pack for audit before any deploy or finalization step.
 
 ---
 
@@ -58,6 +58,7 @@
 - Live relationship data is mixed between canonical `document_associations` and legacy properties such as `project_id` and `assignee_ids`.
 - The current realtime layer is delivery-oriented WebSocket plumbing, not a durable trigger bus.
 - The recommended MVP shape is same-origin FleetGraph API routes for chat plus a separate background worker for proactive runs.
+- The current local refactor moves orchestration into LangGraph itself: scenario fan-out, ranking, interrupts, and action resume now live in graph nodes and tasks.
 
 ---
 
@@ -75,6 +76,7 @@
 - `docs/specs/fleetgraph/FLEETGRAPH-FEEDBACK-PHASE/`
 - `docs/specs/fleetgraph/FLEETGRAPH-POLISH-PHASE/`
 - `docs/specs/fleetgraph/FLEETGRAPH-FEEDBACK-ROUND2-PHASE/`
+- `docs/specs/fleetgraph/FLEETGRAPH-LANGGRAPH-ORCHESTRATION-PHASE/`
 - `api/src/services/fleetgraph/llm/`
 - `api/src/services/fleetgraph/tracing/`
 - `api/src/services/fleetgraph/graph/`
@@ -85,9 +87,11 @@
 - `api/src/services/fleetgraph/findings/`
 - `api/src/services/fleetgraph/actions/`
 - `api/src/services/fleetgraph/proactive/`
+- `api/src/services/fleetgraph/contracts/`
 - `api/src/routes/fleetgraph.ts`
 - `api/src/openapi/schemas/fleetgraph.ts`
 - `web/src/components/FleetGraphEntryCard.tsx`
+- `web/src/components/FleetGraphDebugDock.tsx`
 - `web/src/components/FleetGraphFindingsPanel.tsx`
 - `web/src/hooks/useFleetGraphEntry.ts`
 - `web/src/hooks/useFleetGraphFindings.ts`
@@ -109,6 +113,7 @@
 - Visible UI stories should run `.ai/workflows/ui-qa-critic.md` after validation, and completed visible packs should publish `user-audit-checklist.md`.
 - Keep the sanctioned public demo reference current: `scripts/deploy-railway-demo.sh` -> the active Railway public URL.
 - For deploy-relevant stories, deployment status must still be explicit: `deployed`, `not deployed`, or `blocked`.
+- For FleetGraph architecture work, keep the worker queue as the scheduler and keep Ship product reads/writes on REST even when FleetGraph-owned state stays in Postgres.
 
 ---
 

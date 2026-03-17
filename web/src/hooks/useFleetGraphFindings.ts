@@ -4,6 +4,7 @@ import { apiGet, apiPost } from '@/lib/api';
 import type {
   FleetGraphFindingLifecycleResponse,
   FleetGraphFindingListResponse,
+  FleetGraphFindingReviewResponse,
 } from '@/lib/fleetgraph-findings';
 
 function buildQueryString(documentIds: string[]) {
@@ -59,6 +60,20 @@ async function applyFleetGraphFinding(id: string) {
   return response.json() as Promise<FleetGraphFindingLifecycleResponse>;
 }
 
+async function reviewFleetGraphFinding(id: string) {
+  const response = await apiPost(`/api/fleetgraph/findings/${id}/review`);
+  if (!response.ok) {
+    const error = new Error(
+      'FleetGraph could not prepare that review right now. Nothing changed in Ship.'
+    ) as Error & {
+      status?: number;
+    };
+    error.status = response.status;
+    throw error;
+  }
+  return response.json() as Promise<FleetGraphFindingReviewResponse>;
+}
+
 async function snoozeFleetGraphFinding(id: string, minutes: number) {
   const response = await apiPost(`/api/fleetgraph/findings/${id}/snooze`, { minutes });
   if (!response.ok) {
@@ -100,6 +115,10 @@ export function useFleetGraphFindings(documentIds: string[]) {
     },
   });
 
+  const reviewMutation = useMutation({
+    mutationFn: reviewFleetGraphFinding,
+  });
+
   const snoozeMutation = useMutation({
     mutationFn: ({ id, minutes }: { id: string; minutes: number }) =>
       snoozeFleetGraphFinding(id, minutes),
@@ -113,7 +132,8 @@ export function useFleetGraphFindings(documentIds: string[]) {
       return applyMutation.mutateAsync(id);
     },
     actionErrorMessage:
-      (applyMutation.error instanceof Error && applyMutation.error.message)
+      (reviewMutation.error instanceof Error && reviewMutation.error.message)
+      || (applyMutation.error instanceof Error && applyMutation.error.message)
       || (dismissMutation.error instanceof Error && dismissMutation.error.message)
       || (snoozeMutation.error instanceof Error && snoozeMutation.error.message)
       || null,
@@ -122,12 +142,20 @@ export function useFleetGraphFindings(documentIds: string[]) {
     },
     findings: query.data?.findings ?? [],
     isLoading: query.isLoading,
-    isMutating: applyMutation.isPending || dismissMutation.isPending || snoozeMutation.isPending,
+    isMutating:
+      reviewMutation.isPending
+      || applyMutation.isPending
+      || dismissMutation.isPending
+      || snoozeMutation.isPending,
     loadErrorMessage: query.error instanceof Error ? query.error.message : null,
     resetActionState() {
+      reviewMutation.reset();
       applyMutation.reset();
       dismissMutation.reset();
       snoozeMutation.reset();
+    },
+    async reviewFinding(id: string) {
+      return reviewMutation.mutateAsync(id);
     },
     async snoozeFinding(id: string, minutes = 240) {
       return snoozeMutation.mutateAsync({ id, minutes });

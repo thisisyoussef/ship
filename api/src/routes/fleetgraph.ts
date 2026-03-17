@@ -4,6 +4,7 @@ import { ZodError } from 'zod'
 import {
   createFleetGraphFindingActionService,
   FleetGraphFindingActionError,
+  type FleetGraphFindingActionReview,
   type FleetGraphFindingActionExecutionRecord,
 } from '../services/fleetgraph/actions/index.js'
 import {
@@ -20,7 +21,11 @@ import {
   FleetGraphSnoozeRequestSchema,
   type FleetGraphFindingRecord,
 } from '../services/fleetgraph/findings/index.js'
-import { createFleetGraphRuntime } from '../services/fleetgraph/graph/index.js'
+import {
+  createFleetGraphRuntime,
+  type FleetGraphInterruptSummary,
+  type FleetGraphRuntime,
+} from '../services/fleetgraph/graph/index.js'
 import { createFleetGraphEntryService, FleetGraphEntryError } from '../services/fleetgraph/entry/index.js'
 import { authMiddleware } from '../middleware/auth.js'
 import { getAuthContext } from './route-helpers.js'
@@ -31,9 +36,8 @@ interface FleetGraphRouterDeps {
   actionService?: ReturnType<typeof createFleetGraphFindingActionService>
   entryService?: ReturnType<typeof createFleetGraphEntryService>
   findingStore?: ReturnType<typeof createFleetGraphFindingStore>
+  runtime?: FleetGraphRuntime
 }
-
-const runtime = createFleetGraphRuntime()
 
 function readServiceToken(request: Request) {
   const headerToken = request.header('x-fleetgraph-service-token')
@@ -94,6 +98,38 @@ function serializeActionExecution(
   }
 }
 
+function serializeReview(review: FleetGraphFindingActionReview) {
+  return {
+    cancelLabel: review.cancelLabel,
+    confirmLabel: review.confirmLabel,
+    evidence: review.evidence,
+    summary: review.summary,
+    threadId: review.threadId,
+    title: review.title,
+  }
+}
+
+function serializeInterrupt(interrupt: FleetGraphInterruptSummary) {
+  return {
+    id: interrupt.id,
+    taskName: interrupt.taskName,
+    value: interrupt.value,
+  }
+}
+
+function serializeCheckpoint(snapshot: Awaited<ReturnType<FleetGraphRuntime['getState']>>) {
+  const values = snapshot.values as Record<string, unknown>
+  return {
+    branch: typeof values.branch === 'string' ? values.branch : undefined,
+    createdAt: snapshot.createdAt,
+    next: snapshot.next,
+    outcome: typeof values.outcome === 'string' ? values.outcome : undefined,
+    path: Array.isArray(values.path) ? values.path : [],
+    taskCount: snapshot.tasks.length,
+    threadId: snapshot.config.configurable?.thread_id,
+  }
+}
+
 function readDocumentIds(request: Request) {
   const values = typeof request.query.documentIds === 'string'
     ? request.query.documentIds.split(',')
@@ -109,12 +145,12 @@ function readDocumentIds(request: Request) {
 export function createFleetGraphRouter(
   deps: FleetGraphRouterDeps = {}
 ) {
-  const entryService = deps.entryService ?? createFleetGraphEntryService({
-    runtime,
-  })
+  const runtime = deps.runtime ?? createFleetGraphRuntime()
+  const entryService = deps.entryService ?? createFleetGraphEntryService({ runtime })
   const findingStore = deps.findingStore ?? createFleetGraphFindingStore()
   const actionService = deps.actionService ?? createFleetGraphFindingActionService({
     findingStore,
+    runtime,
   })
   const router: RouterType = Router()
 
@@ -192,6 +228,39 @@ export function createFleetGraphRouter(
     }
   })
 
+  router.get('/debug/threads', authMiddleware, async (req: Request, res: Response) => {
+    const auth = getAuthContext(req, res)
+    if (!auth) {
+      return
+    }
+
+    const threadIds = typeof req.query.threadIds === 'string'
+      ? req.query.threadIds.split(',').map((value) => value.trim()).filter(Boolean)
+      : []
+
+    try {
+      const threads = await Promise.all(
+        threadIds.map(async (threadId) => {
+          const [history, pendingInterrupts] = await Promise.all([
+            runtime.getCheckpointHistory(threadId),
+            runtime.getPendingInterrupts(threadId),
+          ])
+
+          return {
+            checkpoints: history.map(serializeCheckpoint),
+            pendingInterrupts: pendingInterrupts.map(serializeInterrupt),
+            threadId,
+          }
+        })
+      )
+
+      res.json({ threads })
+    } catch (error) {
+      console.error('FleetGraph debug thread error:', error)
+      res.status(500).json({ error: 'Failed to load FleetGraph debug threads' })
+    }
+  })
+
   router.post('/findings/:id/dismiss', authMiddleware, async (req: Request, res: Response) => {
     const auth = getAuthContext(req, res)
     if (!auth) {
@@ -223,6 +292,33 @@ export function createFleetGraphRouter(
     } catch (error) {
       console.error('FleetGraph dismiss error:', error)
       res.status(500).json({ error: 'Failed to dismiss FleetGraph finding' })
+    }
+  })
+
+  router.post('/findings/:id/review', authMiddleware, async (req: Request, res: Response) => {
+    const auth = getAuthContext(req, res)
+    if (!auth) {
+      return
+    }
+
+    try {
+      const response = await actionService.reviewStartWeekFinding({
+        findingId: String(req.params.id),
+        workspaceId: auth.workspaceId,
+      })
+
+      res.json({
+        finding: serializeFinding(response.finding),
+        review: serializeReview(response.review),
+      })
+    } catch (error) {
+      if (error instanceof FleetGraphFindingActionError) {
+        res.status(error.statusCode).json({ error: error.message })
+        return
+      }
+
+      console.error('FleetGraph review error:', error)
+      res.status(500).json({ error: 'Failed to prepare FleetGraph review' })
     }
   })
 
@@ -298,4 +394,4 @@ export function createFleetGraphRouter(
   return router
 }
 
-export default createFleetGraphRouter()
+export default createFleetGraphRouter

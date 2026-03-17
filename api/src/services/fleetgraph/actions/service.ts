@@ -1,6 +1,10 @@
 import type { Request } from 'express'
 
 import {
+  resolveShipRestBaseUrl,
+  type ShipRestRequestContext,
+} from './executor.js'
+import {
   createFleetGraphFindingActionStore,
 } from './store.js'
 import type {
@@ -12,23 +16,10 @@ import {
   type FleetGraphFindingRecord,
   type FleetGraphFindingStore,
 } from '../findings/index.js'
-
-interface ShipRestActionResult {
-  body?: Record<string, unknown>
-  ok: boolean
-  status: number
-}
-
-interface ShipRestRequestContext {
-  baseUrl: string
-  cookieHeader?: string
-  csrfToken?: string
-}
-
-type ShipRestExecutor = (
-  path: string,
-  requestContext: ShipRestRequestContext
-) => Promise<ShipRestActionResult>
+import {
+  createFleetGraphRuntime,
+  type FleetGraphRuntime,
+} from '../graph/index.js'
 
 export class FleetGraphFindingActionError extends Error {
   constructor(
@@ -46,48 +37,28 @@ interface ApplyFindingActionInput {
   workspaceId: string
 }
 
+interface ReviewFindingActionInput {
+  findingId: string
+  workspaceId: string
+}
+
+export interface FleetGraphFindingActionReview {
+  cancelLabel: string
+  confirmLabel: string
+  evidence: string[]
+  summary: string
+  threadId: string
+  title: string
+}
+
 interface FleetGraphFindingWithExecution extends FleetGraphFindingRecord {
   actionExecution?: FleetGraphFindingActionExecutionRecord
 }
 
 interface FleetGraphFindingActionServiceDeps {
-  executeShipRestAction?: ShipRestExecutor
-  findingStore?: FleetGraphFindingStore
   actionStore?: FleetGraphFindingActionStore
-}
-
-function isJsonObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function readMessage(
-  body: Record<string, unknown> | undefined,
-  fallback: string
-) {
-  const error = body?.error
-  if (typeof error === 'string' && error.trim().length > 0) {
-    return error
-  }
-  return fallback
-}
-
-function isAlreadyActiveResult(result: ShipRestActionResult) {
-  return result.status === 400
-    && readMessage(result.body, '').toLowerCase().includes('already active')
-}
-
-function resolveBaseUrl(request: Pick<Request, 'get' | 'protocol'>) {
-  const forwardedProto = request.get('x-forwarded-proto')?.split(',')[0]?.trim()
-  const forwardedHost = request.get('x-forwarded-host')?.split(',')[0]?.trim()
-  const host = forwardedHost ?? request.get('host')
-  if (!host) {
-    throw new FleetGraphFindingActionError(
-      'Unable to resolve the Ship REST base URL for FleetGraph apply.',
-      500
-    )
-  }
-
-  return `${forwardedProto ?? request.protocol}://${host}`
+  findingStore?: FleetGraphFindingStore
+  runtime?: FleetGraphRuntime
 }
 
 function mapExecutions(
@@ -104,32 +75,103 @@ function mapExecutions(
   }))
 }
 
-async function defaultShipRestExecutor(
-  path: string,
-  requestContext: ShipRestRequestContext
-): Promise<ShipRestActionResult> {
-  const response = await fetch(`${requestContext.baseUrl}${path}`, {
-    headers: {
-      ...(requestContext.cookieHeader ? { cookie: requestContext.cookieHeader } : {}),
-      ...(requestContext.csrfToken
-        ? { 'x-csrf-token': requestContext.csrfToken }
-        : {}),
-      accept: 'application/json',
-      'content-type': 'application/json',
-    },
-    method: 'POST',
+function buildActionThreadId(finding: FleetGraphFindingRecord) {
+  return [
+    'fleetgraph',
+    finding.workspaceId,
+    'finding-review',
+    finding.id,
+    'start-week',
+  ].join(':')
+}
+
+function buildRequestContext(
+  request: Pick<Request, 'get' | 'header' | 'protocol'>
+): ShipRestRequestContext {
+  return {
+    baseUrl: resolveShipRestBaseUrl(request),
+    cookieHeader: request.header('cookie') ?? undefined,
+    csrfToken: request.header('x-csrf-token') ?? undefined,
+  }
+}
+
+function buildReview(finding: FleetGraphFindingRecord) {
+  return {
+    cancelLabel: 'Cancel',
+    confirmLabel: 'Start week in Ship',
+    evidence: finding.recommendedAction?.evidence ?? [],
+    summary: finding.recommendedAction?.summary
+      ?? 'Review this recommendation before making a Ship change.',
+    threadId: buildActionThreadId(finding),
+    title: finding.recommendedAction?.title ?? 'Start week',
+  } satisfies FleetGraphFindingActionReview
+}
+
+function ensureApplicableFinding(finding: FleetGraphFindingRecord | null) {
+  if (!finding) {
+    throw new FleetGraphFindingActionError(
+      'FleetGraph finding not found',
+      404
+    )
+  }
+
+  if (finding.status !== 'active') {
+    throw new FleetGraphFindingActionError(
+      'Only active FleetGraph findings can be applied.',
+      409
+    )
+  }
+
+  const action = finding.recommendedAction
+  if (!action || action.type !== 'start_week' || action.endpoint.method !== 'POST') {
+    throw new FleetGraphFindingActionError(
+      'This FleetGraph finding does not expose a valid start-week action.',
+      400
+    )
+  }
+
+  return finding
+}
+
+async function hydrateFinding(
+  actionStore: FleetGraphFindingActionStore,
+  findingStore: FleetGraphFindingStore,
+  finding: FleetGraphFindingRecord
+): Promise<FleetGraphFindingWithExecution> {
+  const executions = await actionStore.listExecutionsForFindings(
+    finding.workspaceId,
+    [finding.id]
+  )
+
+  return mapExecutions([finding], executions)[0] as FleetGraphFindingWithExecution
+}
+
+async function ensurePendingReview(
+  runtime: FleetGraphRuntime,
+  finding: FleetGraphFindingRecord
+) {
+  const threadId = buildActionThreadId(finding)
+  const pendingInterrupts = await runtime.getPendingInterrupts(threadId)
+    .catch(() => [])
+
+  if (pendingInterrupts.length > 0) {
+    return threadId
+  }
+
+  await runtime.invoke({
+    contextKind: 'finding_review',
+    documentId: finding.documentId,
+    documentType: finding.documentType,
+    findingId: finding.id,
+    mode: 'on_demand',
+    requestedAction: finding.recommendedAction,
+    routeSurface: 'document-page',
+    threadId,
+    trigger: 'human-review',
+    workspaceId: finding.workspaceId,
   })
 
-  const contentType = response.headers.get('content-type') ?? ''
-  const body = contentType.includes('application/json')
-    ? await response.json() as Record<string, unknown>
-    : undefined
-
-  return {
-    body,
-    ok: response.ok,
-    status: response.status,
-  }
+  return threadId
 }
 
 export function createFleetGraphFindingActionService(
@@ -137,116 +179,47 @@ export function createFleetGraphFindingActionService(
 ) {
   const findingStore = deps.findingStore ?? createFleetGraphFindingStore()
   const actionStore = deps.actionStore ?? createFleetGraphFindingActionStore()
-  const executeShipRestAction = deps.executeShipRestAction ?? defaultShipRestExecutor
+  const runtime = deps.runtime ?? createFleetGraphRuntime({
+    actionStore,
+    findingStore,
+  })
 
   return {
+    async reviewStartWeekFinding(
+      input: ReviewFindingActionInput
+    ): Promise<{ finding: FleetGraphFindingWithExecution; review: FleetGraphFindingActionReview }> {
+      const finding = ensureApplicableFinding(
+        await findingStore.getFindingById(input.findingId, input.workspaceId)
+      )
+      await ensurePendingReview(runtime, finding)
+
+      return {
+        finding: await hydrateFinding(actionStore, findingStore, finding),
+        review: buildReview(finding),
+      }
+    },
+
     async applyStartWeekFinding(
       input: ApplyFindingActionInput
     ): Promise<FleetGraphFindingWithExecution> {
-      const finding = await findingStore.getFindingById(
-        input.findingId,
-        input.workspaceId
+      const finding = ensureApplicableFinding(
+        await findingStore.getFindingById(input.findingId, input.workspaceId)
+      )
+      const threadId = await ensurePendingReview(runtime, finding)
+
+      await runtime.resume(
+        threadId,
+        'approved',
+        {
+          fleetgraphActionRequestContext: buildRequestContext(input.request),
+        }
       )
 
-      if (!finding) {
-        throw new FleetGraphFindingActionError(
-          'FleetGraph finding not found',
-          404
-        )
-      }
+      const refreshed = ensureApplicableFinding(
+        await findingStore.getFindingById(input.findingId, input.workspaceId)
+      )
 
-      if (finding.status !== 'active') {
-        throw new FleetGraphFindingActionError(
-          'Only active FleetGraph findings can be applied.',
-          409
-        )
-      }
-
-      const action = finding.recommendedAction
-      if (!action || action.type !== 'start_week' || action.endpoint.method !== 'POST') {
-        throw new FleetGraphFindingActionError(
-          'This FleetGraph finding does not expose a valid start-week action.',
-          400
-        )
-      }
-
-      const executionStart = await actionStore.beginStartWeekExecution({
-        endpoint: action.endpoint,
-        findingId: finding.id,
-        workspaceId: input.workspaceId,
-      })
-
-      if (!executionStart.shouldExecute) {
-        return {
-          ...finding,
-          actionExecution: executionStart.execution,
-        }
-      }
-
-      const requestContext = {
-        baseUrl: resolveBaseUrl(input.request),
-        cookieHeader: input.request.header('cookie') ?? undefined,
-        csrfToken: input.request.header('x-csrf-token') ?? undefined,
-      }
-
-      try {
-        const result = await executeShipRestAction(
-          action.endpoint.path,
-          requestContext
-        )
-
-        const execution = result.ok
-          ? await actionStore.finishStartWeekExecution({
-            appliedAt: new Date(),
-            endpoint: action.endpoint,
-            findingId: finding.id,
-            message: buildSuccessMessage(result.body),
-            resultStatusCode: result.status,
-            status: 'applied',
-            workspaceId: input.workspaceId,
-          })
-          : isAlreadyActiveResult(result)
-            ? await actionStore.finishStartWeekExecution({
-              appliedAt: new Date(),
-              endpoint: action.endpoint,
-              findingId: finding.id,
-              message: 'Week was already active when this FleetGraph action was applied.',
-              resultStatusCode: result.status,
-              status: 'already_applied',
-              workspaceId: input.workspaceId,
-            })
-            : await actionStore.finishStartWeekExecution({
-              endpoint: action.endpoint,
-              findingId: finding.id,
-              message: readMessage(
-                result.body,
-                'Ship could not apply the week-start action.'
-              ),
-              resultStatusCode: result.status,
-              status: 'failed',
-              workspaceId: input.workspaceId,
-            })
-
-        return {
-          ...finding,
-          actionExecution: execution,
-        }
-      } catch (error) {
-        const execution = await actionStore.finishStartWeekExecution({
-          endpoint: action.endpoint,
-          findingId: finding.id,
-          message: error instanceof Error
-            ? error.message
-            : 'Ship could not apply the week-start action.',
-          status: 'failed',
-          workspaceId: input.workspaceId,
-        })
-
-        return {
-          ...finding,
-          actionExecution: execution,
-        }
-      }
+      return hydrateFinding(actionStore, findingStore, refreshed)
     },
 
     async attachExecutions(
@@ -261,17 +234,4 @@ export function createFleetGraphFindingActionService(
       return mapExecutions(findings, executions)
     },
   }
-}
-
-function buildSuccessMessage(body: Record<string, unknown> | undefined) {
-  if (!isJsonObject(body)) {
-    return 'Week started successfully from the FleetGraph apply gate.'
-  }
-
-  const count = Number(body.snapshot_issue_count ?? 0)
-  if (!Number.isFinite(count) || count < 0) {
-    return 'Week started successfully from the FleetGraph apply gate.'
-  }
-
-  return `Week started successfully with ${count} scoped issue${count === 1 ? '' : 's'}.`
 }

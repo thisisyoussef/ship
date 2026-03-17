@@ -28,8 +28,10 @@ Use this guide when verifying FleetGraph behavior on the sanctioned public demo.
 8. Pause for a beat and confirm nothing in Ship has changed yet.
 9. Click `Cancel`.
 10. Click `Preview approval step` in the entry card and inspect the approval-preview state.
-11. Return to `Documents`.
-12. Open `FleetGraph Demo Week - Worker Generated`.
+11. Open `FleetGraph debug`.
+12. Inspect the secondary debug dock for thread history and pending interrupts.
+13. Return to `Documents`.
+14. Open `FleetGraph Demo Week - Worker Generated`.
 
 ## Expected FleetGraph Surface
 
@@ -46,6 +48,10 @@ Use this guide when verifying FleetGraph behavior on the sanctioned public demo.
 - Lifecycle controls such as `Dismiss` and `Snooze 4h` remain available in the `Quick actions` block for finding-state checks.
 - The entry card should also show a `Quick actions` section instead of an unlabeled button row.
 - The main card copy should read in user terms first, with diagnostics moved behind `Open FleetGraph debug`.
+- The debug dock should show secondary details such as:
+  - FleetGraph thread ids
+  - latest checkpoint path/outcome
+  - pending interrupt summaries when a review thread is paused
 
 ## Expected Review-And-Apply Flow
 
@@ -54,7 +60,8 @@ Use this guide when verifying FleetGraph behavior on the sanctioned public demo.
 3. Confirm `Cancel` and `Start week in Ship` are both visible.
 4. Confirm the copy explains the effect in human terms instead of raw endpoint or route jargon.
 5. Confirm the same click that opened review did not already start the week.
-6. Apply only when you want to test the real HITL path.
+6. Open `FleetGraph debug` and confirm the review thread appears as a secondary diagnostic detail, not primary product copy.
+7. Apply only when you want to test the real HITL path.
 
 ## Expected Entry-Card Preview Flow
 
@@ -64,6 +71,7 @@ Use this guide when verifying FleetGraph behavior on the sanctioned public demo.
 4. Confirm the card shows `FleetGraph paused for human approval.`
 5. Confirm the result area shows `Current guidance` and `Approval step`.
 6. Confirm the visible options focus on user choice first, while diagnostics remain secondary under `Open FleetGraph debug`.
+7. Confirm the debug dock surfaces the entry thread and its latest checkpoint summary.
 
 ## Screenshot References
 

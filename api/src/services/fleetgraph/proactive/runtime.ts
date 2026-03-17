@@ -1,33 +1,14 @@
-import {
-  createLLMAdapter,
-  resolveLLMConfig,
-  type LLMAdapter,
-} from '../llm/index.js'
 import type { FleetGraphState } from '../graph/types.js'
 import { createFleetGraphRuntime } from '../graph/index.js'
-import {
-  createFleetGraphFindingStore,
-  type FleetGraphFindingStore,
-} from '../findings/index.js'
-import {
-  createLangSmithClient,
-  createTracedLLMAdapter,
-  resolveFleetGraphTracingSettings,
-  runFleetGraphTrace,
-  type FleetGraphTracingSettings,
-  type LangSmithClientLike,
-} from '../tracing/index.js'
-import {
-  buildWeekStartFindingDraft,
-  buildWeekStartFindingKey,
-  selectWeekStartDriftCandidate,
-} from './week-start-drift.js'
-import {
-  createFleetGraphShipApiClient,
-  resolveFleetGraphShipApiConfig,
-  type FleetGraphShipApiEnv,
-} from './ship-client.js'
+import type { FleetGraphFindingActionStore } from '../actions/index.js'
+import type { FleetGraphFindingStore } from '../findings/index.js'
+import type { BaseCheckpointSaver } from '@langchain/langgraph'
+import type { LLMAdapter } from '../llm/index.js'
 import type { FleetGraphShipApiClient } from './types.js'
+import type {
+  FleetGraphTracingSettings,
+  LangSmithClientLike,
+} from '../tracing/index.js'
 
 interface FleetGraphRuntimeLike {
   getState(threadId: string): Promise<unknown>
@@ -36,6 +17,13 @@ interface FleetGraphRuntimeLike {
 
 interface FleetGraphProactiveRuntimeDeps {
   baseRuntime?: FleetGraphRuntimeLike
+  actionStore?: FleetGraphFindingActionStore
+  checkpointer?: BaseCheckpointSaver
+  executeShipRestAction?: (
+    path: string,
+    requestContext: { baseUrl: string; cookieHeader?: string; csrfToken?: string }
+  ) => Promise<{ body?: Record<string, unknown>; ok: boolean; status: number }>
+  findingStore?: FleetGraphFindingStore
   findings?: FleetGraphFindingStore
   llmAdapter?: LLMAdapter
   now?: () => Date
@@ -44,61 +32,21 @@ interface FleetGraphProactiveRuntimeDeps {
   tracingSettings?: FleetGraphTracingSettings
 }
 
-function shouldPreserveDemoFinding(metadata: Record<string, unknown> | undefined) {
-  return metadata?.preserveDemoLane === true
-}
-
-function excludePreservedDemoWeeks(
-  weeks: Awaited<ReturnType<FleetGraphShipApiClient['listWeeks']>>,
-  activeFindings: Awaited<ReturnType<FleetGraphFindingStore['listActiveFindings']>>
-) {
-  const preservedWeekIds = new Set(
-    activeFindings
-      .filter((finding) => shouldPreserveDemoFinding(finding.metadata))
-      .map((finding) => finding.documentId)
-  )
-
-  if (preservedWeekIds.size === 0) {
-    return weeks
-  }
-
-  return {
-    ...weeks,
-    weeks: weeks.weeks.filter((week) => !preservedWeekIds.has(week.id)),
-  }
-}
-
-function buildSummaryPrompt(input: {
-  issueCount: number
-  ownerName?: string
-  startDate: string
-  status: string
-  weekName: string
-}) {
-  return JSON.stringify(input)
-}
-
 export function createFleetGraphProactiveRuntime(
-  deps: FleetGraphProactiveRuntimeDeps = {},
-  env: FleetGraphShipApiEnv & NodeJS.ProcessEnv = process.env
+  deps: FleetGraphProactiveRuntimeDeps = {}
 ): FleetGraphRuntimeLike {
-  const baseRuntime = deps.baseRuntime ?? createFleetGraphRuntime()
-  const findings = deps.findings ?? createFleetGraphFindingStore()
-  const shipClient = deps.shipClient
-    ?? createFleetGraphShipApiClient(resolveFleetGraphShipApiConfig(env))
-  const tracingSettings = deps.tracingSettings
-    ?? resolveFleetGraphTracingSettings(env)
-  const tracingClient = deps.tracingClient
-    ?? createLangSmithClient(tracingSettings)
-  const llmAdapter = deps.llmAdapter
-    ?? createTracedLLMAdapter(
-      createLLMAdapter(resolveLLMConfig(env)),
-      {
-        client: tracingClient,
-        settings: tracingSettings,
-      }
-    )
-  const now = deps.now ?? (() => new Date())
+  const runtimeDeps = deps.baseRuntime ? deps : {
+    actionStore: deps.actionStore,
+    checkpointer: deps.checkpointer,
+    executeShipRestAction: deps.executeShipRestAction,
+    findingStore: deps.findingStore ?? deps.findings,
+    llmAdapter: deps.llmAdapter,
+    now: deps.now,
+    shipClient: deps.shipClient,
+    tracingClient: deps.tracingClient,
+    tracingSettings: deps.tracingSettings,
+  }
+  const baseRuntime = deps.baseRuntime ?? createFleetGraphRuntime(runtimeDeps)
 
   return {
     getState(threadId: string) {
@@ -111,7 +59,7 @@ export function createFleetGraphProactiveRuntime(
         mode: 'on_demand' | 'proactive'
         routeSurface?: string
         threadId: string
-        trigger: 'document-context' | 'event' | 'scheduled-sweep'
+        trigger: 'document-context' | 'event' | 'scheduled-sweep' | 'human-review'
         workspaceId: string
       }
 
@@ -119,96 +67,10 @@ export function createFleetGraphProactiveRuntime(
         return baseRuntime.invoke(input)
       }
 
-      const activeFindings = await findings.listActiveFindings({
-        workspaceId: stateInput.workspaceId,
-      })
-      const weeks = await shipClient.listWeeks()
-      const candidate = selectWeekStartDriftCandidate(
-        excludePreservedDemoWeeks(weeks, activeFindings),
-        now()
-      )
-      const candidateKey = candidate
-        ? buildWeekStartFindingKey(stateInput.workspaceId, candidate.week.id)
-        : null
-
-      for (const finding of activeFindings) {
-        if (
-          finding.findingType === 'week_start_drift'
-          && finding.findingKey !== candidateKey
-          && !shouldPreserveDemoFinding(finding.metadata)
-        ) {
-          await findings.resolveFinding(finding.findingKey, now())
-        }
-      }
-
-      const state = await baseRuntime.invoke({
+      return baseRuntime.invoke({
         ...stateInput,
-        candidateCount: candidate ? 1 : 0,
-        documentId: candidate?.week.id ?? stateInput.documentId,
+        contextKind: 'proactive',
       })
-
-      if (!candidate || state.branch !== 'reasoned') {
-        return state
-      }
-
-      const traceResult = await runFleetGraphTrace(
-        {
-          adapter: llmAdapter,
-          context: {
-            branch: state.branch,
-            documentId: candidate.week.id,
-            mode: state.mode,
-            outcome: state.outcome,
-            routeSurface: state.routeSurface,
-            trigger: state.trigger,
-            workspaceId: state.workspaceId,
-          },
-          request: {
-            input: buildSummaryPrompt({
-              issueCount: candidate.week.issue_count,
-              ownerName: candidate.week.owner?.name,
-              startDate: candidate.startDate.toISOString().slice(0, 10),
-              status: candidate.week.status,
-              weekName: candidate.week.name,
-            }),
-            instructions: [
-              'You are FleetGraph, a PM-facing project intelligence agent.',
-              'Write one concise advisory sentence under 180 characters.',
-              'State why the week needs attention without inventing missing facts.',
-            ].join(' '),
-          },
-          settings: tracingSettings,
-        },
-        {
-          client: tracingClient,
-        }
-      )
-
-      const draft = buildWeekStartFindingDraft(
-        candidate,
-        stateInput.workspaceId,
-        traceResult.result.text
-      )
-
-      await findings.upsertFinding({
-        cooldownUntil: now(),
-        dedupeKey: `week-start-drift:${stateInput.workspaceId}:${candidate.week.id}`,
-        documentId: candidate.week.id,
-        documentType: 'sprint',
-        evidence: draft.evidence,
-        findingKey: draft.findingKey,
-        findingType: 'week_start_drift',
-        metadata: draft.metadata,
-        recommendedAction: draft.recommendedAction,
-        summary: draft.summary,
-        threadId: state.threadId,
-        title: draft.title,
-        tracePublicUrl: traceResult.trace.publicUrl,
-        traceRunId: traceResult.trace.runId,
-        workspaceId: stateInput.workspaceId,
-      }, now())
-
-      return state
     },
   }
 }

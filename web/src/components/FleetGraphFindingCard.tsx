@@ -1,4 +1,7 @@
-import type { FleetGraphFinding } from '@/lib/fleetgraph-findings';
+import type {
+  FleetGraphFinding,
+  FleetGraphFindingReview,
+} from '@/lib/fleetgraph-findings';
 import {
   buildFindingSummary,
   formatFleetGraphTimestamp,
@@ -25,6 +28,7 @@ interface FleetGraphFindingCardProps {
   onDismiss: (findingId: string) => void;
   onReview: (findingId: string) => void;
   onSnooze: (findingId: string) => void;
+  review?: FleetGraphFindingReview | null;
 }
 
 function FindingEvidenceList({ finding }: { finding: FleetGraphFinding }) {
@@ -58,6 +62,7 @@ export function FleetGraphFindingCard({
   onDismiss,
   onReview,
   onSnooze,
+  review,
 }: FleetGraphFindingCardProps) {
   const executionLabel = finding.actionExecution ? renderExecutionLabel(finding) : null;
 
@@ -97,12 +102,20 @@ export function FleetGraphFindingCard({
                 <div className="space-y-3 rounded-md border border-emerald-200 bg-white/70 px-3 py-3">
                   <div className="space-y-1">
                     <p className="text-base font-semibold text-slate-950">
-                      Confirm before starting this week
+                      {review?.title ?? 'Confirm before starting this week'}
                     </p>
                     <p className="text-sm text-slate-700">
-                      FleetGraph thinks this week is ready to start. Nothing changes in Ship until you confirm.
+                      {review?.summary
+                        ?? 'FleetGraph thinks this week is ready to start. Nothing changes in Ship until you confirm.'}
                     </p>
                   </div>
+                  {review?.evidence.length ? (
+                    <ul className="list-disc space-y-1 pl-5 text-sm text-slate-700">
+                      {review.evidence.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  ) : null}
                   <div className="flex flex-wrap justify-end gap-2">
                     <button
                       className={buttonClassName}
@@ -110,7 +123,7 @@ export function FleetGraphFindingCard({
                       onClick={onCancelReview}
                       type="button"
                     >
-                      Cancel
+                      {review?.cancelLabel ?? 'Cancel'}
                     </button>
                     <button
                       className={applyButtonClassName}
@@ -118,7 +131,7 @@ export function FleetGraphFindingCard({
                       onClick={() => onApply(finding.id)}
                       type="button"
                     >
-                      Start week in Ship
+                      {review?.confirmLabel ?? 'Start week in Ship'}
                     </button>
                   </div>
                 </div>

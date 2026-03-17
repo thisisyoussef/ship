@@ -1,6 +1,7 @@
 import express from 'express'
 import request from 'supertest'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { MemorySaver } from '@langchain/langgraph'
 
 import type { FleetGraphFindingActionExecutionRecord } from '../services/fleetgraph/actions/index.js'
 import type {
@@ -123,8 +124,57 @@ function createEntryPayloadWithNullableTicketNumbers() {
 
 describe('FleetGraph routes', () => {
   let app: express.Express
+  const runtime = {
+    checkpointer: new MemorySaver(),
+    checkpointerKind: 'memory',
+    getCheckpointHistory: vi.fn(async () => []),
+    getPendingInterrupts: vi.fn(async () => []),
+    getState: vi.fn(),
+    invoke: vi.fn(async (input: {
+      contextKind: 'entry'
+      mode: 'on_demand'
+      requestedAction?: unknown
+      routeSurface: string
+      threadId: string
+    }) => ({
+      approvalRequired: Boolean(input.requestedAction),
+      branch: input.requestedAction ? 'approval_required' : 'reasoned',
+      candidateCount: input.requestedAction ? 1 : 0,
+      checkpointNamespace: 'fleetgraph',
+      contextKind: input.contextKind,
+      hasError: false,
+      mode: input.mode,
+      outcome: input.requestedAction ? 'approval_required' : 'advisory',
+      path: input.requestedAction
+        ? [
+          'resolve_trigger_context',
+          'select_scenarios',
+          'run_scenario:entry_requested_action',
+          'merge_candidates',
+          'score_and_rank',
+          'approval_interrupt',
+        ]
+        : [
+          'resolve_trigger_context',
+          'select_scenarios',
+          'run_scenario:entry_context_check',
+          'merge_candidates',
+          'score_and_rank',
+          'reason_and_deliver',
+          'persist_result',
+        ],
+      routeSurface: input.routeSurface,
+      scenarioResults: [],
+      threadId: input.threadId,
+      trigger: 'document-context',
+      workspaceId: '22222222-2222-4222-8222-222222222222',
+    })),
+    invokeRaw: vi.fn(),
+    resume: vi.fn(),
+  }
   const originalEnv = { ...process.env }
   const applyStartWeekFinding = vi.fn()
+  const reviewStartWeekFinding = vi.fn()
   const attachExecutions = vi.fn(async (findings: FleetGraphFindingRecord[]) => findings)
   const dismissFinding = vi.fn<FleetGraphFindingStore['dismissFinding']>()
   const getFindingByKey = vi.fn<FleetGraphFindingStore['getFindingByKey']>()
@@ -149,6 +199,7 @@ describe('FleetGraph routes', () => {
     process.env = { ...originalEnv }
     ;[
       applyStartWeekFinding,
+      reviewStartWeekFinding,
       attachExecutions,
       dismissFinding,
       getFindingById,
@@ -168,8 +219,10 @@ describe('FleetGraph routes', () => {
       actionService: {
         applyStartWeekFinding,
         attachExecutions,
+        reviewStartWeekFinding,
       },
       findingStore,
+      runtime: runtime as never,
     }))
   })
 
@@ -342,6 +395,113 @@ describe('FleetGraph routes', () => {
       message: 'Week started successfully with 3 scoped issues.',
       status: 'applied',
     })
+  })
+
+  it('returns a server-backed review payload for start-week findings', async () => {
+    reviewStartWeekFinding.mockResolvedValue({
+      finding: makeFinding({
+        id: 'finding-1',
+      }),
+      review: {
+        cancelLabel: 'Cancel',
+        confirmLabel: 'Start week in Ship',
+        evidence: ['The week is still in planning after its expected start date.'],
+        summary: 'Nothing changes in Ship until the PM confirms this action.',
+        threadId: 'fleetgraph:workspace-1:finding-review:finding-1:start-week',
+        title: 'Confirm before starting this week',
+      },
+    })
+
+    const response = await request(app)
+      .post('/api/fleetgraph/findings/finding-1/review')
+
+    expect(response.status).toBe(200)
+    expect(reviewStartWeekFinding).toHaveBeenCalledWith({
+      findingId: 'finding-1',
+      workspaceId: '22222222-2222-4222-8222-222222222222',
+    })
+    expect(response.body.review).toMatchObject({
+      confirmLabel: 'Start week in Ship',
+      threadId: 'fleetgraph:workspace-1:finding-review:finding-1:start-week',
+      title: 'Confirm before starting this week',
+    })
+  })
+
+  it('returns checkpoint history and pending interrupts for requested threads', async () => {
+    const debugRuntime = {
+      checkpointer: new MemorySaver(),
+      checkpointerKind: 'memory',
+      getCheckpointHistory: vi.fn(async () => [
+        {
+          config: {
+            configurable: {
+              thread_id: 'fleetgraph:workspace-1:scheduled-sweep',
+            },
+          },
+          createdAt: '2026-03-17T12:00:00.000Z',
+          metadata: {},
+          next: [],
+          parentConfig: undefined,
+          tasks: [],
+          values: {
+            branch: 'reasoned',
+            outcome: 'advisory',
+            path: ['resolve_trigger_context', 'reason_and_deliver'],
+          },
+        },
+      ]),
+      getPendingInterrupts: vi.fn(async () => [
+        {
+          id: 'interrupt-1',
+          taskName: 'approval_interrupt',
+          value: {
+            title: 'Confirm before starting this week',
+          },
+        },
+      ]),
+      getState: vi.fn(),
+      invoke: vi.fn(),
+      invokeRaw: vi.fn(),
+      resume: vi.fn(),
+    }
+    const debugApp = express()
+    debugApp.use(express.json())
+    debugApp.use('/api/fleetgraph', createFleetGraphRouter({
+      actionService: {
+        applyStartWeekFinding,
+        attachExecutions,
+        reviewStartWeekFinding,
+      },
+      findingStore,
+      runtime: debugRuntime as never,
+    }))
+
+    const response = await request(debugApp)
+      .get('/api/fleetgraph/debug/threads?threadIds=fleetgraph:workspace-1:scheduled-sweep')
+
+    expect(response.status).toBe(200)
+    expect(debugRuntime.getCheckpointHistory).toHaveBeenCalledWith(
+      'fleetgraph:workspace-1:scheduled-sweep'
+    )
+    expect(response.body.threads).toEqual([
+      {
+        checkpoints: [
+          expect.objectContaining({
+            branch: 'reasoned',
+            outcome: 'advisory',
+            path: ['resolve_trigger_context', 'reason_and_deliver'],
+            threadId: 'fleetgraph:workspace-1:scheduled-sweep',
+          }),
+        ],
+        pendingInterrupts: [
+          expect.objectContaining({
+            id: 'interrupt-1',
+            taskName: 'approval_interrupt',
+          }),
+        ],
+        threadId: 'fleetgraph:workspace-1:scheduled-sweep',
+      },
+    ])
   })
 
   it('updates finding lifecycle through dismiss and snooze actions', async () => {

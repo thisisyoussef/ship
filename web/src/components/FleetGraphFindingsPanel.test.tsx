@@ -359,27 +359,48 @@ describe('FleetGraphFindingsPanel', () => {
         ],
       }),
     } as Response);
-    vi.mocked(apiPost).mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        finding: {
-          actionExecution: {
-            actionType: 'start_week',
-            appliedAt: '2026-03-17T12:05:00.000Z',
-            attemptCount: 1,
-            endpoint: {
-              method: 'POST',
-              path: `/api/weeks/${SPRINT_ID}/start`,
+    vi.mocked(apiPost).mockImplementation(async (path) => {
+      if (path === '/api/fleetgraph/findings/finding-1/review') {
+        return {
+          ok: true,
+          json: async () => ({
+            finding: {
+              id: 'finding-1',
             },
-            findingId: 'finding-1',
-            message: 'Week started successfully with 2 scoped issues.',
-            status: 'applied',
-            updatedAt: '2026-03-17T12:05:00.000Z',
+            review: {
+              cancelLabel: 'Cancel',
+              confirmLabel: 'Start week in Ship',
+              evidence: ['The week is still planning after the expected start date.'],
+              summary: 'Nothing changes in Ship until you confirm this start-week action.',
+              threadId: 'fleetgraph:workspace-1:finding-review:finding-1:start-week',
+              title: 'Confirm before starting this week',
+            },
+          }),
+        } as Response;
+      }
+
+      return {
+        ok: true,
+        json: async () => ({
+          finding: {
+            actionExecution: {
+              actionType: 'start_week',
+              appliedAt: '2026-03-17T12:05:00.000Z',
+              attemptCount: 1,
+              endpoint: {
+                method: 'POST',
+                path: `/api/weeks/${SPRINT_ID}/start`,
+              },
+              findingId: 'finding-1',
+              message: 'Week started successfully with 2 scoped issues.',
+              status: 'applied',
+              updatedAt: '2026-03-17T12:05:00.000Z',
+            },
+            id: 'finding-1',
           },
-          id: 'finding-1',
-        },
-      }),
-    } as Response);
+        }),
+      } as Response;
+    });
 
     render(
       <FleetGraphFindingsPanel
@@ -393,7 +414,13 @@ describe('FleetGraphFindingsPanel', () => {
     vi.spyOn(Date, 'now').mockImplementation(() => now);
     fireEvent.click(await screen.findByRole('button', { name: 'Review and apply' }));
 
+    await waitFor(() => {
+      expect(apiPost).toHaveBeenCalledWith('/api/fleetgraph/findings/finding-1/review');
+    });
     expect(screen.getByText('Confirm before starting this week')).toBeInTheDocument();
+    expect(
+      screen.getByText('Nothing changes in Ship until you confirm this start-week action.')
+    ).toBeInTheDocument();
 
     now += 500;
     fireEvent.click(screen.getByRole('button', { name: 'Start week in Ship' }));
@@ -442,27 +469,48 @@ describe('FleetGraphFindingsPanel', () => {
         ],
       }),
     } as Response);
-    vi.mocked(apiPost).mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        finding: {
-          actionExecution: {
-            actionType: 'start_week',
-            appliedAt: '2026-03-17T12:05:00.000Z',
-            attemptCount: 1,
-            endpoint: {
-              method: 'POST',
-              path: `/api/weeks/${SPRINT_ID}/start`,
+    vi.mocked(apiPost).mockImplementation(async (path) => {
+      if (path === '/api/fleetgraph/findings/finding-1/review') {
+        return {
+          ok: true,
+          json: async () => ({
+            finding: {
+              id: 'finding-1',
             },
-            findingId: 'finding-1',
-            message: 'Week started successfully with 2 scoped issues.',
-            status: 'applied',
-            updatedAt: '2026-03-17T12:05:00.000Z',
+            review: {
+              cancelLabel: 'Cancel',
+              confirmLabel: 'Start week in Ship',
+              evidence: ['The week is still planning after the expected start date.'],
+              summary: 'Nothing changes in Ship until you confirm this start-week action.',
+              threadId: 'fleetgraph:workspace-1:finding-review:finding-1:start-week',
+              title: 'Confirm before starting this week',
+            },
+          }),
+        } as Response;
+      }
+
+      return {
+        ok: true,
+        json: async () => ({
+          finding: {
+            actionExecution: {
+              actionType: 'start_week',
+              appliedAt: '2026-03-17T12:05:00.000Z',
+              attemptCount: 1,
+              endpoint: {
+                method: 'POST',
+                path: `/api/weeks/${SPRINT_ID}/start`,
+              },
+              findingId: 'finding-1',
+              message: 'Week started successfully with 2 scoped issues.',
+              status: 'applied',
+              updatedAt: '2026-03-17T12:05:00.000Z',
+            },
+            id: 'finding-1',
           },
-          id: 'finding-1',
-        },
-      }),
-    } as Response);
+        }),
+      } as Response;
+    });
 
     render(
       <FleetGraphFindingsPanel
@@ -473,9 +521,12 @@ describe('FleetGraphFindingsPanel', () => {
     );
 
     fireEvent.click(await screen.findByRole('button', { name: 'Review and apply' }));
+    await waitFor(() => {
+      expect(apiPost).toHaveBeenCalledWith('/api/fleetgraph/findings/finding-1/review');
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Start week in Ship' }));
 
-    expect(apiPost).not.toHaveBeenCalled();
+    expect(apiPost).toHaveBeenCalledTimes(1);
 
     now += 500;
     fireEvent.click(screen.getByRole('button', { name: 'Start week in Ship' }));
@@ -522,6 +573,23 @@ describe('FleetGraphFindingsPanel', () => {
       }),
     } as Response);
 
+    vi.mocked(apiPost).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        finding: {
+          id: 'finding-1',
+        },
+        review: {
+          cancelLabel: 'Cancel',
+          confirmLabel: 'Start week in Ship',
+          evidence: ['The week is still planning after the expected start date.'],
+          summary: 'Nothing changes in Ship until you confirm this start-week action.',
+          threadId: 'fleetgraph:workspace-1:finding-review:finding-1:start-week',
+          title: 'Confirm before starting this week',
+        },
+      }),
+    } as Response);
+
     render(
       <FleetGraphFindingsPanel
         context={createContext()}
@@ -536,6 +604,9 @@ describe('FleetGraphFindingsPanel', () => {
     expect(screen.getByText('Start Sprint 8')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Review and apply' }));
+    await waitFor(() => {
+      expect(apiPost).toHaveBeenCalledWith('/api/fleetgraph/findings/finding-1/review');
+    });
 
     const reviewHeading = screen.getByText('Confirm before starting this week');
     expect(reviewHeading).toHaveClass('text-base');

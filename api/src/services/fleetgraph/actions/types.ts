@@ -3,7 +3,7 @@ import { z } from 'zod'
 import {
   FleetGraphActionEndpointSchema,
   type FleetGraphRequestedAction,
-} from '../entry/contracts.js'
+} from '../contracts/actions.js'
 
 const nonEmptyString = z.string().min(1)
 

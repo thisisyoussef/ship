@@ -192,3 +192,10 @@ Record durable architecture decisions.
 - **Decision**: For FleetGraph MVP runtime stories, establish or extend the Ship-facing UI surface early in the story sequence and require future completion gates to include UI inspection steps, preferably against the sanctioned public demo when deployable.
 - **Alternatives Considered**: Keep UI proof as a late-story concern; rely on traces/tests alone until final evidence capture; make UI inspection optional in handoff.
 - **Consequences**: Future FleetGraph stories must preserve a visible proof lane and handoffs become more behavior-oriented, but story sequencing and completion packets need to be more deliberate about inspectable states and public demo availability.
+
+- **ADR-ID**: ADR-0028
+- **Date**: 2026-03-17
+- **Context**: `T104` needs one real human-in-the-loop Ship write path for the Tuesday MVP, but the assignment constraint still says Ship REST is the data source and the visible proactive panel already exists as the review surface from `T103`.
+- **Decision**: Execute the MVP `start_week` action by forwarding the user-approved apply request through the existing same-origin Ship REST route `POST /api/weeks/:id/start`, while storing duplicate-suppression and outcome history in a FleetGraph-owned `fleetgraph_finding_action_runs` ledger. Surface the persisted execution state back through `/api/fleetgraph/findings` and the inline `FleetGraphFindingsPanel`.
+- **Alternatives Considered**: Call shared week-start database logic directly from FleetGraph; resolve successful findings immediately and hide the outcome; keep the action advisory-only until the evidence story.
+- **Consequences**: FleetGraph preserves the REST-only boundary for Ship product writes, gains durable one-time execution behavior and refresh-safe result rendering, and keeps the visible document-page panel as the canonical HITL lane for the MVP.

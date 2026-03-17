@@ -234,3 +234,10 @@ Capture reusable patterns that repeatedly work in this project.
 - **Benefits**: Progress stays visually reviewable on the sanctioned demo, user audits become more concrete, and runtime stories are less likely to disappear into backend-only diffs.
 - **Tradeoffs**: Requires earlier UI coordination even for backend-heavy stories.
 - **References**: `.ai/workflows/feature-development.md`, `.ai/workflows/story-handoff.md`, `docs/specs/fleetgraph/FLEETGRAPH-MVP-PHASE/technical-plan.md`
+
+- **Pattern**: Same-origin REST apply with FleetGraph-owned execution ledger
+- **Use when**: FleetGraph needs to execute a real Ship write after explicit human approval without violating the rule that Ship product state must stay behind Ship REST.
+- **Approach**: Keep the recommendation on the visible FleetGraph panel, confirm inline, then forward the approved write through the existing Ship REST endpoint while storing apply status, attempts, and outcome messaging in a FleetGraph-owned action-run table keyed to the finding.
+- **Benefits**: Preserves the Ship REST boundary, prevents duplicate execution, and gives refresh-safe UI rendering for success, already-applied, and failure states.
+- **Tradeoffs**: Adds one more FleetGraph-owned persistence layer and requires careful request-header forwarding for same-origin auth/CSRF.
+- **References**: `api/src/services/fleetgraph/actions/service.ts`, `api/src/routes/fleetgraph.ts`, `web/src/components/FleetGraphFindingsPanel.tsx`

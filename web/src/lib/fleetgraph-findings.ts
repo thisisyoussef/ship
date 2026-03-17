@@ -16,7 +16,20 @@ export interface FleetGraphFindingAction {
   type: 'approve_project_plan' | 'approve_week_plan' | 'post_comment' | 'start_week';
 }
 
+export interface FleetGraphFindingActionExecution {
+  actionType: 'start_week';
+  appliedAt?: string;
+  attemptCount: number;
+  endpoint: FleetGraphFindingActionEndpoint;
+  findingId: string;
+  message: string;
+  resultStatusCode?: number;
+  status: 'pending' | 'applied' | 'already_applied' | 'failed';
+  updatedAt: string;
+}
+
 export interface FleetGraphFinding {
+  actionExecution?: FleetGraphFindingActionExecution;
   cooldownUntil?: string;
   dedupeKey: string;
   documentId: string;

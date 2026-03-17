@@ -1,6 +1,10 @@
 import { z } from 'zod'
 
 import { FleetGraphRequestedActionSchema } from '../entry/contracts.js'
+import {
+  FleetGraphFindingActionExecutionSchema,
+  type FleetGraphFindingActionExecutionRecord,
+} from '../actions/types.js'
 
 export const FLEETGRAPH_FINDING_TYPES = [
   'week_start_drift',
@@ -19,6 +23,7 @@ export const FleetGraphFindingTypeSchema = z.enum(FLEETGRAPH_FINDING_TYPES)
 export const FleetGraphFindingStatusSchema = z.enum(FLEETGRAPH_FINDING_STATUSES)
 
 export const FleetGraphProactiveFindingSchema = z.object({
+  actionExecution: FleetGraphFindingActionExecutionSchema.optional(),
   cooldownUntil: z.string().datetime().optional(),
   dedupeKey: nonEmptyString,
   documentId: nonEmptyString,
@@ -53,6 +58,7 @@ export const FleetGraphSnoozeRequestSchema = z.object({
 }).strict()
 
 export interface FleetGraphFindingRecord {
+  actionExecution?: FleetGraphFindingActionExecutionRecord
   cooldownUntil?: Date
   dedupeKey: string
   documentId: string
@@ -94,6 +100,7 @@ export interface FleetGraphUpsertFindingInput {
 
 export interface FleetGraphFindingStore {
   dismissFinding(id: string, workspaceId: string, now?: Date): Promise<FleetGraphFindingRecord | null>
+  getFindingById(id: string, workspaceId: string): Promise<FleetGraphFindingRecord | null>
   getFindingByKey(findingKey: string): Promise<FleetGraphFindingRecord | null>
   listActiveFindings(input: { documentIds?: string[]; workspaceId: string }): Promise<FleetGraphFindingRecord[]>
   resolveFinding(findingKey: string, now?: Date): Promise<FleetGraphFindingRecord | null>

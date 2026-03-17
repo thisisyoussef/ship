@@ -168,3 +168,8 @@ Capture failures so they are not repeated.
 - **Example**: Finishing worker/runtime logic and only then thinking about which Ship surface the user can inspect, leaving no practical way to monitor behavior from the live demo during development.
 - **Why it failed**: The user loses visibility into progress, audits become code-only, and product behavior is harder to validate before the final evidence story.
 - **Prevention rule**: For visible behavior stories, establish or extend the UI proof lane early and require explicit UI inspection steps in the completion gate.
+
+- **Problem**: Executing FleetGraph-approved Ship writes by jumping straight to Ship database logic
+- **Example**: Reusing internal week-start SQL/update helpers from FleetGraph because they are already in the same API process, instead of forwarding the approved action through `/api/weeks/:id/start`.
+- **Why it failed**: It bypasses the assignment’s REST boundary, makes FleetGraph harder to reason about as a same-origin client of Ship, and quietly expands its write surface beyond the documented API contract.
+- **Prevention rule**: Even for in-process apply flows, route real Ship mutations through the existing Ship REST endpoint and keep FleetGraph persistence limited to its own findings, queue, checkpoint, and action-execution records.

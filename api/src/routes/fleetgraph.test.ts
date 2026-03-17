@@ -2,6 +2,7 @@ import express from 'express'
 import request from 'supertest'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import type { FleetGraphFindingActionExecutionRecord } from '../services/fleetgraph/actions/index.js'
 import type {
   FleetGraphFindingRecord,
   FleetGraphFindingStore,
@@ -104,8 +105,11 @@ function createEntryPayload() {
 describe('FleetGraph routes', () => {
   let app: express.Express
   const originalEnv = { ...process.env }
+  const applyStartWeekFinding = vi.fn()
+  const attachExecutions = vi.fn(async (findings: FleetGraphFindingRecord[]) => findings)
   const dismissFinding = vi.fn<FleetGraphFindingStore['dismissFinding']>()
   const getFindingByKey = vi.fn<FleetGraphFindingStore['getFindingByKey']>()
+  const getFindingById = vi.fn<FleetGraphFindingStore['getFindingById']>()
   const listActiveFindings = vi.fn<FleetGraphFindingStore['listActiveFindings']>(
     async () => []
   )
@@ -114,6 +118,7 @@ describe('FleetGraph routes', () => {
   const upsertFinding = vi.fn<FleetGraphFindingStore['upsertFinding']>()
   const findingStore: FleetGraphFindingStore = {
     dismissFinding,
+    getFindingById,
     getFindingByKey,
     listActiveFindings,
     resolveFinding,
@@ -124,7 +129,10 @@ describe('FleetGraph routes', () => {
   beforeEach(() => {
     process.env = { ...originalEnv }
     ;[
+      applyStartWeekFinding,
+      attachExecutions,
       dismissFinding,
+      getFindingById,
       getFindingByKey,
       listActiveFindings,
       resolveFinding,
@@ -134,9 +142,14 @@ describe('FleetGraph routes', () => {
       mock.mockReset()
     })
     listActiveFindings.mockResolvedValue([])
+    attachExecutions.mockImplementation(async (findings: FleetGraphFindingRecord[]) => findings)
     app = express()
     app.use(express.json())
     app.use('/api/fleetgraph', createFleetGraphRouter({
+      actionService: {
+        applyStartWeekFinding,
+        attachExecutions,
+      },
       findingStore,
     }))
   })
@@ -249,6 +262,54 @@ describe('FleetGraph routes', () => {
     expect(listActiveFindings).toHaveBeenCalledWith({
       documentIds: [DOCUMENT_ID, SPRINT_ID],
       workspaceId: '22222222-2222-4222-8222-222222222222',
+    })
+  })
+
+  it('applies a start-week finding through the FleetGraph action route', async () => {
+    const actionExecution: FleetGraphFindingActionExecutionRecord = {
+      actionType: 'start_week',
+      appliedAt: new Date('2026-03-17T12:05:00.000Z'),
+      attemptCount: 1,
+      endpoint: {
+        method: 'POST',
+        path: `/api/weeks/${SPRINT_ID}/start`,
+      },
+      findingId: 'finding-1',
+      message: 'Week started successfully with 3 scoped issues.',
+      resultStatusCode: 200,
+      status: 'applied',
+      updatedAt: new Date('2026-03-17T12:05:00.000Z'),
+    }
+    applyStartWeekFinding.mockResolvedValue(
+      makeFinding({
+        actionExecution,
+        id: 'finding-1',
+        recommendedAction: {
+          endpoint: actionExecution.endpoint,
+          evidence: ['Week is still in planning after the expected start date.'],
+          rationale: 'Start the week after review.',
+          summary: 'Start the week.',
+          targetId: SPRINT_ID,
+          targetType: 'sprint',
+          title: 'Start week',
+          type: 'start_week',
+        },
+      })
+    )
+
+    const response = await request(app)
+      .post('/api/fleetgraph/findings/finding-1/apply')
+      .set('x-csrf-token', 'csrf-token')
+
+    expect(response.status).toBe(200)
+    expect(applyStartWeekFinding).toHaveBeenCalledWith({
+      findingId: 'finding-1',
+      request: expect.any(Object),
+      workspaceId: '22222222-2222-4222-8222-222222222222',
+    })
+    expect(response.body.finding.actionExecution).toMatchObject({
+      message: 'Week started successfully with 3 scoped issues.',
+      status: 'applied',
     })
   })
 

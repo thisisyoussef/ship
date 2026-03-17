@@ -30,6 +30,7 @@ function makeState(
 function createFindingStoreMock(): FleetGraphFindingStore {
   return {
     dismissFinding: vi.fn(),
+    getFindingById: vi.fn(),
     getFindingByKey: vi.fn(),
     listActiveFindings: vi.fn(async () => []),
     resolveFinding: vi.fn(async () => null),

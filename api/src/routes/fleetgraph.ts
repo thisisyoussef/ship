@@ -2,6 +2,11 @@ import { Router, type Request, type Response } from 'express'
 import { ZodError } from 'zod'
 
 import {
+  createFleetGraphFindingActionService,
+  FleetGraphFindingActionError,
+  type FleetGraphFindingActionExecutionRecord,
+} from '../services/fleetgraph/actions/index.js'
+import {
   buildFleetGraphEvidenceChecklist,
   FleetGraphDeploymentReadinessResponseSchema,
   isFleetGraphServiceAuthorized,
@@ -23,6 +28,7 @@ import { getAuthContext } from './route-helpers.js'
 type RouterType = ReturnType<typeof Router>
 
 interface FleetGraphRouterDeps {
+  actionService?: ReturnType<typeof createFleetGraphFindingActionService>
   entryService?: ReturnType<typeof createFleetGraphEntryService>
   findingStore?: ReturnType<typeof createFleetGraphFindingStore>
 }
@@ -45,6 +51,7 @@ function readServiceToken(request: Request) {
 
 function serializeFinding(finding: FleetGraphFindingRecord) {
   return {
+    actionExecution: serializeActionExecution(finding.actionExecution),
     cooldownUntil: finding.cooldownUntil?.toISOString(),
     dedupeKey: finding.dedupeKey,
     documentId: finding.documentId,
@@ -67,6 +74,26 @@ function serializeFinding(finding: FleetGraphFindingRecord) {
   }
 }
 
+function serializeActionExecution(
+  execution?: FleetGraphFindingActionExecutionRecord
+) {
+  if (!execution) {
+    return undefined
+  }
+
+  return {
+    actionType: execution.actionType,
+    appliedAt: execution.appliedAt?.toISOString(),
+    attemptCount: execution.attemptCount,
+    endpoint: execution.endpoint,
+    findingId: execution.findingId,
+    message: execution.message,
+    resultStatusCode: execution.resultStatusCode,
+    status: execution.status,
+    updatedAt: execution.updatedAt.toISOString(),
+  }
+}
+
 function readDocumentIds(request: Request) {
   const values = typeof request.query.documentIds === 'string'
     ? request.query.documentIds.split(',')
@@ -86,6 +113,9 @@ export function createFleetGraphRouter(
     runtime,
   })
   const findingStore = deps.findingStore ?? createFleetGraphFindingStore()
+  const actionService = deps.actionService ?? createFleetGraphFindingActionService({
+    findingStore,
+  })
   const router: RouterType = Router()
 
   router.get('/ready', async (req: Request, res: Response) => {
@@ -148,9 +178,13 @@ export function createFleetGraphRouter(
         documentIds,
         workspaceId: auth.workspaceId,
       })
+      const findingsWithExecutions = await actionService.attachExecutions(
+        findings,
+        auth.workspaceId
+      )
 
       res.json(FleetGraphFindingListResponseSchema.parse({
-        findings: findings.map(serializeFinding),
+        findings: findingsWithExecutions.map(serializeFinding),
       }))
     } catch (error) {
       console.error('FleetGraph findings list error:', error)
@@ -175,8 +209,16 @@ export function createFleetGraphRouter(
         return
       }
 
+      const [findingWithExecution] = await actionService.attachExecutions(
+        [finding],
+        auth.workspaceId
+      )
+      if (!findingWithExecution) {
+        throw new Error('FleetGraph finding execution hydration failed after dismiss.')
+      }
+
       res.json(FleetGraphFindingLifecycleResponseSchema.parse({
-        finding: serializeFinding(finding),
+        finding: serializeFinding(findingWithExecution),
       }))
     } catch (error) {
       console.error('FleetGraph dismiss error:', error)
@@ -204,8 +246,16 @@ export function createFleetGraphRouter(
         return
       }
 
+      const [findingWithExecution] = await actionService.attachExecutions(
+        [finding],
+        auth.workspaceId
+      )
+      if (!findingWithExecution) {
+        throw new Error('FleetGraph finding execution hydration failed after snooze.')
+      }
+
       res.json(FleetGraphFindingLifecycleResponseSchema.parse({
-        finding: serializeFinding(finding),
+        finding: serializeFinding(findingWithExecution),
       }))
     } catch (error) {
       if (error instanceof ZodError) {
@@ -215,6 +265,33 @@ export function createFleetGraphRouter(
 
       console.error('FleetGraph snooze error:', error)
       res.status(500).json({ error: 'Failed to snooze FleetGraph finding' })
+    }
+  })
+
+  router.post('/findings/:id/apply', authMiddleware, async (req: Request, res: Response) => {
+    const auth = getAuthContext(req, res)
+    if (!auth) {
+      return
+    }
+
+    try {
+      const finding = await actionService.applyStartWeekFinding({
+        findingId: String(req.params.id),
+        request: req,
+        workspaceId: auth.workspaceId,
+      })
+
+      res.json(FleetGraphFindingLifecycleResponseSchema.parse({
+        finding: serializeFinding(finding),
+      }))
+    } catch (error) {
+      if (error instanceof FleetGraphFindingActionError) {
+        res.status(error.statusCode).json({ error: error.message })
+        return
+      }
+
+      console.error('FleetGraph apply error:', error)
+      res.status(500).json({ error: 'Failed to apply FleetGraph finding' })
     }
   })
 

@@ -115,6 +115,33 @@ registry.registerPath({
 
 registry.registerPath({
   method: 'post',
+  path: '/fleetgraph/findings/{id}/apply',
+  tags: ['FleetGraph'],
+  summary: 'Apply a FleetGraph start-week recommendation through the Ship REST route',
+  responses: {
+    200: {
+      description: 'Updated FleetGraph finding after the start-week action ran',
+      content: {
+        'application/json': {
+          schema: FleetGraphFindingLifecycleResponseSchema,
+        },
+      },
+    },
+    400: {
+      description: 'Finding does not expose a valid start-week action',
+    },
+    404: {
+      description: 'FleetGraph finding not found',
+    },
+    409: {
+      description: 'Finding is no longer active',
+    },
+  },
+  security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+})
+
+registry.registerPath({
+  method: 'post',
   path: '/fleetgraph/findings/{id}/dismiss',
   tags: ['FleetGraph'],
   summary: 'Dismiss a proactive FleetGraph finding',

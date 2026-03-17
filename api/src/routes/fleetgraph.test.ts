@@ -76,8 +76,10 @@ function createEntryPayload() {
 
 describe('FleetGraph routes', () => {
   let app: express.Express
+  const originalEnv = { ...process.env }
 
   beforeEach(() => {
+    process.env = { ...originalEnv }
     app = express()
     app.use(express.json())
     app.use('/api/fleetgraph', fleetgraphRouter)
@@ -130,5 +132,47 @@ describe('FleetGraph routes', () => {
     })
     expect(response.body.approval.options.map((option: { id: string }) => option.id))
       .toEqual(['apply', 'dismiss', 'snooze'])
+  })
+
+  it('rejects readiness checks without the FleetGraph service token', async () => {
+    const response = await request(app)
+      .get('/api/fleetgraph/ready')
+
+    expect(response.status).toBe(403)
+    expect(response.body).toEqual({
+      error: 'FleetGraph service authorization failed',
+    })
+  })
+
+  it('reports deploy readiness through the service-auth route', async () => {
+    process.env.NODE_ENV = 'production'
+    process.env.APP_BASE_URL = 'https://ship-demo.onrender.com'
+    process.env.FLEETGRAPH_ENTRY_ENABLED = 'true'
+    process.env.FLEETGRAPH_SERVICE_TOKEN = 'fleetgraph-service-token'
+    process.env.FLEETGRAPH_WORKER_ENABLED = 'true'
+    process.env.LANGSMITH_API_KEY = 'ls-test-key'
+    process.env.LANGSMITH_TRACING = 'true'
+    process.env.OPENAI_API_KEY = 'openai-test-key'
+
+    const response = await request(app)
+      .get('/api/fleetgraph/ready')
+      .set('x-fleetgraph-service-token', 'fleetgraph-service-token')
+
+    expect(response.status).toBe(200)
+    expect(response.body.api).toMatchObject({
+      publicBaseUrl: 'https://ship-demo.onrender.com',
+      ready: true,
+      serviceAuthConfigured: true,
+      tracingEnabled: true,
+    })
+    expect(response.body.worker).toMatchObject({
+      ready: true,
+    })
+    expect(response.body.checklist.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'public-access-smoke', status: 'missing' }),
+        expect.objectContaining({ id: 'trace-evidence', status: 'missing' }),
+      ])
+    )
   })
 })

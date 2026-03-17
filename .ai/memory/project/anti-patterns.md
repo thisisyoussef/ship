@@ -148,3 +148,8 @@ Capture failures so they are not repeated.
 - **Example**: The same agent writes tests, writes the implementation, and then declares refactor done inside one context window.
 - **Why it failed**: The red phase becomes shallow, tests mirror the intended implementation too closely, and edge cases that would break a naive solution are underrepresented.
 - **Prevention rule**: Use the file-isolated three-agent TDD pipeline with RED/GREEN guards, fixed-test ownership, and explicit escalation limits.
+
+- **Problem**: Divergent FleetGraph env contracts across API and worker
+- **Example**: The API surface reads one set of provider/tracing/service-auth variables while the worker CLI expects a different or partially implicit set, and deploy smoke relies only on `/health`.
+- **Why it failed**: One FleetGraph surface can look alive while the other is misconfigured, and the team ends up “verifying” deploys without a real service-auth or trace proof path.
+- **Prevention rule**: Resolve API and worker readiness from the same FleetGraph deployment module, expose a token-protected readiness route, and require trace evidence alongside deploy smoke.

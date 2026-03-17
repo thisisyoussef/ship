@@ -199,3 +199,10 @@ Capture reusable patterns that repeatedly work in this project.
 - **Benefits**: Reduces fake-red cycles, improves edge-case pressure on the implementation, and leaves durable audit artifacts in `.ai/state/tdd-handoff/`.
 - **Tradeoffs**: Adds orchestration overhead and more helper tooling before coding starts.
 - **References**: `.ai/workflows/tdd-pipeline.md`, `scripts/tdd_handoff.sh`, `scripts/run_targeted_mutation.sh`, `.ai/state/tdd-handoff/README.md`
+
+- **Pattern**: Shared deploy contract plus service-auth readiness route
+- **Use when**: A feature now spans an authenticated UI route, a background worker process, provider secrets, and tracing configuration, and the team needs one deploy-readiness proof path.
+- **Approach**: Resolve API and worker readiness from the same env contract, expose a token-protected readiness endpoint that reports both surfaces together, and pair it with a smoke script that requires both the readiness response and an explicit trace URL.
+- **Benefits**: Prevents API/worker config drift, makes deploy proof reproducible, and keeps trace evidence part of the definition of “ready”.
+- **Tradeoffs**: Adds one more internal route and one more shared secret to manage.
+- **References**: `api/src/services/fleetgraph/deployment/config.ts`, `api/src/routes/fleetgraph.ts`, `scripts/fleetgraph_deploy_smoke.sh`, `docs/guides/fleetgraph-deployment-readiness.md`

@@ -1,6 +1,9 @@
 import { z, registry } from '../registry.js'
 
 import {
+  FleetGraphDeploymentReadinessResponseSchema,
+} from '../../services/fleetgraph/deployment/index.js'
+import {
   FleetGraphActionEndpointSchema,
   FleetGraphApprovalEnvelopeSchema,
   FleetGraphEntryRequestSchema,
@@ -15,6 +18,36 @@ registry.register('FleetGraphApprovalEnvelope', FleetGraphApprovalEnvelopeSchema
 registry.register('FleetGraphEntryRun', FleetGraphEntryRunSchema.openapi('FleetGraphEntryRun'))
 registry.register('FleetGraphEntryRequest', FleetGraphEntryRequestSchema.openapi('FleetGraphEntryRequest'))
 registry.register('FleetGraphEntryResponse', FleetGraphEntryResponseSchema.openapi('FleetGraphEntryResponse'))
+registry.register('FleetGraphDeploymentReadinessResponse', FleetGraphDeploymentReadinessResponseSchema.openapi('FleetGraphDeploymentReadinessResponse'))
+
+registry.registerPath({
+  method: 'get',
+  path: '/fleetgraph/ready',
+  tags: ['FleetGraph'],
+  summary: 'Inspect deployed FleetGraph readiness with service auth',
+  description: 'Returns FleetGraph API and worker readiness status for the deployed environment. Requires the X-FleetGraph-Service-Token header.',
+  responses: {
+    200: {
+      description: 'FleetGraph deployment surfaces are ready',
+      content: {
+        'application/json': {
+          schema: FleetGraphDeploymentReadinessResponseSchema,
+        },
+      },
+    },
+    403: {
+      description: 'FleetGraph service authorization failed',
+    },
+    503: {
+      description: 'FleetGraph deployment contract is incomplete',
+      content: {
+        'application/json': {
+          schema: FleetGraphDeploymentReadinessResponseSchema,
+        },
+      },
+    },
+  },
+})
 
 registry.registerPath({
   method: 'post',

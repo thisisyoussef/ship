@@ -7,6 +7,7 @@ Supporting repo docs:
 - `.ai/docs/references/fleetgraph-prd.md`
 - `docs/assignments/fleetgraph/PRESEARCH.md`
 - `docs/assignments/fleetgraph/FLEETGRAPH.md`
+- `docs/guides/fleetgraph-deployment-readiness.md`
 
 ## What this assignment is asking for
 

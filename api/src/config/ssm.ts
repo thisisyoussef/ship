@@ -12,6 +12,37 @@
  */
 import { SSMClient, GetParameterCommand } from '@aws-sdk/client-ssm';
 
+const OPTIONAL_FLEETGRAPH_KEYS = [
+  'FLEETGRAPH_BEDROCK_MODEL_ID',
+  'FLEETGRAPH_ENTRY_ENABLED',
+  'FLEETGRAPH_EVENT_DEBOUNCE_MS',
+  'FLEETGRAPH_LANGSMITH_FLUSH_TIMEOUT_MS',
+  'FLEETGRAPH_LANGSMITH_SHARE_TRACES',
+  'FLEETGRAPH_LLM_PROVIDER',
+  'FLEETGRAPH_MAX_ATTEMPTS',
+  'FLEETGRAPH_OPENAI_MODEL',
+  'FLEETGRAPH_RETRY_DELAY_MS',
+  'FLEETGRAPH_SERVICE_TOKEN',
+  'FLEETGRAPH_SWEEP_BATCH_SIZE',
+  'FLEETGRAPH_SWEEP_INTERVAL_MS',
+  'FLEETGRAPH_WORKER_ENABLED',
+  'FLEETGRAPH_WORKER_POLL_INTERVAL_MS',
+  'LANGCHAIN_API_KEY',
+  'LANGCHAIN_ENDPOINT',
+  'LANGCHAIN_PROJECT',
+  'LANGCHAIN_TRACING',
+  'LANGCHAIN_TRACING_V2',
+  'LANGSMITH_API_KEY',
+  'LANGSMITH_ENDPOINT',
+  'LANGSMITH_PROJECT',
+  'LANGSMITH_TRACING',
+  'LANGSMITH_TRACING_V2',
+  'LANGSMITH_WEB_URL',
+  'LANGSMITH_WORKSPACE_ID',
+  'OPENAI_API_KEY',
+  'OPENAI_BASE_URL',
+] as const;
+
 // Lazy-initialized client to avoid keeping Node.js alive during import tests
 let _client: SSMClient | null = null;
 
@@ -35,6 +66,20 @@ export async function getSSMSecret(name: string): Promise<string> {
   return response.Parameter.Value;
 }
 
+async function getOptionalSSMSecret(name: string): Promise<string | undefined> {
+  try {
+    return await getSSMSecret(name);
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message.includes('not found')
+    ) {
+      return undefined;
+    }
+    throw error;
+  }
+}
+
 export async function loadProductionSecrets(): Promise<void> {
   if (process.env.NODE_ENV !== 'production') {
     return; // Use .env files for local dev
@@ -46,32 +91,49 @@ export async function loadProductionSecrets(): Promise<void> {
     process.env.CORS_ORIGIN
   );
 
-  if (hasExplicitCoreConfig) {
-    console.log('Using explicit production environment variables for app config');
-    return;
-  }
-
   const environment = process.env.ENVIRONMENT || 'prod';
   const basePath = `/ship/${environment}`;
+  console.log(`Loading production configuration from SSM path: ${basePath}`);
 
-  console.log(`Loading secrets from SSM path: ${basePath}`);
+  if (!hasExplicitCoreConfig) {
+    const [databaseUrl, sessionSecret, corsOrigin, cdnDomain, appBaseUrl] = await Promise.all([
+      getSSMSecret(`${basePath}/DATABASE_URL`),
+      getSSMSecret(`${basePath}/SESSION_SECRET`),
+      getSSMSecret(`${basePath}/CORS_ORIGIN`),
+      getSSMSecret(`${basePath}/CDN_DOMAIN`),
+      getSSMSecret(`${basePath}/APP_BASE_URL`),
+    ]);
 
-  const [databaseUrl, sessionSecret, corsOrigin, cdnDomain, appBaseUrl] = await Promise.all([
-    getSSMSecret(`${basePath}/DATABASE_URL`),
-    getSSMSecret(`${basePath}/SESSION_SECRET`),
-    getSSMSecret(`${basePath}/CORS_ORIGIN`),
-    getSSMSecret(`${basePath}/CDN_DOMAIN`),
-    getSSMSecret(`${basePath}/APP_BASE_URL`),
-  ]);
+    process.env.DATABASE_URL = databaseUrl;
+    process.env.SESSION_SECRET = sessionSecret;
+    process.env.CORS_ORIGIN = corsOrigin;
+    process.env.CDN_DOMAIN = cdnDomain;
+    process.env.APP_BASE_URL = appBaseUrl;
 
-  process.env.DATABASE_URL = databaseUrl;
-  process.env.SESSION_SECRET = sessionSecret;
-  process.env.CORS_ORIGIN = corsOrigin;
-  process.env.CDN_DOMAIN = cdnDomain;
-  process.env.APP_BASE_URL = appBaseUrl;
+    console.log('Core app configuration loaded from SSM Parameter Store');
+    console.log(`CORS_ORIGIN: ${corsOrigin}`);
+    console.log(`CDN_DOMAIN: ${cdnDomain}`);
+    console.log(`APP_BASE_URL: ${appBaseUrl}`);
+  } else {
+    console.log('Using explicit production environment variables for core app config');
+  }
 
-  console.log('Secrets loaded from SSM Parameter Store');
-  console.log(`CORS_ORIGIN: ${corsOrigin}`);
-  console.log(`CDN_DOMAIN: ${cdnDomain}`);
-  console.log(`APP_BASE_URL: ${appBaseUrl}`);
+  const optionalValues = await Promise.all(
+    OPTIONAL_FLEETGRAPH_KEYS.map(async (key) => [
+      key,
+      await getOptionalSSMSecret(`${basePath}/${key}`),
+    ] as const)
+  );
+
+  let loadedOptionalCount = 0;
+  for (const [key, value] of optionalValues) {
+    if (value && !process.env[key]) {
+      process.env[key] = value;
+      loadedOptionalCount += 1;
+    }
+  }
+
+  if (loadedOptionalCount > 0) {
+    console.log(`Loaded ${loadedOptionalCount} optional FleetGraph/LangSmith settings from SSM`);
+  }
 }

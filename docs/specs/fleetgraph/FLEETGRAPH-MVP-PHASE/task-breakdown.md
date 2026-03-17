@@ -9,6 +9,7 @@
 - Lock the Tuesday checklist items that live in `FLEETGRAPH.md` before starting implementation-heavy stories.
 - Build on the merged FleetGraph readiness baseline before starting MVP feature stories.
 - Prefer one narrow, complete proactive slice over multiple partial feature surfaces.
+- Establish or extend the visible Ship-facing UI proof surface early in each runtime story so progress can be monitored on the public demo as stories land.
 - Do not put broader on-demand expansion on the Tuesday critical path unless it becomes necessary to satisfy an explicit pass item.
 
 ## Story Pack Alignment (for phase packs or multi-story planning)
@@ -16,6 +17,7 @@
   - Satisfy every Tuesday MVP pass requirement exactly.
   - Deliver one proactive end-to-end FleetGraph slice on real Ship data.
   - Deliver one real HITL action path plus public deploy/trace/docs evidence.
+  - Keep the MVP visually inspectable from Ship as each runtime story lands.
 - Planned stories in this pack:
   - `T101` submission-contract docs
   - `T102` public deploy and real-data baseline
@@ -35,9 +37,9 @@
 |---|---|---|---|---|
 | T101 | Complete the required `FLEETGRAPH.md` planning sections up front: Agent Responsibility, at least 5 use cases, trigger model decision/defense, and graph outline with node types, edges, and branching conditions. | must-have | no | `FLEETGRAPH.md` contains the required Tuesday sections and stops being a placeholder for the design-defining content |
 | T102 | Validate and fix the public deploy and real-data baseline on top of the merged FleetGraph readiness contract, including the current Render blocker and any required real-data auth/config path. | blocked-by:T101 | no | The MVP runtime is either publicly reachable on the sanctioned surface or recorded as explicitly `blocked` with the exact missing prerequisite |
-| T103 | Implement the proactive MVP slice for week-start drift from hybrid trigger to surfaced finding, including dedupe/cooldown behavior and visible output on real Ship data. | blocked-by:T102 | no | Integration tests prove trigger -> reasoning -> surfaced finding on real-data code paths, and manual/demo proof shows the finding is visible and actionable |
-| T104 | Turn the MVP path into one real human-confirmed action with duplicate-execution protection, approval UX, and result handling. | blocked-by:T103 | no | Tests prove confirm/deny behavior, one-time execution, and real HITL gating for the chosen action |
-| T105 | Capture the Tuesday evidence set: at least two shared traces with different execution paths, public deploy proof, final `FLEETGRAPH.md` evidence sections, and submission-ready links/screenshots/checklists. | blocked-by:T104 | yes | Trace URLs, deploy status, and final workbook evidence are all recorded in the story handoff and assignment docs |
+| T103 | Implement the proactive MVP slice for week-start drift from hybrid trigger to surfaced finding, including dedupe/cooldown behavior and the first visible Ship-facing output on real Ship data. | blocked-by:T102 | no | Integration tests prove trigger -> reasoning -> surfaced finding on real-data code paths, and manual/demo proof shows the finding is visible and actionable |
+| T104 | Extend the visible FleetGraph surface first, then turn the MVP path into one real human-confirmed action with duplicate-execution protection, approval UX, and result handling. | blocked-by:T103 | no | Tests prove confirm/deny behavior, one-time execution, and real HITL gating for the chosen action, with the result visible in Ship |
+| T105 | Capture the Tuesday evidence set from the visible deployed MVP path: at least two shared traces with different execution paths, public deploy proof, final `FLEETGRAPH.md` evidence sections, and submission-ready links/screenshots/checklists. | blocked-by:T104 | yes | Trace URLs, deploy status, visible UI proof, and final workbook evidence are all recorded in the story handoff and assignment docs |
 
 ## TDD Mapping
 

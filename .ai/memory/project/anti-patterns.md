@@ -163,3 +163,8 @@ Capture failures so they are not repeated.
 - **Example**: Building week-start drift by selecting Ship weeks or projects from SQL because the worker already has database access for its own queue and findings tables.
 - **Why it failed**: It breaks the assignment constraint that Ship REST is the data source and blurs the ownership boundary between Ship product state and FleetGraph-owned state.
 - **Prevention rule**: Fetch Ship product context through Ship REST only; reserve database writes and reads for FleetGraph-owned queue, checkpoint, and proactive finding state.
+
+- **Problem**: Backend-first MVP stories with late or missing visible proof
+- **Example**: Finishing worker/runtime logic and only then thinking about which Ship surface the user can inspect, leaving no practical way to monitor behavior from the live demo during development.
+- **Why it failed**: The user loses visibility into progress, audits become code-only, and product behavior is harder to validate before the final evidence story.
+- **Prevention rule**: For visible behavior stories, establish or extend the UI proof lane early and require explicit UI inspection steps in the completion gate.

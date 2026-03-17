@@ -14,6 +14,7 @@ FleetGraph now has most of the platform substrate defined or in progress, but th
 - Objective 1: Satisfy every Tuesday MVP pass item exactly, with no required item left implied or deferred.
 - Objective 2: Ship one narrow proactive FleetGraph slice on real Ship data, with at least one implemented human-in-the-loop gate.
 - Objective 3: Produce the deploy, LangSmith, and `FLEETGRAPH.md` evidence needed to defend the MVP publicly and in the submission.
+- Objective 4: Keep each runtime story visually monitorable in Ship so progress can be inspected on the public demo as the MVP is built.
 - How this story or pack contributes to the overall objective set: this pack turns the FleetGraph substrate into a checklist-complete Tuesday submission path instead of a broader product roadmap.
 
 ## User Stories
@@ -29,6 +30,7 @@ FleetGraph now has most of the platform substrate defined or in progress, but th
 - [ ] AC-5: `docs/assignments/fleetgraph/FLEETGRAPH.md` includes a complete graph outline documenting node types, edges, and branching conditions.
 - [ ] AC-6: `docs/assignments/fleetgraph/FLEETGRAPH.md` documents and defends the trigger model decision.
 - [ ] AC-7: The MVP is deployed and publicly accessible, with explicit environment proof and exact blocked-state reporting if the deployment surface cannot be refreshed.
+- [ ] AC-8: Each runtime story after the docs/deploy baseline establishes or extends a visible Ship UI surface early enough that reviewers can monitor behavior on the public demo as the MVP evolves.
 
 ## Tuesday MVP Checklist Mapping
 - [ ] Graph running with at least one proactive detection wired end-to-end: `T103`

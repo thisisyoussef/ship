@@ -68,9 +68,20 @@ Checklist rules:
 - do not offload routine terminal verification Codex could run itself
 - use commands only when the user truly must run them
 - include expected outcome and failure hint for each step
+- for stories that change visible behavior in `api/` or `web/`, include at least one UI inspection step
+- for deploy-relevant visible stories, make that UI inspection step point at the sanctioned public demo or the exact blocked deploy state
+- name the exact route, click path, or visible state the user should inspect instead of relying on terminal output alone
 - include `Changed in this story`
 - include `Should remain unchanged`
 - include `Estimated audit time`
+
+## UI Inspection Requirements
+
+When a story changes user-visible behavior, the completion gate must treat UI inspection as first-class evidence:
+- include at least one browser-visible proof artifact in `Visible Proof`
+- include at least one UI inspection step in `## User Audit Checklist (Run This Now)`
+- prefer sanctioned deployed surfaces when available so the user can monitor real behavior, not just code diffs
+- if the visible surface is blocked from deployment, say exactly why and point the user at the best available local proof instead
 
 ---
 

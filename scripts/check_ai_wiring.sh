@@ -359,6 +359,7 @@ handoff_tokens = (
     "Visible Proof",
     "Completion Plan",
     "User Audit Checklist (Run This Now)",
+    "UI Inspection",
     "finalization-recovery.md",
 )
 for token in handoff_tokens:

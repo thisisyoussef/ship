@@ -185,3 +185,10 @@ Record durable architecture decisions.
 - **Decision**: Implement the MVP proactive slice as week-start drift detection sourced from `GET /api/weeks` through a FleetGraph REST client, persist surfaced findings in FleetGraph-owned durable tables, and render active findings on document pages by querying FleetGraph-owned findings tied to the current document plus related Ship context ids.
 - **Alternatives Considered**: Query Ship product tables directly for proactive scoring; derive visible findings only from the latest worker checkpoint; keep proactive findings hidden until the full write path exists.
 - **Consequences**: FleetGraph stays honest to the REST-only assignment contract for Ship data, gains durable dismiss/snooze/cooldown state for proactive findings, and leaves the actual `start week` write execution for `T104`.
+
+- **ADR-ID**: ADR-0027
+- **Date**: 2026-03-17
+- **Context**: The FleetGraph MVP needs to stay visually reviewable on the public demo as each runtime story lands. Without an explicit UI-first rule, future stories could regress into backend-first execution where visible proof and audit steps arrive too late for practical monitoring.
+- **Decision**: For FleetGraph MVP runtime stories, establish or extend the Ship-facing UI surface early in the story sequence and require future completion gates to include UI inspection steps, preferably against the sanctioned public demo when deployable.
+- **Alternatives Considered**: Keep UI proof as a late-story concern; rely on traces/tests alone until final evidence capture; make UI inspection optional in handoff.
+- **Consequences**: Future FleetGraph stories must preserve a visible proof lane and handoffs become more behavior-oriented, but story sequencing and completion packets need to be more deliberate about inspectable states and public demo availability.

@@ -104,6 +104,7 @@ While working and before merge, follow `.ai/workflows/git-finalization.md` for c
 ## Git Finalization Gate (Required)
 
 Use `.ai/workflows/story-handoff.md` as the single user-facing completion gate. It must include the finalization plan, proposed commit message, deploy status, and recovery path in the same review packet as the **User Audit Checklist (Run This Now)**. After the user explicitly approves that completion gate, run `.ai/workflows/git-finalization.md`. Use merge commits by default so PR lineage stays visible in GitHub history; only use squash or rebase when the user explicitly asks for it. Do not commit, push, open a PR, or merge before that approval, and do not mark the story finalized until `bash scripts/git_finalize_guard.sh` passes.
+For stories that change visible behavior in `api/` or `web/`, establish or extend a Ship-facing UI surface early in the story and include explicit UI inspection steps in the completion gate so the user can verify behavior visually.
 
 ---
 
@@ -160,6 +161,7 @@ Follow `.ai/codex.md`, `.claude/CLAUDE.md`, and the active workflow for the curr
 ## Post-Story User Audit Checklist (Required)
 
 At the end of every story, follow `.ai/workflows/story-handoff.md` and include a **User Audit Checklist (Run This Now)** section plus the finalization plan in the same completion gate. Run `bash scripts/check_ai_wiring.sh` only when AI-architecture files are changed (per `.ai/workflows/ai-architecture-change.md`); the hook and finalization guard will also run it automatically for those changes. Wait for explicit user approval before final git actions or the next story.
+If the story changed visible behavior, the audit checklist must include UI inspection steps with the route, interaction, and expected visible result, preferably on the sanctioned public demo when that surface is available.
 
 ---
 

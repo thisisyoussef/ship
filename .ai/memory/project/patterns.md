@@ -227,3 +227,10 @@ Capture reusable patterns that repeatedly work in this project.
 - **Benefits**: Makes proactive findings visible where PMs already work without inventing a standalone chatbot or requiring a manual FleetGraph question first.
 - **Tradeoffs**: The visible surface depends on high-quality context envelopes from the document page.
 - **References**: `web/src/components/FleetGraphFindingsPanel.tsx`, `web/src/hooks/useFleetGraphFindings.ts`, `api/src/routes/fleetgraph.ts`
+
+- **Pattern**: UI-first proof lane for visible MVP stories
+- **Use when**: A story changes user-visible product behavior and the team needs to monitor progress from a live Ship surface as stories merge.
+- **Approach**: Establish or extend the thinnest useful Ship-facing UI surface early in the story, then evolve backend/runtime behavior behind that visible lane instead of adding UI only at the end.
+- **Benefits**: Progress stays visually reviewable on the sanctioned demo, user audits become more concrete, and runtime stories are less likely to disappear into backend-only diffs.
+- **Tradeoffs**: Requires earlier UI coordination even for backend-heavy stories.
+- **References**: `.ai/workflows/feature-development.md`, `.ai/workflows/story-handoff.md`, `docs/specs/fleetgraph/FLEETGRAPH-MVP-PHASE/technical-plan.md`

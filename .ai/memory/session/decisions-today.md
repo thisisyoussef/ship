@@ -73,6 +73,12 @@
 - Finalized T102 and refreshed Render to merged commit `cda917a`; the live public demo now returns `200 /health` and `403 /api/fleetgraph/ready`, confirming the readiness route is live behind service auth instead of missing.
 - Restored the parked T101 workbook draft onto `codex/fleetgraph-t101-submission-contract-docs` and confirmed the Tuesday-required sections are now filled in `docs/assignments/fleetgraph/FLEETGRAPH.md`.
 - Aligned `docs/assignments/fleetgraph/README.md` with the Tuesday MVP checklist so the assignment brief and the workbook now point at the same pass bar.
+- Started `T103` on `codex/fleetgraph-t103-week-start-drift` with the explicit rule that Ship REST is the only allowed data source for week/project/sprint context.
+- Implemented a proactive FleetGraph ship client against `GET /api/weeks`, a deterministic week-start drift detector, and a proactive runtime wrapper that persists surfaced findings only after routing through the shared FleetGraph runtime.
+- Added FleetGraph-owned proactive finding storage plus lifecycle state for `active`, `dismissed`, `resolved`, and `snoozed` findings, including trace linkage and cooldown metadata.
+- Added `/api/fleetgraph/findings` plus dismiss/snooze routes so Ship can render and manage proactive findings through the same-origin API surface.
+- Added a visible `FleetGraphFindingsPanel` to `UnifiedDocumentPage` so proactive week-start drift appears in Ship without requiring an on-demand FleetGraph entry first.
+- Decided the visible proactive panel should query FleetGraph-owned findings for the current document plus related `belongs_to` ids so sprint-linked findings can surface on project pages without violating the REST-only Ship data rule.
 
 Record session-level technical decisions.
 

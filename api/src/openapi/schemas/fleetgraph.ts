@@ -11,6 +11,11 @@ import {
   FleetGraphEntryRunSchema,
   FleetGraphRequestedActionSchema,
 } from '../../services/fleetgraph/entry/index.js'
+import {
+  FleetGraphFindingLifecycleResponseSchema,
+  FleetGraphFindingListResponseSchema,
+  FleetGraphSnoozeRequestSchema,
+} from '../../services/fleetgraph/findings/index.js'
 
 registry.register('FleetGraphRequestedAction', FleetGraphRequestedActionSchema.openapi('FleetGraphRequestedAction'))
 registry.register('FleetGraphActionEndpoint', FleetGraphActionEndpointSchema.openapi('FleetGraphActionEndpoint'))
@@ -19,6 +24,9 @@ registry.register('FleetGraphEntryRun', FleetGraphEntryRunSchema.openapi('FleetG
 registry.register('FleetGraphEntryRequest', FleetGraphEntryRequestSchema.openapi('FleetGraphEntryRequest'))
 registry.register('FleetGraphEntryResponse', FleetGraphEntryResponseSchema.openapi('FleetGraphEntryResponse'))
 registry.register('FleetGraphDeploymentReadinessResponse', FleetGraphDeploymentReadinessResponseSchema.openapi('FleetGraphDeploymentReadinessResponse'))
+registry.register('FleetGraphFindingListResponse', FleetGraphFindingListResponseSchema.openapi('FleetGraphFindingListResponse'))
+registry.register('FleetGraphFindingLifecycleResponse', FleetGraphFindingLifecycleResponseSchema.openapi('FleetGraphFindingLifecycleResponse'))
+registry.register('FleetGraphSnoozeRequest', FleetGraphSnoozeRequestSchema.openapi('FleetGraphSnoozeRequest'))
 
 registry.registerPath({
   method: 'get',
@@ -78,6 +86,79 @@ registry.registerPath({
     },
     403: {
       description: 'Workspace mismatch for FleetGraph entry',
+    },
+  },
+  security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+})
+
+registry.registerPath({
+  method: 'get',
+  path: '/fleetgraph/findings',
+  tags: ['FleetGraph'],
+  summary: 'List active FleetGraph proactive findings for the current Ship context',
+  description: 'Returns active proactive findings for the authenticated workspace, optionally filtered to the current document and related Ship context ids.',
+  responses: {
+    200: {
+      description: 'Active FleetGraph proactive findings',
+      content: {
+        'application/json': {
+          schema: FleetGraphFindingListResponseSchema,
+        },
+      },
+    },
+    401: {
+      description: 'Authentication required',
+    },
+  },
+  security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+})
+
+registry.registerPath({
+  method: 'post',
+  path: '/fleetgraph/findings/{id}/dismiss',
+  tags: ['FleetGraph'],
+  summary: 'Dismiss a proactive FleetGraph finding',
+  responses: {
+    200: {
+      description: 'Updated FleetGraph finding after dismissal',
+      content: {
+        'application/json': {
+          schema: FleetGraphFindingLifecycleResponseSchema,
+        },
+      },
+    },
+    404: {
+      description: 'FleetGraph finding not found',
+    },
+  },
+  security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+})
+
+registry.registerPath({
+  method: 'post',
+  path: '/fleetgraph/findings/{id}/snooze',
+  tags: ['FleetGraph'],
+  summary: 'Snooze a proactive FleetGraph finding',
+  request: {
+    body: {
+      content: {
+        'application/json': {
+          schema: FleetGraphSnoozeRequestSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: 'Updated FleetGraph finding after snooze',
+      content: {
+        'application/json': {
+          schema: FleetGraphFindingLifecycleResponseSchema,
+        },
+      },
+    },
+    404: {
+      description: 'FleetGraph finding not found',
     },
   },
   security: [{ cookieAuth: [] }, { bearerAuth: [] }],

@@ -1,8 +1,8 @@
 # Ship - Single Source of Truth
 
-**Last Updated**: 2026-03-16
-**Current Phase**: FleetGraph MVP T101 submission contract docs
-**Active Sprint**: Lock the workbook contract on `FLEETGRAPH.md` before the proactive MVP slice
+**Last Updated**: 2026-03-17
+**Current Phase**: FleetGraph MVP T103 proactive week-start drift
+**Active Sprint**: Prove one real proactive FleetGraph detection end to end against Ship REST and render it visibly in Ship
 **Project Status**: Active
 **Canonical Deployment Baseline**: API on AWS Elastic Beanstalk, frontend on S3/CloudFront, config/secrets on AWS-native services
 **Sanctioned Public Demo**: Render `ship-demo` at `https://ship-demo.onrender.com/`, deployed with `scripts/deploy-render-demo.sh`
@@ -12,14 +12,14 @@
 ## Current Focus
 
 ### Active Task
-- **Title**: Complete the Tuesday-required `FLEETGRAPH.md` sections and keep the assignment brief aligned with the MVP pack
+- **Title**: Implement proactive week-start drift detection, durable finding lifecycle state, and the visible Ship-facing finding surface
 - **Status**: In progress
 - **Owner**: Codex
 
 ### Next Immediate Actions
-1. Finalize the completed `FLEETGRAPH.md` contract sections: Agent Responsibility, graph outline, use cases, and trigger-model defense.
-2. Keep the assignment README aligned with the Tuesday checklist and the merged MVP pack.
-3. After T101 finalization, move to the proactive week-start drift implementation story on a fresh branch.
+1. Finalize `T103` after user audit with evidence for the proactive worker/runtime path, visible Ship surface, and dismiss/snooze lifecycle.
+2. Refresh the Render public demo after merge because `T103` changes deployed API and web runtime behavior.
+3. Move to `T104` next to turn the advisory `start week` recommendation into a real HITL write path.
 
 ---
 
@@ -79,10 +79,14 @@
 - `api/src/services/fleetgraph/worker/`
 - `api/src/services/fleetgraph/deployment/`
 - `api/src/services/fleetgraph/entry/`
+- `api/src/services/fleetgraph/findings/`
+- `api/src/services/fleetgraph/proactive/`
 - `api/src/routes/fleetgraph.ts`
 - `api/src/openapi/schemas/fleetgraph.ts`
 - `web/src/components/FleetGraphEntryCard.tsx`
+- `web/src/components/FleetGraphFindingsPanel.tsx`
 - `web/src/hooks/useFleetGraphEntry.ts`
+- `web/src/hooks/useFleetGraphFindings.ts`
 - `scripts/fleetgraph_deploy_smoke.sh`
 - `docs/guides/fleetgraph-deployment-readiness.md`
 - Shared LangSmith trace links showing different execution paths

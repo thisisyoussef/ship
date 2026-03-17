@@ -213,3 +213,17 @@ Capture reusable patterns that repeatedly work in this project.
 - **Benefits**: Prevents non-AWS demo hosts from crashing on optional AWS credential lookups and keeps one shared deploy contract instead of host-specific forks.
 - **Tradeoffs**: The readiness route must still surface missing required settings clearly, because boot success alone no longer proves full deploy readiness.
 - **References**: `api/src/config/ssm.ts`, `docs/guides/fleetgraph-deployment-readiness.md`, `api/src/config/ssm.test.ts`
+
+- **Pattern**: REST-scored proactive finding with FleetGraph-owned lifecycle state
+- **Use when**: A FleetGraph story needs one real proactive signal from Ship without violating the assignment rule that Ship REST is the data source.
+- **Approach**: Fetch Ship workspace/week state through the Ship REST API, do deterministic candidate selection first, then persist only the resulting FleetGraph finding, lifecycle state, and trace linkage in FleetGraph-owned tables.
+- **Benefits**: Keeps Ship product data on the REST boundary while still giving proactive findings durable dedupe, dismiss, snooze, and cooldown behavior.
+- **Tradeoffs**: Adds a second layer of state that must be kept clearly separated from Ship product data.
+- **References**: `api/src/services/fleetgraph/proactive/ship-client.ts`, `api/src/services/fleetgraph/proactive/runtime.ts`, `api/src/services/fleetgraph/findings/store.ts`
+
+- **Pattern**: Context-aware proactive rendering on Ship document pages
+- **Use when**: A proactive FleetGraph finding is anchored to a related Ship document like a sprint, but the user may be viewing a surrounding project or program page.
+- **Approach**: Query FleetGraph-owned findings for the current document id plus related `belongs_to` ids from Ship context, then render the active findings inline on `UnifiedDocumentPage` with dismiss and snooze controls.
+- **Benefits**: Makes proactive findings visible where PMs already work without inventing a standalone chatbot or requiring a manual FleetGraph question first.
+- **Tradeoffs**: The visible surface depends on high-quality context envelopes from the document page.
+- **References**: `web/src/components/FleetGraphFindingsPanel.tsx`, `web/src/hooks/useFleetGraphFindings.ts`, `api/src/routes/fleetgraph.ts`

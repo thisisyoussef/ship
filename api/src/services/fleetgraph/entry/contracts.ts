@@ -15,6 +15,7 @@ export const FLEETGRAPH_ENTRY_ACTION_TYPES = [
   'approve_project_plan',
   'approve_week_plan',
   'post_comment',
+  'start_week',
 ] as const
 
 const FLEETGRAPH_ENTRY_TARGET_TYPES = [

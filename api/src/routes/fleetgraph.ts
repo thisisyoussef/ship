@@ -8,6 +8,13 @@ import {
   isSurfaceEnabled,
   resolveFleetGraphSurfaceReadiness,
 } from '../services/fleetgraph/deployment/index.js'
+import {
+  createFleetGraphFindingStore,
+  FleetGraphFindingLifecycleResponseSchema,
+  FleetGraphFindingListResponseSchema,
+  FleetGraphSnoozeRequestSchema,
+  type FleetGraphFindingRecord,
+} from '../services/fleetgraph/findings/index.js'
 import { createFleetGraphRuntime } from '../services/fleetgraph/graph/index.js'
 import { createFleetGraphEntryService, FleetGraphEntryError } from '../services/fleetgraph/entry/index.js'
 import { authMiddleware } from '../middleware/auth.js'
@@ -17,6 +24,7 @@ type RouterType = ReturnType<typeof Router>
 
 interface FleetGraphRouterDeps {
   entryService?: ReturnType<typeof createFleetGraphEntryService>
+  findingStore?: ReturnType<typeof createFleetGraphFindingStore>
 }
 
 const runtime = createFleetGraphRuntime()
@@ -35,12 +43,49 @@ function readServiceToken(request: Request) {
   return undefined
 }
 
+function serializeFinding(finding: FleetGraphFindingRecord) {
+  return {
+    cooldownUntil: finding.cooldownUntil?.toISOString(),
+    dedupeKey: finding.dedupeKey,
+    documentId: finding.documentId,
+    documentType: finding.documentType,
+    evidence: finding.evidence,
+    findingKey: finding.findingKey,
+    findingType: finding.findingType,
+    id: finding.id,
+    metadata: finding.metadata,
+    recommendedAction: finding.recommendedAction,
+    snoozedUntil: finding.snoozedUntil?.toISOString(),
+    status: finding.status,
+    summary: finding.summary,
+    threadId: finding.threadId,
+    title: finding.title,
+    tracePublicUrl: finding.tracePublicUrl,
+    traceRunId: finding.traceRunId,
+    updatedAt: finding.updatedAt.toISOString(),
+    workspaceId: finding.workspaceId,
+  }
+}
+
+function readDocumentIds(request: Request) {
+  const values = typeof request.query.documentIds === 'string'
+    ? request.query.documentIds.split(',')
+    : typeof request.query.documentId === 'string'
+      ? [request.query.documentId]
+      : []
+
+  return Array.from(
+    new Set(values.map((value) => value.trim()).filter(Boolean))
+  )
+}
+
 export function createFleetGraphRouter(
   deps: FleetGraphRouterDeps = {}
 ) {
   const entryService = deps.entryService ?? createFleetGraphEntryService({
     runtime,
   })
+  const findingStore = deps.findingStore ?? createFleetGraphFindingStore()
   const router: RouterType = Router()
 
   router.get('/ready', async (req: Request, res: Response) => {
@@ -87,6 +132,89 @@ export function createFleetGraphRouter(
 
       console.error('FleetGraph entry error:', error)
       res.status(500).json({ error: 'Failed to create FleetGraph entry' })
+    }
+  })
+
+  router.get('/findings', authMiddleware, async (req: Request, res: Response) => {
+    const auth = getAuthContext(req, res)
+    if (!auth) {
+      return
+    }
+
+    const documentIds = readDocumentIds(req)
+
+    try {
+      const findings = await findingStore.listActiveFindings({
+        documentIds,
+        workspaceId: auth.workspaceId,
+      })
+
+      res.json(FleetGraphFindingListResponseSchema.parse({
+        findings: findings.map(serializeFinding),
+      }))
+    } catch (error) {
+      console.error('FleetGraph findings list error:', error)
+      res.status(500).json({ error: 'Failed to load FleetGraph findings' })
+    }
+  })
+
+  router.post('/findings/:id/dismiss', authMiddleware, async (req: Request, res: Response) => {
+    const auth = getAuthContext(req, res)
+    if (!auth) {
+      return
+    }
+
+    try {
+      const finding = await findingStore.dismissFinding(
+        String(req.params.id),
+        auth.workspaceId
+      )
+
+      if (!finding) {
+        res.status(404).json({ error: 'FleetGraph finding not found' })
+        return
+      }
+
+      res.json(FleetGraphFindingLifecycleResponseSchema.parse({
+        finding: serializeFinding(finding),
+      }))
+    } catch (error) {
+      console.error('FleetGraph dismiss error:', error)
+      res.status(500).json({ error: 'Failed to dismiss FleetGraph finding' })
+    }
+  })
+
+  router.post('/findings/:id/snooze', authMiddleware, async (req: Request, res: Response) => {
+    const auth = getAuthContext(req, res)
+    if (!auth) {
+      return
+    }
+
+    try {
+      const body = FleetGraphSnoozeRequestSchema.parse(req.body ?? {})
+      const snoozedUntil = new Date(Date.now() + body.minutes * 60_000)
+      const finding = await findingStore.snoozeFinding(
+        String(req.params.id),
+        auth.workspaceId,
+        snoozedUntil
+      )
+
+      if (!finding) {
+        res.status(404).json({ error: 'FleetGraph finding not found' })
+        return
+      }
+
+      res.json(FleetGraphFindingLifecycleResponseSchema.parse({
+        finding: serializeFinding(finding),
+      }))
+    } catch (error) {
+      if (error instanceof ZodError) {
+        res.status(400).json({ error: error.issues[0]?.message ?? 'Invalid FleetGraph snooze payload' })
+        return
+      }
+
+      console.error('FleetGraph snooze error:', error)
+      res.status(500).json({ error: 'Failed to snooze FleetGraph finding' })
     }
   })
 

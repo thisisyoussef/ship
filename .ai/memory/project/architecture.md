@@ -178,3 +178,10 @@ Record durable architecture decisions.
 - **Decision**: Treat explicit runtime environment variables as the primary FleetGraph config source on non-AWS hosts such as Render. Keep SSM as the AWS fallback for missing settings, but make optional FleetGraph/LangSmith SSM loading credential-tolerant so a non-AWS host can boot, expose readiness, and report missing required settings cleanly instead of crashing on credential lookup.
 - **Alternatives Considered**: Keep optional SSM loading mandatory everywhere in production; disable FleetGraph on Render entirely; fork a separate Render-only config path outside the shared deployment module.
 - **Consequences**: Render and other non-AWS hosts can boot FleetGraph-ready code without AWS credentials when explicit env is configured, while AWS-hosted Ship still retains SSM-backed fallback loading for missing settings.
+
+- **ADR-ID**: ADR-0026
+- **Date**: 2026-03-17
+- **Context**: The Tuesday MVP requires one proactive detection running end to end on real Ship data, visible in Ship without first asking FleetGraph a question. The repo already has a worker substrate, tracing, and an on-demand entry surface, but it lacked a proactive finding contract and visible rendering path.
+- **Decision**: Implement the MVP proactive slice as week-start drift detection sourced from `GET /api/weeks` through a FleetGraph REST client, persist surfaced findings in FleetGraph-owned durable tables, and render active findings on document pages by querying FleetGraph-owned findings tied to the current document plus related Ship context ids.
+- **Alternatives Considered**: Query Ship product tables directly for proactive scoring; derive visible findings only from the latest worker checkpoint; keep proactive findings hidden until the full write path exists.
+- **Consequences**: FleetGraph stays honest to the REST-only assignment contract for Ship data, gains durable dismiss/snooze/cooldown state for proactive findings, and leaves the actual `start week` write execution for `T104`.

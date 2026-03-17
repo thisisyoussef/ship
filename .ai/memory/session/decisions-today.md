@@ -109,6 +109,8 @@
 - Decided recent FleetGraph MVP QA findings should become a dedicated AI harness follow-on instead of staying as ad hoc review comments.
 - Added a lightweight `ui-qa-critic` workflow so future visible UI stories explicitly check human-centered copy, truthful feedback, and secondary debug disclosure after validation.
 - Decided completed visible packs should publish a pack-level `user-audit-checklist.md`; added the FleetGraph MVP checklist as the first concrete artifact.
+- Decided FleetGraph’s main cards should only show dismiss, snooze, and apply success copy after the mutation result confirms success, not on click.
+- Decided FleetGraph thread ids, endpoints, and route details belong behind an explicit `Debug details` disclosure instead of the primary card surface.
 
 Record session-level technical decisions.
 

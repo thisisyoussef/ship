@@ -12,7 +12,7 @@ import type {
 
 interface FleetGraphRuntimeLike {
   getState(threadId: string): Promise<unknown>
-  invoke(input: unknown): Promise<FleetGraphState>
+  invoke(input: unknown, configurable?: Record<string, unknown>): Promise<FleetGraphState>
 }
 
 interface FleetGraphProactiveRuntimeDeps {

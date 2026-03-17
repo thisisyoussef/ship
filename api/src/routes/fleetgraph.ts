@@ -2,6 +2,7 @@ import { Router, type Request, type Response } from 'express'
 import { ZodError } from 'zod'
 
 import {
+  buildShipRestRequestContext,
   createFleetGraphFindingActionService,
   FleetGraphFindingActionError,
   type FleetGraphFindingActionReview,
@@ -419,6 +420,8 @@ export function createFleetGraphRouter(
         threadId,
         trigger: 'document-context',
         workspaceId: auth.workspaceId,
+      }, {
+        fleetgraphReadRequestContext: buildShipRestRequestContext(req),
       })
 
       const extended = state as unknown as Record<string, unknown>
@@ -470,6 +473,8 @@ export function createFleetGraphRouter(
         threadId,
         trigger: 'document-context' as const,
         workspaceId: auth.workspaceId,
+      }, {
+        fleetgraphReadRequestContext: buildShipRestRequestContext(req),
       })
 
       const extended = state as unknown as Record<string, unknown>

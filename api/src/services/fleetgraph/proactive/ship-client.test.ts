@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { createFleetGraphShipApiClient } from './ship-client.js'
 
@@ -48,5 +48,44 @@ describe('FleetGraph Ship API client', () => {
       ],
       workspace_sprint_start_date: '2025-12-15T00:00:00.000Z',
     })
+  })
+
+  it('uses the current Ship session for on-demand document reads when request context is provided', async () => {
+    const fetchFn = vi.fn(async () => new Response(JSON.stringify({
+      id: 'doc-1',
+      title: 'Launch planner',
+    })))
+    const client = createFleetGraphShipApiClient(
+      {
+        baseUrl: 'https://ship-demo-production.up.railway.app',
+        token: 'token',
+      },
+      { fetchFn }
+    )
+
+    await expect(client.fetchDocument(
+      'doc-1',
+      'project',
+      {
+        baseUrl: 'https://ship-demo-production.up.railway.app',
+        cookieHeader: 'ship_session=demo',
+        csrfToken: 'csrf-token',
+      }
+    )).resolves.toEqual({
+      id: 'doc-1',
+      title: 'Launch planner',
+    })
+
+    expect(fetchFn).toHaveBeenCalledWith(
+      'https://ship-demo-production.up.railway.app/api/documents/doc-1',
+      expect.objectContaining({
+        headers: {
+          accept: 'application/json',
+          cookie: 'ship_session=demo',
+          'x-csrf-token': 'csrf-token',
+        },
+        method: 'GET',
+      })
+    )
   })
 })

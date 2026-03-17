@@ -49,7 +49,7 @@ export default function ProgramSprintsTab({ documentId, nestedPath }: DocumentTa
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex min-h-full flex-col" data-testid="program-weeks-tab">
       {/* Top Section: Horizontal Timeline - fixed height */}
       <div className="flex-shrink-0 border-b border-border p-4">
         <h3 className="mb-3 text-sm font-medium text-muted uppercase tracking-wide">Timeline</h3>
@@ -63,7 +63,10 @@ export default function ProgramSprintsTab({ documentId, nestedPath }: DocumentTa
       </div>
 
       {/* Bottom Section: Sprint Details or Empty State */}
-      <div className="flex-1 min-h-0 overflow-auto">
+      <div
+        className={selectedSprintId ? 'flex-1 min-h-[36rem]' : 'flex-1 min-h-[20rem]'}
+        data-testid="program-weeks-detail-panel"
+      >
         {selectedSprintId ? (
           <WeekDetailView
             sprintId={selectedSprintId}
@@ -125,4 +128,3 @@ function EmptySprintState({
     </div>
   );
 }
-

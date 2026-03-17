@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import type { ShipRestRequestContext } from '../actions/executor.js'
 import {
   ShipWeeksResponseSchema,
   type FleetGraphShipApiClient,
@@ -40,6 +41,40 @@ interface FleetGraphShipApiConfig {
   token: string
 }
 
+function buildReadHeaders(
+  config: FleetGraphShipApiConfig,
+  requestContext?: ShipRestRequestContext
+) {
+  if (!requestContext) {
+    return {
+      Authorization: `Bearer ${config.token}`,
+    } satisfies Record<string, string>
+  }
+
+  const headers: Record<string, string> = {
+    accept: 'application/json',
+  }
+
+  if (requestContext.cookieHeader) {
+    headers.cookie = requestContext.cookieHeader
+  }
+
+  if (requestContext.csrfToken) {
+    headers['x-csrf-token'] = requestContext.csrfToken
+  }
+
+  return headers
+}
+
+function buildReadUrl(
+  config: FleetGraphShipApiConfig,
+  path: string,
+  requestContext?: ShipRestRequestContext
+) {
+  const baseUrl = requestContext?.baseUrl ?? config.baseUrl
+  return `${baseUrl}${path}`
+}
+
 export function resolveFleetGraphShipApiConfig(
   env: FleetGraphShipApiEnv | NodeJS.ProcessEnv = process.env
 ): FleetGraphShipApiConfig {
@@ -64,12 +99,14 @@ export function createFleetGraphShipApiClient(
   const fetchFn = deps.fetchFn ?? fetch
 
   return {
-    async fetchChildren(documentId: string, documentType: string) {
-      const url = `${config.baseUrl}/api/documents?parent_id=${encodeURIComponent(documentId)}&document_type=${encodeURIComponent(documentType)}`
+    async fetchChildren(documentId: string, documentType: string, requestContext?: ShipRestRequestContext) {
+      const url = buildReadUrl(
+        config,
+        `/api/documents?parent_id=${encodeURIComponent(documentId)}&document_type=${encodeURIComponent(documentType)}`,
+        requestContext
+      )
       const response = await fetchFn(url, {
-        headers: {
-          Authorization: `Bearer ${config.token}`,
-        },
+        headers: buildReadHeaders(config, requestContext),
         method: 'GET',
       })
 
@@ -77,16 +114,22 @@ export function createFleetGraphShipApiClient(
         throw new Error(`FleetGraph Ship fetch children request failed with ${response.status}.`)
       }
 
-      const raw = await response.json() as { documents?: unknown[] }
+      const raw = await response.json() as { documents?: unknown[] } | unknown[]
+      if (Array.isArray(raw)) {
+        return raw
+      }
+
       return Array.isArray(raw.documents) ? raw.documents : []
     },
 
-    async fetchDocument(documentId: string, _documentType: string) {
-      const url = `${config.baseUrl}/api/documents/${encodeURIComponent(documentId)}`
+    async fetchDocument(documentId: string, _documentType: string, requestContext?: ShipRestRequestContext) {
+      const url = buildReadUrl(
+        config,
+        `/api/documents/${encodeURIComponent(documentId)}`,
+        requestContext
+      )
       const response = await fetchFn(url, {
-        headers: {
-          Authorization: `Bearer ${config.token}`,
-        },
+        headers: buildReadHeaders(config, requestContext),
         method: 'GET',
       })
 
@@ -97,17 +140,23 @@ export function createFleetGraphShipApiClient(
       return response.json()
     },
 
-    async fetchMembers(userIds: string[], workspaceId: string) {
+    async fetchMembers(
+      userIds: string[],
+      workspaceId: string,
+      requestContext?: ShipRestRequestContext
+    ) {
       if (userIds.length === 0) {
         return []
       }
 
       const ids = userIds.map((id) => encodeURIComponent(id)).join(',')
-      const url = `${config.baseUrl}/api/people?workspace_id=${encodeURIComponent(workspaceId)}&ids=${ids}`
+      const url = buildReadUrl(
+        config,
+        `/api/people?workspace_id=${encodeURIComponent(workspaceId)}&ids=${ids}`,
+        requestContext
+      )
       const response = await fetchFn(url, {
-        headers: {
-          Authorization: `Bearer ${config.token}`,
-        },
+        headers: buildReadHeaders(config, requestContext),
         method: 'GET',
       })
 
@@ -120,12 +169,14 @@ export function createFleetGraphShipApiClient(
       return Array.isArray(list) ? list : []
     },
 
-    async listSprintIssues(sprintId: string) {
-      const url = `${config.baseUrl}/api/documents?document_type=issue&sprint_id=${encodeURIComponent(sprintId)}`
+    async listSprintIssues(sprintId: string, requestContext?: ShipRestRequestContext) {
+      const url = buildReadUrl(
+        config,
+        `/api/documents?document_type=issue&sprint_id=${encodeURIComponent(sprintId)}`,
+        requestContext
+      )
       const response = await fetchFn(url, {
-        headers: {
-          Authorization: `Bearer ${config.token}`,
-        },
+        headers: buildReadHeaders(config, requestContext),
         method: 'GET',
       })
 
@@ -137,11 +188,9 @@ export function createFleetGraphShipApiClient(
       return parseSprintIssuesResponse(raw)
     },
 
-    async listWeeks() {
-      const response = await fetchFn(`${config.baseUrl}/api/weeks`, {
-        headers: {
-          Authorization: `Bearer ${config.token}`,
-        },
+    async listWeeks(requestContext?: ShipRestRequestContext) {
+      const response = await fetchFn(buildReadUrl(config, '/api/weeks', requestContext), {
+        headers: buildReadHeaders(config, requestContext),
         method: 'GET',
       })
 

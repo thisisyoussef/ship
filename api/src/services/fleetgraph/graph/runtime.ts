@@ -80,7 +80,7 @@ export interface FleetGraphRuntime {
   getCheckpointHistory(threadId: string): Promise<StateSnapshot[]>
   getPendingInterrupts(threadId: string): Promise<FleetGraphInterruptSummary[]>
   getState(threadId: string): Promise<StateSnapshot>
-  invoke(input: unknown): Promise<FleetGraphState>
+  invoke(input: unknown, configurable?: Record<string, unknown>): Promise<FleetGraphState>
   invokeRaw(input: unknown, configurable?: Record<string, unknown>): Promise<StateSnapshot>
   resume(
     threadId: string,
@@ -578,8 +578,8 @@ export function createFleetGraphRuntime(
       await ensureReady()
       return graph.getState(buildConfig(threadId))
     },
-    async invoke(input: unknown) {
-      const snapshot = await this.invokeRaw(input)
+    async invoke(input: unknown, configurable = {}) {
+      const snapshot = await this.invokeRaw(input, configurable)
       return parseState(snapshot)
     },
     async invokeRaw(input: unknown, configurable = {}) {

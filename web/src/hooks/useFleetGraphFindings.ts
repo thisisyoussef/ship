@@ -19,7 +19,9 @@ async function fetchFleetGraphFindings(documentIds: string[]) {
   const response = await apiGet(`/api/fleetgraph/findings${query ? `?${query}` : ''}`);
 
   if (!response.ok) {
-    const error = new Error('Failed to load FleetGraph proactive findings.') as Error & {
+    const error = new Error(
+      'FleetGraph could not load this week’s proactive findings. Try refreshing the page.'
+    ) as Error & {
       status?: number;
     };
     error.status = response.status;
@@ -32,7 +34,9 @@ async function fetchFleetGraphFindings(documentIds: string[]) {
 async function dismissFleetGraphFinding(id: string) {
   const response = await apiPost(`/api/fleetgraph/findings/${id}/dismiss`);
   if (!response.ok) {
-    const error = new Error('Failed to dismiss FleetGraph finding.') as Error & {
+    const error = new Error(
+      'FleetGraph could not hide this finding right now. Nothing changed.'
+    ) as Error & {
       status?: number;
     };
     error.status = response.status;
@@ -44,7 +48,9 @@ async function dismissFleetGraphFinding(id: string) {
 async function applyFleetGraphFinding(id: string) {
   const response = await apiPost(`/api/fleetgraph/findings/${id}/apply`);
   if (!response.ok) {
-    const error = new Error('Failed to apply the FleetGraph recommendation.') as Error & {
+    const error = new Error(
+      'FleetGraph could not complete that Ship action right now. Nothing changed in Ship.'
+    ) as Error & {
       status?: number;
     };
     error.status = response.status;
@@ -56,7 +62,9 @@ async function applyFleetGraphFinding(id: string) {
 async function snoozeFleetGraphFinding(id: string, minutes: number) {
   const response = await apiPost(`/api/fleetgraph/findings/${id}/snooze`, { minutes });
   if (!response.ok) {
-    const error = new Error('Failed to snooze FleetGraph finding.') as Error & {
+    const error = new Error(
+      'FleetGraph could not snooze this finding right now. Nothing changed.'
+    ) as Error & {
       status?: number;
     };
     error.status = response.status;
@@ -101,23 +109,28 @@ export function useFleetGraphFindings(documentIds: string[]) {
   });
 
   return {
-    applyFinding(id: string) {
-      applyMutation.mutate(id);
+    async applyFinding(id: string) {
+      return applyMutation.mutateAsync(id);
     },
-    dismissFinding(id: string) {
-      dismissMutation.mutate(id);
-    },
-    errorMessage:
-      (query.error instanceof Error && query.error.message)
-      || (applyMutation.error instanceof Error && applyMutation.error.message)
+    actionErrorMessage:
+      (applyMutation.error instanceof Error && applyMutation.error.message)
       || (dismissMutation.error instanceof Error && dismissMutation.error.message)
       || (snoozeMutation.error instanceof Error && snoozeMutation.error.message)
       || null,
+    async dismissFinding(id: string) {
+      return dismissMutation.mutateAsync(id);
+    },
     findings: query.data?.findings ?? [],
     isLoading: query.isLoading,
     isMutating: applyMutation.isPending || dismissMutation.isPending || snoozeMutation.isPending,
-    snoozeFinding(id: string, minutes = 240) {
-      snoozeMutation.mutate({ id, minutes });
+    loadErrorMessage: query.error instanceof Error ? query.error.message : null,
+    resetActionState() {
+      applyMutation.reset();
+      dismissMutation.reset();
+      snoozeMutation.reset();
+    },
+    async snoozeFinding(id: string, minutes = 240) {
+      return snoozeMutation.mutateAsync({ id, minutes });
     },
   };
 }

@@ -57,13 +57,24 @@ function createContext() {
   };
 }
 
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (error?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+
+  return { promise, reject, resolve };
+}
+
 describe('FleetGraphFindingsPanel', () => {
   beforeEach(() => {
     vi.mocked(apiGet).mockReset();
     vi.mocked(apiPost).mockReset();
   });
 
-  it('renders an active week-start drift finding for the current Ship context', async () => {
+  it('renders an active week-start drift finding and hides debug details by default', async () => {
     vi.mocked(apiGet).mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -115,12 +126,20 @@ describe('FleetGraphFindingsPanel', () => {
 
     expect(await screen.findByText('Week start drift: Sprint 8')).toBeInTheDocument();
     expect(screen.getByText('Start Sprint 8')).toBeInTheDocument();
+    expect(screen.queryByText(`POST /api/weeks/${SPRINT_ID}/start`)).not.toBeInTheDocument();
+    expect(screen.queryByText('fleetgraph:workspace-1:scheduled-sweep')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /debug details/i }));
+
+    expect(await screen.findByText(`POST /api/weeks/${SPRINT_ID}/start`)).toBeInTheDocument();
+    expect(screen.getByText('fleetgraph:workspace-1:scheduled-sweep')).toBeInTheDocument();
     expect(apiGet).toHaveBeenCalledWith(
       `/api/fleetgraph/findings?documentIds=${encodeURIComponent(`${DOCUMENT_ID},${SPRINT_ID}`)}`
     );
   });
 
-  it('dismisses a visible finding and shows the local lifecycle notice', async () => {
+  it('waits for confirmed dismiss success before showing the lifecycle notice', async () => {
+    const dismissDeferred = createDeferred<Response>();
     vi.mocked(apiGet).mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -144,15 +163,7 @@ describe('FleetGraphFindingsPanel', () => {
         ],
       }),
     } as Response);
-    vi.mocked(apiPost).mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        finding: {
-          id: 'finding-1',
-          status: 'dismissed',
-        },
-      }),
-    } as Response);
+    vi.mocked(apiPost).mockImplementation(() => dismissDeferred.promise);
 
     render(
       <FleetGraphFindingsPanel
@@ -164,12 +175,85 @@ describe('FleetGraphFindingsPanel', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Dismiss' }));
 
+    expect(
+      screen.queryByText(/hidden for now/i)
+    ).not.toBeInTheDocument();
+
+    dismissDeferred.resolve({
+      ok: true,
+      json: async () => ({
+        finding: {
+          id: 'finding-1',
+          status: 'dismissed',
+        },
+      }),
+    } as Response);
+
     await waitFor(() => {
       expect(apiPost).toHaveBeenCalledWith('/api/fleetgraph/findings/finding-1/dismiss');
     });
 
     expect(
-      screen.getByText(/Future proactive sweeps will keep it suppressed until reopened/i)
+      await screen.findByText(/hidden for now/i)
+    ).toBeInTheDocument();
+  });
+
+  it('waits for confirmed snooze success before showing the lifecycle notice', async () => {
+    const snoozeDeferred = createDeferred<Response>();
+    vi.mocked(apiGet).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        findings: [
+          {
+            dedupeKey: 'dedupe-1',
+            documentId: SPRINT_ID,
+            documentType: 'sprint',
+            evidence: ['Sprint 8 is still planning after the expected week-start boundary.'],
+            findingKey: 'week-start-drift:workspace-1:sprint-8',
+            findingType: 'week_start_drift',
+            id: 'finding-1',
+            metadata: {},
+            status: 'active',
+            summary: 'Sprint 8 looks late to start.',
+            threadId: 'fleetgraph:workspace-1:scheduled-sweep',
+            title: 'Week start drift: Sprint 8',
+            updatedAt: '2026-03-17T12:00:00.000Z',
+            workspaceId: 'workspace-1',
+          },
+        ],
+      }),
+    } as Response);
+    vi.mocked(apiPost).mockImplementation(() => snoozeDeferred.promise);
+
+    render(
+      <FleetGraphFindingsPanel
+        context={createContext()}
+        currentDocumentId={DOCUMENT_ID}
+      />,
+      { wrapper: createWrapper() }
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Snooze 4h' }));
+
+    expect(screen.queryByText(/snoozed until/i)).not.toBeInTheDocument();
+
+    snoozeDeferred.resolve({
+      ok: true,
+      json: async () => ({
+        finding: {
+          id: 'finding-1',
+          snoozedUntil: '2026-03-17T16:00:00.000Z',
+          status: 'snoozed',
+        },
+      }),
+    } as Response);
+
+    await waitFor(() => {
+      expect(apiPost).toHaveBeenCalledWith('/api/fleetgraph/findings/finding-1/snooze', { minutes: 240 });
+    });
+
+    expect(
+      await screen.findByText(/snoozed until/i)
     ).toBeInTheDocument();
   });
 
@@ -242,9 +326,9 @@ describe('FleetGraphFindingsPanel', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Review and apply' }));
 
-    expect(screen.getByText('Review before apply')).toBeInTheDocument();
+    expect(screen.getByText('Review before starting this week')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Apply start week' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Start week in Ship' }));
 
     await waitFor(() => {
       expect(apiPost).toHaveBeenCalledWith('/api/fleetgraph/findings/finding-1/apply');

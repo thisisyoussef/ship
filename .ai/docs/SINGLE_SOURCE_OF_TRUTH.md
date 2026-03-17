@@ -2,7 +2,7 @@
 
 **Last Updated**: 2026-03-17
 **Current Phase**: FleetGraph feedback implementation
-**Active Sprint**: Complete the first post-MVP FleetGraph product fixes so the public demo is easier to reach, inspect, trust, and scroll
+**Active Sprint**: Complete the remaining FleetGraph feedback stories so the public demo is trustworthy to inspect end-to-end
 **Project Status**: Active
 **Canonical Deployment Baseline**: API on AWS Elastic Beanstalk, frontend on S3/CloudFront, config/secrets on AWS-native services
 **Sanctioned Public Demo**: Railway public demo, deployed with `scripts/deploy-railway-demo.sh`
@@ -12,14 +12,14 @@
 ## Current Focus
 
 ### Active Task
-- **Title**: Land FleetGraph feedback fixes one by one, with discoverability complete and scroll recovery ready to finalize
+- **Title**: Finalize T203 trust/copy cleanup, then refresh the whole-pack audit path in T204
 - **Status**: In progress
 - **Owner**: Codex
 
 ### Next Immediate Actions
-1. Finalize and deploy `T202` so the FleetGraph week pages scroll normally on Railway.
-2. Implement `T203` and `T204` against the live Railway demo.
-3. Preserve the REST-only Ship runtime data boundary while fixing human-facing UI trust issues.
+1. Finalize and deploy `T203` so the FleetGraph cards are calmer, more human, and truthful on the Railway demo.
+2. Implement `T204` to refresh the live audit checklist, screenshots, and any tail follow-ons.
+3. Preserve the REST-only Ship runtime data boundary while closing the feedback pack.
 
 ---
 

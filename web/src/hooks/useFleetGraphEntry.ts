@@ -19,7 +19,7 @@ export function useFleetGraphEntry() {
       )
 
       if (!response.ok) {
-        let message = 'FleetGraph could not create an embedded entry.'
+        let message = 'FleetGraph could not review this page right now.'
         try {
           const data = await response.json()
           if (typeof data?.error === 'string') {

@@ -71,7 +71,7 @@ describe('FleetGraphEntryCard', () => {
     vi.mocked(apiPost).mockReset()
   })
 
-  it('posts the embedded Ship context when checking the current page', async () => {
+  it('posts the current Ship context and hides debug details by default', async () => {
     vi.mocked(apiPost).mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -86,11 +86,16 @@ describe('FleetGraphEntryCard', () => {
             nestedPath: ['milestones'],
             surface: 'document-page',
           },
+          threadId: 'fleetgraph:workspace-1:document:project',
         },
         run: {
           outcome: 'advisory',
+          path: ['reasoned'],
+          routeSurface: 'document-page',
+          threadId: 'fleetgraph:workspace-1:document:project',
         },
         summary: {
+          detail: 'FleetGraph can help with this page right now.',
           surfaceLabel: 'document-page / details',
           title: 'FleetGraph is ready in this project context.',
         },
@@ -113,7 +118,7 @@ describe('FleetGraphEntryCard', () => {
       { wrapper: createWrapper() }
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /check current context/i }))
+    fireEvent.click(screen.getByRole('button', { name: /check this page/i }))
 
     await waitFor(() => {
       expect(apiPost).toHaveBeenCalledWith(
@@ -136,6 +141,13 @@ describe('FleetGraphEntryCard', () => {
 
     expect(screen.getByText('FleetGraph is ready in this project context.'))
       .toBeInTheDocument()
+    expect(screen.queryByText('fleetgraph:workspace-1:document:project')).not.toBeInTheDocument()
+    expect(screen.queryByText('document-page / details')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /debug details/i }))
+
+    expect(await screen.findByText('fleetgraph:workspace-1:document:project')).toBeInTheDocument()
+    expect(screen.getByText('document-page / details')).toBeInTheDocument()
   })
 
   it('renders the approval gate when the backend marks the run as approval required', async () => {
@@ -170,11 +182,16 @@ describe('FleetGraphEntryCard', () => {
             nestedPath: ['milestones'],
             surface: 'document-page',
           },
+          threadId: 'fleetgraph:workspace-1:document:project',
         },
         run: {
           outcome: 'approval_required',
+          path: ['approval_required'],
+          routeSurface: 'document-page',
+          threadId: 'fleetgraph:workspace-1:document:project',
         },
         summary: {
+          detail: 'FleetGraph found an action that needs your approval first.',
           surfaceLabel: 'document-page / details',
           title: 'FleetGraph paused for human approval.',
         },
@@ -197,12 +214,17 @@ describe('FleetGraphEntryCard', () => {
       { wrapper: createWrapper() }
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /preview approval gate/i }))
+    fireEvent.click(screen.getByRole('button', { name: /preview approval step/i }))
 
     expect(await screen.findByText('Approve project plan')).toBeInTheDocument()
     expect(screen.getByText('Approve the current project plan.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Apply' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Dismiss' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Snooze' })).toBeInTheDocument()
+    expect(screen.queryByText(`POST /api/projects/${DOCUMENT_ID}/approve-plan`)).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /debug details/i }))
+
+    expect(await screen.findByText(`POST /api/projects/${DOCUMENT_ID}/approve-plan`)).toBeInTheDocument()
   })
 })

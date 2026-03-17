@@ -51,9 +51,9 @@ For each task, list associated tests first:
   - [x] test_seeded_review_apply_week_page_renders_without_scroll_trap
   - [x] test_worker_generated_week_page_renders_without_scroll_trap
 - T203 tests:
-  - [ ] test_dismiss_and_snooze_success_copy_waits_for_confirmed_mutation_success
-  - [ ] test_primary_fleetgraph_ui_hides_endpoint_and_thread_details_by_default
-  - [ ] test_fleetgraph_panels_use_human_friendly_action_copy
+  - [x] test_dismiss_and_snooze_success_copy_waits_for_confirmed_mutation_success
+  - [x] test_primary_fleetgraph_ui_hides_endpoint_and_thread_details_by_default
+  - [x] test_fleetgraph_panels_use_human_friendly_action_copy
 - T204 tests:
   - [ ] test_demo_inspection_guide_matches_current_named_targets
   - [ ] test_pack_level_user_audit_checklist_matches_live_ui_path

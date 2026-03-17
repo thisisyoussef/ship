@@ -48,6 +48,26 @@ export function renderExecutionLabel(finding: FleetGraphFinding) {
   }
 }
 
+function readWeekStartStatusReason(finding: FleetGraphFinding) {
+  const value = finding.metadata?.statusReason;
+  return typeof value === 'string' ? value : null;
+}
+
+export function buildFindingSummary(finding: FleetGraphFinding) {
+  if (finding.findingType !== 'week_start_drift') {
+    return finding.summary;
+  }
+
+  switch (readWeekStartStatusReason(finding)) {
+    case 'planning_after_start':
+      return 'This week should be underway by now, but it is still marked as planning.';
+    case 'zero_issues_after_start':
+      return 'This week has reached its start window, but it still has no linked work.';
+    default:
+      return finding.summary;
+  }
+}
+
 export function buildDismissNotice() {
   return 'Hidden for now. FleetGraph will only bring this back if a new signal shows up.';
 }

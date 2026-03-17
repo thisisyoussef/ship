@@ -191,7 +191,7 @@ describe('FleetGraphEntryCard', () => {
           threadId: 'fleetgraph:workspace-1:document:project',
         },
         summary: {
-          detail: 'FleetGraph found an action that needs your approval first.',
+          detail: 'Review the suggested next step for Launch planner.',
           surfaceLabel: 'document-page / details',
           title: 'FleetGraph paused for human approval.',
         },
@@ -218,6 +218,9 @@ describe('FleetGraphEntryCard', () => {
 
     expect(await screen.findByText('Approve project plan')).toBeInTheDocument()
     expect(screen.getByText('Approve the current project plan.')).toBeInTheDocument()
+    expect(
+      screen.getByText('Review the suggested next step for Launch planner.')
+    ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Apply' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Dismiss' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Snooze' })).toBeInTheDocument()

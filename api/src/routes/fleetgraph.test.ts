@@ -213,6 +213,8 @@ describe('FleetGraph routes', () => {
 
     expect(response.status).toBe(200)
     expect(response.body.run.outcome).toBe('approval_required')
+    expect(response.body.summary.detail).toBe('Review the suggested next step for Launch planner.')
+    expect(response.body.summary.detail).not.toContain('breadcrumb')
     expect(response.body.approval).toMatchObject({
       state: 'pending_confirmation',
       targetId: DOCUMENT_ID,

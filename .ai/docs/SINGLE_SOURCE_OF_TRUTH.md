@@ -1,8 +1,8 @@
 # Ship - Single Source of Truth
 
 **Last Updated**: 2026-03-17
-**Current Phase**: FleetGraph polish pack planning
-**Active Sprint**: Turn the remaining live FleetGraph UI roughness into a bounded polish sequence, then execute it story by story on the Railway demo
+**Current Phase**: FleetGraph polish implementation
+**Active Sprint**: Execute the remaining FleetGraph UI polish stories one by one on the Railway demo
 **Project Status**: Active
 **Canonical Deployment Baseline**: API on AWS Elastic Beanstalk, frontend on S3/CloudFront, config/secrets on AWS-native services
 **Sanctioned Public Demo**: Railway public demo, deployed with `scripts/deploy-railway-demo.sh`
@@ -12,13 +12,13 @@
 ## Current Focus
 
 ### Active Task
-- **Title**: Define the FleetGraph polish pack from the remaining live UI findings, then execute T301 next
+- **Title**: Finish T301 language polish, deploy it to Railway, and then continue into T302
 - **Status**: In progress
 - **Owner**: Codex
 
 ### Next Immediate Actions
-1. Finalize the FleetGraph polish-pack planning artifacts and start `T301` on a fresh branch.
-2. Keep the Railway demo refreshed after each shipped runtime/UI story so prod remains the primary inspection surface.
+1. Finalize `T301` so the approval-preview and worker-summary copy are calmer on the live Railway demo.
+2. Start `T302` next for the secondary debug surface once `T301` is merged and deployed.
 3. Preserve the REST-only Ship runtime data boundary while continuing the remaining UI polish work.
 
 ---

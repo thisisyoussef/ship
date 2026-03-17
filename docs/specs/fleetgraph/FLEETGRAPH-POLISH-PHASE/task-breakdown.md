@@ -43,9 +43,9 @@
 For each task, list associated tests first:
 
 - T301 tests:
-  - [ ] test_entry_approval_preview_uses_human_language_summary
-  - [ ] test_worker_generated_finding_summary_stays_clear_without_system_jargon
-  - [ ] test_primary_copy_preserves_meaning_while_removing_awkward_phrasing
+  - [x] test_entry_approval_preview_uses_human_language_summary
+  - [x] test_worker_generated_finding_summary_stays_clear_without_system_jargon
+  - [x] test_primary_copy_preserves_meaning_while_removing_awkward_phrasing
 - T302 tests:
   - [ ] test_debug_console_surfaces_secondary_fleetgraph_details_without_replacing_main_copy
   - [ ] test_debug_console_is_keyboard_reachable_and_dismissible

@@ -127,7 +127,9 @@ function buildSummary(
     : `FleetGraph is ready in this ${response.current.documentType} context.`
 
   return {
-    detail: `${response.current.title} with ${input.context.breadcrumbs.length} breadcrumb level(s).`,
+    detail: state.outcome === 'approval_required'
+      ? `Review the suggested next step for ${response.current.title}.`
+      : `FleetGraph reviewed ${response.current.title} and can help from this page.`,
     surfaceLabel: buildSurfaceLabel(input),
     title,
   }

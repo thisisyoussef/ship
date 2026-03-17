@@ -208,3 +208,13 @@ Capture failures so they are not repeated.
 - **Example**: Treating `tracePublicUrl`, prompt/output token counts, or dollar-cost fields as guaranteed in the FleetGraph findings response and LangSmith payload, then blocking handoff when the live system only exposes run ids or total tokens.
 - **Why it failed**: The deployed system can still be healthy and fully traceable, but the evidence surface needs one more promotion/query step and the current integration does not emit granular cost data.
 - **Prevention rule**: Capture evidence through a repo-owned script that can share runs by id when needed, and record only the usage fields the live trace payload actually exposes.
+
+- **Problem**: Trapping FleetGraph panels above a separate inner document scroller
+- **Example**: Mounting proactive and entry panels above a week page while the outer document shell still hides overflow and only a deep editor child scrolls.
+- **Why it failed**: Reviewers can see the FleetGraph surface but cannot comfortably inspect the page below it, so the page feels clipped and broken even if the inner editor technically scrolls.
+- **Prevention rule**: When FleetGraph panels prepend content, let the outer document shell own vertical scrolling and avoid inner `overflow-hidden` wrappers that isolate the panels from the page flow.
+
+- **Problem**: Swapping a confirm action into the same click target as `Review and apply`
+- **Example**: The first click opens review, but the confirm action appears in nearly the same location immediately, so a fast second click or double-click can feel like an accidental approval.
+- **Why it failed**: Users lose trust in whether they actually reviewed the action before Ship mutated, even if the code intended a two-step flow.
+- **Prevention rule**: Keep a clearly separate review state, order `Cancel` before the confirm action, and guard against same-gesture or double-click confirmation.

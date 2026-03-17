@@ -119,6 +119,12 @@
 - Removed the per-card FleetGraph inline debug disclosure in favor of a persistent bottom-right dock that reuses already-fetched entry and finding state.
 - Decided T303 should improve FleetGraph scanability through labeled content/action sections, softer evidence rows, and a clearly secondary quick-actions block instead of a broader page redesign.
 - Decided T304 should publish a dedicated polish-pack audit checklist and refreshed Railway screenshots so future inspections can QA the whole polished FleetGraph slice from one reproducible path.
+- Started the FleetGraph second live-inspection follow-on pack on `codex/fleetgraph-feedback-round2-pack` to close the remaining scroll, safe-confirmation, and minor readability issues surfaced by the next prod UI pass.
+- Decided FleetGraph week pages should scroll through the outer `UnifiedDocumentPage` shell once the proactive and entry panels are mounted above the week content, instead of trapping those panels above a separate inner scroller.
+- Decided the inline `Review and apply` lane needs a gesture-safe two-step contract: stronger review emphasis, `Cancel` before the confirm action, and a short guard so the same click cannot also trigger `Start week in Ship`.
+- Removed the duplicated default suggested-step badge when no execution status exists, so `Suggested next step` appears once as a section label instead of twice in the same card.
+- Added a dedicated FleetGraph round-two audit checklist plus a refreshed demo inspection guide so the next user inspection explicitly tests page scroll, the safer confirmation flow, and the cleaned-up card language.
+- Verified the round-two fixes on the live Railway demo: the named review/apply page scrolls through the outer page shell, the inline review state opens without auto-starting the week, `Cancel` returns cleanly to the default state, and `Preview approval step` still renders the approval-preview path.
 
 Record session-level technical decisions.
 

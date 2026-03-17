@@ -13,6 +13,7 @@ Supporting repo docs:
 - `docs/specs/fleetgraph/FLEETGRAPH-MVP-PHASE/`
 - `docs/specs/fleetgraph/FLEETGRAPH-FEEDBACK-PHASE/`
 - `docs/specs/fleetgraph/FLEETGRAPH-POLISH-PHASE/`
+- `docs/specs/fleetgraph/FLEETGRAPH-FEEDBACK-ROUND2-PHASE/`
 
 ## What this assignment is asking for
 
@@ -77,6 +78,8 @@ All items are required to pass:
 - Submission workbook: `docs/assignments/fleetgraph/FLEETGRAPH.md`
 - Post-MVP feedback pack: `docs/specs/fleetgraph/FLEETGRAPH-FEEDBACK-PHASE/`
 - Post-feedback polish pack audit: `docs/specs/fleetgraph/FLEETGRAPH-POLISH-PHASE/user-audit-checklist.md`
+- Round-two feedback pack: `docs/specs/fleetgraph/FLEETGRAPH-FEEDBACK-ROUND2-PHASE/`
+- Round-two audit checklist: `docs/specs/fleetgraph/FLEETGRAPH-FEEDBACK-ROUND2-PHASE/user-audit-checklist.md`
 
 ## What to lock down before coding
 
@@ -99,5 +102,6 @@ All items are required to pass:
 7. Decide the proactive trigger model and defend it.
 8. After MVP feedback arrives, use `docs/specs/fleetgraph/FLEETGRAPH-FEEDBACK-PHASE/` to restore discoverability, scrolling, and trust.
 9. Use `docs/specs/fleetgraph/FLEETGRAPH-POLISH-PHASE/` for the remaining human-language, debug-surface, and light visual polish sequence.
-10. Run `docs/specs/fleetgraph/FLEETGRAPH-POLISH-PHASE/user-audit-checklist.md` for the full polished UI inspection path once that pack is complete.
-11. Only then start any new extension planning beyond the current FleetGraph proof lane.
+10. Use `docs/specs/fleetgraph/FLEETGRAPH-FEEDBACK-ROUND2-PHASE/` for the remaining scroll, safe-confirmation, and readability follow-on fixes from the next live inspection.
+11. Run `docs/specs/fleetgraph/FLEETGRAPH-FEEDBACK-ROUND2-PHASE/user-audit-checklist.md` for the next full FleetGraph UI inspection path once that pack is complete.
+12. Only then start any new extension planning beyond the current FleetGraph proof lane.

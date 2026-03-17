@@ -23,16 +23,19 @@ Use this guide when verifying FleetGraph behavior on the sanctioned public demo.
 3. Go to `Documents`.
 4. Open `FleetGraph Demo Week - Review and Apply` from the document list or sidebar.
 5. Inspect the proactive panel and the entry card on that page.
-6. Click `Review and apply`, then inspect the inline review state.
-7. Click `Cancel`.
-8. Click `Preview approval step` in the entry card and inspect the approval-preview state.
-9. Return to `Documents`.
-10. Open `FleetGraph Demo Week - Worker Generated`.
+6. Confirm the page itself scrolls naturally with your mouse wheel or trackpad while the FleetGraph panels stay part of the same page flow.
+7. Click `Review and apply`, then inspect the inline review state.
+8. Pause for a beat and confirm nothing in Ship has changed yet.
+9. Click `Cancel`.
+10. Click `Preview approval step` in the entry card and inspect the approval-preview state.
+11. Return to `Documents`.
+12. Open `FleetGraph Demo Week - Worker Generated`.
 
 ## Expected FleetGraph Surface
 
 - The `FleetGraph proactive` panel is visible near the top of the document page.
 - The `FleetGraph entry` card remains visible below the proactive panel.
+- The page scrolls as one comfortable document page instead of trapping the FleetGraph panels above a separate inner scroller.
 - On `FleetGraph Demo Week - Review and Apply`, the proactive card shows:
   - `Active finding`
   - `Why this matters`
@@ -47,10 +50,11 @@ Use this guide when verifying FleetGraph behavior on the sanctioned public demo.
 ## Expected Review-And-Apply Flow
 
 1. Click `Review and apply`.
-2. Confirm the inline review box headline is `Review before starting this week`.
-3. Confirm `Start week in Ship` and `Cancel` are both visible.
+2. Confirm the inline review box headline is `Confirm before starting this week`.
+3. Confirm `Cancel` and `Start week in Ship` are both visible.
 4. Confirm the copy explains the effect in human terms instead of raw endpoint or route jargon.
-5. Apply only when you want to test the real HITL path.
+5. Confirm the same click that opened review did not already start the week.
+6. Apply only when you want to test the real HITL path.
 
 ## Expected Entry-Card Preview Flow
 

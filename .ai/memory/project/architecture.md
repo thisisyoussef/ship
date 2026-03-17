@@ -234,3 +234,10 @@ Record durable architecture decisions.
 - **Decision**: Replace the per-card FleetGraph debug disclosure with one page-level secondary debug dock on `UnifiedDocumentPage`. The proactive and entry surfaces publish already-fetched debug state into a shared local context, and the dock exposes threads, endpoints, route/result surfaces, and trace links from one persistent bottom-right overlay.
 - **Alternatives Considered**: Keep one inline disclosure per card; add a heavier modal dialog; create a new debug-only route or API surface.
 - **Consequences**: FleetGraph pages now keep technical QA data in one consistent secondary surface, which preserves the calmer main cards and makes future QA easier, but the page gains a small shared UI state layer that future FleetGraph surfaces should reuse instead of adding new inline debug blocks.
+
+- **ADR-ID**: ADR-0034
+- **Date**: 2026-03-17
+- **Context**: A second live FleetGraph inspection on Railway showed two remaining trust problems on the named review/apply week page: the document shell still felt clipped after the proactive and entry panels mounted above week content, and the inline confirm action felt too easy to trigger immediately after `Review and apply`.
+- **Decision**: Let `UnifiedDocumentPage` own the vertical scroll for FleetGraph week pages, remove the tab-content overflow trap, suppress the duplicated default suggested-step badge, and add a distinct confirmation contract to the proactive card: stronger review-state emphasis, `Cancel` before the Ship mutation button, and a short gesture guard so the same click that opens review cannot also trigger apply.
+- **Alternatives Considered**: Keep relying on nested editor scrolling and add more spacing only; move the confirm action to a modal dialog; leave the immediate button swap in place and trust button labels alone.
+- **Consequences**: FleetGraph week pages become more naturally inspectable on the public demo and the review/apply path becomes safer without a heavier UI pattern, but future page-shell changes need to preserve that outer scroll ownership and avoid reintroducing same-location confirm swaps.

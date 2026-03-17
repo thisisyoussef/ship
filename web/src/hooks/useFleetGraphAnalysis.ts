@@ -1,7 +1,7 @@
 import { useMutation } from '@tanstack/react-query'
 import { useCallback, useState } from 'react'
 
-import { apiPost } from '@/lib/api'
+import { apiDelete, apiPatch, apiPost } from '@/lib/api'
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                             */
@@ -124,6 +124,39 @@ export function useFleetGraphAnalysis() {
     [turnMutation]
   )
 
+  const [pendingActionFindingId, setPendingActionFindingId] = useState<string | null>(null)
+  const [isApplying, setIsApplying] = useState(false)
+
+  const applyFindingAction = useCallback(async (finding: FleetGraphFinding) => {
+    if (!finding.proposedAction) return
+    const key = `${finding.findingType}:${finding.title}`
+    setPendingActionFindingId(key)
+    setIsApplying(true)
+    try {
+      const { method, path } = finding.proposedAction.endpoint
+      let response: Response
+      const upperMethod = method.toUpperCase()
+      if (upperMethod === 'POST') {
+        response = await apiPost(path)
+      } else if (upperMethod === 'PATCH') {
+        response = await apiPatch(path, {})
+      } else if (upperMethod === 'DELETE') {
+        response = await apiDelete(path)
+      } else {
+        // Fallback to POST for unknown methods
+        response = await apiPost(path)
+      }
+      if (!response.ok) {
+        console.error(`FleetGraph action failed: ${response.status} ${response.statusText}`)
+      }
+    } catch (err) {
+      console.error('FleetGraph applyFindingAction error:', err)
+    } finally {
+      setPendingActionFindingId(null)
+      setIsApplying(false)
+    }
+  }, [])
+
   const reset = useCallback(() => {
     setThreadId(null)
     setConversation([])
@@ -131,9 +164,12 @@ export function useFleetGraphAnalysis() {
 
   return {
     analyze,
+    applyFindingAction,
     conversation,
     isAnalyzing: analyzeMutation.isPending,
+    isApplying,
     isResponding: turnMutation.isPending,
+    pendingActionFindingId,
     reset,
     sendMessage,
     threadId,

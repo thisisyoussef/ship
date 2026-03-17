@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 
+import { ConfirmDialog } from './ConfirmDialog'
 import {
   useFleetGraphAnalysis,
   type ConversationEntry,
@@ -33,7 +34,14 @@ function FindingBadge({ severity }: { severity: FleetGraphFinding['severity'] })
   )
 }
 
-function FindingCard({ finding }: { finding: FleetGraphFinding }) {
+interface FindingCardProps {
+  finding: FleetGraphFinding
+  isApplyingThis: boolean
+  onApply: () => void
+  onConfirmRequest: () => void
+}
+
+function FindingCard({ finding, isApplyingThis, onApply, onConfirmRequest }: FindingCardProps) {
   return (
     <div className="border border-gray-200 rounded-md p-3 space-y-1">
       <div className="flex items-center gap-2">
@@ -41,7 +49,30 @@ function FindingCard({ finding }: { finding: FleetGraphFinding }) {
         <span className="text-sm font-medium text-gray-900">{finding.title}</span>
       </div>
       <p className="text-sm text-gray-600">{finding.summary}</p>
-      {finding.proposedAction && (
+      {finding.proposedAction && finding.actionTier !== 'A' && (
+        <div className="pt-2">
+          {finding.actionTier === 'B' ? (
+            <button
+              className="text-xs px-2 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              disabled={isApplyingThis}
+              onClick={onApply}
+              type="button"
+            >
+              {isApplyingThis ? 'Applying…' : (finding.proposedAction.label ?? 'Apply')}
+            </button>
+          ) : (
+            <button
+              className="text-xs px-2 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              disabled={isApplyingThis}
+              onClick={onConfirmRequest}
+              type="button"
+            >
+              {isApplyingThis ? 'Applying…' : (finding.proposedAction.label ?? 'Apply')}
+            </button>
+          )}
+        </div>
+      )}
+      {finding.actionTier === 'A' && finding.proposedAction && (
         <div className="pt-1">
           <span className="text-xs text-indigo-600 font-medium">
             Suggested: {finding.proposedAction.label}
@@ -52,7 +83,21 @@ function FindingCard({ finding }: { finding: FleetGraphFinding }) {
   )
 }
 
-function ConversationMessage({ entry }: { entry: ConversationEntry }) {
+interface ConversationMessageProps {
+  entry: ConversationEntry
+  isApplying: boolean
+  pendingActionFindingId: string | null
+  onApplyFinding: (finding: FleetGraphFinding) => void
+  onConfirmFinding: (finding: FleetGraphFinding) => void
+}
+
+function ConversationMessage({
+  entry,
+  isApplying,
+  pendingActionFindingId,
+  onApplyFinding,
+  onConfirmFinding,
+}: ConversationMessageProps) {
   const isUser = entry.role === 'user'
   return (
     <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}>
@@ -67,9 +112,18 @@ function ConversationMessage({ entry }: { entry: ConversationEntry }) {
       </div>
       {entry.findings && entry.findings.length > 0 && (
         <div className="mt-2 space-y-2 w-full">
-          {entry.findings.map((finding, idx) => (
-            <FindingCard key={idx} finding={finding} />
-          ))}
+          {entry.findings.map((finding, idx) => {
+            const key = `${finding.findingType}:${finding.title}`
+            return (
+              <FindingCard
+                key={idx}
+                finding={finding}
+                isApplyingThis={isApplying && pendingActionFindingId === key}
+                onApply={() => onApplyFinding(finding)}
+                onConfirmRequest={() => onConfirmFinding(finding)}
+              />
+            )
+          })}
         </div>
       )}
     </div>
@@ -88,12 +142,16 @@ export function FleetGraphFab({
   const [isOpen, setIsOpen] = useState(false)
   const [input, setInput] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
+  const [confirmingFinding, setConfirmingFinding] = useState<FleetGraphFinding | null>(null)
 
   const {
     analyze,
+    applyFindingAction,
     conversation,
     isAnalyzing,
+    isApplying,
     isResponding,
+    pendingActionFindingId,
     sendMessage,
   } = useFleetGraphAnalysis()
 
@@ -179,7 +237,14 @@ export function FleetGraphFab({
             )}
 
             {conversation.map((entry, idx) => (
-              <ConversationMessage key={idx} entry={entry} />
+              <ConversationMessage
+                key={idx}
+                entry={entry}
+                isApplying={isApplying}
+                pendingActionFindingId={pendingActionFindingId}
+                onApplyFinding={(finding) => { void applyFindingAction(finding) }}
+                onConfirmFinding={(finding) => setConfirmingFinding(finding)}
+              />
             ))}
 
             {isResponding && (
@@ -211,6 +276,31 @@ export function FleetGraphFab({
             </div>
           </form>
         </div>
+      )}
+
+      {/* Tier C confirm dialog */}
+      {confirmingFinding && (
+        <ConfirmDialog
+          open={confirmingFinding !== null}
+          title={confirmingFinding.proposedAction?.label ?? confirmingFinding.title}
+          description={confirmingFinding.summary}
+          confirmLabel={confirmingFinding.proposedAction?.label ?? 'Apply'}
+          cancelLabel="Cancel"
+          onConfirm={() => {
+            const finding = confirmingFinding
+            setConfirmingFinding(null)
+            void applyFindingAction(finding)
+          }}
+          onCancel={() => setConfirmingFinding(null)}
+        >
+          {confirmingFinding.evidence.length > 0 && (
+            <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
+              {confirmingFinding.evidence.map((item, idx) => (
+                <li key={idx}>{item}</li>
+              ))}
+            </ul>
+          )}
+        </ConfirmDialog>
       )}
     </>
   )

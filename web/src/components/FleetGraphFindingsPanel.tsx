@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { FleetGraphFindingCard } from '@/components/FleetGraphFindingCard';
 import { useFleetGraphDebugSurface } from '@/components/FleetGraphDebugSurface';
@@ -52,6 +52,7 @@ export function FleetGraphFindingsPanel({
     review: null,
   });
   const [localNotice, setLocalNotice] = useState<LocalNotice | null>(null);
+  const snoozeRefreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const helperText = loading
     ? 'Loading the surrounding Ship context for FleetGraph.'
@@ -65,6 +66,33 @@ export function FleetGraphFindingsPanel({
       )
     ));
   }, [findings.findings, reviewState.findingId, reviewState.review, setFindings]);
+
+  useEffect(() => () => {
+    if (snoozeRefreshTimeoutRef.current !== null) {
+      clearTimeout(snoozeRefreshTimeoutRef.current);
+    }
+  }, []);
+
+  function scheduleSnoozeRefresh(snoozedUntil?: string) {
+    if (snoozeRefreshTimeoutRef.current !== null) {
+      clearTimeout(snoozeRefreshTimeoutRef.current);
+      snoozeRefreshTimeoutRef.current = null;
+    }
+
+    if (!snoozedUntil) {
+      return;
+    }
+
+    const delayMs = new Date(snoozedUntil).getTime() - Date.now();
+    if (!Number.isFinite(delayMs)) {
+      return;
+    }
+
+    snoozeRefreshTimeoutRef.current = setTimeout(() => {
+      void findings.refetchFindings();
+      snoozeRefreshTimeoutRef.current = null;
+    }, Math.max(delayMs, 0) + 250);
+  }
 
   async function handleDismiss(findingId: string) {
     setLocalNotice(null);
@@ -108,6 +136,7 @@ export function FleetGraphFindingsPanel({
         ),
         tone: 'info',
       });
+      scheduleSnoozeRefresh(response.finding.snoozedUntil);
     } catch (error) {
       console.error('FleetGraph snooze failed:', error);
       // The hook surfaces the friendly error message.

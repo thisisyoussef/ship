@@ -141,7 +141,7 @@ describe('FleetGraph finding store', () => {
       .toHaveLength(0)
   })
 
-  it('keeps snoozed findings hidden until a later reactivation run', async () => {
+  it('reactivates expired snoozed findings when they are listed after expiry', async () => {
     const store = createFleetGraphFindingStore(testDb.pool)
     const created = await store.upsertFinding({
       dedupeKey: 'dedupe:workspace-1:sprint-1',
@@ -178,24 +178,21 @@ describe('FleetGraph finding store', () => {
     }, new Date('2026-03-17T18:00:00.000Z'))
 
     expect(midSnooze.status).toBe('snoozed')
-    expect(await store.listActiveFindings({ workspaceId: 'workspace-1' }))
+    expect(
+      await store.listActiveFindings(
+        { workspaceId: 'workspace-1' },
+        new Date('2026-03-17T18:00:00.000Z')
+      )
+    )
       .toHaveLength(0)
 
-    const reactivated = await store.upsertFinding({
-      dedupeKey: 'dedupe:workspace-1:sprint-1',
-      documentId: 'sprint-1',
-      documentType: 'sprint',
-      evidence: ['Evidence after snooze expiry'],
-      findingKey: 'week-start-drift:workspace-1:sprint-1',
-      findingType: 'week_start_drift',
-      summary: 'Snooze expired',
-      threadId: 'fleetgraph:workspace-1:scheduled-sweep:sprint-1',
-      title: 'Week start drift detected',
-      workspaceId: 'workspace-1',
-    }, new Date('2026-03-17T21:00:00.000Z'))
+    const listedAfterExpiry = await store.listActiveFindings(
+      { workspaceId: 'workspace-1' },
+      new Date('2026-03-17T21:00:00.000Z')
+    )
 
-    expect(reactivated.status).toBe('active')
-    expect(await store.listActiveFindings({ workspaceId: 'workspace-1' }))
-      .toHaveLength(1)
+    expect(listedAfterExpiry).toHaveLength(1)
+    expect(listedAfterExpiry[0]?.status).toBe('active')
+    expect(listedAfterExpiry[0]?.snoozedUntil).toBeUndefined()
   })
 })

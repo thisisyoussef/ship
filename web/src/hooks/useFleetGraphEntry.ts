@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { apiDelete, apiPatch, apiPost } from '@/lib/api'
 import {
@@ -7,6 +7,8 @@ import {
   type FleetGraphEntryInput,
   type FleetGraphEntryResponse,
 } from '@/lib/fleetgraph-entry'
+import { documentKeys } from './useDocumentsQuery'
+import { sprintKeys } from './useWeeksQuery'
 
 async function callApprovalEndpoint(approval: FleetGraphApprovalEnvelope): Promise<Response> {
   const { method, path } = approval.endpoint
@@ -16,6 +18,7 @@ async function callApprovalEndpoint(approval: FleetGraphApprovalEnvelope): Promi
 }
 
 export function useFleetGraphEntry() {
+  const queryClient = useQueryClient()
   const mutation = useMutation({
     mutationFn: async (input: {
       entry: FleetGraphEntryInput
@@ -58,9 +61,20 @@ export function useFleetGraphEntry() {
         }
         throw new Error(message)
       }
+      return approval
     },
-    onSuccess: () => {
+    onSuccess: (approval) => {
       mutation.reset()
+      // Invalidate relevant queries based on the action type
+      if (approval.targetType === 'sprint') {
+        queryClient.invalidateQueries({ queryKey: sprintKeys.lists() })
+        queryClient.invalidateQueries({ queryKey: sprintKeys.active() })
+      }
+      if (approval.targetType === 'project') {
+        queryClient.invalidateQueries({ queryKey: documentKeys.lists() })
+      }
+      // Always invalidate document details for the target
+      queryClient.invalidateQueries({ queryKey: documentKeys.detail(approval.targetId) })
     },
   })
 

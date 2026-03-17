@@ -86,8 +86,24 @@ export function createFleetGraphFindingStore(
       return result.rows[0] ? mapFinding(result.rows[0]) : null
     },
 
-    async listActiveFindings({ documentIds, workspaceId }) {
+    async listActiveFindings({ documentIds, workspaceId }, now = new Date()) {
       const normalizedDocumentIds = documentIds?.filter(Boolean) ?? []
+      await queryable.query(
+        `UPDATE fleetgraph_proactive_findings
+         SET status = 'active',
+             snoozed_until = NULL,
+             updated_at = $3
+         WHERE workspace_id = $1
+           AND status = 'snoozed'
+           AND snoozed_until IS NOT NULL
+           AND snoozed_until <= $3
+           AND (
+             cardinality($2::text[]) = 0
+             OR document_id = ANY($2::text[])
+           )`,
+        [workspaceId, normalizedDocumentIds, now]
+      )
+
       const result = await queryable.query(
         `SELECT * FROM fleetgraph_proactive_findings
          WHERE workspace_id = $1

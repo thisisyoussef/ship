@@ -162,6 +162,9 @@ export function useFleetGraphFindings(documentIds: string[]) {
     async reviewFinding(id: string) {
       return reviewMutation.mutateAsync(id);
     },
+    async refetchFindings() {
+      return query.refetch();
+    },
     async snoozeFinding(id: string, input: FleetGraphSnoozeInput = { minutes: 240 }) {
       return snoozeMutation.mutateAsync({ id, input });
     },

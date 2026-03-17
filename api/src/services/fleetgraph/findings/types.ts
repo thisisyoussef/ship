@@ -105,7 +105,10 @@ export interface FleetGraphFindingStore {
   dismissFinding(id: string, workspaceId: string, now?: Date): Promise<FleetGraphFindingRecord | null>
   getFindingById(id: string, workspaceId: string): Promise<FleetGraphFindingRecord | null>
   getFindingByKey(findingKey: string): Promise<FleetGraphFindingRecord | null>
-  listActiveFindings(input: { documentIds?: string[]; workspaceId: string }): Promise<FleetGraphFindingRecord[]>
+  listActiveFindings(
+    input: { documentIds?: string[]; workspaceId: string },
+    now?: Date
+  ): Promise<FleetGraphFindingRecord[]>
   resolveFinding(findingKey: string, now?: Date): Promise<FleetGraphFindingRecord | null>
   snoozeFinding(id: string, workspaceId: string, snoozedUntil: Date, now?: Date): Promise<FleetGraphFindingRecord | null>
   upsertFinding(input: FleetGraphUpsertFindingInput, now?: Date): Promise<FleetGraphFindingRecord>

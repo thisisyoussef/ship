@@ -17,6 +17,7 @@ import { useCurrentDocument } from '@/contexts/CurrentDocumentContext';
 import { FleetGraphDebugDock } from '@/components/FleetGraphDebugDock';
 import { FleetGraphDebugSurfaceProvider } from '@/components/FleetGraphDebugSurface';
 import { FleetGraphEntryCard } from '@/components/FleetGraphEntryCard';
+import { FleetGraphFab } from '@/components/FleetGraphFab';
 import { FleetGraphFindingsPanel } from '@/components/FleetGraphFindingsPanel';
 import { useDocumentContextQuery } from '@/hooks/useDocumentContextQuery';
 import type { BelongsTo } from '@ship/shared';
@@ -708,6 +709,11 @@ export function UnifiedDocumentPage() {
             )}
           </Suspense>
         </div>
+        <FleetGraphFab
+          documentId={document.id}
+          documentTitle={document.title}
+          documentType={document.document_type}
+        />
       </div>
     );
   }
@@ -733,6 +739,11 @@ export function UnifiedDocumentPage() {
           titleSuffix={standupAuthorName}
         />
       </div>
+      <FleetGraphFab
+        documentId={document.id}
+        documentTitle={document.title}
+        documentType={document.document_type}
+      />
     </div>
   );
 }

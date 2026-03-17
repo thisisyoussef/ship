@@ -152,3 +152,47 @@ export function parseFleetGraphRuntimeInput(
     requestedAction: parsed.requestedAction as FleetGraphRequestedAction | undefined,
   }
 }
+
+// ── On-demand analysis types (used by graph nodes and routes) ──
+
+export interface FleetGraphConversationTurn {
+  role: 'user' | 'assistant'
+  content: string
+  timestamp: string
+}
+
+export interface FleetGraphDepthHint {
+  ids: string[]
+  type: 'assignee_workload' | 'linked_documents' | 'sprint_issues' | 'project_members'
+}
+
+export interface FleetGraphAnalysisFinding {
+  actionTier: 'A' | 'B' | 'C'
+  evidence: string[]
+  findingType: string
+  proposedAction?: {
+    endpoint: { method: string; path: string }
+    label: string
+    targetId: string
+    targetType: string
+  }
+  severity: 'info' | 'warning' | 'critical'
+  summary: string
+  title: string
+}
+
+export interface FleetGraphContextEnvelope {
+  actorId: string
+  documentId: string
+  documentTitle: string
+  documentType: string
+  surface: string
+  workspaceId: string
+}
+
+// Ship API client interface for graph fetch nodes
+export interface FleetGraphShipClient {
+  fetchChildren(documentId: string, documentType: string): Promise<unknown[]>
+  fetchDocument(documentId: string, documentType: string): Promise<unknown>
+  fetchMembers(userIds: string[], workspaceId: string): Promise<unknown[]>
+}

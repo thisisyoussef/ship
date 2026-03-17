@@ -391,6 +391,103 @@ export function createFleetGraphRouter(
     }
   })
 
+  // ── On-demand analysis (auto-analysis on document open) ──
+  router.post('/analyze', authMiddleware, async (req: Request, res: Response) => {
+    const auth = getAuthContext(req, res)
+    if (!auth) return
+
+    try {
+      const { documentId, documentType, documentTitle } = req.body as {
+        documentId?: string
+        documentTitle?: string
+        documentType?: string
+      }
+
+      if (!documentId || !documentType) {
+        res.status(400).json({ error: 'documentId and documentType are required' })
+        return
+      }
+
+      const threadId = `fleetgraph:${auth.workspaceId}:analyze:${documentId}`
+      const state = await runtime.invoke({
+        contextKind: 'entry',
+        documentId,
+        documentTitle: documentTitle || 'Untitled',
+        documentType,
+        mode: 'on_demand',
+        routeSurface: 'document-page',
+        threadId,
+        trigger: 'document-context',
+        workspaceId: auth.workspaceId,
+      })
+
+      const extended = state as unknown as Record<string, unknown>
+      res.json({
+        analysisFindings: extended.analysisFindings ?? [],
+        analysisText: extended.analysisText ?? '',
+        outcome: state.outcome,
+        path: state.path,
+        pendingAction: extended.pendingAction,
+        threadId,
+      })
+    } catch (error) {
+      console.error('FleetGraph analyze error:', error)
+      res.status(500).json({ error: 'Failed to analyze document' })
+    }
+  })
+
+  // ── Conversation turn (follow-up questions) ──
+  router.post('/thread/:threadId/turn', authMiddleware, async (req: Request, res: Response) => {
+    const auth = getAuthContext(req, res)
+    if (!auth) return
+
+    try {
+      const { message } = req.body as { message?: string }
+      if (!message) {
+        res.status(400).json({ error: 'message is required' })
+        return
+      }
+
+      const threadId = String(req.params.threadId)
+
+      // Get existing state to extract context
+      const existingState = await runtime.getState(threadId)
+      const values = existingState.values as Record<string, unknown> | undefined
+
+      if (!values?.documentId) {
+        res.status(404).json({ error: 'No active session found for this thread' })
+        return
+      }
+
+      // TODO: pass userMessage to graph once reason node is wired into master's scenario runner
+      const state = await runtime.invoke({
+        contextKind: 'entry' as const,
+        documentId: values.documentId as string,
+        documentTitle: (values.documentTitle as string) ?? 'Untitled',
+        documentType: (values.documentType as string) ?? 'document',
+        mode: 'on_demand' as const,
+        routeSurface: 'document-page',
+        threadId,
+        trigger: 'document-context' as const,
+        workspaceId: auth.workspaceId,
+      })
+
+      const extended = state as unknown as Record<string, unknown>
+      res.json({
+        analysisFindings: extended.analysisFindings ?? [],
+        analysisText: extended.analysisText ?? '',
+        outcome: state.outcome,
+        path: state.path,
+        pendingAction: extended.pendingAction,
+        threadId,
+        turnCount: extended.turnCount,
+      })
+    } catch (error) {
+      console.error('FleetGraph turn error:', error)
+      res.status(500).json({ error: 'Failed to process conversation turn' })
+    }
+  })
+
   return router
 }
 

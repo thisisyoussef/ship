@@ -27,7 +27,7 @@ interface FleetGraphFindingCardProps {
   onCancelReview: () => void;
   onDismiss: (findingId: string) => void;
   onReview: (findingId: string) => void;
-  onSnooze: (findingId: string) => void;
+  onSnooze: (findingId: string, preset: '10s' | '4h') => void;
   review?: FleetGraphFindingReview | null;
 }
 
@@ -173,7 +173,15 @@ export function FleetGraphFindingCard({
             <button
               className={buttonClassName}
               disabled={isMutating}
-              onClick={() => onSnooze(finding.id)}
+              onClick={() => onSnooze(finding.id, '10s')}
+              type="button"
+            >
+              Snooze 10s
+            </button>
+            <button
+              className={buttonClassName}
+              disabled={isMutating}
+              onClick={() => onSnooze(finding.id, '4h')}
               type="button"
             >
               Snooze 4h

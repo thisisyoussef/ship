@@ -87,19 +87,25 @@ export function FleetGraphFindingsPanel({
     }
   }
 
-  async function handleSnooze(findingId: string) {
+  async function handleSnooze(findingId: string, preset: '10s' | '4h') {
     setLocalNotice(null);
     findings.resetActionState();
 
     try {
-      const response = await findings.snoozeFinding(findingId, 240);
+      const snoozeInput = preset === '10s'
+        ? { seconds: 10 }
+        : { minutes: 240 }
+      const response = await findings.snoozeFinding(findingId, snoozeInput);
       setReviewState((current) =>
         current.findingId === findingId
           ? { findingId: null, openedAt: null, review: null }
           : current
       );
       setLocalNotice({
-        message: buildSnoozeNotice(response.finding.snoozedUntil),
+        message: buildSnoozeNotice(
+          response.finding.snoozedUntil,
+          preset === '10s' ? '10 seconds' : '4 hours'
+        ),
         tone: 'info',
       });
     } catch (error) {
@@ -213,8 +219,8 @@ export function FleetGraphFindingsPanel({
               onReview={(findingId) => {
                 void handleReview(findingId);
               }}
-              onSnooze={(findingId) => {
-                void handleSnooze(findingId);
+              onSnooze={(findingId, preset) => {
+                void handleSnooze(findingId, preset);
               }}
               onCancelReview={() => setReviewState({ findingId: null, openedAt: null, review: null })}
               review={reviewState.findingId === finding.id ? reviewState.review : null}

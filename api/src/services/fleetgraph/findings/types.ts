@@ -56,7 +56,8 @@ export const FleetGraphFindingLifecycleResponseSchema = z.object({
 }).strict()
 
 export const FleetGraphSnoozeRequestSchema = z.object({
-  minutes: z.number().int().positive().max(7 * 24 * 60).default(240),
+  minutes: z.number().int().positive().max(7 * 24 * 60).optional(),
+  seconds: z.number().int().positive().max(60 * 60).optional(),
 }).strict()
 
 export interface FleetGraphFindingRecord {

@@ -200,6 +200,7 @@ describe('FleetGraphFindingsPanel', () => {
     expect(screen.getByText('Why this matters')).toBeInTheDocument();
     expect(screen.getByText('Quick actions')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Dismiss' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Snooze 10s' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Snooze 4h' })).toBeInTheDocument();
   });
 
@@ -315,6 +316,63 @@ describe('FleetGraphFindingsPanel', () => {
 
     await waitFor(() => {
       expect(apiPost).toHaveBeenCalledWith('/api/fleetgraph/findings/finding-1/snooze', { minutes: 240 });
+    });
+
+    expect(
+      await screen.findByText(/snoozed until/i)
+    ).toBeInTheDocument();
+  });
+
+  it('supports a demo snooze preset with 10-second duration', async () => {
+    const snoozeDeferred = createDeferred<Response>();
+    vi.mocked(apiGet).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        findings: [
+          {
+            dedupeKey: 'dedupe-1',
+            documentId: SPRINT_ID,
+            documentType: 'sprint',
+            evidence: ['Sprint 8 is still planning after the expected week-start boundary.'],
+            findingKey: 'week-start-drift:workspace-1:sprint-8',
+            findingType: 'week_start_drift',
+            id: 'finding-1',
+            metadata: {},
+            status: 'active',
+            summary: 'Sprint 8 looks late to start.',
+            threadId: 'fleetgraph:workspace-1:scheduled-sweep',
+            title: 'Week start drift: Sprint 8',
+            updatedAt: '2026-03-17T12:00:00.000Z',
+            workspaceId: 'workspace-1',
+          },
+        ],
+      }),
+    } as Response);
+    vi.mocked(apiPost).mockImplementation(() => snoozeDeferred.promise);
+
+    render(
+      <FleetGraphFindingsPanel
+        context={createContext()}
+        currentDocumentId={DOCUMENT_ID}
+      />,
+      { wrapper: createWrapper() }
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Snooze 10s' }));
+
+    snoozeDeferred.resolve({
+      ok: true,
+      json: async () => ({
+        finding: {
+          id: 'finding-1',
+          snoozedUntil: '2026-03-17T12:00:10.000Z',
+          status: 'snoozed',
+        },
+      }),
+    } as Response);
+
+    await waitFor(() => {
+      expect(apiPost).toHaveBeenCalledWith('/api/fleetgraph/findings/finding-1/snooze', { seconds: 10 });
     });
 
     expect(

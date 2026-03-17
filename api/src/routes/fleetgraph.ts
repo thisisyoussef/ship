@@ -331,7 +331,10 @@ export function createFleetGraphRouter(
 
     try {
       const body = FleetGraphSnoozeRequestSchema.parse(req.body ?? {})
-      const snoozedUntil = new Date(Date.now() + body.minutes * 60_000)
+      const durationMs = body.seconds !== undefined
+        ? body.seconds * 1_000
+        : (body.minutes ?? 240) * 60_000
+      const snoozedUntil = new Date(Date.now() + durationMs)
       const finding = await findingStore.snoozeFinding(
         String(req.params.id),
         auth.workspaceId,

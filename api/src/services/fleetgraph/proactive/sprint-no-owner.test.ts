@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  buildSprintNoOwnerFindingDraft,
   buildSprintNoOwnerFindingKey,
   selectSprintNoOwnerCandidate,
+  type SprintNoOwnerCandidate,
 } from './sprint-no-owner.js'
 
 const BASE_START_DATE = '2026-03-10T00:00:00.000Z'
@@ -215,5 +217,46 @@ describe('buildSprintNoOwnerFindingKey', () => {
   it('includes both workspace and week id in key', () => {
     expect(buildSprintNoOwnerFindingKey('ws-abc', 'wk-xyz'))
       .toBe('sprint-no-owner:ws-abc:wk-xyz')
+  })
+})
+
+describe('buildSprintNoOwnerFindingDraft', () => {
+  const candidate: SprintNoOwnerCandidate = {
+    startDate: new Date('2026-03-10T00:00:00.000Z'),
+    statusReason: 'no_owner',
+    week: {
+      id: 'week-abc',
+      issue_count: 3,
+      name: 'Sprint 1',
+      owner: null,
+      sprint_number: 1,
+      status: 'active',
+      workspace_sprint_start_date: BASE_START_DATE,
+    },
+  }
+
+  it('sets findingKey to sprint-no-owner:{workspaceId}:{weekId}', () => {
+    const draft = buildSprintNoOwnerFindingDraft(candidate, 'ws-1', 'Advisory sentence.')
+    expect(draft.findingKey).toBe('sprint-no-owner:ws-1:week-abc')
+  })
+
+  it('sets title to No owner: {weekName}', () => {
+    const draft = buildSprintNoOwnerFindingDraft(candidate, 'ws-1', 'Advisory sentence.')
+    expect(draft.title).toBe('No owner: Sprint 1')
+  })
+
+  it('sets recommendedAction.type to assign_owner', () => {
+    const draft = buildSprintNoOwnerFindingDraft(candidate, 'ws-1', 'Advisory sentence.')
+    expect(draft.recommendedAction.type).toBe('assign_owner')
+  })
+
+  it('sets recommendedAction.endpoint.method to PATCH', () => {
+    const draft = buildSprintNoOwnerFindingDraft(candidate, 'ws-1', 'Advisory sentence.')
+    expect(draft.recommendedAction.endpoint.method).toBe('PATCH')
+  })
+
+  it('sets recommendedAction.endpoint.path to contain the week id', () => {
+    const draft = buildSprintNoOwnerFindingDraft(candidate, 'ws-1', 'Advisory sentence.')
+    expect(draft.recommendedAction.endpoint.path).toContain('week-abc')
   })
 })

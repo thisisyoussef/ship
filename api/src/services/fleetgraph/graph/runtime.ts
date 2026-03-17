@@ -219,7 +219,7 @@ export function createFleetGraphRuntime(
   const beginExecutionTask = task(
     'fleetgraph.action.begin_execution',
     async (input: {
-      endpoint: { method: 'POST'; path: string }
+      endpoint: { method: 'POST' | 'PATCH'; path: string }
       findingId: string
       workspaceId: string
       nowIso: string
@@ -233,7 +233,7 @@ export function createFleetGraphRuntime(
     'fleetgraph.action.finish_execution',
     async (input: {
       appliedAt?: string
-      endpoint: { method: 'POST'; path: string }
+      endpoint: { method: 'POST' | 'PATCH'; path: string }
       findingId: string
       message: string
       resultStatusCode?: number
@@ -252,8 +252,8 @@ export function createFleetGraphRuntime(
   )
   const executeShipRestActionTask = task(
     'fleetgraph.action.execute_ship_rest',
-    async (input: { path: string; requestContext: ShipRestRequestContext }) =>
-      (deps.executeShipRestAction ?? defaultShipRestExecutor)(input.path, input.requestContext)
+    async (input: { method: string; path: string; requestContext: ShipRestRequestContext }) =>
+      (deps.executeShipRestAction ?? defaultShipRestExecutor)(input.path, input.requestContext, input.method)
   )
 
   const graph = new StateGraph(FleetGraphStateAnnotation)
@@ -367,8 +367,9 @@ export function createFleetGraphRuntime(
       const requestContext = config?.configurable?.fleetgraphActionRequestContext as
         | ShipRestRequestContext
         | undefined
+      const actionMethod = state.selectedAction.endpoint.method
       const endpoint = {
-        method: 'POST' as const,
+        method: actionMethod === 'PATCH' ? 'PATCH' as const : 'POST' as const,
         path: state.selectedAction.endpoint.path,
       }
       if (!requestContext) {
@@ -399,6 +400,7 @@ export function createFleetGraphRuntime(
       }
 
       const result = await executeShipRestActionTask({
+        method: actionMethod,
         path: endpoint.path,
         requestContext,
       })

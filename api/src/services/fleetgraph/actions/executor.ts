@@ -14,7 +14,8 @@ export interface ShipRestRequestContext {
 
 export type ShipRestExecutor = (
   path: string,
-  requestContext: ShipRestRequestContext
+  requestContext: ShipRestRequestContext,
+  method?: string
 ) => Promise<ShipRestActionResult>
 
 export function isJsonObject(value: unknown): value is Record<string, unknown> {
@@ -52,7 +53,8 @@ export function resolveShipRestBaseUrl(
 
 export async function defaultShipRestExecutor(
   path: string,
-  requestContext: ShipRestRequestContext
+  requestContext: ShipRestRequestContext,
+  method = 'POST'
 ): Promise<ShipRestActionResult> {
   const response = await fetch(`${requestContext.baseUrl}${path}`, {
     headers: {
@@ -63,7 +65,7 @@ export async function defaultShipRestExecutor(
       accept: 'application/json',
       'content-type': 'application/json',
     },
-    method: 'POST',
+    method,
   })
 
   const contentType = response.headers.get('content-type') ?? ''

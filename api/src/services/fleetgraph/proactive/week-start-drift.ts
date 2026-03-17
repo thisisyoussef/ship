@@ -104,7 +104,7 @@ export function buildWeekStartRecommendedAction(
     },
     evidence: buildWeekStartEvidence(candidate),
     rationale: 'Starting the week is a consequential Ship mutation and should stay behind human confirmation.',
-    summary: 'Start this week once the owner confirms the scope is ready.',
+    summary: 'Confirm to start this week.',
     targetId: candidate.week.id,
     targetType: 'sprint',
     title: 'Start week',

@@ -81,7 +81,8 @@ export function FleetGraphFindingsPanel({
         message: buildDismissNotice(),
         tone: 'info',
       });
-    } catch {
+    } catch (error) {
+      console.error('FleetGraph dismiss failed:', error);
       // The hook surfaces the friendly error message.
     }
   }
@@ -101,7 +102,8 @@ export function FleetGraphFindingsPanel({
         message: buildSnoozeNotice(response.finding.snoozedUntil),
         tone: 'info',
       });
-    } catch {
+    } catch (error) {
+      console.error('FleetGraph snooze failed:', error);
       // The hook surfaces the friendly error message.
     }
   }
@@ -129,7 +131,8 @@ export function FleetGraphFindingsPanel({
           tone: 'success',
         });
       }
-    } catch {
+    } catch (error) {
+      console.error('FleetGraph apply failed:', error);
       // The hook surfaces the friendly error message.
     }
   }
@@ -145,7 +148,8 @@ export function FleetGraphFindingsPanel({
         openedAt: Date.now(),
         review: response.review,
       });
-    } catch {
+    } catch (error) {
+      console.error('FleetGraph review failed:', error);
       // The hook surfaces the friendly error message.
     }
   }

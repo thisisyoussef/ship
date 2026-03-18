@@ -125,6 +125,9 @@
 - Removed the duplicated default suggested-step badge when no execution status exists, so `Suggested next step` appears once as a section label instead of twice in the same card.
 - Added a dedicated FleetGraph round-two audit checklist plus a refreshed demo inspection guide so the next user inspection explicitly tests page scroll, the safer confirmation flow, and the cleaned-up card language.
 - Verified the round-two fixes on the live Railway demo: the named review/apply page scrolls through the outer page shell, the inline review state opens without auto-starting the week, `Cancel` returns cleanly to the default state, and `Preview approval step` still renders the approval-preview path.
+- Decided FleetGraph should expose its real compiled graph to LangGraph Studio instead of relying only on LangSmith traces plus the custom debug dock.
+- Decided the repo-owned Studio path should default to an in-memory checkpointer for preview safety, with Postgres thread inspection available only through an explicit `FLEETGRAPH_STUDIO_CHECKPOINTER=postgres` opt-in.
+- Added `langgraph.json`, `pnpm fleetgraph:studio:dev`, and `pnpm --filter @ship/api fleetgraph:studio:examples` so Studio inspection is reproducible from the repo root.
 
 Record session-level technical decisions.
 

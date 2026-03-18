@@ -32,6 +32,7 @@ Thumbs.db
 # Temporary files
 *.tmp
 .cache
+.langgraph_api
 
 # AI harness local runtime state
 .ai/state/flight-lock.json

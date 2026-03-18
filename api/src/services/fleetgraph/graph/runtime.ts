@@ -68,6 +68,17 @@ interface FleetGraphRuntimeDeps {
   tracingSettings?: FleetGraphTracingSettings
 }
 
+interface FleetGraphRuntimeInternals {
+  checkpointer: BaseCheckpointSaver
+  ensureReady: () => Promise<void>
+  graph: {
+    getState(config: ReturnType<typeof buildConfig>): Promise<StateSnapshot>
+    getStateHistory(config: ReturnType<typeof buildConfig>): AsyncIterable<StateSnapshot>
+    invoke(input: unknown, config: ReturnType<typeof buildConfig>): Promise<unknown>
+  }
+  kind: string
+}
+
 export interface FleetGraphInterruptSummary {
   id?: string
   taskName: string
@@ -154,10 +165,10 @@ function buildReviewPayload(state: {
   }
 }
 
-export function createFleetGraphRuntime(
+function createFleetGraphRuntimeInternals(
   deps: FleetGraphRuntimeDeps = {},
   env: NodeJS.ProcessEnv = process.env
-): FleetGraphRuntime {
+): FleetGraphRuntimeInternals {
   const findingStore = deps.findingStore ?? createFleetGraphFindingStore()
   const actionStore = deps.actionStore ?? createFleetGraphFindingActionStore()
   const shipClient = deps.shipClient
@@ -552,6 +563,32 @@ export function createFleetGraphRuntime(
       checkpointer,
       name: 'fleetgraph.runtime',
     })
+
+  return {
+    checkpointer,
+    ensureReady,
+    graph,
+    kind,
+  }
+}
+
+export function createFleetGraphStudioGraph(
+  deps: FleetGraphRuntimeDeps = {},
+  env: NodeJS.ProcessEnv = process.env
+) {
+  return createFleetGraphRuntimeInternals(deps, env).graph
+}
+
+export function createFleetGraphRuntime(
+  deps: FleetGraphRuntimeDeps = {},
+  env: NodeJS.ProcessEnv = process.env
+): FleetGraphRuntime {
+  const {
+    checkpointer,
+    ensureReady,
+    graph,
+    kind,
+  } = createFleetGraphRuntimeInternals(deps, env)
 
   return {
     checkpointer,

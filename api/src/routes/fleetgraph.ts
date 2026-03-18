@@ -228,6 +228,115 @@ export function createFleetGraphRouter(
       return
     }
 
+    // Check if V2 is enabled for this request
+    const threadId = `fleetgraph:${auth.workspaceId}:entry:${Date.now()}`
+    const useV2 = isFleetGraphV2Enabled(process.env, threadId)
+
+    if (useV2) {
+      try {
+        const body = req.body as {
+          context?: { current?: { id?: string; document_type?: string; title?: string } }
+          route?: { activeTab?: string; nestedPath?: string[]; surface?: string }
+          trigger?: { documentId?: string; documentType?: string; mode?: string }
+          draft?: { requestedAction?: unknown }
+        }
+
+        const documentId = body.trigger?.documentId ?? body.context?.current?.id
+        const documentType = body.trigger?.documentType ?? body.context?.current?.document_type
+
+        if (!documentId || !documentType) {
+          res.status(400).json({ error: 'documentId and documentType are required' })
+          return
+        }
+
+        const v2Runtime = getV2Runtime(req)
+        const v2State = await v2Runtime.invoke({
+          workspaceId: auth.workspaceId,
+          threadId,
+          mode: 'on_demand',
+          triggerType: 'user_chat',
+          triggerSource: body.route?.surface ?? 'document-page',
+          actorId: auth.userId ?? null,
+          viewerUserId: auth.userId ?? null,
+          documentId,
+          documentType: documentType as 'issue' | 'project' | 'sprint' | 'wiki' | 'person' | 'program' | null,
+          activeTab: body.route?.activeTab ?? null,
+          nestedPath: body.route?.nestedPath?.join('/') ?? null,
+          projectContextId: null,
+          userQuestion: null,
+          dirtyEntityId: null,
+          dirtyEntityType: null,
+          dirtyWriteType: null,
+          dirtyCoalescedIds: [],
+        })
+
+        // Map V2 branch to V1 outcome
+        const outcomeMap: Record<string, string> = {
+          quiet: 'quiet',
+          advisory: 'advisory',
+          action_required: 'approval_required',
+          fallback: 'fallback',
+        }
+        const outcome = outcomeMap[v2State.branch] ?? 'quiet'
+
+        // Extract detail/title from ResponsePayload if available
+        let responseDetail = `FleetGraph V2 analyzed ${body.context?.current?.title ?? 'this document'}.`
+        let responseTitle = outcome === 'quiet' ? 'No action needed' : 'FleetGraph ready'
+
+        if (v2State.responsePayload?.type === 'insight_cards' && v2State.responsePayload.cards.length > 0) {
+          responseTitle = v2State.responsePayload.cards[0]?.title ?? responseTitle
+          responseDetail = v2State.responsePayload.cards[0]?.body ?? responseDetail
+        } else if (v2State.responsePayload?.type === 'chat_answer') {
+          responseDetail = v2State.responsePayload.answer.text
+        } else if (v2State.responsePayload?.type === 'degraded') {
+          responseDetail = v2State.responsePayload.disclaimer
+        }
+
+        // Build V1-compatible response from V2 state
+        const response = {
+          entry: {
+            current: {
+              documentType,
+              id: documentId,
+              title: body.context?.current?.title ?? 'Untitled',
+            },
+            route: {
+              activeTab: body.route?.activeTab,
+              nestedPath: body.route?.nestedPath ?? [],
+              surface: body.route?.surface ?? 'document-page',
+            },
+            threadId,
+          },
+          run: {
+            branch: v2State.branch === 'action_required' ? 'approval_required' : v2State.branch,
+            outcome,
+            path: v2State.path,
+            routeSurface: body.route?.surface ?? 'document-page',
+            threadId,
+          },
+          summary: {
+            detail: responseDetail,
+            surfaceLabel: body.route?.surface ?? 'document-page',
+            title: responseTitle,
+          },
+          // Include V2-specific data for clients that support it
+          v2: {
+            reasonedFindings: v2State.reasonedFindings,
+            scoredFindings: v2State.scoredFindings,
+            proposedActions: v2State.proposedActions,
+            pendingApproval: v2State.pendingApproval,
+          },
+        }
+
+        res.json(response)
+        return
+      } catch (error) {
+        console.error('FleetGraph V2 entry error, falling back to V1:', error)
+        // Fall through to V1 entry service
+      }
+    }
+
+    // V1 path
     try {
       const response = await entryService.createEntry(req.body, auth)
       res.json(response)
@@ -629,6 +738,131 @@ export function createFleetGraphRouter(
       }
 
       const threadId = `fleetgraph:${auth.workspaceId}:analyze:${documentId}`
+      const useV2 = isFleetGraphV2Enabled(process.env, threadId)
+
+      if (useV2) {
+        const v2Runtime = getV2Runtime(req)
+        const v2State = await v2Runtime.invoke({
+          workspaceId: auth.workspaceId,
+          threadId,
+          mode: 'on_demand',
+          triggerType: 'user_chat',
+          triggerSource: 'document-page',
+          actorId: auth.userId ?? null,
+          viewerUserId: auth.userId ?? null,
+          documentId,
+          documentType: documentType as 'issue' | 'project' | 'sprint' | 'wiki' | 'person' | 'program' | null,
+          activeTab: null,
+          nestedPath: null,
+          projectContextId: null,
+          userQuestion: null,
+          dirtyEntityId: null,
+          dirtyEntityType: null,
+          dirtyWriteType: null,
+          dirtyCoalescedIds: [],
+        })
+
+        // Map V2 branch to V1 outcome
+        const outcomeMap: Record<string, string> = {
+          quiet: 'quiet',
+          advisory: 'advisory',
+          action_required: 'approval_required',
+          fallback: 'fallback',
+        }
+
+        // Extract analysis text from ResponsePayload
+        let analysisText = ''
+        if (v2State.responsePayload?.type === 'insight_cards' && v2State.responsePayload.cards.length > 0) {
+          analysisText = v2State.responsePayload.cards.map(c => c.body).join('\n\n')
+        } else if (v2State.responsePayload?.type === 'chat_answer') {
+          analysisText = v2State.responsePayload.answer.text
+        } else if (v2State.responsePayload?.type === 'degraded') {
+          analysisText = v2State.responsePayload.disclaimer
+        }
+
+        // Map V2 reasonedFindings to V1 FleetGraphFinding format
+        const analysisFindings = (v2State.reasonedFindings ?? []).map((rf, index) => {
+          // Find corresponding proposed action if any
+          const proposedAction = v2State.proposedActions.find(
+            pa => pa.findingFingerprint === rf.fingerprint
+          )
+
+          // Derive action type from finding type
+          const actionTypeMap: Record<string, string> = {
+            week_start_drift: 'start_week',
+            empty_active_week: 'assign_issues',
+            missing_standup: 'post_standup',
+            approval_gap: 'approve_week_plan',
+            deadline_risk: 'escalate_risk',
+            workload_imbalance: 'rebalance_load',
+            blocker_aging: 'post_comment',
+          }
+          const actionType = actionTypeMap[rf.findingType] ?? 'post_comment'
+
+          return {
+            actionTier: index === 0 ? 'A' : index === 1 ? 'B' : 'C',
+            evidence: [] as string[], // V2 doesn't include evidence in ReasonedFinding
+            findingType: rf.findingType,
+            proposedAction: proposedAction ? {
+              actionId: `${actionType}:${proposedAction.targetEntity.id}`,
+              actionType,
+              dialogKind: 'confirm' as const,
+              endpoint: {
+                method: proposedAction.endpoint.method,
+                path: proposedAction.endpoint.path,
+              },
+              label: proposedAction.label,
+              reviewSummary: proposedAction.safetyRationale,
+              reviewTitle: rf.title,
+              targetId: proposedAction.targetEntity.id,
+              targetType: proposedAction.targetEntity.type as 'project' | 'sprint',
+            } : undefined,
+            severity: rf.severity,
+            summary: rf.explanation,
+            title: rf.title,
+          }
+        })
+
+        // Derive action type for pending approval
+        const pendingActionTypeMap: Record<string, string> = {
+          week_start_drift: 'start_week',
+          empty_active_week: 'assign_issues',
+          missing_standup: 'post_standup',
+          approval_gap: 'approve_week_plan',
+          deadline_risk: 'escalate_risk',
+          workload_imbalance: 'rebalance_load',
+          blocker_aging: 'post_comment',
+        }
+        const pendingActionType = v2State.pendingApproval?.reasonedFinding
+          ? pendingActionTypeMap[v2State.pendingApproval.reasonedFinding.findingType] ?? 'post_comment'
+          : 'post_comment'
+
+        res.json({
+          analysisFindings,
+          analysisText,
+          outcome: outcomeMap[v2State.branch] ?? 'quiet',
+          path: v2State.path,
+          pendingAction: v2State.pendingApproval?.proposedAction ? {
+            actionId: `${pendingActionType}:${v2State.pendingApproval.proposedAction.targetEntity.id}`,
+            actionType: pendingActionType,
+            dialogKind: 'confirm' as const,
+            endpoint: {
+              method: v2State.pendingApproval.proposedAction.endpoint.method,
+              path: v2State.pendingApproval.proposedAction.endpoint.path,
+            },
+            label: v2State.pendingApproval.proposedAction.label,
+            reviewSummary: v2State.pendingApproval.proposedAction.safetyRationale,
+            reviewTitle: v2State.pendingApproval.reasonedFinding.title,
+            targetId: v2State.pendingApproval.proposedAction.targetEntity.id,
+            targetType: v2State.pendingApproval.proposedAction.targetEntity.type as 'project' | 'sprint',
+          } : undefined,
+          threadId,
+          v2: true,
+        })
+        return
+      }
+
+      // V1 path
       const state = await runtime.invoke({
         contextKind: 'entry',
         documentId,

@@ -1,5 +1,17 @@
 import type { DocumentContext } from '@/hooks/useDocumentContextQuery'
 
+// All FleetGraph action types (V1 + V2 additions)
+export type FleetGraphActionType =
+  | 'approve_project_plan'
+  | 'approve_week_plan'
+  | 'assign_issues'
+  | 'assign_owner'
+  | 'escalate_risk'
+  | 'post_comment'
+  | 'post_standup'
+  | 'rebalance_load'
+  | 'start_week'
+
 export interface FleetGraphEntryDocument {
   documentType: string
   id: string
@@ -31,9 +43,9 @@ export interface FleetGraphApprovalEnvelope {
   state: 'pending_confirmation'
   summary: string
   targetId: string
-  targetType: 'document' | 'project' | 'sprint'
+  targetType: 'document' | 'project' | 'sprint' | 'person'
   title: string
-  type: 'approve_project_plan' | 'approve_week_plan' | 'post_comment' | 'start_week'
+  type: FleetGraphActionType
 }
 
 export interface FleetGraphEntryResponse {

@@ -9,20 +9,32 @@ import { sprintKeys } from './useWeeksQuery'
 /*  Types                                                             */
 /* ------------------------------------------------------------------ */
 
+// All FleetGraph action types (V1 + V2 additions)
+export type FleetGraphActionType =
+  | 'approve_project_plan'
+  | 'approve_week_plan'
+  | 'assign_issues'
+  | 'assign_owner'
+  | 'escalate_risk'
+  | 'post_comment'
+  | 'post_standup'
+  | 'rebalance_load'
+  | 'start_week'
+
 export interface FleetGraphFinding {
   actionTier: 'A' | 'B' | 'C'
   evidence: string[]
   findingType: string
   proposedAction?: {
     actionId: string
-    actionType: 'approve_project_plan' | 'approve_week_plan' | 'start_week'
+    actionType: FleetGraphActionType | string // Allow any string for forward compatibility
     dialogKind: 'confirm'
     endpoint: { method: string; path: string }
     label: string
     reviewSummary: string
     reviewTitle: string
     targetId: string
-    targetType: 'project' | 'sprint'
+    targetType: 'project' | 'sprint' | 'person' | 'document' // Extended for V2
   }
   severity: 'info' | 'warning' | 'critical'
   summary: string

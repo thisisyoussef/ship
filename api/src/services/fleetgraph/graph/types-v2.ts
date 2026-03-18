@@ -37,6 +37,9 @@ export const FLEETGRAPH_V2_DOCUMENT_TYPES = [
   'program',
   'weekly_plan',
   'weekly_retro',
+  'wiki',
+  'person',
+  'standup',
 ] as const
 
 export const FLEETGRAPH_V2_ROLE_LENSES = [

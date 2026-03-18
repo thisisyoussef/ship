@@ -5,19 +5,31 @@ export interface FleetGraphFindingActionEndpoint {
   path: string;
 }
 
+// All FleetGraph action types (V1 + V2 additions)
+export type FleetGraphActionType =
+  | 'approve_project_plan'
+  | 'approve_week_plan'
+  | 'assign_issues'
+  | 'assign_owner'
+  | 'escalate_risk'
+  | 'post_comment'
+  | 'post_standup'
+  | 'rebalance_load'
+  | 'start_week';
+
 export interface FleetGraphFindingAction {
   endpoint: FleetGraphFindingActionEndpoint;
   evidence: string[];
   rationale: string;
   summary: string;
   targetId: string;
-  targetType: 'document' | 'project' | 'sprint';
+  targetType: 'document' | 'project' | 'sprint' | 'person';
   title: string;
-  type: 'approve_project_plan' | 'approve_week_plan' | 'post_comment' | 'start_week';
+  type: FleetGraphActionType;
 }
 
 export interface FleetGraphFindingActionExecution {
-  actionType: 'start_week';
+  actionType: FleetGraphActionType;
   appliedAt?: string;
   attemptCount: number;
   endpoint: FleetGraphFindingActionEndpoint;
@@ -37,6 +49,18 @@ export interface FleetGraphFindingReview {
   title: string;
 }
 
+// All FleetGraph suspect/finding types (V1 + V2 additions)
+export type FleetGraphFindingType =
+  | 'approval_gap'
+  | 'blocker_aging'
+  | 'deadline_risk'
+  | 'empty_active_week'
+  | 'missing_standup'
+  | 'sprint_no_owner'
+  | 'unassigned_sprint_issues'
+  | 'week_start_drift'
+  | 'workload_imbalance';
+
 export interface FleetGraphFinding {
   actionExecution?: FleetGraphFindingActionExecution;
   cooldownUntil?: string;
@@ -45,7 +69,7 @@ export interface FleetGraphFinding {
   documentType: string;
   evidence: string[];
   findingKey: string;
-  findingType: 'week_start_drift';
+  findingType: FleetGraphFindingType | string; // Allow string for forward compatibility
   id: string;
   metadata: Record<string, unknown>;
   recommendedAction?: FleetGraphFindingAction;

@@ -155,8 +155,8 @@ function normalizeEndpointPath(path: string): string {
 function sanitizeFinding(finding: FleetGraphAnalysisFinding): FleetGraphAnalysisFinding {
   if (finding.proposedAction?.endpoint?.path) {
     const proposedAction = sanitizeOnDemandActionDraft({
-      evidence: finding.evidence,
       ...finding.proposedAction,
+      evidence: finding.evidence,
       endpoint: {
         ...finding.proposedAction.endpoint,
         path: normalizeEndpointPath(finding.proposedAction.endpoint.path),

@@ -69,8 +69,8 @@ function readActionFromState(
 
   return findings
     .map((finding) => sanitizeOnDemandActionDraft({
-      evidence: finding.evidence,
       ...finding.proposedAction,
+      evidence: finding.evidence,
     }))
     .find((action) => action?.actionId === actionId)
 }

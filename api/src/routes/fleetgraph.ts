@@ -438,7 +438,8 @@ export function createFleetGraphRouter(
       })
     } catch (error) {
       console.error('FleetGraph analyze error:', error)
-      res.status(500).json({ error: 'Failed to analyze document' })
+      const message = error instanceof Error ? error.message : 'Failed to analyze document'
+      res.status(500).json({ error: message })
     }
   })
 

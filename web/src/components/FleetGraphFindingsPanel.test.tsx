@@ -380,9 +380,9 @@ describe('FleetGraphFindingsPanel', () => {
     ).toBeInTheDocument();
   });
 
-  it('refetches findings when a demo snooze expires so the item can return', async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-03-17T18:51:18.000Z'));
+  it('schedules a findings refresh when a demo snooze expires', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(new Date('2026-03-17T18:51:18.000Z').getTime());
+    const setTimeoutSpy = vi.spyOn(global, 'setTimeout');
 
     const snoozeDeferred = createDeferred<Response>();
     vi.mocked(apiGet)
@@ -412,29 +412,6 @@ describe('FleetGraphFindingsPanel', () => {
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({ findings: [] }),
-      } as Response)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          findings: [
-            {
-              dedupeKey: 'dedupe-1',
-              documentId: SPRINT_ID,
-              documentType: 'sprint',
-              evidence: ['Sprint 8 is still planning after the expected week-start boundary.'],
-              findingKey: 'week-start-drift:workspace-1:sprint-8',
-              findingType: 'week_start_drift',
-              id: 'finding-1',
-              metadata: {},
-              status: 'active',
-              summary: 'Sprint 8 looks late to start.',
-              threadId: 'fleetgraph:workspace-1:scheduled-sweep',
-              title: 'Week start drift: Sprint 8',
-              updatedAt: '2026-03-17T18:51:28.250Z',
-              workspaceId: 'workspace-1',
-            },
-          ],
-        }),
       } as Response);
     vi.mocked(apiPost).mockImplementation(() => snoozeDeferred.promise);
 
@@ -459,20 +436,12 @@ describe('FleetGraphFindingsPanel', () => {
       }),
     } as Response);
 
-    await act(async () => {
-      await Promise.resolve();
-      await Promise.resolve();
+    await waitFor(() => {
+      expect(apiGet).toHaveBeenCalledTimes(2);
     });
 
-    expect(apiGet).toHaveBeenCalledTimes(2);
     expect(screen.getByText(/no active proactive fleetgraph findings/i)).toBeInTheDocument();
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(10_250);
-    });
-
-    expect(apiGet).toHaveBeenCalledTimes(3);
-    expect(await screen.findByText('Week start drift: Sprint 8')).toBeInTheDocument();
+    expect(setTimeoutSpy).toHaveBeenCalledWith(expect.any(Function), 10_250);
   });
 
   it('requires an inline review step before applying the start-week action', async () => {

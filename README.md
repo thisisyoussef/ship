@@ -26,6 +26,7 @@ Start with [docs/README.md](docs/README.md). The docs surface is organized by in
 - `docs/core/` for living product and architecture references
 - `docs/guides/` for workflow and operational guides
 - `docs/assignments/fleetgraph/` for the FleetGraph PRD and working docs
+  - **[FleetGraph Submission](./docs/assignments/fleetgraph/FLEETGRAPH.md)** — Agent responsibility, graph architecture, use cases, and MVP evidence
 - `docs/reference/claude/` for the deeper agent-oriented codebase reference set
 - `docs/research/` and `docs/solutions/` for exploratory notes and solved problems
 - `docs/evidence/` and `docs/archive/` for screenshots, PR artifacts, and historical submissions
@@ -443,6 +444,7 @@ We welcome contributions. See [CONTRIBUTING.md](./CONTRIBUTING.md) for guideline
 - [Week Documentation Philosophy](./docs/core/week-documentation-philosophy.md) — Why weekly plans and retros work the way they do
 - [Accountability Philosophy](./docs/core/accountability-philosophy.md) — How Ship enforces accountability
 - [Accountability Manager Guide](./docs/guides/accountability-manager-guide.md) — Using approval workflows
+- [FleetGraph Submission](./docs/assignments/fleetgraph/FLEETGRAPH.md) — Project intelligence agent architecture and MVP evidence
 - [Full Docs Map](./docs/README.md) — Entry point for the reorganized docs tree
 - [Contributing Guidelines](./CONTRIBUTING.md) — How to contribute
 - [Security Policy](./SECURITY.md) — Vulnerability reporting

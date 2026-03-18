@@ -5,6 +5,10 @@ import {
   FleetGraphRequestedActionSchema,
   type FleetGraphRequestedAction,
 } from '../contracts/actions.js'
+import {
+  FleetGraphOnDemandActionDraftSchema,
+  type FleetGraphOnDemandActionDraft,
+} from './on-demand-actions.js'
 
 export const FLEETGRAPH_BRANCHES = [
   'quiet',
@@ -185,12 +189,7 @@ export interface FleetGraphAnalysisFinding {
   actionTier: 'A' | 'B' | 'C'
   evidence: string[]
   findingType: string
-  proposedAction?: {
-    endpoint: { method: string; path: string }
-    label: string
-    targetId: string
-    targetType: string
-  }
+  proposedAction?: FleetGraphOnDemandActionDraft
   severity: 'info' | 'warning' | 'critical'
   summary: string
   title: string

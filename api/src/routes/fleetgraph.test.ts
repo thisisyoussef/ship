@@ -190,7 +190,9 @@ describe('FleetGraph routes', () => {
   }
   const originalEnv = { ...process.env }
   const applyStartWeekFinding = vi.fn()
+  const applyThreadAction = vi.fn()
   const reviewStartWeekFinding = vi.fn()
+  const reviewThreadAction = vi.fn()
   const attachExecutions = vi.fn(async (findings: FleetGraphFindingRecord[]) => findings)
   const dismissFinding = vi.fn<FleetGraphFindingStore['dismissFinding']>()
   const getFindingByKey = vi.fn<FleetGraphFindingStore['getFindingByKey']>()
@@ -216,7 +218,9 @@ describe('FleetGraph routes', () => {
     process.env = { ...originalEnv }
     ;[
       applyStartWeekFinding,
+      applyThreadAction,
       reviewStartWeekFinding,
+      reviewThreadAction,
       attachExecutions,
       dismissFinding,
       getFindingById,
@@ -239,6 +243,10 @@ describe('FleetGraph routes', () => {
         reviewStartWeekFinding,
       },
       findingStore,
+      onDemandActionService: {
+        applyThreadAction,
+        reviewThreadAction,
+      } as never,
       runtime: runtime as never,
     }))
   })
@@ -481,6 +489,92 @@ describe('FleetGraph routes', () => {
         cookieHeader: 'ship_session=demo',
         csrfToken: 'csrf-token',
       },
+    })
+  })
+
+  it('returns a server-backed review payload for supported on-demand thread actions', async () => {
+    reviewThreadAction.mockResolvedValue({
+      action: {
+        actionId: 'start_week:55555555-5555-4555-8555-555555555555',
+        actionType: 'start_week',
+        dialogKind: 'confirm',
+        endpoint: {
+          method: 'POST',
+          path: `/api/weeks/${SPRINT_ID}/start`,
+        },
+        evidence: ['The week is still planning after the expected start window.'],
+        label: 'Review and apply',
+        reviewSummary: 'FleetGraph thinks this week is ready to start. Nothing changes in Ship until you confirm.',
+        reviewTitle: 'Confirm before starting this week',
+        targetId: SPRINT_ID,
+        targetType: 'sprint',
+      },
+      review: {
+        cancelLabel: 'Cancel',
+        confirmLabel: 'Start week in Ship',
+        evidence: ['The week is still planning after the expected start window.'],
+        summary: 'FleetGraph thinks this week is ready to start. Nothing changes in Ship until you confirm.',
+        threadId: `fleetgraph:workspace-1:analyze:${DOCUMENT_ID}:action:start_week:${SPRINT_ID}`,
+        title: 'Confirm before starting this week',
+      },
+    })
+
+    const response = await request(app)
+      .post(`/api/fleetgraph/thread/fleetgraph%3Aworkspace-1%3Aanalyze%3A${DOCUMENT_ID}/actions/start_week%3A${SPRINT_ID}/review`)
+
+    expect(response.status).toBe(200)
+    expect(reviewThreadAction).toHaveBeenCalledWith({
+      actionId: `start_week:${SPRINT_ID}`,
+      threadId: `fleetgraph:workspace-1:analyze:${DOCUMENT_ID}`,
+      workspaceId: '22222222-2222-4222-8222-222222222222',
+    })
+    expect(response.body.review).toMatchObject({
+      confirmLabel: 'Start week in Ship',
+      title: 'Confirm before starting this week',
+    })
+  })
+
+  it('forwards request context when applying a supported on-demand thread action', async () => {
+    applyThreadAction.mockResolvedValue({
+      action: {
+        actionId: `approve_project_plan:${PROJECT_ID}`,
+        actionType: 'approve_project_plan',
+        dialogKind: 'confirm',
+        endpoint: {
+          method: 'POST',
+          path: `/api/projects/${PROJECT_ID}/approve-plan`,
+        },
+        evidence: ['Project plan is ready for approval.'],
+        label: 'Review project approval',
+        reviewSummary: 'FleetGraph is ready to approve this project plan. Nothing changes in Ship until you confirm.',
+        reviewTitle: 'Confirm before approving this project plan',
+        targetId: PROJECT_ID,
+        targetType: 'project',
+      },
+      actionOutcome: {
+        message: 'Project plan approved in Ship.',
+        resultStatusCode: 200,
+        status: 'applied',
+      },
+    })
+
+    const response = await request(app)
+      .post(`/api/fleetgraph/thread/fleetgraph%3Aworkspace-1%3Aanalyze%3A${DOCUMENT_ID}/actions/approve_project_plan%3A${PROJECT_ID}/apply`)
+      .set('cookie', 'ship_session=demo')
+      .set('host', 'ship-demo-production.up.railway.app')
+      .set('x-csrf-token', 'csrf-token')
+      .set('x-forwarded-proto', 'https')
+
+    expect(response.status).toBe(200)
+    expect(applyThreadAction).toHaveBeenCalledWith({
+      actionId: `approve_project_plan:${PROJECT_ID}`,
+      request: expect.any(Object),
+      threadId: `fleetgraph:workspace-1:analyze:${DOCUMENT_ID}`,
+      workspaceId: '22222222-2222-4222-8222-222222222222',
+    })
+    expect(response.body.actionOutcome).toMatchObject({
+      message: 'Project plan approved in Ship.',
+      status: 'applied',
     })
   })
 

@@ -15,6 +15,7 @@ import { checkDocumentCompleteness } from '../utils/extractHypothesis.js';
 import { logDocumentChange, getLatestDocumentFieldHistory } from '../utils/document-crud.js';
 import { broadcastToUser } from '../collaboration/index.js';
 import { listCacheInvalidationMiddleware } from '../services/list-response-cache.js';
+import { enqueueFleetGraphEvent } from '../services/fleetgraph/worker/singleton.js';
 import {
   ensureUuidId,
   getAuthContext,
@@ -818,6 +819,15 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
       }
     }
 
+    // Enqueue FleetGraph event for project creation
+    void enqueueFleetGraphEvent({
+      actorId: userId,
+      documentId: createdProject.id,
+      documentType: 'project',
+      routeSurface: 'project-create',
+      workspaceId,
+    });
+
     res.status(201).json({
       ...extractProjectFromRow({ ...createdProject, program_id: program_id || null, inferred_status: 'backlog' }),
       sprint_count: 0,
@@ -1097,6 +1107,15 @@ router.patch('/:id', authMiddleware, async (req: Request<IdParams>, res: Respons
       res.status(404).json({ error: 'Project not found' });
       return;
     }
+
+    // Enqueue FleetGraph event for project update
+    void enqueueFleetGraphEvent({
+      actorId: userId,
+      documentId: id,
+      documentType: 'project',
+      routeSurface: 'project-update',
+      workspaceId,
+    });
 
     res.json(extractProjectFromRow(updatedProject));
   } catch (err) {
@@ -2015,6 +2034,15 @@ router.post('/:id/approve-plan', authMiddleware, async (req: Request<IdParams>, 
        WHERE id = $2 AND document_type = 'project'`,
       [JSON.stringify(newProps), id]
     );
+
+    // Enqueue FleetGraph event for plan approval
+    void enqueueFleetGraphEvent({
+      actorId: userId,
+      documentId: id,
+      documentType: 'project',
+      routeSurface: 'project-approve-plan',
+      workspaceId,
+    });
 
     res.json({
       success: true,

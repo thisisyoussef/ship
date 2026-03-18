@@ -5,6 +5,11 @@ export {
 } from './service.js'
 
 export {
+  createFleetGraphOnDemandActionService,
+  FleetGraphOnDemandActionError,
+} from './on-demand-service.js'
+
+export {
   createFleetGraphFindingActionStore,
 } from './store.js'
 

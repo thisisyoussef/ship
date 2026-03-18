@@ -14,6 +14,11 @@ import {
   FleetGraphRequestedActionSchema,
 } from '../../services/fleetgraph/contracts/actions.js'
 import {
+  FleetGraphOnDemandActionApplyResponseSchema,
+  FleetGraphOnDemandActionDraftSchema,
+  FleetGraphOnDemandActionReviewResponseSchema,
+} from '../../services/fleetgraph/graph/on-demand-actions.js'
+import {
   FleetGraphFindingLifecycleResponseSchema,
   FleetGraphFindingListResponseSchema,
   FleetGraphProactiveFindingSchema,
@@ -60,6 +65,9 @@ const FleetGraphDebugThreadsResponseSchema = z.object({
 
 registry.register('FleetGraphRequestedAction', FleetGraphRequestedActionSchema.openapi('FleetGraphRequestedAction'))
 registry.register('FleetGraphActionEndpoint', FleetGraphActionEndpointSchema.openapi('FleetGraphActionEndpoint'))
+registry.register('FleetGraphOnDemandActionDraft', FleetGraphOnDemandActionDraftSchema.openapi('FleetGraphOnDemandActionDraft'))
+registry.register('FleetGraphOnDemandActionReviewResponse', FleetGraphOnDemandActionReviewResponseSchema.openapi('FleetGraphOnDemandActionReviewResponse'))
+registry.register('FleetGraphOnDemandActionApplyResponse', FleetGraphOnDemandActionApplyResponseSchema.openapi('FleetGraphOnDemandActionApplyResponse'))
 registry.register('FleetGraphApprovalEnvelope', FleetGraphApprovalEnvelopeSchema.openapi('FleetGraphApprovalEnvelope'))
 registry.register('FleetGraphEntryRun', FleetGraphEntryRunSchema.openapi('FleetGraphEntryRun'))
 registry.register('FleetGraphEntryRequest', FleetGraphEntryRequestSchema.openapi('FleetGraphEntryRequest'))
@@ -227,6 +235,57 @@ registry.registerPath({
     },
     409: {
       description: 'Finding is no longer active',
+    },
+  },
+  security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+})
+
+registry.registerPath({
+  method: 'post',
+  path: '/fleetgraph/thread/{threadId}/actions/{actionId}/review',
+  tags: ['FleetGraph'],
+  summary: 'Prepare a server-backed review payload for an on-demand FleetGraph action',
+  responses: {
+    200: {
+      description: 'Review payload for a supported on-demand FleetGraph action',
+      content: {
+        'application/json': {
+          schema: FleetGraphOnDemandActionReviewResponseSchema,
+        },
+      },
+    },
+    403: {
+      description: 'Workspace mismatch for FleetGraph thread action',
+    },
+    404: {
+      description: 'FleetGraph action not found on the thread',
+    },
+  },
+  security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+})
+
+registry.registerPath({
+  method: 'post',
+  path: '/fleetgraph/thread/{threadId}/actions/{actionId}/apply',
+  tags: ['FleetGraph'],
+  summary: 'Apply a supported on-demand FleetGraph action through the FleetGraph API',
+  responses: {
+    200: {
+      description: 'Applied on-demand FleetGraph action outcome',
+      content: {
+        'application/json': {
+          schema: FleetGraphOnDemandActionApplyResponseSchema,
+        },
+      },
+    },
+    403: {
+      description: 'Workspace mismatch for FleetGraph thread action',
+    },
+    404: {
+      description: 'FleetGraph action not found on the thread',
+    },
+    409: {
+      description: 'FleetGraph review was dismissed or is no longer applicable',
     },
   },
   security: [{ cookieAuth: [] }, { bearerAuth: [] }],

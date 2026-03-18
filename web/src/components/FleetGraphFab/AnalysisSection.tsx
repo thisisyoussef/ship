@@ -35,11 +35,10 @@ function FindingBadge({ severity }: { severity: FleetGraphFinding['severity'] })
 interface FindingCardProps {
   finding: FleetGraphFinding
   isApplyingThis: boolean
-  onApply: () => void
   onConfirmRequest: () => void
 }
 
-function FindingCard({ finding, isApplyingThis, onApply, onConfirmRequest }: FindingCardProps) {
+function FindingCard({ finding, isApplyingThis, onConfirmRequest }: FindingCardProps) {
   return (
     <div className="border border-gray-200 rounded-md p-2 space-y-1 bg-white">
       <div className="flex items-center gap-2">
@@ -49,25 +48,14 @@ function FindingCard({ finding, isApplyingThis, onApply, onConfirmRequest }: Fin
       <p className="text-xs text-gray-600">{finding.summary}</p>
       {finding.proposedAction && finding.actionTier !== 'A' && (
         <div className="pt-1">
-          {finding.actionTier === 'B' ? (
-            <button
-              className="text-xs px-2 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50 transition-colors"
-              disabled={isApplyingThis}
-              onClick={onApply}
-              type="button"
-            >
-              {isApplyingThis ? 'Applying...' : (finding.proposedAction.label ?? 'Apply')}
-            </button>
-          ) : (
-            <button
-              className="text-xs px-2 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50 transition-colors"
-              disabled={isApplyingThis}
-              onClick={onConfirmRequest}
-              type="button"
-            >
-              {isApplyingThis ? 'Applying...' : (finding.proposedAction.label ?? 'Apply')}
-            </button>
-          )}
+          <button
+            className="text-xs px-2 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+            disabled={isApplyingThis}
+            onClick={onConfirmRequest}
+            type="button"
+          >
+            {isApplyingThis ? 'Reviewing...' : (finding.proposedAction.label ?? 'Review and apply')}
+          </button>
         </div>
       )}
       {finding.actionTier === 'A' && finding.proposedAction && (
@@ -83,7 +71,6 @@ interface ConversationMessageProps {
   entry: ConversationEntry
   isApplying: boolean
   pendingActionFindingId: string | null
-  onApplyFinding: (finding: FleetGraphFinding) => void
   onConfirmFinding: (finding: FleetGraphFinding) => void
 }
 
@@ -91,7 +78,6 @@ function ConversationMessage({
   entry,
   isApplying,
   pendingActionFindingId,
-  onApplyFinding,
   onConfirmFinding,
 }: ConversationMessageProps) {
   const isUser = entry.role === 'user'
@@ -110,12 +96,12 @@ function ConversationMessage({
         <div className="mt-1.5 space-y-1.5 w-full">
           {entry.findings.map((finding, idx) => {
             const key = `${finding.findingType}:${finding.title}`
+            const actionKey = finding.proposedAction?.actionId ?? key
             return (
               <FindingCard
                 key={idx}
                 finding={finding}
-                isApplyingThis={isApplying && pendingActionFindingId === key}
-                onApply={() => onApplyFinding(finding)}
+                isApplyingThis={isApplying && pendingActionFindingId === actionKey}
                 onConfirmRequest={() => onConfirmFinding(finding)}
               />
             )
@@ -133,18 +119,22 @@ export function AnalysisSection({
 }: AnalysisSectionProps) {
   const [input, setInput] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
-  const [confirmingFinding, setConfirmingFinding] = useState<FleetGraphFinding | null>(null)
   const hasAnalyzedRef = useRef(false)
 
   const {
+    actionNotice,
     analyze,
     applyError,
-    applyFindingAction,
+    applyReviewedAction,
     conversation,
+    currentReview,
+    dismissActionReview,
     isAnalyzing,
     isApplying,
+    isReviewing,
     isResponding,
     pendingActionFindingId,
+    requestActionReview,
     sendMessage,
   } = useFleetGraphAnalysis()
 
@@ -188,10 +178,9 @@ export function AnalysisSection({
             <ConversationMessage
               key={idx}
               entry={entry}
-              isApplying={isApplying}
+              isApplying={isApplying || isReviewing}
               pendingActionFindingId={pendingActionFindingId}
-              onApplyFinding={(finding) => { void applyFindingAction(finding) }}
-              onConfirmFinding={(finding) => setConfirmingFinding(finding)}
+              onConfirmFinding={(finding) => requestActionReview(finding)}
             />
           ))}
 
@@ -206,6 +195,10 @@ export function AnalysisSection({
         {/* Action error */}
         {applyError && (
           <p className="text-xs text-red-500 py-1">{applyError}</p>
+        )}
+
+        {actionNotice && (
+          <p className="text-xs text-emerald-700 py-1">{actionNotice}</p>
         )}
 
         {/* Chat input */}
@@ -230,24 +223,21 @@ export function AnalysisSection({
         </form>
       </div>
 
-      {/* Tier C confirm dialog */}
-      {confirmingFinding && (
+      {currentReview && (
         <ConfirmDialog
-          open={confirmingFinding !== null}
-          title={confirmingFinding.proposedAction?.label ?? confirmingFinding.title}
-          description={confirmingFinding.summary}
-          confirmLabel={confirmingFinding.proposedAction?.label ?? 'Apply'}
-          cancelLabel="Cancel"
+          open={currentReview !== null}
+          title={currentReview.review.title}
+          description={currentReview.review.summary}
+          confirmLabel={currentReview.review.confirmLabel}
+          cancelLabel={currentReview.review.cancelLabel}
           onConfirm={() => {
-            const finding = confirmingFinding
-            setConfirmingFinding(null)
-            void applyFindingAction(finding)
+            applyReviewedAction()
           }}
-          onCancel={() => setConfirmingFinding(null)}
+          onCancel={dismissActionReview}
         >
-          {confirmingFinding.evidence.length > 0 && (
+          {currentReview.review.evidence.length > 0 && (
             <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
-              {confirmingFinding.evidence.map((item, idx) => (
+              {currentReview.review.evidence.map((item, idx) => (
                 <li key={idx}>{item}</li>
               ))}
             </ul>

@@ -1,7 +1,9 @@
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useState } from 'react'
 
-import { apiDelete, apiPatch, apiPost } from '@/lib/api'
+import { apiPost } from '@/lib/api'
+import { documentKeys } from './useDocumentsQuery'
+import { sprintKeys } from './useWeeksQuery'
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                             */
@@ -12,14 +14,42 @@ export interface FleetGraphFinding {
   evidence: string[]
   findingType: string
   proposedAction?: {
+    actionId: string
+    actionType: 'approve_project_plan' | 'approve_week_plan' | 'start_week'
+    dialogKind: 'confirm'
     endpoint: { method: string; path: string }
     label: string
+    reviewSummary: string
+    reviewTitle: string
     targetId: string
-    targetType: string
+    targetType: 'project' | 'sprint'
   }
   severity: 'info' | 'warning' | 'critical'
   summary: string
   title: string
+}
+
+export interface FleetGraphThreadActionReview {
+  cancelLabel: string
+  confirmLabel: string
+  evidence: string[]
+  summary: string
+  threadId: string
+  title: string
+}
+
+export interface FleetGraphThreadActionReviewResponse {
+  action: NonNullable<FleetGraphFinding['proposedAction']>
+  review: FleetGraphThreadActionReview
+}
+
+export interface FleetGraphThreadActionApplyResponse {
+  action: NonNullable<FleetGraphFinding['proposedAction']>
+  actionOutcome: {
+    message: string
+    resultStatusCode?: number
+    status: 'already_applied' | 'applied' | 'failed'
+  }
 }
 
 export interface FleetGraphAnalysisResponse {
@@ -44,8 +74,11 @@ export interface ConversationEntry {
 /* ------------------------------------------------------------------ */
 
 export function useFleetGraphAnalysis() {
+  const queryClient = useQueryClient()
   const [threadId, setThreadId] = useState<string | null>(null)
   const [conversation, setConversation] = useState<ConversationEntry[]>([])
+  const [currentReview, setCurrentReview] = useState<FleetGraphThreadActionReviewResponse | null>(null)
+  const [actionNotice, setActionNotice] = useState<string | null>(null)
 
   // Auto-analysis mutation
   const analyzeMutation = useMutation({
@@ -62,6 +95,8 @@ export function useFleetGraphAnalysis() {
     },
     onSuccess: (data) => {
       setThreadId(data.threadId)
+      setCurrentReview(null)
+      setActionNotice(null)
       setConversation([
         {
           content: data.analysisText,
@@ -98,6 +133,8 @@ export function useFleetGraphAnalysis() {
       ])
     },
     onSuccess: (data) => {
+      setCurrentReview(null)
+      setActionNotice(null)
       setConversation((prev) => [
         ...prev,
         {
@@ -125,56 +162,132 @@ export function useFleetGraphAnalysis() {
   )
 
   const [pendingActionFindingId, setPendingActionFindingId] = useState<string | null>(null)
-  const [isApplying, setIsApplying] = useState(false)
   const [applyError, setApplyError] = useState<string | null>(null)
 
-  const applyFindingAction = useCallback(async (finding: FleetGraphFinding) => {
-    if (!finding.proposedAction) return
-    const key = `${finding.findingType}:${finding.title}`
-    setApplyError(null)
-    setPendingActionFindingId(key)
-    setIsApplying(true)
-    try {
-      const { method, path } = finding.proposedAction.endpoint
-      let response: Response
-      const upperMethod = method.toUpperCase()
-      if (upperMethod === 'POST') {
-        response = await apiPost(path)
-      } else if (upperMethod === 'PATCH') {
-        response = await apiPatch(path, {})
-      } else if (upperMethod === 'DELETE') {
-        response = await apiDelete(path)
-      } else {
-        // Fallback to POST for unknown methods
-        response = await apiPost(path)
+  const reviewActionMutation = useMutation({
+    mutationFn: async (action: NonNullable<FleetGraphFinding['proposedAction']>) => {
+      if (!threadId) {
+        throw new Error('FleetGraph could not find an active analysis thread for this action.')
       }
+
+      const response = await apiPost(
+        `/api/fleetgraph/thread/${encodeURIComponent(threadId)}/actions/${encodeURIComponent(action.actionId)}/review`
+      )
       if (!response.ok) {
-        console.error(`FleetGraph action failed: ${response.status} ${response.statusText}`)
-        setApplyError('Failed to apply this action. Please try again.')
+        let message = 'FleetGraph could not prepare that review right now.'
+        try {
+          const data = await response.json()
+          if (typeof data?.error === 'string') {
+            message = data.error
+          }
+        } catch {
+          // Keep default message.
+        }
+        throw new Error(message)
       }
-    } catch (err) {
-      console.error('FleetGraph applyFindingAction error:', err)
-      setApplyError('Failed to apply this action. Please try again.')
-    } finally {
+      return response.json() as Promise<FleetGraphThreadActionReviewResponse>
+    },
+    onMutate: (action) => {
+      setApplyError(null)
+      setActionNotice(null)
+      setPendingActionFindingId(action.actionId)
+    },
+    onSuccess: (data) => {
+      setCurrentReview(data)
+    },
+    onSettled: () => {
       setPendingActionFindingId(null)
-      setIsApplying(false)
-    }
-  }, [])
+    },
+  })
+
+  const applyActionMutation = useMutation({
+    mutationFn: async (action: NonNullable<FleetGraphFinding['proposedAction']>) => {
+      if (!threadId) {
+        throw new Error('FleetGraph could not find an active analysis thread for this action.')
+      }
+
+      const response = await apiPost(
+        `/api/fleetgraph/thread/${encodeURIComponent(threadId)}/actions/${encodeURIComponent(action.actionId)}/apply`
+      )
+      if (!response.ok) {
+        let message = 'FleetGraph could not apply this action right now.'
+        try {
+          const data = await response.json()
+          if (typeof data?.error === 'string') {
+            message = data.error
+          }
+        } catch {
+          // Keep default message.
+        }
+        throw new Error(message)
+      }
+      return response.json() as Promise<FleetGraphThreadActionApplyResponse>
+    },
+    onMutate: (action) => {
+      setApplyError(null)
+      setActionNotice(null)
+      setPendingActionFindingId(action.actionId)
+    },
+    onSuccess: (data) => {
+      setCurrentReview(null)
+      if (data.actionOutcome.status === 'failed') {
+        setApplyError(data.actionOutcome.message)
+        return
+      }
+
+      setActionNotice(data.actionOutcome.message)
+      if (data.action.targetType === 'sprint') {
+        queryClient.invalidateQueries({ queryKey: sprintKeys.lists() })
+        queryClient.invalidateQueries({ queryKey: sprintKeys.active() })
+      }
+      if (data.action.targetType === 'project') {
+        queryClient.invalidateQueries({ queryKey: documentKeys.lists() })
+      }
+      queryClient.invalidateQueries({ queryKey: documentKeys.detail(data.action.targetId) })
+    },
+    onSettled: () => {
+      setPendingActionFindingId(null)
+    },
+  })
+
+  const requestActionReview = useCallback((finding: FleetGraphFinding) => {
+    if (!finding.proposedAction) return
+    reviewActionMutation.mutate(finding.proposedAction)
+  }, [reviewActionMutation])
+
+  const applyReviewedAction = useCallback(() => {
+    if (!currentReview?.action) return
+    applyActionMutation.mutate(currentReview.action)
+  }, [applyActionMutation, currentReview])
+
+  const dismissActionReview = useCallback(() => {
+    setCurrentReview(null)
+    setPendingActionFindingId(null)
+    reviewActionMutation.reset()
+    applyActionMutation.reset()
+  }, [applyActionMutation, reviewActionMutation])
 
   const reset = useCallback(() => {
     setThreadId(null)
     setConversation([])
+    setCurrentReview(null)
+    setActionNotice(null)
   }, [])
 
   return {
+    actionNotice,
     analyze,
     applyError,
-    applyFindingAction,
+    applyReviewedAction,
     conversation,
+    currentReview,
+    dismissActionReview,
     isAnalyzing: analyzeMutation.isPending,
-    isApplying,
+    isApplying: applyActionMutation.isPending,
+    isReviewing: reviewActionMutation.isPending,
     isResponding: turnMutation.isPending,
     pendingActionFindingId,
+    requestActionReview,
     reset,
     sendMessage,
     threadId,

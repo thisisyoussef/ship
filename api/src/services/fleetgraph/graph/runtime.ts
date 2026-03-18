@@ -37,6 +37,7 @@ import {
 } from '../tracing/index.js'
 import { createFleetGraphCheckpointer } from './checkpointer.js'
 import { runFindingActionReviewScenario } from './finding-action-review.js'
+import { getOnDemandActionConfig } from './on-demand-actions.js'
 import { createFetchDeepNode } from './nodes/fetch-deep.js'
 import { createFetchMediumNode } from './nodes/fetch-medium.js'
 import { createReasonNode } from './nodes/reason.js'
@@ -162,6 +163,36 @@ function buildReviewPayload(state: {
     summary: state.selectedAction?.summary,
     title: state.selectedAction?.title,
     type: state.selectedAction?.type,
+  }
+}
+
+function buildActionSuccessMessage(
+  action: NonNullable<FleetGraphState['selectedAction']>,
+  body: Record<string, unknown> | undefined
+) {
+  switch (action.type) {
+    case 'approve_project_plan':
+      return 'Project plan approved in Ship.'
+    case 'approve_week_plan':
+      return 'Week plan approved in Ship.'
+    case 'start_week':
+    default:
+      return buildShipActionSuccessMessage(body)
+  }
+}
+
+function buildActionFailureMessage(
+  action: NonNullable<FleetGraphState['selectedAction']>,
+  body: Record<string, unknown> | undefined
+) {
+  switch (action.type) {
+    case 'approve_project_plan':
+      return readShipActionMessage(body, 'Ship could not approve the project plan.')
+    case 'approve_week_plan':
+      return readShipActionMessage(body, 'Ship could not approve the week plan.')
+    case 'start_week':
+    default:
+      return readShipActionMessage(body, 'Ship could not apply the week-start action.')
   }
 }
 
@@ -406,7 +437,7 @@ function createFleetGraphRuntimeInternals(
       ends: ['execute_action', 'fallback', 'persist_action_outcome'],
     })
     .addNode('execute_action', async (state) => {
-      if (!state.selectedAction || !state.selectedFindingId) {
+      if (!state.selectedAction) {
         return {
           actionOutcome: {
             message: 'FleetGraph could not resolve the requested Ship action.',
@@ -435,6 +466,35 @@ function createFleetGraphRuntimeInternals(
         }
       }
 
+      if (!state.selectedFindingId) {
+        const result = await executeShipRestActionTask({
+          method: actionMethod,
+          path: endpoint.path,
+          requestContext,
+        })
+
+        return {
+          actionOutcome: result.ok
+            ? {
+              message: buildActionSuccessMessage(state.selectedAction, result.body),
+              resultStatusCode: result.status,
+              status: 'applied',
+            }
+            : isAlreadyActiveResult(result)
+              ? {
+                message: 'Week was already active when this FleetGraph action was applied.',
+                resultStatusCode: result.status,
+                status: 'already_applied',
+              }
+              : {
+                message: buildActionFailureMessage(state.selectedAction, result.body),
+                resultStatusCode: result.status,
+                status: 'failed',
+              },
+          path: 'execute_action',
+        }
+      }
+
       const started = await beginExecutionTask({
         endpoint,
         findingId: state.selectedFindingId,
@@ -458,11 +518,11 @@ function createFleetGraphRuntimeInternals(
         requestContext,
       })
       const execution = result.ok
-        ? await finishExecutionTask({
+          ? await finishExecutionTask({
           appliedAt: now().toISOString(),
           endpoint,
           findingId: state.selectedFindingId,
-          message: buildShipActionSuccessMessage(result.body),
+          message: buildActionSuccessMessage(state.selectedAction, result.body),
           nowIso: now().toISOString(),
           resultStatusCode: result.status,
           status: 'applied',
@@ -481,7 +541,7 @@ function createFleetGraphRuntimeInternals(
           : await finishExecutionTask({
             endpoint,
             findingId: state.selectedFindingId,
-            message: readShipActionMessage(result.body, 'Ship could not apply the week-start action.'),
+            message: buildActionFailureMessage(state.selectedAction, result.body),
             nowIso: now().toISOString(),
             resultStatusCode: result.status,
             status: 'failed',

@@ -2,9 +2,11 @@ import { Router, type Request, type Response } from 'express'
 import { ZodError } from 'zod'
 
 import {
+  createFleetGraphOnDemandActionService,
   buildShipRestRequestContext,
   createFleetGraphFindingActionService,
   FleetGraphFindingActionError,
+  FleetGraphOnDemandActionError,
   type FleetGraphFindingActionReview,
   type FleetGraphFindingActionExecutionRecord,
 } from '../services/fleetgraph/actions/index.js'
@@ -32,6 +34,10 @@ import {
   type FleetGraphV2Runtime,
   type FleetGraphV2RuntimeInput,
 } from '../services/fleetgraph/graph/index.js'
+import {
+  FleetGraphOnDemandActionApplyResponseSchema,
+  FleetGraphOnDemandActionReviewResponseSchema,
+} from '../services/fleetgraph/graph/on-demand-actions.js'
 import { createFleetGraphEntryService, FleetGraphEntryError } from '../services/fleetgraph/entry/index.js'
 import { authMiddleware } from '../middleware/auth.js'
 import { getAuthContext } from './route-helpers.js'
@@ -42,6 +48,7 @@ interface FleetGraphRouterDeps {
   actionService?: ReturnType<typeof createFleetGraphFindingActionService>
   entryService?: ReturnType<typeof createFleetGraphEntryService>
   findingStore?: ReturnType<typeof createFleetGraphFindingStore>
+  onDemandActionService?: ReturnType<typeof createFleetGraphOnDemandActionService>
   runtime?: FleetGraphRuntime
   runtimeV2?: FleetGraphV2Runtime
 }
@@ -157,6 +164,9 @@ export function createFleetGraphRouter(
   const findingStore = deps.findingStore ?? createFleetGraphFindingStore()
   const actionService = deps.actionService ?? createFleetGraphFindingActionService({
     findingStore,
+    runtime,
+  })
+  const onDemandActionService = deps.onDemandActionService ?? createFleetGraphOnDemandActionService({
     runtime,
   })
 
@@ -427,6 +437,57 @@ export function createFleetGraphRouter(
 
       console.error('FleetGraph apply error:', error)
       res.status(500).json({ error: 'Failed to apply FleetGraph finding' })
+    }
+  })
+
+  router.post('/thread/:threadId/actions/:actionId/review', authMiddleware, async (req: Request, res: Response) => {
+    const auth = getAuthContext(req, res)
+    if (!auth) {
+      return
+    }
+
+    try {
+      const response = await onDemandActionService.reviewThreadAction({
+        actionId: String(req.params.actionId),
+        threadId: String(req.params.threadId),
+        workspaceId: auth.workspaceId,
+      })
+
+      res.json(FleetGraphOnDemandActionReviewResponseSchema.parse(response))
+    } catch (error) {
+      if (error instanceof FleetGraphOnDemandActionError) {
+        res.status(error.statusCode).json({ error: error.message })
+        return
+      }
+
+      console.error('FleetGraph on-demand action review error:', error)
+      res.status(500).json({ error: 'Failed to prepare FleetGraph action review' })
+    }
+  })
+
+  router.post('/thread/:threadId/actions/:actionId/apply', authMiddleware, async (req: Request, res: Response) => {
+    const auth = getAuthContext(req, res)
+    if (!auth) {
+      return
+    }
+
+    try {
+      const response = await onDemandActionService.applyThreadAction({
+        actionId: String(req.params.actionId),
+        request: req,
+        threadId: String(req.params.threadId),
+        workspaceId: auth.workspaceId,
+      })
+
+      res.json(FleetGraphOnDemandActionApplyResponseSchema.parse(response))
+    } catch (error) {
+      if (error instanceof FleetGraphOnDemandActionError) {
+        res.status(error.statusCode).json({ error: error.message })
+        return
+      }
+
+      console.error('FleetGraph on-demand action apply error:', error)
+      res.status(500).json({ error: 'Failed to apply FleetGraph action' })
     }
   })
 

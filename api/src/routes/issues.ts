@@ -17,6 +17,7 @@ import {
   getCachedListResponse,
   listCacheInvalidationMiddleware,
 } from '../services/list-response-cache.js';
+import { enqueueFleetGraphEvent } from '../services/fleetgraph/worker/singleton.js';
 import {
   ensureUuidId,
   getAuthContext,
@@ -925,6 +926,15 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
     // Get the belongs_to associations with display info
     const belongsToResult = await getBelongsToAssociations(newIssueId);
 
+    // Notify FleetGraph of the new issue (async, non-blocking)
+    void enqueueFleetGraphEvent({
+      actorId: userId,
+      documentId: newIssueId,
+      documentType: 'issue',
+      routeSurface: 'issue-create',
+      workspaceId,
+    });
+
     const issue = extractIssueFromRow(createdIssue);
     res.status(201).json({
       ...issue,
@@ -1289,6 +1299,15 @@ router.patch('/:id', authMiddleware, async (req: Request<IdParams>, res: Respons
         broadcastToUser(assigneeId, 'accountability:updated', { issueId: id, state: data.state });
       }
     }
+
+    // Notify FleetGraph of the issue update (async, non-blocking)
+    void enqueueFleetGraphEvent({
+      actorId: userId,
+      documentId: id,
+      documentType: 'issue',
+      routeSurface: 'issue-update',
+      workspaceId,
+    });
 
     res.json({ ...issue, display_id: displayId, belongs_to: belongsTo });
   } catch (err) {

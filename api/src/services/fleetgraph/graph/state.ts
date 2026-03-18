@@ -1,6 +1,7 @@
 import { Annotation } from '@langchain/langgraph'
 
 import type { FleetGraphRequestedAction } from '../contracts/actions.js'
+import type { FleetGraphOnDemandActionDraft } from './on-demand-actions.js'
 import type {
   FleetGraphActionOutcomeStatus,
   FleetGraphAnalysisFinding,
@@ -56,7 +57,7 @@ export const FleetGraphStateAnnotation = Annotation.Root({
   deeperContextHint: replaceValue<FleetGraphDepthHint | undefined>(undefined),
   fetchedData: mergeRecord<Record<string, unknown>>(),
   needsDeeperContext: replaceValue(false),
-  pendingAction: replaceValue<FleetGraphAnalysisFinding['proposedAction'] | undefined>(undefined),
+  pendingAction: replaceValue<FleetGraphOnDemandActionDraft | undefined>(undefined),
   turnCount: replaceValue(0),
   userMessage: replaceValue<string | undefined>(undefined),
   approvalRequired: replaceValue(false),

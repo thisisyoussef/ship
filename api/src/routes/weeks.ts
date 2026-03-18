@@ -12,6 +12,7 @@ import { logDocumentChange, getLatestDocumentFieldHistory } from '../utils/docum
 import { broadcastToUser } from '../collaboration/index.js';
 import { extractText } from '../utils/document-content.js';
 import { listCacheInvalidationMiddleware } from '../services/list-response-cache.js';
+import { enqueueFleetGraphEvent } from '../services/fleetgraph/worker/singleton.js';
 import type { WeekProperties } from '@ship/shared';
 import {
   getAuthContext,
@@ -1291,6 +1292,15 @@ router.patch('/:id', authMiddleware, async (req: Request<IdParams>, res: Respons
       [...values, id, req.workspaceId]
     );
 
+    // Notify FleetGraph of the change (async, non-blocking)
+    void enqueueFleetGraphEvent({
+      actorId: userId,
+      documentId: id,
+      documentType: 'sprint',
+      routeSurface: 'week-update',
+      workspaceId,
+    });
+
     // Re-query to get full sprint with owner info
     const result = await pool.query(
       `SELECT d.id, d.title, d.properties, prog_da.related_id as program_id,
@@ -1396,6 +1406,15 @@ router.post('/:id/start', authMiddleware, async (req: Request<IdParams>, res: Re
 
     // Broadcast celebration when sprint is started
     broadcastToUser(userId, 'accountability:updated', { type: 'week_start', targetId: id });
+
+    // Notify FleetGraph of the status change (async, non-blocking)
+    void enqueueFleetGraphEvent({
+      actorId: userId,
+      documentId: id,
+      documentType: 'sprint',
+      routeSurface: 'week-start',
+      workspaceId,
+    });
 
     // Re-query to get full sprint with owner info
     const result = await pool.query(

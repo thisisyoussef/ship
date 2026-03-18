@@ -1,4 +1,5 @@
 import type { LLMAdapter } from '../../llm/types.js';
+import { sanitizeOnDemandActionDraft } from '../on-demand-actions.js';
 import type {
   FleetGraphAnalysisFinding,
   FleetGraphContextEnvelope,
@@ -57,10 +58,10 @@ RESPONSE FORMAT: You MUST respond with valid JSON matching this schema:
       "actionTier": "A | B | C",
       "evidence": ["string — specific data points supporting this finding"],
       "proposedAction": null or {
-        "label": "string — human-readable action label",
+        "actionType": "approve_project_plan | approve_week_plan | start_week",
         "targetId": "string — document ID to act on",
-        "targetType": "string — document type",
-        "endpoint": { "method": "POST | PATCH", "path": "string — API path, MUST start with /api/" }
+        "targetType": "project | sprint",
+        "endpoint": { "method": "POST", "path": "string — API path, MUST start with /api/" }
       }
     }
   ],
@@ -73,20 +74,20 @@ RESPONSE FORMAT: You MUST respond with valid JSON matching this schema:
 
 Action tiers:
 - A = read-only insight (no mutation needed) — USE THIS when no Ship API action exists
-- B = soft mutation (create issue, add comment, assign person)
-- C = structural mutation (move issues between sprints, close items, start week)
+- B = server-backed approval flow
+- C = server-backed operational action
 
-CRITICAL: Only propose actions that have a real Ship API endpoint. If no valid endpoint exists, use actionTier "A" with proposedAction: null.
+CRITICAL: Only propose actions that match one of the supported FleetGraph action types below. If the best recommendation is advisory only, use actionTier "A" with proposedAction: null.
 
-Ship API paths (ONLY these are valid):
+Supported FleetGraph action types and Ship API paths (ONLY these are valid):
 - Start a week/sprint: POST /api/weeks/{weekId}/start (weekId must be a week/sprint document ID)
-- Update an issue: PATCH /api/issues/{issueId} (issueId must be an issue document ID)
-- Create a comment on an ISSUE: POST /api/issues/{issueId}/comments (ONLY for issues, NOT for weeks/sprints)
+- Approve a week plan: POST /api/weeks/{weekId}/approve-plan (weekId must be a week/sprint document ID)
+- Approve a project plan: POST /api/projects/{projectId}/approve-plan (projectId must be a project document ID)
 
 Do NOT propose:
-- Comments on weeks/sprints (no endpoint exists)
-- Generic "encourage engagement" actions (no endpoint exists)
-- Any action without a matching endpoint above
+- Comments, assignments, or engagement nudges as executable actions in this story
+- Any action without a matching actionType and endpoint above
+- Any executable action for generic stagnation risk when there is no concrete approval/start route available
 
 If the data is insufficient to draw conclusions, set needsDeeperContext to true with a specific hint.
 If everything looks healthy, return an empty findings array with a positive analysisText.
@@ -151,40 +152,29 @@ function normalizeEndpointPath(path: string): string {
   return path
 }
 
-// Valid Ship API action patterns
-const VALID_ACTION_PATTERNS = [
-  /^\/api\/weeks\/[a-f0-9-]+\/start$/,      // Start a week
-  /^\/api\/issues\/[a-f0-9-]+$/,            // Update an issue
-  /^\/api\/issues\/[a-f0-9-]+\/comments$/,  // Comment on an issue
-]
-
-function isValidActionPath(path: string): boolean {
-  return VALID_ACTION_PATTERNS.some(pattern => pattern.test(path))
-}
-
 function sanitizeFinding(finding: FleetGraphAnalysisFinding): FleetGraphAnalysisFinding {
   if (finding.proposedAction?.endpoint?.path) {
-    const normalizedPath = normalizeEndpointPath(finding.proposedAction.endpoint.path)
+    const proposedAction = sanitizeOnDemandActionDraft({
+      ...finding.proposedAction,
+      evidence: finding.evidence,
+      endpoint: {
+        ...finding.proposedAction.endpoint,
+        path: normalizeEndpointPath(finding.proposedAction.endpoint.path),
+      },
+    })
 
-    // If the path doesn't match a valid pattern, remove the proposed action
-    if (!isValidActionPath(normalizedPath)) {
-      console.warn(`[FleetGraph] Rejecting invalid action path: ${normalizedPath}`)
+    if (!proposedAction) {
+      console.warn('[FleetGraph] Rejecting unsupported on-demand action proposal')
       return {
         ...finding,
-        actionTier: 'A',  // Downgrade to read-only insight
+        actionTier: 'A',
         proposedAction: undefined,
       }
     }
 
     return {
       ...finding,
-      proposedAction: {
-        ...finding.proposedAction,
-        endpoint: {
-          ...finding.proposedAction.endpoint,
-          path: normalizedPath,
-        },
-      },
+      proposedAction,
     }
   }
   return finding

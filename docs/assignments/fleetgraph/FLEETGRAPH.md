@@ -78,17 +78,19 @@ flowchart TD
   D --> E["merge_candidates"]
   E --> F["score_and_rank"]
   F -->|quiet| G["quiet_exit"]
-  F -->|advisory| H["reason_and_deliver"]
-  F -->|action| I["approval_interrupt"]
-  F -->|fallback| J["fallback"]
-  G --> K["persist_result"]
-  H --> K
-  I -->|resume approved| L["execute_action"]
-  I -->|resume dismissed| M["persist_action_outcome"]
-  L --> M
-  K --> N["END"]
-  M --> N
-  J --> N
+  F -->|advisory or action| H["reason_and_deliver"]
+  H --> I["policy_gate"]
+  I -->|autonomous| J["emit_advisory"]
+  I -->|human required| K["approval_interrupt<br/>dialog spec + hydrated options"]
+  F -->|fallback| L["fallback"]
+  G --> M["persist_result"]
+  J --> M
+  K -->|resume approved + inputs| N["execute_action<br/>execution adapter -> Ship REST"]
+  K -->|resume dismissed or snoozed| O["persist_action_outcome"]
+  N --> O
+  M --> P["END"]
+  O --> P
+  L --> P
 ```
 
 ### Node types
@@ -106,9 +108,11 @@ flowchart TD
 - Merge/rank nodes:
   - `merge_candidates`
   - `score_and_rank`
+  - `policy_gate`
 - Delivery nodes:
   - `quiet_exit`
   - `reason_and_deliver`
+  - `emit_advisory`
 - Human gate and action nodes:
   - `approval_interrupt`
   - `execute_action`
@@ -124,18 +128,66 @@ flowchart TD
 - `select_scenarios -> run_scenario` uses LangGraph `Send` fan-out for the chosen scenario family
 - `run_scenario -> merge_candidates -> score_and_rank`
 - `score_and_rank -> quiet_exit -> persist_result` when no candidate survives thresholds
-- `score_and_rank -> reason_and_deliver -> persist_result` for read-only/advisory output
-- `score_and_rank -> approval_interrupt` for consequential actions
-- `approval_interrupt -> execute_action -> persist_action_outcome` only after explicit `resume(approved)`
-- `approval_interrupt -> persist_action_outcome` when the human dismisses the action
+- `score_and_rank -> reason_and_deliver -> policy_gate`
+- `policy_gate -> emit_advisory -> persist_result` for read-only output and FleetGraph-owned lifecycle actions
+- `policy_gate -> approval_interrupt` for consequential Ship mutations
+- `approval_interrupt` resolves the selected action through a shared action registry, hydrates dialog options from Ship REST or deterministic FleetGraph services, and pauses for human input
+- `approval_interrupt -> execute_action -> persist_action_outcome` only after explicit `resume(approved + validated inputs)`
+- `approval_interrupt -> persist_action_outcome` when the human dismisses or snoozes the action
 - any unrecoverable graph-side failure -> `fallback`
 
 ### Branching conditions
 
 - `quiet`: scenario fan-out produced no candidate with a positive score
-- `reasoned`: a scenario produced advisory output that can be surfaced without a mutation
+- `reasoned`: a scenario produced advisory output and optional safe action drafts that still need policy classification
 - `approval_required`: a scenario produced a consequential action and the graph paused in `approval_interrupt`
 - `fallback`: the graph could not safely continue because required evidence or execution preconditions failed
+
+## Shared Action Module
+
+FleetGraph should use one shared action module for both proactive and on-demand flows.
+
+- The graph produces typed action drafts, not browser-ready mutation payloads.
+- FleetGraph review/apply routes resolve those drafts through a shared action registry.
+- The registry owns:
+  - `actionType`
+  - `targetType`
+  - `dialogKind`
+  - `inputSchema`
+  - `optionSources`
+  - `reviewBuilder`
+  - `executionAdapter`
+  - `policy`
+- The model may propose the action family and target, but it must not invent live picker options or arbitrary structured request bodies.
+
+### First dialog primitives
+
+- `confirm`
+- `single_select`
+- `multi_select`
+- `text_input`
+- `textarea`
+
+Schema-driven generic forms are a future extension path, not the first implementation wave.
+
+### First action pack
+
+| Action Type | Dialog | Intent |
+|---|---|---|
+| `start_week` | `confirm` | Start a planning week after review |
+| `approve_week_plan` | `confirm` | Approve the current week plan |
+| `approve_project_plan` | `confirm` | Approve the current project plan |
+| `assign_owner` | `single_select` | Pick one accountable sprint owner |
+| `assign_issues` | `multi_select` + `single_select` | Pick issue(s) and an assignee |
+| `post_comment` | `textarea` | Compose a persistent comment in Ship |
+
+### Execution adapters
+
+- `single_request` for start, approve, and comment actions
+- `document_patch` for owner changes
+- `multi_request` or `fleetgraph_composed` for issue-assignment fan-out
+
+FleetGraph owns review, stale-state checks, idempotency, and composed execution before any Ship write runs.
 
 ## Use Cases
 
@@ -147,8 +199,10 @@ Minimum: 5.
 | 2 | PM | Week start day passes and the week is still `planning` or has zero issues | Week-start drift summary with owner and missing setup details | Start the week, add scope, or intentionally leave it idle |
 | 3 | PM | Plan or review is `changes_requested`, or remains unapproved for 1 business day after submission | Approval-gap summary with the exact approver and missing follow-up | Approve, request changes, or rework the document |
 | 4 | Director | Project target date is within 7 days and high-priority work is still open or stale | Deadline-risk brief naming the at-risk project, stale issues, and likely impact | Escalate, rescope, or accept the risk |
-| 5 | PM | One project or active week shows clear workload skew | Load-imbalance brief with overloaded assignee, lighter peers, and candidate moves | Reassign, rebalance later, or keep the current distribution |
-| 6 | Engineer or PM | User opens an issue, sprint, or project page and asks a question | Context-aware answer that pulls current document state, related work, history, comments, and next actions into one response | Choose the next step with less digging |
+| 5 | PM | Active week has no owner after start | No-owner finding with one-person picker for the sprint owner | Assign an owner now, snooze, or leave unchanged |
+| 6 | PM | Active week has several unassigned issues | Assignment finding with issue picker plus assignee picker | Assign selected issues, snooze, or ignore |
+| 7 | Engineer or PM | User opens an issue, sprint, or project page and asks a question | Context-aware answer that pulls current document state, related work, history, comments, and next actions into one response | Choose the next step with less digging |
+| 8 | PM or reviewer | A finding or current page needs a persistent follow-up note | Drafted comment action with evidence-backed suggested text | Post the comment, edit it first, or dismiss it |
 
 ## Trigger Model
 
@@ -263,6 +317,11 @@ Cover:
 ### State management approach
 
 - Rich run-local state lives inside the LangGraph execution and stores facts plus routing decisions, not just bookkeeping
+- Action review state should also carry:
+  - typed action drafts
+  - typed dialog specs
+  - typed dialog submissions
+  - execution plans derived after server validation
 - Durable state is limited to the pieces needed for:
   - dedupe
   - cooldowns
@@ -288,7 +347,8 @@ Cover:
 ### Human-in-the-loop boundaries
 
 - Any consequential Ship mutation must pause in `approval_interrupt`
-- The user must confirm before `execute_action` runs
+- `approval_interrupt` should support confirm-only, picker-based, and text-entry review flows through typed dialog specs
+- The user must confirm before `execute_action` runs, and FleetGraph must validate submitted inputs server-side before any Ship mutation
 - Read-only summaries and advisory findings do not require confirmation
 - Human review threads should be resumable and inspectable later through checkpoint history
 

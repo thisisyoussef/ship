@@ -135,11 +135,13 @@ interface FleetGraphState {
 
   // ── Reasoning (only populated when branch != quiet) ──
   reasoned_findings: ReasonedFinding[] | null;
-  proposed_actions: ProposedAction[];
+  action_drafts: ActionDraft[];
 
   // ── HITL state ──
-  pending_approval: PendingApproval | null;
+  pending_approval: PendingApproval | null; // includes dialog_spec, hydrated options, and review payload
+  dialog_submission: DialogSubmission | null;
   approval_decision: "approved" | "dismissed" | "snoozed" | null;
+  action_execution_plan: ActionExecutionPlan | null;
   action_result: ActionResult | null;
 
   // ── Output ──
@@ -579,8 +581,8 @@ This is the critical normalization layer identified in the presearch. Ship's rel
 |-----------|--------|-------------|
 | `mode == "on_demand"` AND `user_question` is present | `advisory` | Always reason for on-demand, even if no proactive findings exist |
 | No candidate survives score ≥ 30 after dedupe | `quiet` | Nothing worth surfacing |
-| At least one candidate ≥ 30 AND no candidate has a consequential proposed action | `advisory` | Read-only insight delivery |
-| At least one candidate ≥ 30 AND at least one candidate proposes a Ship mutation | `action_required` | Needs HITL gate |
+| At least one candidate ≥ 30 AND no candidate has a consequential action draft | `advisory` | Read-only insight delivery |
+| At least one candidate ≥ 30 AND at least one candidate includes a Ship mutation draft | `action_required` | Needs HITL gate |
 | Required data missing or scoring precondition failed | `fallback` | Degraded path |
 
 **Outgoing edges:**
@@ -618,7 +620,7 @@ This is the critical normalization layer identified in the presearch. Ship's rel
 
 | Reads | Writes |
 |-------|--------|
-| `scored_findings`, `normalized_context`, `role_lens`, `user_question`, `mode` | `reasoned_findings`, `proposed_actions` |
+| `scored_findings`, `normalized_context`, `role_lens`, `user_question`, `mode` | `reasoned_findings`, `action_drafts` |
 
 **LLM prompt structure:**
 
@@ -637,9 +639,10 @@ USER QUESTION (if on-demand):
 {user_question}
 
 INSTRUCTIONS:
-- For each finding, produce a 1–3 sentence explanation of why the human should care right now.
+- For each finding, produce a 1-3 sentence explanation of why the human should care right now.
 - Name the specific person, entity, and deadline involved.
-- Propose a concrete next action. If the action requires a Ship mutation, mark it as `requires_approval: true` and specify the exact endpoint.
+- Propose a concrete next action. If the action requires a Ship mutation, return a typed action draft with action family, target, evidence, and policy intent.
+- Do NOT invent live picker options, assignee lists, or structured request bodies. Those are hydrated later by FleetGraph review services.
 - If no finding is strong enough for action, produce advisory-only output.
 - Do NOT produce generic advice. Every sentence must reference a specific Ship entity.
 ```
@@ -648,7 +651,7 @@ INSTRUCTIONS:
 - Proactive: ~4,700 tokens total (context 700 + fetch results 2,500 + reasoning 500 + action framing 300 + output 700)
 - On-demand: ~7,000 tokens total (context 900 + fetch results 3,500 + reasoning 800 + action framing 800 + output 1,000)
 
-**Output parsing:** The LLM returns structured output (JSON or tool-call format) that maps directly into `ReasonedFinding[]` and `ProposedAction[]`.
+**Output parsing:** The LLM returns structured output (JSON or tool-call format) that maps directly into `ReasonedFinding[]` and `ActionDraft[]`.
 
 **Outgoing edge:** `policy_gate`
 
@@ -662,27 +665,38 @@ INSTRUCTIONS:
 
 | Reads | Writes |
 |-------|--------|
-| `reasoned_findings`, `proposed_actions`, `role_lens`, `branch` | `response_payload` (for advisory), routing decision |
+| `reasoned_findings`, `action_drafts`, `role_lens`, `branch` | `response_payload` (for advisory), routing decision |
 
 **Policy rules:**
 
-| Proposed action | Policy | Route to |
+| Action family | Policy | Route to |
 |---|---|---|
-| No Ship mutation proposed | Pass through | `emit_advisory` |
-| Issue reassignment or state change | Human required | `approval_interrupt` |
-| Week start, carryover | Human required | `approval_interrupt` |
-| Plan/review approval or request-changes | Human required | `approval_interrupt` |
-| Comment posting | Human required | `approval_interrupt` |
-| Bulk issue operations | Human required | `approval_interrupt` |
+| No Ship mutation draft present | Pass through | `emit_advisory` |
+| Confirm-only approvals (`start_week`, approve flows) | Human required | `approval_interrupt` |
+| Picker-based ownership or assignment flows | Human required | `approval_interrupt` |
+| Text-entry actions like comments or request-changes | Human required | `approval_interrupt` |
+| Bulk or composed issue operations | Human required | `approval_interrupt` |
 | Summary, risk note, next-step recommendation | Autonomous | `emit_advisory` |
 | FleetGraph-owned state (snooze, dismiss) | Autonomous | `emit_advisory` |
+
+**Registry overlay:**
+
+- `policy_gate` does not trust model output alone.
+- It resolves each `ActionDraft` through a shared `ActionDefinition` registry that supplies:
+  - `dialogKind`
+  - `inputSchema`
+  - `optionSources`
+  - `reviewBuilder`
+  - `executionAdapter`
+  - `policy`
+- Any draft that does not match a known action definition degrades to advisory-only output.
 
 **Outgoing edges:**
 
 | Condition | Target |
 |-----------|--------|
-| All proposed actions are autonomous | `emit_advisory` |
-| Any proposed action requires human approval | `approval_interrupt` |
+| All action drafts are autonomous | `emit_advisory` |
+| Any action draft requires human approval | `approval_interrupt` |
 
 ---
 
@@ -694,7 +708,7 @@ INSTRUCTIONS:
 
 | Reads | Writes |
 |-------|--------|
-| `reasoned_findings`, `proposed_actions` (autonomous only), `role_lens`, `mode` | `response_payload` |
+| `reasoned_findings`, `action_drafts` (autonomous only), `role_lens`, `mode` | `response_payload` |
 
 **Logic:**
 
@@ -719,30 +733,67 @@ INSTRUCTIONS:
 
 | Reads | Writes |
 |-------|--------|
-| `proposed_actions` (those requiring approval) | `pending_approval` |
+| `action_drafts` (those requiring approval) | `pending_approval` |
 
 **Logic:**
 
-1. Build a `PendingApproval` object containing:
-   - Proposed change description
-   - Impacted Ship entity (id, name, type)
-   - Exact endpoint that will be called
-   - Why FleetGraph thinks it is safe
-   - Rollback feasibility assessment
-2. Checkpoint the graph state via LangGraph's checkpointer
-3. Emit a preview card to the user via the FleetGraph panel:
-   - **Apply** button → resumes with `approval_decision = "approved"`
-   - **Dismiss** button → resumes with `approval_decision = "dismissed"`
-   - **Snooze** button → resumes with `approval_decision = "snoozed"`, writes `snoozed_until`
-   - **View Evidence** → expands the evidence pane without resuming
+1. Select the action draft the user is reviewing and resolve it through the shared `ActionDefinition` registry.
+2. Hydrate a typed `dialog_spec`:
+   - dialog kind (`confirm`, `single_select`, `multi_select`, `text_input`, `textarea`)
+   - field definitions
+   - current options from Ship REST or deterministic FleetGraph services
+   - review title, summary, confirm label, and evidence
+3. Build a `PendingApproval` object containing:
+   - proposed change description
+   - impacted Ship entity (id, name, type)
+   - typed `dialog_spec`
+   - hydrated option set
+   - why FleetGraph thinks the action is safe
+   - selected execution adapter
+   - rollback feasibility assessment
+4. Keep option hydration and validation outside the LLM path.
+5. Checkpoint the graph state via LangGraph's checkpointer.
+6. Emit a review dialog to the user via the FleetGraph panel:
+   - action-specific confirm button
+   - cancel/dismiss path
+   - snooze path when available
+   - evidence disclosure without resuming
+7. Resume with typed input payload, not just a bare approval boolean:
+   - `approved + inputs`
+   - `dismissed`
+   - `snoozed`
 
 **Resume behavior:**
 
 | Decision | Target |
 |----------|--------|
-| `approved` | `execute_confirmed_action` |
+| `approved` with valid typed inputs | `execute_confirmed_action` |
 | `dismissed` | `persist_action_outcome` |
 | `snoozed` | `persist_action_outcome` (with snooze metadata) |
+
+### Review -> Dialog -> Apply Sequence
+
+```mermaid
+sequenceDiagram
+    participant UI as FleetGraph UI
+    participant Review as review route
+    participant Registry as action registry
+    participant Ship as Ship REST
+    participant Graph as LangGraph thread
+
+    UI->>Review: POST /review (threadId, actionId)
+    Review->>Registry: resolve draft + build dialog
+    Registry->>Ship: hydrate options if needed
+    Ship-->>Registry: people/issues/document state
+    Registry-->>Review: dialogSpec + review payload
+    Review-->>UI: typed review dialog
+    UI->>Review: POST /apply (decision + dialogSubmission)
+    Review->>Registry: validate submission + build execution plan
+    Review->>Graph: resume(approved + validated inputs)
+    Graph->>Ship: execute via adapter
+    Ship-->>Graph: result
+    Graph-->>UI: outcome payload
+```
 
 ---
 
@@ -754,25 +805,48 @@ INSTRUCTIONS:
 
 | Reads | Writes |
 |-------|--------|
-| `pending_approval`, `approval_decision` | `action_result` |
+| `pending_approval`, `approval_decision`, `dialog_submission` | `action_execution_plan`, `action_result` |
 
-**Ship write endpoints used:**
+**Execution model:**
 
-| Action | Endpoint |
-|---|---|
-| Start week | `POST /api/weeks/:id/start` |
-| Reassign issue | `PATCH /api/issues/:id` (body: `{ assignee_id }`) |
-| Change issue state | `PATCH /api/issues/:id` (body: `{ state }`) |
-| Approve plan | `POST /api/weeks/:id/approve-plan` or `POST /api/projects/:id/approve-plan` |
-| Request changes | `POST /api/weeks/:id/request-plan-changes` or `POST /api/weeks/:id/request-retro-changes` |
-| Approve review | `POST /api/weeks/:id/approve-review` |
-| Carryover | `POST /api/weeks/:id/carryover` |
-| Post comment | `POST /api/documents/:id/comments` |
+- Validate the `dialog_submission` against the action definition before any Ship write.
+- Build one `ActionExecutionPlan` from the registry:
+  - `single_request`
+  - `document_patch`
+  - `multi_request`
+  - `fleetgraph_composed`
+- Wrap all Ship writes in LangGraph `task()` boundaries so replay/resume does not duplicate work.
+
+**First-pack execution mapping:**
+
+| Action | Adapter | Ship route(s) |
+|---|---|---|
+| Start week | `single_request` | `POST /api/weeks/:id/start` |
+| Approve week or project plan | `single_request` | `POST /api/weeks/:id/approve-plan` or `POST /api/projects/:id/approve-plan` |
+| Assign owner | `document_patch` | `PATCH /api/documents/:id` |
+| Assign issues | `multi_request` or `fleetgraph_composed` | `PATCH /api/issues/:id` fan-out or one FleetGraph-composed apply path |
+| Post comment | `single_request` | `POST /api/documents/:id/comments` |
 
 **Error handling:**
+- Validate stale targets and option drift before execution
 - Wrap in LangGraph `task()` so replay/resume does not duplicate writes
 - If the Ship endpoint returns an error, record in `action_result` and do not retry mutations automatically
 - Record the response status and body for trace evidence
+
+### Action Dialog Matrix
+
+| Action Type | Dialog Kind | Option Source | Execution Adapter | Pack Position |
+|---|---|---|---|---|
+| `start_week` | `confirm` | none | `single_request` | first pack |
+| `approve_week_plan` | `confirm` | none | `single_request` | first pack |
+| `approve_project_plan` | `confirm` | none | `single_request` | first pack |
+| `assign_owner` | `single_select` | sprint/team people | `document_patch` | first pack |
+| `assign_issues` | `multi_select` + `single_select` | sprint issues + team people | `multi_request` or `fleetgraph_composed` | first pack |
+| `post_comment` | `textarea` | fixed current document target | `single_request` | first pack |
+| `request_plan_changes` | `textarea` | fixed target | `single_request` | roadmap |
+| issue reassignment / state change | `single_select` | issue state enum or people | `single_request` | roadmap |
+| carryover / bulk issue operations | `confirm` or typed multi-input | sprint/week issue set | `single_request` or `fleetgraph_composed` | roadmap |
+| escalation flows | `textarea` or typed picker + text | context-derived targets | comment-based adapter or composed action | roadmap |
 
 **Outgoing edge:** `persist_action_outcome`
 
@@ -878,8 +952,8 @@ INSTRUCTIONS:
 | 27 | `score_candidates` | `fallback` | `branch == "fallback"` |
 | 28 | `quiet_exit` | `persist_run_state` | always |
 | 29 | `reason_findings` | `policy_gate` | always |
-| 30 | `policy_gate` | `emit_advisory` | all proposed actions are autonomous |
-| 31 | `policy_gate` | `approval_interrupt` | any proposed action requires human approval |
+| 30 | `policy_gate` | `emit_advisory` | all action drafts are autonomous |
+| 31 | `policy_gate` | `approval_interrupt` | any action draft requires human approval |
 | 32 | `emit_advisory` | `persist_run_state` | always |
 | 33 | `approval_interrupt` | `execute_confirmed_action` | `resume(approved)` |
 | 34 | `approval_interrupt` | `persist_action_outcome` | `resume(dismissed)` or `resume(snoozed)` |
@@ -1055,16 +1129,16 @@ flowchart TD
     PRS --> END1(("END")):::entry
 
     %% Reasoning + Policy
-    RF --> PG["policy_gate<br/><i>Autonomous vs human-required<br/>based on proposed actions</i>"]:::shared
+    RF --> PG["policy_gate<br/><i>Autonomous vs human-required<br/>based on action drafts</i>"]:::shared
     PG -->|"all autonomous"| EA["emit_advisory<br/><i>Format insight card or<br/>chat answer for delivery</i>"]:::shared
-    PG -->|"any Ship mutation"| AI["approval_interrupt<br/><i>LangGraph interrupt()<br/>Checkpoint + preview card<br/>Apply │ Dismiss │ Snooze</i>"]:::hitl
+    PG -->|"any Ship mutation"| AI["approval_interrupt<br/><i>LangGraph interrupt()<br/>Checkpoint + typed dialog spec<br/>Hydrated options + confirm label</i>"]:::hitl
 
     %% Advisory Delivery
     EA --> PRS2["persist_run_state"]:::terminal
     PRS2 --> END2(("END")):::entry
 
     %% HITL Path
-    AI -->|"resume: approved"| ECA["execute_confirmed_action<br/><i>task() wrapped Ship mutation<br/>via real REST endpoint</i>"]:::hitl
+    AI -->|"resume: approved + inputs"| ECA["execute_confirmed_action<br/><i>Validate dialog submission<br/>Build execution adapter plan<br/>task() wrapped Ship REST writes</i>"]:::hitl
     AI -->|"resume: dismissed<br/>or snoozed"| PAO["persist_action_outcome<br/><i>Write cooldown/snooze<br/>to ledger</i>"]:::terminal
     ECA --> PAO2["persist_action_outcome<br/><i>Write approval decision +<br/>action result to ledger</i>"]:::terminal
     PAO --> END3(("END")):::entry

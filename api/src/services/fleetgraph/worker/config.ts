@@ -5,7 +5,7 @@ const DEFAULT_MAX_ATTEMPTS = 3
 const DEFAULT_POLL_INTERVAL_MS = 5_000
 const DEFAULT_RETRY_DELAY_MS = 60_000
 const DEFAULT_SWEEP_BATCH_SIZE = 25
-const DEFAULT_SWEEP_INTERVAL_MS = 240_000
+const DEFAULT_SWEEP_INTERVAL_MS = 120_000
 
 function parsePositiveInteger(value: string | undefined, fallback: number) {
   const parsed = Number.parseInt(value ?? '', 10)

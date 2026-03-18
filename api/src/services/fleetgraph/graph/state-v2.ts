@@ -37,6 +37,7 @@ import type {
   ShipIssue,
   ShipPerson,
   ShipProject,
+  ShipStandup,
   ShipWeek,
   SuspectEntity,
   TraceMetadata,
@@ -156,6 +157,9 @@ export const FleetGraphStateV2Annotation = Annotation.Root({
 
   /** All accountability items in workspace */
   rawAccountabilityItems: replaceValue<ShipAccountabilityItem[]>([]),
+
+  /** Today's standups across the workspace (for missing_standup detection) */
+  rawTodayStandups: replaceValue<ShipStandup[]>([]),
 
   /** Primary document being analyzed (on-demand/event) */
   rawPrimaryDocument: replaceValue<ShipDocument | null>(null),

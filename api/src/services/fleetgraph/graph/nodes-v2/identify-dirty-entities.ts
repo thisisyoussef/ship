@@ -27,6 +27,7 @@ import type {
   ShipIssue,
   ShipPerson,
   ShipAccountabilityItem,
+  ShipStandup,
   SuspectEntity,
   FleetGraphV2SuspectType,
 } from '../types-v2.js'
@@ -60,6 +61,9 @@ const MIN_ASSIGNEES_FOR_IMBALANCE = 3
 /** Business days for approval gap */
 const APPROVAL_GAP_BUSINESS_DAYS = 1
 
+/** Hour after which standup is considered missing (12:00 = noon) */
+const STANDUP_DUE_HOUR = 12
+
 // ──────────────────────────────────────────────────────────────────────────────
 // Helper Functions
 // ──────────────────────────────────────────────────────────────────────────────
@@ -67,6 +71,10 @@ const APPROVAL_GAP_BUSINESS_DAYS = 1
 function isBusinessDay(date: Date): boolean {
   const day = date.getDay()
   return day !== 0 && day !== 6 // Not Sunday or Saturday
+}
+
+function getCurrentHour(): number {
+  return new Date().getHours()
 }
 
 function hoursSince(dateString: string | undefined): number {
@@ -311,6 +319,261 @@ function checkBlockerAging(
   return suspects
 }
 
+/**
+ * Detects missing standups for users with assigned issues in active weeks.
+ *
+ * Logic:
+ * 1. Must be a business day
+ * 2. Must be after the standup due hour (noon by default)
+ * 3. User must have at least one open issue assigned in an active week
+ * 4. User must NOT have posted a standup today
+ *
+ * @param weeks - All weeks in workspace
+ * @param issues - All issues in workspace
+ * @param people - All people in workspace
+ * @param todayStandups - All standups posted today
+ */
+function checkMissingStandup(
+  weeks: ShipWeek[],
+  issues: ShipIssue[],
+  people: ShipPerson[],
+  todayStandups: ShipStandup[]
+): SuspectEntity[] {
+  const suspects: SuspectEntity[] = []
+
+  // Gate 1: Must be a business day
+  const now = new Date()
+  if (!isBusinessDay(now)) {
+    return suspects
+  }
+
+  // Gate 2: Must be after the standup due hour
+  if (getCurrentHour() < STANDUP_DUE_HOUR) {
+    return suspects
+  }
+
+  // Build set of active week IDs
+  const activeWeekIds = new Set(
+    weeks
+      .filter((w) => w.status === 'active')
+      .map((w) => w.id)
+  )
+
+  // Build map of user IDs who have posted today
+  const usersWithStandup = new Set(
+    todayStandups.map((s) => s.authorId)
+  )
+
+  // Build map of assignees with open issues in active weeks
+  const assigneesInActiveWeeks = new Map<string, { issueIds: string[]; weekIds: Set<string> }>()
+
+  for (const issue of issues) {
+    // Must be assigned
+    if (!issue.assigneeId) continue
+
+    // Must be in an active week
+    if (!issue.sprintId || !activeWeekIds.has(issue.sprintId)) continue
+
+    // Must be open (not done/closed/cancelled)
+    const state = issue.state?.toLowerCase()
+    if (state === 'done' || state === 'closed' || state === 'cancelled') continue
+
+    // Track this assignee
+    if (!assigneesInActiveWeeks.has(issue.assigneeId)) {
+      assigneesInActiveWeeks.set(issue.assigneeId, { issueIds: [], weekIds: new Set() })
+    }
+    const entry = assigneesInActiveWeeks.get(issue.assigneeId)!
+    entry.issueIds.push(issue.id)
+    entry.weekIds.add(issue.sprintId)
+  }
+
+  // Check each assignee with open issues in active weeks
+  for (const [assigneeId, data] of assigneesInActiveWeeks) {
+    // Skip if user already posted a standup today
+    if (usersWithStandup.has(assigneeId)) continue
+
+    const person = people.find((p) => p.id === assigneeId)
+    const weekId = Array.from(data.weekIds)[0] // Pick first active week for context
+
+    suspects.push({
+      type: 'missing_standup',
+      entityId: assigneeId,
+      entityType: 'person',
+      personId: assigneeId,
+      weekId,
+      metadata: {
+        personName: person?.name,
+        personEmail: person?.email,
+        openIssueCount: data.issueIds.length,
+        activeWeekIds: Array.from(data.weekIds),
+        currentHour: getCurrentHour(),
+        dueHour: STANDUP_DUE_HOUR,
+      },
+    })
+  }
+
+  return suspects
+}
+
+/**
+ * Helper interface for approval tracking within documents
+ */
+interface ApprovalTracking {
+  state: 'approved' | 'changed_since_approved' | 'changes_requested' | null
+  approved_at?: string
+  feedback?: string
+}
+
+/**
+ * Helper to calculate business days since a date
+ */
+function businessDaysSince(dateString: string | undefined): number {
+  if (!dateString) return Infinity
+  const then = new Date(dateString)
+  const now = new Date()
+
+  let count = 0
+  const current = new Date(then)
+  while (current < now) {
+    current.setDate(current.getDate() + 1)
+    if (isBusinessDay(current)) {
+      count++
+    }
+  }
+  return count
+}
+
+/**
+ * Detects approval gaps in sprints and projects.
+ *
+ * Logic:
+ * 1. changes_requested: Plan/review has been sent back for revisions
+ * 2. Pending > 1 business day: submitted_at exists but no approval decision yet
+ *
+ * @param weeks - All weeks in workspace
+ * @param projects - All projects in workspace
+ */
+function checkApprovalGap(
+  weeks: ShipWeek[],
+  projects: ShipProject[]
+): SuspectEntity[] {
+  const suspects: SuspectEntity[] = []
+
+  // Check weeks for approval gaps
+  for (const week of weeks) {
+    // Skip non-active weeks (only care about active/planning weeks)
+    if (week.status === 'completed' || week.status === 'archived') continue
+
+    const props = week.properties ?? {}
+    const planApproval = props.plan_approval as ApprovalTracking | undefined
+    const reviewApproval = props.review_approval as ApprovalTracking | undefined
+    const submittedAt = props.submitted_at as string | undefined
+    const assigneeIds = props.assignee_ids as string[] | undefined
+    const ownerId = assigneeIds?.[0] ?? week.ownerId
+
+    // Check plan approval
+    if (planApproval?.state === 'changes_requested') {
+      suspects.push({
+        type: 'approval_gap',
+        entityId: week.id,
+        entityType: 'week',
+        weekId: week.id,
+        ownerId,
+        metadata: {
+          approvalType: 'plan',
+          state: planApproval.state,
+          feedback: planApproval.feedback,
+          weekTitle: week.title,
+        },
+      })
+    } else if (!planApproval?.state && submittedAt) {
+      // Pending approval check: submitted but no decision
+      const businessDays = businessDaysSince(submittedAt)
+      if (businessDays >= APPROVAL_GAP_BUSINESS_DAYS) {
+        suspects.push({
+          type: 'approval_gap',
+          entityId: week.id,
+          entityType: 'week',
+          weekId: week.id,
+          ownerId,
+          metadata: {
+            approvalType: 'plan',
+            state: 'pending',
+            submittedAt,
+            businessDaysPending: businessDays,
+            weekTitle: week.title,
+          },
+        })
+      }
+    }
+
+    // Check review approval (only for active weeks - completed/archived already filtered out)
+    if (week.status === 'active') {
+      if (reviewApproval?.state === 'changes_requested') {
+        suspects.push({
+          type: 'approval_gap',
+          entityId: week.id,
+          entityType: 'week',
+          weekId: week.id,
+          ownerId,
+          metadata: {
+            approvalType: 'review',
+            state: reviewApproval.state,
+            feedback: reviewApproval.feedback,
+            weekTitle: week.title,
+          },
+        })
+      }
+    }
+  }
+
+  // Check projects for approval gaps
+  for (const project of projects) {
+    const props = project.properties ?? {}
+    const planApproval = props.plan_approval as ApprovalTracking | undefined
+    const submittedAt = props.submitted_at as string | undefined
+    const ownerId = props.owner_id as string | undefined
+
+    // Check plan approval
+    if (planApproval?.state === 'changes_requested') {
+      suspects.push({
+        type: 'approval_gap',
+        entityId: project.id,
+        entityType: 'project',
+        projectId: project.id,
+        ownerId,
+        metadata: {
+          approvalType: 'plan',
+          state: planApproval.state,
+          feedback: planApproval.feedback,
+          projectTitle: project.title,
+        },
+      })
+    } else if (!planApproval?.state && submittedAt) {
+      // Pending approval check
+      const businessDays = businessDaysSince(submittedAt)
+      if (businessDays >= APPROVAL_GAP_BUSINESS_DAYS) {
+        suspects.push({
+          type: 'approval_gap',
+          entityId: project.id,
+          entityType: 'project',
+          projectId: project.id,
+          ownerId,
+          metadata: {
+            approvalType: 'plan',
+            state: 'pending',
+            submittedAt,
+            businessDaysPending: businessDays,
+            projectTitle: project.title,
+          },
+        })
+      }
+    }
+  }
+
+  return suspects
+}
+
 // ──────────────────────────────────────────────────────────────────────────────
 // Node Implementation
 // ──────────────────────────────────────────────────────────────────────────────
@@ -330,13 +593,12 @@ export function identifyDirtyEntities(
   suspects.push(
     ...checkWeekStartDrift(state.rawWeeks),
     ...checkEmptyActiveWeek(state.rawWeeks, state.rawIssues),
+    ...checkMissingStandup(state.rawWeeks, state.rawIssues, state.rawPeople, state.rawTodayStandups),
+    ...checkApprovalGap(state.rawWeeks, state.rawProjects),
     ...checkDeadlineRisk(state.rawProjects, state.rawIssues),
     ...checkWorkloadImbalance(state.rawIssues, state.rawPeople),
     ...checkBlockerAging(state.rawIssues)
   )
-
-  // Note: Missing standup and approval gap checks require additional
-  // context (standups data, approval data) that we fetch in expand_suspects
 
   return {
     suspectEntities: suspects,

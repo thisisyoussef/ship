@@ -15,6 +15,7 @@ import type {
   ShipIssue,
   ShipPerson,
   ShipProject,
+  ShipStandup,
   ShipWeek,
   WeekCluster,
   FetchError,
@@ -30,6 +31,7 @@ export interface WorkspaceSnapshot {
   issues: ShipIssue[]
   people: ShipPerson[]
   accountabilityItems: ShipAccountabilityItem[]
+  todayStandups: ShipStandup[]
   fetchErrors: FetchError[]
   partialData: boolean
 }
@@ -163,7 +165,16 @@ async function fetchWithRetry<T>(
 // ──────────────────────────────────────────────────────────────────────────────
 
 /**
- * Fetches a complete workspace snapshot with 5 parallel REST calls.
+ * Returns today's date in YYYY-MM-DD format
+ */
+function getTodayDateString(): string {
+  const now = new Date()
+  // toISOString always returns 'YYYY-MM-DDTHH:mm:ss.sssZ' format
+  return now.toISOString().slice(0, 10)
+}
+
+/**
+ * Fetches a complete workspace snapshot with 6 parallel REST calls.
  *
  * Endpoints:
  * - GET /api/projects
@@ -171,6 +182,7 @@ async function fetchWithRetry<T>(
  * - GET /api/issues (via documents endpoint)
  * - GET /api/people
  * - GET /api/accountability/action-items
+ * - GET /api/documents?document_type=standup (filtered to today)
  *
  * Per spec: If projects or weeks fail, the run should route to fallback.
  */
@@ -180,7 +192,7 @@ export async function fetchWorkspaceSnapshot(
   const headers = buildHeaders(config)
   const fetchErrors: FetchError[] = []
 
-  const [projectsResult, weeksResult, issuesResult, peopleResult, accountabilityResult] =
+  const [projectsResult, weeksResult, issuesResult, peopleResult, accountabilityResult, standupsResult] =
     await Promise.all([
       fetchWithRetry<{ documents?: ShipProject[]; projects?: ShipProject[] } | ShipProject[]>(
         buildUrl(config, '/api/documents?document_type=project'),
@@ -212,6 +224,12 @@ export async function fetchWorkspaceSnapshot(
         config,
         'GET /api/accountability/action-items'
       ),
+      fetchWithRetry<{ documents?: Array<{ id: string; title: string; properties?: { author_id?: string; date?: string }; created_at?: string }> } | Array<{ id: string; title: string; properties?: { author_id?: string; date?: string }; created_at?: string }>>(
+        buildUrl(config, '/api/documents?document_type=standup'),
+        headers,
+        config,
+        'GET /api/standups'
+      ),
     ])
 
   // Collect errors
@@ -220,6 +238,7 @@ export async function fetchWorkspaceSnapshot(
   if (issuesResult.error) fetchErrors.push(issuesResult.error)
   if (peopleResult.error) fetchErrors.push(peopleResult.error)
   if (accountabilityResult.error) fetchErrors.push(accountabilityResult.error)
+  if (standupsResult.error) fetchErrors.push(standupsResult.error)
 
   // Parse projects
   const projectsRaw = projectsResult.data
@@ -249,6 +268,23 @@ export async function fetchWorkspaceSnapshot(
     ? accountabilityRaw
     : (accountabilityRaw?.items ?? [])
 
+  // Parse standups and filter to today only
+  const today = getTodayDateString()
+  const standupsRaw = standupsResult.data
+  const allStandups = Array.isArray(standupsRaw)
+    ? standupsRaw
+    : (standupsRaw?.documents ?? [])
+
+  const todayStandups: ShipStandup[] = allStandups
+    .filter((s) => s.properties?.date === today)
+    .map((s) => ({
+      id: s.id,
+      title: s.title,
+      authorId: s.properties?.author_id ?? '',
+      date: s.properties?.date ?? today,
+      createdAt: s.created_at,
+    }))
+
   // Critical failure check: projects or weeks
   const criticalFailure = projectsResult.error !== null || weeksResult.error !== null
 
@@ -258,6 +294,7 @@ export async function fetchWorkspaceSnapshot(
     issues,
     people,
     accountabilityItems,
+    todayStandups,
     fetchErrors,
     partialData: fetchErrors.length > 0 || criticalFailure,
   }

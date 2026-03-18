@@ -153,6 +153,15 @@ export interface ShipDocument {
   updatedAt?: string
 }
 
+export interface ShipStandup {
+  id: string
+  title: string
+  authorId: string
+  date: string // YYYY-MM-DD format
+  sprintId?: string
+  createdAt?: string
+}
+
 // ──────────────────────────────────────────────────────────────────────────────
 // Cluster Types (fetched document groups)
 // ──────────────────────────────────────────────────────────────────────────────

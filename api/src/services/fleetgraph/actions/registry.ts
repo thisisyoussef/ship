@@ -17,7 +17,10 @@ export const FLEETGRAPH_ACTION_TYPES = [
   'approve_week_plan',
   'assign_issues',
   'assign_owner',
+  'escalate_risk',
   'post_comment',
+  'post_standup',
+  'rebalance_load',
   'start_week',
 ] as const
 
@@ -31,6 +34,7 @@ export type FleetGraphActionType = z.infer<typeof FleetGraphActionTypeSchema>
 export const FLEETGRAPH_TARGET_TYPES = [
   'document',
   'issue',
+  'person',
   'project',
   'sprint',
 ] as const

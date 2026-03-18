@@ -72,14 +72,21 @@ RESPONSE FORMAT: You MUST respond with valid JSON matching this schema:
 }
 
 Action tiers:
-- A = read-only insight (no mutation needed)
+- A = read-only insight (no mutation needed) — USE THIS when no Ship API action exists
 - B = soft mutation (create issue, add comment, assign person)
 - C = structural mutation (move issues between sprints, close items, start week)
 
-Ship API paths (use these exact patterns):
-- Start a week: POST /api/weeks/{weekId}/start
-- Update an issue: PATCH /api/issues/{issueId}
-- Create a comment: POST /api/issues/{issueId}/comments
+CRITICAL: Only propose actions that have a real Ship API endpoint. If no valid endpoint exists, use actionTier "A" with proposedAction: null.
+
+Ship API paths (ONLY these are valid):
+- Start a week/sprint: POST /api/weeks/{weekId}/start (weekId must be a week/sprint document ID)
+- Update an issue: PATCH /api/issues/{issueId} (issueId must be an issue document ID)
+- Create a comment on an ISSUE: POST /api/issues/{issueId}/comments (ONLY for issues, NOT for weeks/sprints)
+
+Do NOT propose:
+- Comments on weeks/sprints (no endpoint exists)
+- Generic "encourage engagement" actions (no endpoint exists)
+- Any action without a matching endpoint above
 
 If the data is insufficient to draw conclusions, set needsDeeperContext to true with a specific hint.
 If everything looks healthy, return an empty findings array with a positive analysisText.
@@ -144,15 +151,38 @@ function normalizeEndpointPath(path: string): string {
   return path
 }
 
+// Valid Ship API action patterns
+const VALID_ACTION_PATTERNS = [
+  /^\/api\/weeks\/[a-f0-9-]+\/start$/,      // Start a week
+  /^\/api\/issues\/[a-f0-9-]+$/,            // Update an issue
+  /^\/api\/issues\/[a-f0-9-]+\/comments$/,  // Comment on an issue
+]
+
+function isValidActionPath(path: string): boolean {
+  return VALID_ACTION_PATTERNS.some(pattern => pattern.test(path))
+}
+
 function sanitizeFinding(finding: FleetGraphAnalysisFinding): FleetGraphAnalysisFinding {
   if (finding.proposedAction?.endpoint?.path) {
+    const normalizedPath = normalizeEndpointPath(finding.proposedAction.endpoint.path)
+
+    // If the path doesn't match a valid pattern, remove the proposed action
+    if (!isValidActionPath(normalizedPath)) {
+      console.warn(`[FleetGraph] Rejecting invalid action path: ${normalizedPath}`)
+      return {
+        ...finding,
+        actionTier: 'A',  // Downgrade to read-only insight
+        proposedAction: undefined,
+      }
+    }
+
     return {
       ...finding,
       proposedAction: {
         ...finding.proposedAction,
         endpoint: {
           ...finding.proposedAction.endpoint,
-          path: normalizeEndpointPath(finding.proposedAction.endpoint.path),
+          path: normalizedPath,
         },
       },
     }

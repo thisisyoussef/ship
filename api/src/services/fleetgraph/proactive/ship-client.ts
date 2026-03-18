@@ -16,13 +16,17 @@ const ShipIssueDocumentSchema = z.object({
   }).passthrough().optional(),
 }).passthrough()
 
-const ShipSprintIssuesRawSchema = z.object({
-  documents: z.array(ShipIssueDocumentSchema),
-}).passthrough()
+const ShipSprintIssuesRawSchema = z.union([
+  z.array(ShipIssueDocumentSchema),
+  z.object({ documents: z.array(ShipIssueDocumentSchema) }).passthrough(),
+])
 
-function parseSprintIssuesResponse(raw: z.infer<typeof ShipSprintIssuesRawSchema>): ShipSprintIssuesResponse {
+function parseSprintIssuesResponse(
+  raw: z.infer<typeof ShipSprintIssuesRawSchema>
+): ShipSprintIssuesResponse {
+  const documents = Array.isArray(raw) ? raw : raw.documents
   return {
-    issues: raw.documents.map((doc) => ({
+    issues: documents.map((doc) => ({
       assignee_id: doc.properties?.assignee_id ?? null,
       id: doc.id,
       status: doc.properties?.status ?? 'open',
@@ -168,7 +172,10 @@ export function createFleetGraphShipApiClient(
         throw new Error(`FleetGraph Ship fetch members request failed with ${response.status}.`)
       }
 
-      const raw = await response.json() as { documents?: unknown[]; people?: unknown[] }
+      const raw = await response.json() as { documents?: unknown[]; people?: unknown[] } | unknown[]
+      if (Array.isArray(raw)) {
+        return raw
+      }
       const list = raw.people ?? raw.documents ?? []
       return Array.isArray(list) ? list : []
     },

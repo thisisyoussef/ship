@@ -17,6 +17,8 @@ export interface FleetGraphDeploymentEnv
   FLEETGRAPH_API_TOKEN?: string
   FLEETGRAPH_SERVICE_TOKEN?: string
   FLEETGRAPH_WORKER_ENABLED?: string
+  FLEETGRAPH_V2_ENABLED?: string
+  FLEETGRAPH_V2_ROLLOUT_PERCENT?: string
   NODE_ENV?: string
 }
 
@@ -202,4 +204,82 @@ function trimUrl(value?: string) {
     return undefined
   }
   return normalized.endsWith('/') ? normalized.slice(0, -1) : normalized
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// V2 Three-Lane Architecture Feature Flag
+// ──────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Checks if FleetGraph V2 (three-lane architecture) is enabled.
+ *
+ * V2 can be enabled with gradual rollout using FLEETGRAPH_V2_ROLLOUT_PERCENT.
+ * When rollout is configured, a random sample determines eligibility.
+ *
+ * @param env - Environment variables (defaults to process.env)
+ * @param requestId - Optional request/session ID for deterministic rollout
+ * @returns true if V2 should be used for this request
+ */
+export function isFleetGraphV2Enabled(
+  env: FleetGraphDeploymentEnv | NodeJS.ProcessEnv = process.env,
+  requestId?: string
+): boolean {
+  const deploymentEnv = env as FleetGraphDeploymentEnv
+
+  // In non-production, check explicit flag (defaults to false)
+  if ((deploymentEnv.NODE_ENV || '').trim().toLowerCase() !== 'production') {
+    return isTruthy(deploymentEnv.FLEETGRAPH_V2_ENABLED)
+  }
+
+  // In production, must be explicitly enabled
+  if (!isTruthy(deploymentEnv.FLEETGRAPH_V2_ENABLED)) {
+    return false
+  }
+
+  // Check rollout percentage
+  const rolloutPercent = parseRolloutPercent(deploymentEnv.FLEETGRAPH_V2_ROLLOUT_PERCENT)
+  if (rolloutPercent >= 100) {
+    return true // 100% rollout
+  }
+
+  if (rolloutPercent <= 0) {
+    return false // 0% rollout (effectively disabled)
+  }
+
+  // Deterministic rollout based on request ID or random
+  const hash = requestId ? simpleHash(requestId) : Math.random() * 100
+  return hash < rolloutPercent
+}
+
+/**
+ * Returns V2 readiness info for deployment checks.
+ */
+export function resolveFleetGraphV2Readiness(
+  env: FleetGraphDeploymentEnv | NodeJS.ProcessEnv = process.env
+): {
+  enabled: boolean
+  rolloutPercent: number
+} {
+  const deploymentEnv = env as FleetGraphDeploymentEnv
+  return {
+    enabled: isTruthy(deploymentEnv.FLEETGRAPH_V2_ENABLED),
+    rolloutPercent: parseRolloutPercent(deploymentEnv.FLEETGRAPH_V2_ROLLOUT_PERCENT),
+  }
+}
+
+function parseRolloutPercent(value?: string): number {
+  const num = parseInt(nonBlank(value) || '100', 10)
+  if (isNaN(num)) return 100
+  return Math.max(0, Math.min(100, num))
+}
+
+function simpleHash(str: string): number {
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i)
+    hash = ((hash << 5) - hash) + char
+    hash = hash & hash
+  }
+  // Convert to 0-100 range
+  return Math.abs(hash % 100)
 }

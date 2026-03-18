@@ -14,11 +14,7 @@ import { issueKeys } from '@/hooks/useIssuesQuery';
 import { projectKeys, useProjectWeeksQuery } from '@/hooks/useProjectsQuery';
 import { TabBar } from '@/components/ui/TabBar';
 import { useCurrentDocument } from '@/contexts/CurrentDocumentContext';
-import { FleetGraphDebugDock } from '@/components/FleetGraphDebugDock';
-import { FleetGraphDebugSurfaceProvider } from '@/components/FleetGraphDebugSurface';
-import { FleetGraphEntryCard } from '@/components/FleetGraphEntryCard';
 import { FleetGraphFab } from '@/components/FleetGraphFab';
-import { FleetGraphFindingsPanel } from '@/components/FleetGraphFindingsPanel';
 import { useDocumentContextQuery } from '@/hooks/useDocumentContextQuery';
 import type { BelongsTo } from '@ship/shared';
 import {
@@ -634,77 +630,9 @@ export function UnifiedDocumentPage() {
     );
   }
 
-  const [fleetGraphExpanded, setFleetGraphExpanded] = useState(() => {
-    try {
-      return localStorage.getItem('fleetgraph-panel-expanded') !== 'false';
-    } catch {
-      return true;
-    }
-  });
-
-  const toggleFleetGraph = useCallback(() => {
-    setFleetGraphExpanded((prev) => {
-      const next = !prev;
-      try {
-        localStorage.setItem('fleetgraph-panel-expanded', String(next));
-      } catch {
-        // localStorage unavailable
-      }
-      return next;
-    });
-  }, []);
-
   if (!user || !unifiedDocument) {
     return null;
   }
-
-  const fleetGraphCard = (
-    <FleetGraphDebugSurfaceProvider>
-      <div className="border-b border-border">
-        <button
-          className="flex w-full items-center justify-between px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted hover:bg-muted/30 transition-colors"
-          onClick={toggleFleetGraph}
-          type="button"
-        >
-          <span>FleetGraph</span>
-          <svg
-            className={`h-4 w-4 transition-transform ${fleetGraphExpanded ? 'rotate-180' : ''}`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path d="M19 9l-7 7-7-7" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} />
-          </svg>
-        </button>
-        {fleetGraphExpanded && (
-          <div className="px-4 pb-3">
-            <div className="space-y-3">
-              <FleetGraphFindingsPanel
-                context={documentContextQuery.data}
-                currentDocumentId={document.id}
-                loading={documentContextQuery.isLoading}
-              />
-              <FleetGraphEntryCard
-                activeTab={activeTab || undefined}
-                context={documentContextQuery.data}
-                contextError={documentContextQuery.error instanceof Error ? documentContextQuery.error.message : undefined}
-                document={{
-                  documentType: document.document_type,
-                  id: document.id,
-                  title: document.title,
-                  workspaceId: document.workspace_id,
-                }}
-                loading={documentContextQuery.isLoading}
-                nestedPath={nestedPath}
-                userId={user.id}
-              />
-            </div>
-          </div>
-        )}
-      </div>
-      <FleetGraphDebugDock />
-    </FleetGraphDebugSurfaceProvider>
-  );
 
   // Documents with tabs get a tabbed interface
   if (hasTabs && tabConfig.length > 0) {
@@ -717,7 +645,6 @@ export function UnifiedDocumentPage() {
         className="flex h-full min-h-0 flex-col overflow-y-auto"
         data-testid="fleetgraph-document-page-shell"
       >
-        {fleetGraphCard}
         {/* Tab bar */}
         <div className="border-b border-border px-4">
           <TabBar
@@ -749,6 +676,7 @@ export function UnifiedDocumentPage() {
           </Suspense>
         </div>
         <FleetGraphFab
+          context={documentContextQuery.data}
           documentId={document.id}
           documentTitle={document.title}
           documentType={document.document_type}
@@ -763,7 +691,6 @@ export function UnifiedDocumentPage() {
       className="flex h-full min-h-0 flex-col overflow-y-auto"
       data-testid="fleetgraph-document-page-shell"
     >
-      {fleetGraphCard}
       <div className="min-h-0 flex-1" data-testid="document-editor-content">
         <UnifiedEditor
           document={unifiedDocument}
@@ -779,6 +706,7 @@ export function UnifiedDocumentPage() {
         />
       </div>
       <FleetGraphFab
+        context={documentContextQuery.data}
         documentId={document.id}
         documentTitle={document.title}
         documentType={document.document_type}

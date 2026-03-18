@@ -12,8 +12,10 @@ import {
   buildFleetGraphEvidenceChecklist,
   FleetGraphDeploymentReadinessResponseSchema,
   isFleetGraphServiceAuthorized,
+  isFleetGraphV2Enabled,
   isSurfaceEnabled,
   resolveFleetGraphSurfaceReadiness,
+  resolveFleetGraphV2Readiness,
 } from '../services/fleetgraph/deployment/index.js'
 import {
   createFleetGraphFindingStore,
@@ -24,8 +26,11 @@ import {
 } from '../services/fleetgraph/findings/index.js'
 import {
   createFleetGraphRuntime,
+  createFleetGraphV2Runtime,
   type FleetGraphInterruptSummary,
   type FleetGraphRuntime,
+  type FleetGraphV2Runtime,
+  type FleetGraphV2RuntimeInput,
 } from '../services/fleetgraph/graph/index.js'
 import { createFleetGraphEntryService, FleetGraphEntryError } from '../services/fleetgraph/entry/index.js'
 import { authMiddleware } from '../middleware/auth.js'
@@ -38,6 +43,7 @@ interface FleetGraphRouterDeps {
   entryService?: ReturnType<typeof createFleetGraphEntryService>
   findingStore?: ReturnType<typeof createFleetGraphFindingStore>
   runtime?: FleetGraphRuntime
+  runtimeV2?: FleetGraphV2Runtime
 }
 
 function readServiceToken(request: Request) {
@@ -153,6 +159,25 @@ export function createFleetGraphRouter(
     findingStore,
     runtime,
   })
+
+  // V2 runtime - lazy initialization with request context
+  let runtimeV2: FleetGraphV2Runtime | null = deps.runtimeV2 ?? null
+  function getV2Runtime(req: Request): FleetGraphV2Runtime {
+    if (runtimeV2) return runtimeV2
+
+    const baseUrl = process.env.SHIP_API_BASE_URL || `${req.protocol}://${req.get('host')}`
+    const token = process.env.FLEETGRAPH_SERVICE_TOKEN || ''
+
+    runtimeV2 = createFleetGraphV2Runtime({
+      fetchConfig: {
+        baseUrl,
+        token,
+        requestContext: buildShipRestRequestContext(req),
+      },
+    })
+    return runtimeV2
+  }
+
   const router: RouterType = Router()
 
   router.get('/ready', async (req: Request, res: Response) => {
@@ -163,13 +188,23 @@ export function createFleetGraphRouter(
 
     const api = resolveFleetGraphSurfaceReadiness('api')
     const worker = resolveFleetGraphSurfaceReadiness('worker')
+    const v2 = resolveFleetGraphV2Readiness()
     const response = FleetGraphDeploymentReadinessResponseSchema.parse({
       api,
       checklist: buildFleetGraphEvidenceChecklist({ api, worker }, {}),
       worker,
     })
 
-    res.status(api.ready && worker.ready ? 200 : 503).json(response)
+    // Add V2 info to response (outside schema for now, during migration)
+    const extendedResponse = {
+      ...response,
+      v2: {
+        enabled: v2.enabled,
+        rolloutPercent: v2.rolloutPercent,
+      },
+    }
+
+    res.status(api.ready && worker.ready ? 200 : 503).json(extendedResponse)
   })
 
   router.post('/entry', authMiddleware, async (req: Request, res: Response) => {
@@ -392,6 +427,126 @@ export function createFleetGraphRouter(
 
       console.error('FleetGraph apply error:', error)
       res.status(500).json({ error: 'Failed to apply FleetGraph finding' })
+    }
+  })
+
+  // ── V2 Three-Lane Architecture Invoke ──
+  // Unified endpoint for all three lanes: proactive sweep, on-demand, event-driven
+  router.post('/v2/invoke', authMiddleware, async (req: Request, res: Response) => {
+    const auth = getAuthContext(req, res)
+    if (!auth) return
+
+    try {
+      const body = req.body as Partial<FleetGraphV2RuntimeInput>
+
+      // Validate required fields
+      if (!body.triggerType) {
+        res.status(400).json({ error: 'triggerType is required (sweep, user_chat, or enqueue)' })
+        return
+      }
+
+      // Derive mode from trigger type
+      const modeMap = {
+        sweep: 'proactive' as const,
+        user_chat: 'on_demand' as const,
+        enqueue: 'event_driven' as const,
+      }
+      const mode = modeMap[body.triggerType]
+
+      // Build input with defaults
+      const threadId = body.threadId ??
+        `fleetgraph:${auth.workspaceId}:v2:${body.triggerType}:${Date.now()}`
+
+      const input: FleetGraphV2RuntimeInput = {
+        workspaceId: auth.workspaceId,
+        threadId,
+        mode,
+        triggerType: body.triggerType,
+        triggerSource: body.triggerSource ?? 'api',
+        actorId: body.actorId ?? auth.userId ?? null,
+        viewerUserId: body.viewerUserId ?? auth.userId ?? null,
+        documentId: body.documentId ?? null,
+        documentType: body.documentType ?? null,
+        activeTab: body.activeTab ?? null,
+        nestedPath: body.nestedPath ?? null,
+        projectContextId: body.projectContextId ?? null,
+        userQuestion: body.userQuestion ?? null,
+        dirtyEntityId: body.dirtyEntityId ?? null,
+        dirtyEntityType: body.dirtyEntityType ?? null,
+        dirtyWriteType: body.dirtyWriteType ?? null,
+        dirtyCoalescedIds: body.dirtyCoalescedIds ?? [],
+      }
+
+      const v2Runtime = getV2Runtime(req)
+      const state = await v2Runtime.invoke(input, { threadId })
+
+      res.json({
+        branch: state.branch,
+        mode: state.mode,
+        path: state.path,
+        reasonedFindings: state.reasonedFindings,
+        responsePayload: state.responsePayload,
+        runId: state.runId,
+        threadId,
+        traceMetadata: state.traceMetadata,
+      })
+    } catch (error) {
+      console.error('FleetGraph V2 invoke error:', error)
+      const message = error instanceof Error ? error.message : 'Failed to invoke FleetGraph V2'
+      res.status(500).json({ error: message })
+    }
+  })
+
+  // ── V2 Resume (for approval interrupts) ──
+  router.post('/v2/resume/:threadId', authMiddleware, async (req: Request, res: Response) => {
+    const auth = getAuthContext(req, res)
+    if (!auth) return
+
+    try {
+      const { decision } = req.body as { decision?: 'approved' | 'dismissed' | 'snoozed' }
+
+      if (!decision) {
+        res.status(400).json({ error: 'decision is required (approved, dismissed, or snoozed)' })
+        return
+      }
+
+      const threadId = String(req.params.threadId)
+      const v2Runtime = getV2Runtime(req)
+      const state = await v2Runtime.resume(threadId, decision)
+
+      res.json({
+        actionResult: state.actionResult,
+        approvalDecision: state.approvalDecision,
+        branch: state.branch,
+        path: state.path,
+        responsePayload: state.responsePayload,
+        threadId,
+      })
+    } catch (error) {
+      console.error('FleetGraph V2 resume error:', error)
+      const message = error instanceof Error ? error.message : 'Failed to resume FleetGraph V2'
+      res.status(500).json({ error: message })
+    }
+  })
+
+  // ── V2 Get State (for debugging/UI) ──
+  router.get('/v2/state/:threadId', authMiddleware, async (req: Request, res: Response) => {
+    const auth = getAuthContext(req, res)
+    if (!auth) return
+
+    try {
+      const threadId = String(req.params.threadId)
+      const v2Runtime = getV2Runtime(req)
+      const snapshot = await v2Runtime.getState(threadId)
+
+      res.json({
+        threadId,
+        values: snapshot.values,
+      })
+    } catch (error) {
+      console.error('FleetGraph V2 state error:', error)
+      const message = error instanceof Error ? error.message : 'Failed to get FleetGraph V2 state'
+      res.status(500).json({ error: message })
     }
   })
 

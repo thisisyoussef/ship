@@ -212,7 +212,7 @@ export function AnalysisSection({
         <form className="pt-2 border-t border-gray-200 mt-2" onSubmit={handleSubmit}>
           <div className="flex gap-2">
             <input
-              className="flex-1 text-xs border border-gray-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="flex-1 text-xs text-gray-900 border border-gray-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               disabled={isAnalyzing || isResponding}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask a follow-up..."

@@ -22,3 +22,21 @@ export {
   type FleetGraphFindingActionExecutionRecord,
   type FleetGraphFindingActionStore,
 } from './types.js'
+
+// Shared Action Registry
+export * from './registry.js'
+
+// Action Execution Service
+export {
+  ActionExecutionService,
+  ActionExecutionError,
+  type ActionReviewRequest,
+  type ActionReviewResponse,
+  type ActionApplyRequest,
+  type ActionApplyResponse,
+  type ActionExecutionResult,
+  type ActionExecutionContext,
+} from './execution-service.js'
+
+// First Action Pack Definitions
+export { registerFirstPackActions } from './definitions/index.js'

@@ -1,0 +1,38 @@
+/**
+ * First Action Pack
+ *
+ * Registers all first-pack action definitions:
+ * - start_week (confirm)
+ * - approve_week_plan (confirm)
+ * - approve_project_plan (confirm)
+ * - assign_owner (single_select)
+ * - assign_issues (composite: multi_select + single_select)
+ * - post_comment (textarea)
+ */
+
+export * from './start-week.js'
+export * from './approve-week-plan.js'
+export * from './approve-project-plan.js'
+export * from './assign-owner.js'
+export * from './assign-issues.js'
+export * from './post-comment.js'
+
+import { registerStartWeekAction } from './start-week.js'
+import { registerApproveWeekPlanAction } from './approve-week-plan.js'
+import { registerApproveProjectPlanAction } from './approve-project-plan.js'
+import { registerAssignOwnerAction } from './assign-owner.js'
+import { registerAssignIssuesAction } from './assign-issues.js'
+import { registerPostCommentAction } from './post-comment.js'
+
+/**
+ * Register all first-pack actions with the registry.
+ * Call this once at startup.
+ */
+export function registerFirstPackActions(): void {
+  registerStartWeekAction()
+  registerApproveWeekPlanAction()
+  registerApproveProjectPlanAction()
+  registerAssignOwnerAction()
+  registerAssignIssuesAction()
+  registerPostCommentAction()
+}

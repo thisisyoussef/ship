@@ -187,7 +187,7 @@ function FindingCard({
       <div className="flex items-center gap-2 pt-1 border-t border-gray-200">
         <span className="text-xs text-gray-500">Quick:</span>
         <button
-          className="text-xs px-2 py-0.5 rounded border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-50"
+          className="text-xs px-2 py-0.5 rounded border border-gray-400 bg-white text-gray-700 font-medium hover:bg-gray-100 hover:border-gray-500 disabled:opacity-50"
           disabled={isMutating}
           onClick={() => onDismiss(finding.id)}
           type="button"
@@ -195,7 +195,7 @@ function FindingCard({
           Dismiss
         </button>
         <button
-          className="text-xs px-2 py-0.5 rounded border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-50"
+          className="text-xs px-2 py-0.5 rounded border border-gray-400 bg-white text-gray-700 font-medium hover:bg-gray-100 hover:border-gray-500 disabled:opacity-50"
           disabled={isMutating}
           onClick={() => onSnooze(finding.id, '10s')}
           type="button"
@@ -203,7 +203,7 @@ function FindingCard({
           Snooze 10s
         </button>
         <button
-          className="text-xs px-2 py-0.5 rounded border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-50"
+          className="text-xs px-2 py-0.5 rounded border border-gray-400 bg-white text-gray-700 font-medium hover:bg-gray-100 hover:border-gray-500 disabled:opacity-50"
           disabled={isMutating}
           onClick={() => onSnooze(finding.id, '4h')}
           type="button"

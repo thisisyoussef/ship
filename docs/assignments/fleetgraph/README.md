@@ -105,3 +105,11 @@ All items are required to pass:
 10. Use `docs/specs/fleetgraph/FLEETGRAPH-FEEDBACK-ROUND2-PHASE/` for the remaining scroll, safe-confirmation, and readability follow-on fixes from the next live inspection.
 11. Run `docs/specs/fleetgraph/FLEETGRAPH-FEEDBACK-ROUND2-PHASE/user-audit-checklist.md` for the next full FleetGraph UI inspection path once that pack is complete.
 12. Only then start any new extension planning beyond the current FleetGraph proof lane.
+
+## Post-MVP Backlog
+
+| ID | Title | Priority | Doc |
+|----|-------|----------|-----|
+| T305 | Cross-system finding priority | Post-MVP | `.ai/memory/codex/fleetgraph-t305-cross-system-finding-priority.md` |
+
+**T305 Summary:** Proactive FAB and on-demand modal show different suggestions without prioritization. Fix by adding cross-system awareness so findings are unified and ranked by severity.

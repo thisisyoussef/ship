@@ -50,6 +50,53 @@ describe('FleetGraph Ship API client', () => {
     })
   })
 
+  it('accepts sprint issue responses as either an array or an object with documents', async () => {
+    const issuesResponseAsArray = [
+      {
+        id: 'issue-1',
+        title: 'Unassigned issue',
+        properties: {
+          assignee_id: null,
+          status: 'open',
+        },
+      },
+      {
+        id: 'issue-2',
+        title: 'Another issue',
+        properties: {
+          status: 'closed',
+        },
+      },
+    ] as const
+
+    const client = createFleetGraphShipApiClient(
+      {
+        baseUrl: 'https://ship-demo-production.up.railway.app',
+        token: 'token',
+      },
+      {
+        fetchFn: vi.fn(async () => new Response(JSON.stringify(issuesResponseAsArray))),
+      }
+    )
+
+    await expect(client.listSprintIssues('sprint-1')).resolves.toEqual({
+      issues: [
+        {
+          assignee_id: null,
+          id: 'issue-1',
+          status: 'open',
+          title: 'Unassigned issue',
+        },
+        {
+          assignee_id: null,
+          id: 'issue-2',
+          status: 'closed',
+          title: 'Another issue',
+        },
+      ],
+    })
+  })
+
   it('uses the current Ship session for on-demand document reads when request context is provided', async () => {
     const fetchFn = vi.fn(async () => new Response(JSON.stringify({
       id: 'doc-1',

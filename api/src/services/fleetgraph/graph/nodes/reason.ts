@@ -60,7 +60,7 @@ RESPONSE FORMAT: You MUST respond with valid JSON matching this schema:
         "label": "string — human-readable action label",
         "targetId": "string — document ID to act on",
         "targetType": "string — document type",
-        "endpoint": { "method": "POST | PATCH", "path": "string — API path" }
+        "endpoint": { "method": "POST | PATCH", "path": "string — API path, MUST start with /api/" }
       }
     }
   ],
@@ -75,6 +75,11 @@ Action tiers:
 - A = read-only insight (no mutation needed)
 - B = soft mutation (create issue, add comment, assign person)
 - C = structural mutation (move issues between sprints, close items, start week)
+
+Ship API paths (use these exact patterns):
+- Start a week: POST /api/weeks/{weekId}/start
+- Update an issue: PATCH /api/issues/{issueId}
+- Create a comment: POST /api/issues/{issueId}/comments
 
 If the data is insufficient to draw conclusions, set needsDeeperContext to true with a specific hint.
 If everything looks healthy, return an empty findings array with a positive analysisText.
@@ -131,6 +136,30 @@ interface ReasonLLMResponse {
   needsDeeperContext: boolean;
 }
 
+function normalizeEndpointPath(path: string): string {
+  // Ensure path starts with /api/
+  if (!path.startsWith('/api/')) {
+    return `/api${path.startsWith('/') ? '' : '/'}${path}`
+  }
+  return path
+}
+
+function sanitizeFinding(finding: FleetGraphAnalysisFinding): FleetGraphAnalysisFinding {
+  if (finding.proposedAction?.endpoint?.path) {
+    return {
+      ...finding,
+      proposedAction: {
+        ...finding.proposedAction,
+        endpoint: {
+          ...finding.proposedAction.endpoint,
+          path: normalizeEndpointPath(finding.proposedAction.endpoint.path),
+        },
+      },
+    }
+  }
+  return finding
+}
+
 function parseReasonResponse(text: string): ReasonLLMResponse {
   // Strip markdown code fences if present
   const cleaned = text
@@ -140,10 +169,11 @@ function parseReasonResponse(text: string): ReasonLLMResponse {
 
   try {
     const parsed = JSON.parse(cleaned) as ReasonLLMResponse;
+    const findings = Array.isArray(parsed.findings) ? parsed.findings : []
     return {
       analysisText: parsed.analysisText || 'Analysis complete.',
       deeperContextHint: parsed.deeperContextHint ?? undefined,
-      findings: Array.isArray(parsed.findings) ? parsed.findings : [],
+      findings: findings.map(sanitizeFinding),
       needsDeeperContext: Boolean(parsed.needsDeeperContext),
     };
   } catch {

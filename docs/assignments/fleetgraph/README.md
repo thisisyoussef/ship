@@ -9,11 +9,13 @@ Supporting repo docs:
 - `docs/assignments/fleetgraph/FLEETGRAPH.md`
 - `docs/guides/fleetgraph-deployment-readiness.md`
 - `docs/guides/fleetgraph-demo-inspection.md`
+- `docs/guides/fleetgraph-studio-inspection.md`
 - `docs/specs/fleetgraph/FLEETGRAPH-FOUNDATION-PHASE/`
 - `docs/specs/fleetgraph/FLEETGRAPH-MVP-PHASE/`
 - `docs/specs/fleetgraph/FLEETGRAPH-FEEDBACK-PHASE/`
 - `docs/specs/fleetgraph/FLEETGRAPH-POLISH-PHASE/`
 - `docs/specs/fleetgraph/FLEETGRAPH-FEEDBACK-ROUND2-PHASE/`
+- `docs/specs/fleetgraph/FLEETGRAPH-STUDIO-INTEGRATION-PHASE/`
 
 ## What this assignment is asking for
 
@@ -105,6 +107,7 @@ All items are required to pass:
 10. Use `docs/specs/fleetgraph/FLEETGRAPH-FEEDBACK-ROUND2-PHASE/` for the remaining scroll, safe-confirmation, and readability follow-on fixes from the next live inspection.
 11. Run `docs/specs/fleetgraph/FLEETGRAPH-FEEDBACK-ROUND2-PHASE/user-audit-checklist.md` for the next full FleetGraph UI inspection path once that pack is complete.
 12. Only then start any new extension planning beyond the current FleetGraph proof lane.
+13. Use `docs/specs/fleetgraph/FLEETGRAPH-STUDIO-INTEGRATION-PHASE/` when you need native LangGraph Studio inspection for the real FleetGraph graph.
 
 ## Post-MVP Backlog
 

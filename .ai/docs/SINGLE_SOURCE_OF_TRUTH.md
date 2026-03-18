@@ -1,8 +1,8 @@
 # Ship - Single Source of Truth
 
 **Last Updated**: 2026-03-17
-**Current Phase**: FleetGraph LangGraph orchestration pack
-**Active Sprint**: Finish the LangGraph-orchestrated runtime, debug surfacing, and docs refresh
+**Current Phase**: FleetGraph Studio integration pack
+**Active Sprint**: Expose the real FleetGraph graph through local LangGraph Studio with reproducible examples and docs
 **Project Status**: Active
 **Canonical Deployment Baseline**: API on AWS Elastic Beanstalk, frontend on S3/CloudFront, config/secrets on AWS-native services
 **Sanctioned Public Demo**: Railway public demo, deployed with `scripts/deploy-railway-demo.sh`
@@ -13,13 +13,14 @@
 
 ### Active Task
 - **Title**: Complete the FleetGraph LangGraph orchestration refactor pack
+ - **Title**: Add local LangGraph Studio inspection for FleetGraph
 - **Status**: In progress
 - **Owner**: Codex
 
 ### Next Immediate Actions
-1. Finish the local LangGraph orchestration pack while keeping Ship product data REST-only.
-2. Refresh the workbook, inspection guide, and proof notes to match the graph-owned review/debug flow.
-3. Hand off the LangGraph pack for audit before any deploy or finalization step.
+1. Expose the compiled FleetGraph graph through `langgraph.json` and repo-owned Studio helpers.
+2. Verify Studio preview works without requiring a live local Postgres checkpointer.
+3. Hand off the Studio pack for audit before finalization.
 
 ---
 
@@ -77,6 +78,7 @@
 - `docs/specs/fleetgraph/FLEETGRAPH-POLISH-PHASE/`
 - `docs/specs/fleetgraph/FLEETGRAPH-FEEDBACK-ROUND2-PHASE/`
 - `docs/specs/fleetgraph/FLEETGRAPH-LANGGRAPH-ORCHESTRATION-PHASE/`
+- `docs/specs/fleetgraph/FLEETGRAPH-STUDIO-INTEGRATION-PHASE/`
 - `api/src/services/fleetgraph/llm/`
 - `api/src/services/fleetgraph/tracing/`
 - `api/src/services/fleetgraph/graph/`
@@ -97,6 +99,7 @@
 - `web/src/hooks/useFleetGraphFindings.ts`
 - `scripts/fleetgraph_deploy_smoke.sh`
 - `docs/guides/fleetgraph-deployment-readiness.md`
+- `docs/guides/fleetgraph-studio-inspection.md`
 - Shared LangSmith trace links showing different execution paths
 
 ---

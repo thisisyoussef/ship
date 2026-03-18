@@ -1,10 +1,10 @@
 # Active Context
 
 - **Session Started**: 2026-03-16
-- **Current Task**: Close the FleetGraph polish pack with T304 QA refresh
+- **Current Task**: Land the FleetGraph local Studio integration pack
 - **Status**: In Progress
 
 ## Next 3 Actions
-1. [ ] Finish `T304` with refreshed screenshots, audit guidance, and any tail-end QA follow-ons.
-2. [ ] Finalize the FleetGraph polish pack on Railway.
-3. [ ] Prepare the next full user inspection from the pack-level checklist.
+1. [ ] Finish the Studio graph export, examples, and `langgraph.json`.
+2. [ ] Validate local Studio preview plus compiled graph registration.
+3. [ ] Finalize the Studio integration pack and merge it.

@@ -153,7 +153,7 @@ function FindingCard({
               ) : null}
               <div className="flex justify-end gap-2">
                 <button
-                  className="text-xs px-2 py-1 rounded border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-50"
+                  className="rounded border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700 hover:border-gray-400 hover:bg-gray-50 disabled:cursor-not-allowed disabled:text-gray-400 disabled:opacity-50"
                   disabled={isMutating}
                   onClick={onCancelReview}
                   type="button"

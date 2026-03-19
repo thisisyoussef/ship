@@ -97,19 +97,27 @@ describe('AnalysisSection', () => {
         actionDraft: {
           actionId: 'start_week:week-1',
           actionType: 'start_week',
-          evidence: ['The week is still planning after the expected start window.'],
+          evidence: [
+            'hoursSinceStart: 93',
+            'sprintStartDate: 2026-03-16T00:00:00.000Z',
+            'status: planning',
+          ],
           rationale: 'This week should be active by now.',
           targetId: 'week-1',
           targetType: 'sprint',
         },
         dialogSpec: {
           cancelLabel: 'Cancel',
-          confirmLabel: 'Start week in Ship',
-          evidence: ['The week is still planning after the expected start window.'],
+          confirmLabel: 'Start week',
+          evidence: [
+            'hoursSinceStart: 93',
+            'sprintStartDate: 2026-03-16T00:00:00.000Z',
+            'status: planning',
+          ],
           fields: [],
           kind: 'confirm',
-          summary: 'FleetGraph thinks this week is ready to start. Nothing changes in Ship until you confirm.',
-          title: 'Confirm before starting this week',
+          summary: 'This week already started, but Ship still shows it as planning. If you confirm, FleetGraph will start it in Ship.',
+          title: 'Start this week in Ship?',
         },
         threadId: 'fleetgraph:workspace-1:analyze:project-1:action:start_week:week-1',
       }))
@@ -121,7 +129,9 @@ describe('AnalysisSection', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Review week start' }))
 
     expect(await screen.findByRole('dialog')).toBeInTheDocument()
-    expect(screen.getByText('Confirm before starting this week')).toBeInTheDocument()
+    expect(screen.getByText('Start this week in Ship?')).toBeInTheDocument()
+    expect(screen.getByText('What FleetGraph noticed')).toBeInTheDocument()
+    expect(screen.getByText('Key facts')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
 
@@ -139,6 +149,178 @@ describe('AnalysisSection', () => {
       '/api/fleetgraph/thread/fleetgraph%3Aworkspace-1%3Aanalyze%3Aproject-1/actions/start_week%3Aweek-1/review'
     )
     expect(vi.mocked(apiPost)).toHaveBeenCalledTimes(2)
+  })
+
+  it('continues the graph after a successful apply and retires the completed action', async () => {
+    vi.mocked(apiPost)
+      .mockResolvedValueOnce(jsonResponse({
+        actionDrafts: [
+          {
+            actionId: 'start_week:week-1',
+            actionType: 'start_week',
+            contextHints: {
+              findingFingerprint: 'finding-1',
+            },
+            evidence: ['The week is still planning after the expected start window.'],
+            rationale: 'This week should be active by now.',
+            targetId: 'week-1',
+            targetType: 'sprint',
+          },
+        ],
+        branch: 'action_required',
+        path: ['resolve_trigger_context', 'reason_findings', 'approval_interrupt'],
+        pendingApproval: null,
+        reasonedFindings: [
+          {
+            evidence: ['The week is still planning after the expected start window.'],
+            explanation: 'This week should be active by now.',
+            findingType: 'week_start_drift',
+            fingerprint: 'finding-1',
+            severity: 'warning',
+            targetEntity: {
+              id: 'week-1',
+              name: 'Week 1',
+              type: 'sprint',
+            },
+            title: 'Week start drift',
+          },
+        ],
+        responsePayload: {
+          answer: {
+            entityLinks: [],
+            suggestedNextSteps: ['start_week'],
+            text: 'Week needs to be started.',
+          },
+          type: 'chat_answer',
+        },
+        threadId: 'fleetgraph:workspace-1:analyze:project-1',
+      }))
+      .mockResolvedValueOnce(jsonResponse({
+        actionDraft: {
+          actionId: 'start_week:week-1',
+          actionType: 'start_week',
+          evidence: [
+            'hoursSinceStart: 93',
+            'sprintStartDate: 2026-03-16T00:00:00.000Z',
+            'status: planning',
+            'entityTitle: Week 1',
+          ],
+          rationale: 'This week should be active by now.',
+          targetId: 'week-1',
+          targetType: 'sprint',
+        },
+        dialogSpec: {
+          cancelLabel: 'Cancel',
+          confirmLabel: 'Start week',
+          evidence: [
+            'hoursSinceStart: 93',
+            'sprintStartDate: 2026-03-16T00:00:00.000Z',
+            'status: planning',
+            'entityTitle: Week 1',
+          ],
+          fields: [],
+          kind: 'confirm',
+          summary: 'This week already started, but Ship still shows it as planning. If you confirm, FleetGraph will start it in Ship.',
+          title: 'Start this week in Ship?',
+        },
+        threadId: 'fleetgraph:workspace-1:analyze:project-1:action:start_week:week-1',
+      }))
+      .mockResolvedValueOnce(jsonResponse({
+        actionDraft: {
+          actionId: 'start_week:week-1',
+          actionType: 'start_week',
+          evidence: ['The week is still planning after the expected start window.'],
+          rationale: 'This week should be active by now.',
+          targetId: 'week-1',
+          targetType: 'sprint',
+        },
+        actionResult: {
+          endpoint: 'POST /api/weeks/week-1/start',
+          executedAt: '2026-03-19T10:00:00.000Z',
+          method: 'POST',
+          path: '/api/weeks/week-1/start',
+          statusCode: 200,
+          success: true,
+        },
+        responsePayload: {
+          answer: {
+            entityLinks: [],
+            suggestedNextSteps: [],
+            text: 'Started Week 1 in Ship.',
+          },
+          type: 'chat_answer',
+        },
+        threadId: 'fleetgraph:workspace-1:analyze:project-1:action:start_week:week-1',
+      }))
+      .mockResolvedValueOnce(jsonResponse({
+        actionDrafts: [
+          {
+            actionId: 'assign_owner:week-1',
+            actionType: 'assign_owner',
+            contextHints: {
+              findingFingerprint: 'finding-2',
+            },
+            evidence: ['Week 1 is active now, but it still has no owner.'],
+            rationale: 'Assign an owner to keep execution accountable.',
+            targetId: 'week-1',
+            targetType: 'sprint',
+          },
+        ],
+        branch: 'action_required',
+        path: ['resolve_trigger_context', 'reason_findings', 'approval_interrupt'],
+        pendingApproval: null,
+        reasonedFindings: [
+          {
+            evidence: ['Week 1 is active now, but it still has no owner.'],
+            explanation: 'Now that the week is running, it needs an accountable owner.',
+            findingType: 'sprint_no_owner',
+            fingerprint: 'finding-2',
+            severity: 'warning',
+            targetEntity: {
+              id: 'week-1',
+              name: 'Week 1',
+              type: 'sprint',
+            },
+            title: 'Week needs an owner',
+          },
+        ],
+        responsePayload: {
+          answer: {
+            entityLinks: [],
+            suggestedNextSteps: ['assign_owner'],
+            text: 'The week is active now, but it still needs an owner.',
+          },
+          type: 'chat_answer',
+        },
+        threadId: 'fleetgraph:workspace-1:analyze:project-1',
+      }))
+
+    renderAnalysisSection()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Review week start' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Start week' }))
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+
+    expect(await screen.findByText('Started Week 1 in Ship.')).toBeInTheDocument()
+    expect(await screen.findByText('The week is active now, but it still needs an owner.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Assign owner' })).toBeInTheDocument()
+
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: 'Review week start' })).not.toBeInTheDocument()
+    })
+
+    expect(vi.mocked(apiPost)).toHaveBeenNthCalledWith(
+      4,
+      '/api/fleetgraph/analyze',
+      {
+        documentId: 'project-1',
+        documentTitle: 'Launch planner',
+        documentType: 'project',
+      }
+    )
   })
 
   it('submits typed dialog values through FleetGraph and surfaces failures truthfully', async () => {

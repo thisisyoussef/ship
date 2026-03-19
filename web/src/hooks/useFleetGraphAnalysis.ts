@@ -44,6 +44,12 @@ export interface ConversationEntry {
   timestamp: string
 }
 
+interface AnalysisRequest {
+  documentId: string
+  documentTitle: string
+  documentType: string
+}
+
 function readResponseText(payload: FleetGraphResponsePayload) {
   switch (payload.type) {
     case 'chat_answer':
@@ -57,41 +63,74 @@ function readResponseText(payload: FleetGraphResponsePayload) {
   }
 }
 
+function buildAssistantConversationEntry(
+  data: FleetGraphThreadResponse
+): ConversationEntry {
+  return {
+    actionDrafts: data.actionDrafts,
+    content: readResponseText(data.responsePayload),
+    findings: data.reasonedFindings,
+    role: 'assistant',
+    timestamp: new Date().toISOString(),
+  }
+}
+
+function retireCompletedAction(
+  conversation: ConversationEntry[],
+  actionId: string
+) {
+  return conversation.map((entry) => {
+    if (!entry.actionDrafts?.some((draft) => draft.actionId === actionId)) {
+      return entry
+    }
+
+    return {
+      ...entry,
+      actionDrafts: entry.actionDrafts.filter((draft) => draft.actionId !== actionId),
+    }
+  })
+}
+
 export function useFleetGraphAnalysis() {
   const queryClient = useQueryClient()
   const [threadId, setThreadId] = useState<string | null>(null)
+  const [analysisRequest, setAnalysisRequest] = useState<AnalysisRequest | null>(null)
   const [conversation, setConversation] = useState<ConversationEntry[]>([])
   const [currentReview, setCurrentReview] = useState<FleetGraphThreadActionReviewResponse | null>(null)
-  const [actionNotice, setActionNotice] = useState<string | null>(null)
   const [applyError, setApplyError] = useState<string | null>(null)
   const [pendingActionId, setPendingActionId] = useState<string | null>(null)
 
+  const postAnalyze = useCallback(async (input: AnalysisRequest) => {
+    const response = await apiPost('/api/fleetgraph/analyze', input)
+    if (!response.ok) {
+      throw new Error('FleetGraph analysis failed')
+    }
+    return response.json() as Promise<FleetGraphThreadResponse>
+  }, [])
+
   const analyzeMutation = useMutation({
-    mutationFn: async (input: {
-      documentId: string
-      documentTitle: string
-      documentType: string
-    }) => {
-      const response = await apiPost('/api/fleetgraph/analyze', input)
-      if (!response.ok) {
-        throw new Error('FleetGraph analysis failed')
-      }
-      return response.json() as Promise<FleetGraphThreadResponse>
+    mutationFn: postAnalyze,
+    onMutate: (input) => {
+      setAnalysisRequest(input)
     },
-    onSuccess: (data) => {
+    onSuccess: (data, input) => {
+      setAnalysisRequest(input)
       setThreadId(data.threadId)
       setCurrentReview(null)
-      setActionNotice(null)
       setApplyError(null)
-      setConversation([
-        {
-          actionDrafts: data.actionDrafts,
-          content: readResponseText(data.responsePayload),
-          findings: data.reasonedFindings,
-          role: 'assistant',
-          timestamp: new Date().toISOString(),
-        },
-      ])
+      setConversation([buildAssistantConversationEntry(data)])
+    },
+  })
+
+  const continueAnalysisMutation = useMutation({
+    mutationFn: postAnalyze,
+    onSuccess: (data) => {
+      setThreadId(data.threadId)
+      setApplyError(null)
+      setConversation((prev) => [...prev, buildAssistantConversationEntry(data)])
+    },
+    onError: () => {
+      setApplyError('FleetGraph applied the change, but could not refresh the next recommendation.')
     },
   })
 
@@ -121,17 +160,10 @@ export function useFleetGraphAnalysis() {
     },
     onSuccess: (data) => {
       setCurrentReview(null)
-      setActionNotice(null)
       setApplyError(null)
       setConversation((prev) => [
         ...prev,
-        {
-          actionDrafts: data.actionDrafts,
-          content: readResponseText(data.responsePayload),
-          findings: data.reasonedFindings,
-          role: 'assistant',
-          timestamp: new Date().toISOString(),
-        },
+        buildAssistantConversationEntry(data),
       ])
     },
   })
@@ -160,7 +192,6 @@ export function useFleetGraphAnalysis() {
       return response.json() as Promise<FleetGraphThreadActionReviewResponse>
     },
     onMutate: (actionDraft) => {
-      setActionNotice(null)
       setApplyError(null)
       setPendingActionId(actionDraft.actionId)
     },
@@ -200,7 +231,6 @@ export function useFleetGraphAnalysis() {
       return response.json() as Promise<FleetGraphThreadActionApplyResponse>
     },
     onMutate: ({ actionDraft }) => {
-      setActionNotice(null)
       setApplyError(null)
       setPendingActionId(actionDraft.actionId)
     },
@@ -211,10 +241,21 @@ export function useFleetGraphAnalysis() {
         return
       }
 
-      const notice = data.responsePayload
-        ? readResponseText(data.responsePayload)
-        : `FleetGraph applied ${data.actionDraft.actionType}.`
-      setActionNotice(notice)
+      setConversation((prev) => {
+        const nextConversation = retireCompletedAction(prev, data.actionDraft.actionId)
+        const notice = data.responsePayload
+          ? readResponseText(data.responsePayload)
+          : `FleetGraph applied ${data.actionDraft.actionType}.`
+
+        return [
+          ...nextConversation,
+          {
+            content: notice,
+            role: 'assistant',
+            timestamp: new Date().toISOString(),
+          },
+        ]
+      })
 
       if (data.actionDraft.targetType === 'sprint') {
         queryClient.invalidateQueries({ queryKey: sprintKeys.active() })
@@ -224,6 +265,10 @@ export function useFleetGraphAnalysis() {
         queryClient.invalidateQueries({ queryKey: documentKeys.lists() })
       }
       queryClient.invalidateQueries({ queryKey: documentKeys.detail(data.actionDraft.targetId) })
+
+      if (analysisRequest) {
+        continueAnalysisMutation.mutate(analysisRequest)
+      }
     },
     onSettled: () => {
       setPendingActionId(null)
@@ -272,15 +317,15 @@ export function useFleetGraphAnalysis() {
   }, [applyActionMutation, reviewActionMutation])
 
   const reset = useCallback(() => {
-    setActionNotice(null)
     setApplyError(null)
+    setAnalysisRequest(null)
     setConversation([])
     setCurrentReview(null)
+    setPendingActionId(null)
     setThreadId(null)
   }, [])
 
   return {
-    actionNotice,
     analyze,
     applyError,
     applyReviewedAction,
@@ -289,6 +334,7 @@ export function useFleetGraphAnalysis() {
     dismissActionReview,
     isAnalyzing: analyzeMutation.isPending,
     isApplying: applyActionMutation.isPending,
+    isContinuing: continueAnalysisMutation.isPending,
     isResponding: turnMutation.isPending,
     isReviewing: reviewActionMutation.isPending,
     pendingActionId,

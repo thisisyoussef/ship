@@ -17,6 +17,11 @@ interface AnalysisSectionProps {
   documentType: string
 }
 
+interface ReviewFact {
+  label: string
+  value: string
+}
+
 function actionLabel(actionDraft: FleetGraphActionDraft) {
   switch (actionDraft.actionType) {
     case 'start_week':
@@ -64,15 +69,82 @@ function readFindingActionDraft(
   )
 }
 
+function humanizeKey(rawKey: string) {
+  const labels: Record<string, string> = {
+    entityTitle: 'Week',
+    hoursSinceStart: 'Started',
+    sprintStartDate: 'Start date',
+    status: 'Current status',
+  }
+
+  return labels[rawKey]
+    ?? rawKey.replace(/([a-z])([A-Z])/g, '$1 $2')
+      .replace(/[_-]+/g, ' ')
+      .replace(/^\w/, (char) => char.toUpperCase())
+}
+
+function formatFactValue(key: string, rawValue: string) {
+  if (key === 'hoursSinceStart') {
+    const hours = Number(rawValue)
+    if (Number.isFinite(hours)) {
+      return `${Math.round(hours)} hours ago`
+    }
+  }
+
+  if (key.toLowerCase().includes('date')) {
+    const date = new Date(rawValue)
+    if (!Number.isNaN(date.getTime())) {
+      return new Intl.DateTimeFormat('en-US', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      }).format(date)
+    }
+  }
+
+  if (key === 'status') {
+    return rawValue.charAt(0).toUpperCase() + rawValue.slice(1)
+  }
+
+  return rawValue
+}
+
+function partitionReviewEvidence(evidence: string[]) {
+  const facts: ReviewFact[] = []
+  const notes: string[] = []
+
+  for (const item of evidence) {
+    const separatorIndex = item.indexOf(':')
+    if (separatorIndex <= 0) {
+      notes.push(item)
+      continue
+    }
+
+    const key = item.slice(0, separatorIndex).trim()
+    const rawValue = item.slice(separatorIndex + 1).trim()
+    if (!key || !rawValue) {
+      notes.push(item)
+      continue
+    }
+
+    facts.push({
+      label: humanizeKey(key),
+      value: formatFactValue(key, rawValue),
+    })
+  }
+
+  return { facts, notes }
+}
+
 function FindingBadge({ severity }: { severity: FleetGraphReasonedFinding['severity'] }) {
   const colors = {
-    critical: 'bg-red-100 text-red-800 border-red-200',
-    info: 'bg-blue-100 text-blue-800 border-blue-200',
-    warning: 'bg-amber-100 text-amber-800 border-amber-200',
+    critical: 'border-red-200 bg-red-50 text-red-700',
+    info: 'border-sky-200 bg-sky-50 text-sky-700',
+    warning: 'border-amber-200 bg-amber-50 text-amber-700',
   }
 
   return (
-    <span className={`rounded border px-1.5 py-0.5 text-xs ${colors[severity]}`}>
+    <span className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${colors[severity]}`}>
       {severity}
     </span>
   )
@@ -90,9 +162,9 @@ function renderDialogField(
   if (field.type === 'single_select') {
     return (
       <label className="block text-sm text-foreground" key={field.name}>
-        <span className="mb-1 block font-medium">{field.label}</span>
+        <span className="mb-1.5 block font-medium">{field.label}</span>
         <select
-          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+          className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm shadow-sm transition-colors focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
           onChange={(event) => onChange(field.name, event.target.value)}
           value={typeof value === 'string' ? value : ''}
         >
@@ -113,7 +185,10 @@ function renderDialogField(
       <fieldset className="space-y-2" key={field.name}>
         <legend className="text-sm font-medium text-foreground">{field.label}</legend>
         {field.options.map((option) => (
-          <label className="flex items-center gap-2 text-sm text-foreground" key={option.value}>
+          <label
+            className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
+            key={option.value}
+          >
             <input
               checked={selectedValues.includes(option.value)}
               disabled={option.disabled}
@@ -135,9 +210,9 @@ function renderDialogField(
   if (field.type === 'textarea') {
     return (
       <label className="block text-sm text-foreground" key={field.name}>
-        <span className="mb-1 block font-medium">{field.label}</span>
+        <span className="mb-1.5 block font-medium">{field.label}</span>
         <textarea
-          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+          className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm shadow-sm transition-colors focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
           onChange={(event) => onChange(field.name, event.target.value)}
           placeholder={field.placeholder}
           rows={field.rows ?? 4}
@@ -149,9 +224,9 @@ function renderDialogField(
 
   return (
     <label className="block text-sm text-foreground" key={field.name}>
-      <span className="mb-1 block font-medium">{field.label}</span>
+      <span className="mb-1.5 block font-medium">{field.label}</span>
       <input
-        className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+        className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm shadow-sm transition-colors focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
         onChange={(event) => onChange(field.name, event.target.value)}
         placeholder={field.placeholder}
         type="text"
@@ -175,28 +250,32 @@ function FindingCard({
   onReviewAction,
 }: FindingCardProps) {
   return (
-    <div className="space-y-1 rounded-md border border-gray-200 bg-white p-2">
-      <div className="flex items-center gap-2">
+    <div className="space-y-2 rounded-2xl border border-border bg-background p-3 shadow-sm">
+      <div className="flex items-start gap-2">
         <FindingBadge severity={finding.severity} />
-        <span className="text-xs font-medium text-gray-900">{finding.title}</span>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-foreground">{finding.title}</p>
+          <p className="mt-1 text-xs leading-5 text-muted">{finding.explanation}</p>
+        </div>
       </div>
-      <p className="text-xs text-gray-600">{finding.explanation}</p>
+
       {finding.evidence.length > 0 && (
-        <ul className="list-disc space-y-1 pl-4 text-[11px] text-gray-500">
+        <ul className="list-disc space-y-1 pl-4 text-[11px] leading-5 text-muted">
           {finding.evidence.map((item) => (
             <li key={item}>{item}</li>
           ))}
         </ul>
       )}
+
       {actionDraft && (
         <div className="pt-1">
           <button
-            className="rounded bg-indigo-600 px-2 py-1 text-xs text-white transition-colors hover:bg-indigo-700 disabled:opacity-50"
+            className="rounded-xl bg-accent px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={isReviewingThis}
             onClick={() => onReviewAction(actionDraft)}
             type="button"
           >
-            {isReviewingThis ? 'Reviewing...' : actionLabel(actionDraft)}
+            {isReviewingThis ? 'Preparing review...' : actionLabel(actionDraft)}
           </button>
         </div>
       )}
@@ -222,14 +301,17 @@ function ConversationMessage({
   return (
     <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}>
       <div
-        className={`max-w-[85%] rounded-lg px-2.5 py-1.5 text-xs ${
-          isUser ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-900'
+        className={`max-w-[88%] rounded-2xl px-3 py-2 text-sm leading-6 ${
+          isUser
+            ? 'bg-accent text-white'
+            : 'border border-border bg-background text-foreground shadow-sm'
         }`}
       >
         {entry.content}
       </div>
+
       {entry.findings && entry.findings.length > 0 && (
-        <div className="mt-1.5 w-full space-y-1.5">
+        <div className="mt-2 w-full space-y-2">
           {entry.findings.map((finding) => {
             const actionDraft = readFindingActionDraft(entry, finding)
             return (
@@ -259,7 +341,6 @@ export function AnalysisSection({
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const {
-    actionNotice,
     analyze,
     applyError,
     applyReviewedAction,
@@ -268,6 +349,7 @@ export function AnalysisSection({
     dismissActionReview,
     isAnalyzing,
     isApplying,
+    isContinuing,
     isResponding,
     isReviewing,
     pendingActionId,
@@ -287,7 +369,7 @@ export function AnalysisSection({
       behavior: 'smooth',
       top: scrollRef.current.scrollHeight,
     })
-  }, [conversation.length])
+  }, [conversation.length, currentReview])
 
   useEffect(() => {
     if (!currentReview) {
@@ -303,10 +385,17 @@ export function AnalysisSection({
     [currentReview]
   )
 
+  const reviewEvidence = useMemo(
+    () => partitionReviewEvidence(currentReview?.dialogSpec.evidence ?? []),
+    [currentReview]
+  )
+
+  const isBusy = isApplying || isReviewing || isContinuing
+
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
     const message = input.trim()
-    if (!message || isResponding) {
+    if (!message || isResponding || isContinuing) {
       return
     }
     sendMessage(message)
@@ -316,10 +405,10 @@ export function AnalysisSection({
   return (
     <>
       <div className="flex h-full flex-col">
-        <div className="flex-1 space-y-2 overflow-y-auto min-h-0" ref={scrollRef}>
+        <div className="min-h-0 flex-1 space-y-2 overflow-y-auto" ref={scrollRef}>
           {isAnalyzing && conversation.length === 0 && (
-            <div className="flex items-center gap-2 text-xs text-gray-500">
-              <div className="h-3 w-3 animate-spin rounded-full border-2 border-indigo-300 border-t-indigo-600" />
+            <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-xs text-muted">
+              <div className="h-3 w-3 animate-spin rounded-full border-2 border-accent/25 border-t-accent" />
               Analyzing {documentType}...
             </div>
           )}
@@ -327,42 +416,38 @@ export function AnalysisSection({
           {conversation.map((entry, index) => (
             <ConversationMessage
               entry={entry}
-              isReviewing={isApplying || isReviewing}
-              key={index}
+              isReviewing={isBusy}
+              key={`${entry.role}-${entry.timestamp}-${index}`}
               onReviewAction={requestActionReview}
               pendingActionId={pendingActionId}
             />
           ))}
 
-          {isResponding && (
-            <div className="flex items-center gap-2 text-xs text-gray-500">
-              <div className="h-3 w-3 animate-spin rounded-full border-2 border-indigo-300 border-t-indigo-600" />
-              Thinking...
+          {(isResponding || isContinuing) && (
+            <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-xs text-muted">
+              <div className="h-3 w-3 animate-spin rounded-full border-2 border-accent/25 border-t-accent" />
+              {isContinuing ? 'Checking what should happen next...' : 'Thinking...'}
             </div>
           )}
         </div>
 
         {applyError && (
-          <p className="py-1 text-xs text-red-500">{applyError}</p>
+          <p className="py-2 text-xs text-red-600">{applyError}</p>
         )}
 
-        {actionNotice && (
-          <p className="py-1 text-xs text-emerald-700">{actionNotice}</p>
-        )}
-
-        <form className="mt-2 border-t border-gray-200 pt-2" onSubmit={handleSubmit}>
+        <form className="mt-3 border-t border-border pt-3" onSubmit={handleSubmit}>
           <div className="flex gap-2">
             <input
-              className="flex-1 rounded-lg border border-gray-300 px-2.5 py-1.5 text-xs text-gray-900 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              disabled={isAnalyzing || isResponding}
+              className="flex-1 rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground shadow-sm transition-colors focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+              disabled={isAnalyzing || isResponding || isContinuing}
               onChange={(event) => setInput(event.target.value)}
               placeholder="Ask a follow-up..."
               type="text"
               value={input}
             />
             <button
-              className="rounded-lg bg-indigo-600 px-2.5 py-1.5 text-xs text-white transition-colors hover:bg-indigo-700 disabled:opacity-50"
-              disabled={!input.trim() || isAnalyzing || isResponding}
+              className="rounded-xl bg-accent px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={!input.trim() || isAnalyzing || isResponding || isContinuing}
               type="submit"
             >
               Send
@@ -373,36 +458,83 @@ export function AnalysisSection({
 
       {currentReview && (
         <ConfirmDialog
+          cancelDisabled={isApplying}
           cancelLabel={currentReview.dialogSpec.cancelLabel}
-          confirmLabel={currentReview.dialogSpec.confirmLabel}
-          description={currentReview.dialogSpec.summary}
+          confirmDisabled={isApplying}
+          confirmLabel={isApplying ? 'Applying...' : currentReview.dialogSpec.confirmLabel}
+          description="Review this suggestion before anything changes in Ship."
           onCancel={dismissActionReview}
           onConfirm={() => applyReviewedAction(reviewValues)}
           open={Boolean(currentReview)}
           title={currentReview.dialogSpec.title}
         >
-          <div className="space-y-3">
+          <div className="space-y-4">
             {currentReview.validationError && (
-              <p className="text-sm text-red-600">{currentReview.validationError}</p>
+              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {currentReview.validationError}
+              </div>
             )}
-            {reviewFields.map((field) =>
-              renderDialogField(
-                field,
-                reviewValues[field.name] ?? null,
-                (name, value) => {
-                  setReviewValues((prev) => ({
-                    ...prev,
-                    [name]: value,
-                  }))
-                },
-              )
+
+            <section className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-700">
+                What FleetGraph noticed
+              </p>
+              <p className="mt-2 text-sm leading-6 text-amber-950">
+                {currentReview.dialogSpec.summary}
+              </p>
+            </section>
+
+            {reviewFields.length > 0 && (
+              <section className="space-y-3">
+                {reviewFields.map((field) =>
+                  renderDialogField(
+                    field,
+                    reviewValues[field.name] ?? null,
+                    (name, value) => {
+                      setReviewValues((prev) => ({
+                        ...prev,
+                        [name]: value,
+                      }))
+                    },
+                  )
+                )}
+              </section>
             )}
-            {currentReview.dialogSpec.evidence.length > 0 && (
-              <ul className="list-disc space-y-1 pl-4 text-sm text-gray-700">
-                {currentReview.dialogSpec.evidence.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
+
+            {reviewEvidence.facts.length > 0 && (
+              <section className="space-y-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">
+                  Key facts
+                </p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {reviewEvidence.facts.map((fact) => (
+                    <div
+                      className="rounded-2xl border border-border bg-background px-3 py-3 shadow-sm"
+                      key={`${fact.label}:${fact.value}`}
+                    >
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">
+                        {fact.label}
+                      </p>
+                      <p className="mt-1 text-sm font-medium text-foreground">
+                        {fact.value}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {reviewEvidence.notes.length > 0 && (
+              <section className="space-y-2">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">
+                  Why this was suggested
+                </p>
+                <ul className="list-disc space-y-1 pl-5 text-sm leading-6 text-foreground">
+                  {reviewEvidence.notes.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </section>
             )}
           </div>
         </ConfirmDialog>

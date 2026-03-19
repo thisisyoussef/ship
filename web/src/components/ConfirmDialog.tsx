@@ -3,9 +3,11 @@ import * as Dialog from '@radix-ui/react-dialog';
 interface ConfirmDialogProps {
   open: boolean;
   title: string;
-  description: string;
+  description?: string;
   confirmLabel?: string;
   cancelLabel?: string;
+  cancelDisabled?: boolean;
+  confirmDisabled?: boolean;
   variant?: 'default' | 'destructive';
   onConfirm: () => void;
   onCancel: () => void;
@@ -18,6 +20,8 @@ export function ConfirmDialog({
   description,
   confirmLabel = 'Confirm',
   cancelLabel = 'Cancel',
+  cancelDisabled = false,
+  confirmDisabled = false,
   variant = 'default',
   onConfirm,
   onCancel,
@@ -30,18 +34,21 @@ export function ConfirmDialog({
   return (
     <Dialog.Root open={open} onOpenChange={(isOpen) => !isOpen && onCancel()}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-[100] bg-black/60" />
+        <Dialog.Overlay className="fixed inset-0 z-[100] bg-slate-950/60 backdrop-blur-sm" />
         <Dialog.Content
-          className="fixed left-1/2 top-1/2 z-[101] w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border border-border bg-background p-6 shadow-xl focus:outline-none"
+          aria-describedby={description ? undefined : undefined}
+          className="fixed left-1/2 top-1/2 z-[101] w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border/80 bg-background p-6 shadow-2xl focus:outline-none"
           onEscapeKeyDown={onCancel}
         >
-          <Dialog.Title className="text-lg font-semibold text-foreground">
+          <Dialog.Title className="text-xl font-semibold tracking-tight text-foreground">
             {title}
           </Dialog.Title>
 
-          <Dialog.Description className="mt-2 text-sm text-muted">
-            {description}
-          </Dialog.Description>
+          {description && (
+            <Dialog.Description className="mt-3 text-sm leading-6 text-muted">
+              {description}
+            </Dialog.Description>
+          )}
 
           {children && (
             <div className="mt-4">
@@ -49,16 +56,20 @@ export function ConfirmDialog({
             </div>
           )}
 
-          <div className="mt-6 flex justify-end gap-3">
+          <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
             <button
+              disabled={cancelDisabled}
               onClick={onCancel}
-              className="rounded-md bg-border px-4 py-2 text-sm font-medium text-foreground hover:bg-border/80 focus:outline-none focus:ring-2 focus:ring-border focus:ring-offset-2 focus:ring-offset-background"
+              type="button"
+              className="rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-border/40 focus:outline-none focus:ring-2 focus:ring-border focus:ring-offset-2 focus:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
             >
               {cancelLabel}
             </button>
             <button
+              disabled={confirmDisabled}
               onClick={onConfirm}
-              className={`rounded-md px-4 py-2 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background ${confirmButtonClass}`}
+              type="button"
+              className={`rounded-xl px-4 py-2.5 text-sm font-medium text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 ${confirmButtonClass}`}
             >
               {confirmLabel}
             </button>

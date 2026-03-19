@@ -118,7 +118,10 @@ describe('FleetGraph finding action service', () => {
     }
 
     const fetchMock = vi.fn(async () => ({
-      json: async () => ({ ok: true }),
+      json: async () => ({
+        snapshot_issue_count: 3,
+        status: 'active',
+      }),
       ok: true,
       status: 200,
     }))
@@ -163,11 +166,94 @@ describe('FleetGraph finding action service', () => {
     expect(actionStore.finishExecution).toHaveBeenCalledWith(expect.objectContaining({
       actionType: 'start_week',
       findingId: finding.id,
+      message: 'The week is now active in Ship with 3 scoped issues ready to track.',
       resultStatusCode: 200,
       status: 'applied',
       workspaceId: 'workspace-1',
     }))
     expect(findingStore.resolveFinding).toHaveBeenCalledWith(finding.findingKey)
     expect(result.actionExecution?.status).toBe('applied')
+  })
+
+  it('does not resolve the finding when Ship returns 200 but the week stays planning', async () => {
+    const finding = makeFinding()
+    const executionRecord = {
+      actionType: 'start_week' as const,
+      attemptCount: 1,
+      endpoint: {
+        method: 'POST' as const,
+        path: '/api/weeks/11111111-1111-4111-8111-111111111111/start',
+      },
+      findingId: finding.id,
+      message: 'Ship responded, but this week is still marked Planning. Nothing changed in Ship.',
+      resultStatusCode: 200,
+      status: 'failed' as const,
+      updatedAt: new Date('2026-03-17T12:05:00.000Z'),
+    }
+    const actionStore = {
+      beginExecution: vi.fn(async () => ({
+        execution: {
+          ...executionRecord,
+          message: 'Execution pending',
+          status: 'pending' as const,
+        },
+        shouldExecute: true,
+      })),
+      beginStartWeekExecution: vi.fn(),
+      finishExecution: vi.fn(async () => executionRecord),
+      finishStartWeekExecution: vi.fn(),
+      listExecutionsForFindings: vi.fn(async () => [executionRecord]),
+    }
+    const findingStore = {
+      dismissFinding: vi.fn(),
+      getFindingById: vi.fn(async () => finding),
+      getFindingByKey: vi.fn(),
+      listActiveFindings: vi.fn(async () => []),
+      resolveFinding: vi.fn(),
+      snoozeFinding: vi.fn(),
+      upsertFinding: vi.fn(),
+    }
+
+    const fetchMock = vi.fn(async () => ({
+      json: async () => ({ status: 'planning' }),
+      ok: true,
+      status: 200,
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const service = createFleetGraphFindingActionService({
+      actionStore: actionStore as never,
+      findingStore: findingStore as never,
+    })
+
+    const request = {
+      get(name: string) {
+        if (name === 'host') {
+          return 'localhost:3000'
+        }
+        return undefined
+      },
+      header() {
+        return undefined
+      },
+      protocol: 'http',
+    } as const
+
+    const result = await service.applyStartWeekFinding({
+      findingId: finding.id,
+      request: request as never,
+      workspaceId: 'workspace-1',
+    })
+
+    expect(actionStore.finishExecution).toHaveBeenCalledWith(expect.objectContaining({
+      message: 'Ship responded, but this week is still marked Planning. Nothing changed in Ship.',
+      resultStatusCode: 200,
+      status: 'failed',
+    }))
+    expect(findingStore.resolveFinding).not.toHaveBeenCalled()
+    expect(result.actionExecution?.message).toBe(
+      'Ship responded, but this week is still marked Planning. Nothing changed in Ship.'
+    )
+    expect(result.actionExecution?.status).toBe('failed')
   })
 })

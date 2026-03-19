@@ -7,6 +7,9 @@ import {
   buildShipRestRequestContext,
 } from './executor.js'
 import {
+  buildFleetGraphActionSuccessMessage,
+} from './action-outcome.js'
+import {
   ActionExecutionService,
   type ActionExecutionContext,
 } from './execution-service.js'
@@ -245,7 +248,9 @@ export function createFleetGraphFindingActionService(
             },
             findingId: finding.id,
             message: firstResult?.status === 'success'
-              ? review.dialogSpec.summary
+              ? buildFleetGraphActionSuccessMessage(actionDraft.actionType, {
+                responseBody: firstResult.body,
+              })
               : (firstResult?.error ?? 'FleetGraph action failed.'),
             resultStatusCode: firstResult?.statusCode,
             status: firstResult?.status === 'success' ? 'applied' : 'failed',

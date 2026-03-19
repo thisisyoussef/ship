@@ -119,6 +119,7 @@ export function FleetGraphFab({
                 context={context}
                 currentDocumentId={documentId}
                 loading={findings.isLoading}
+                onOpenAnalyze={() => setActiveTab('analyze')}
               />
             )}
             {activeTab === 'analyze' && (

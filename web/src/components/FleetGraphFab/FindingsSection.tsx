@@ -18,6 +18,7 @@ import {
   buildSnoozeNotice,
   formatFleetGraphTimestamp,
   renderExecutionLabel,
+  renderExecutionTone,
   renderFindingStatus,
 } from '@/lib/fleetgraph-findings-presenter'
 
@@ -25,9 +26,16 @@ interface FindingsSectionProps {
   context?: DocumentContext
   currentDocumentId: string
   loading?: boolean
+  onOpenAnalyze: () => void
 }
 
 interface LocalNotice {
+  message: string
+  tone: 'error' | 'info' | 'success'
+}
+
+interface ApplyReceipt {
+  findingKey: string
   message: string
   tone: 'info' | 'success'
 }
@@ -41,9 +49,15 @@ interface ReviewState {
 const REVIEW_GESTURE_GUARD_MS = 450
 
 function noticeToneClassName(tone: LocalNotice['tone']) {
-  return tone === 'info'
-    ? 'border-sky-200 bg-sky-50 text-sky-900'
-    : 'border-emerald-200 bg-emerald-50 text-emerald-800'
+  if (tone === 'info') {
+    return 'border-sky-200 bg-sky-50 text-sky-900'
+  }
+
+  if (tone === 'error') {
+    return 'border-red-200 bg-red-50 text-red-800'
+  }
+
+  return 'border-emerald-200 bg-emerald-50 text-emerald-800'
 }
 
 function FindingCard({
@@ -68,6 +82,8 @@ function FindingCard({
   onCancelReview: () => void
 }) {
   const executionLabel = finding.actionExecution ? renderExecutionLabel(finding) : null
+  const executionTone = finding.actionExecution ? renderExecutionTone(finding) : null
+  const findingEvidence = partitionFleetGraphReviewEvidence(finding.evidence)
   const reviewEvidence = partitionFleetGraphReviewEvidence(review?.evidence ?? [])
   const reviewButtonLabel = finding.findingType === 'week_start_drift'
     ? 'Review week start'
@@ -104,17 +120,36 @@ function FindingCard({
       {finding.evidence.length > 0 && (
         <div className="space-y-1">
           <p className="text-xs font-medium text-gray-700">Why this matters:</p>
-          <ul className="space-y-1">
-            {finding.evidence.slice(0, 2).map((item, idx) => (
-              <li key={idx} className="text-xs text-gray-600 flex items-start gap-1.5">
-                <span className="mt-1.5 h-1.5 w-1.5 flex-none rounded-full bg-gray-400" />
-                {item}
-              </li>
-            ))}
-            {finding.evidence.length > 2 && (
-              <li className="text-xs text-gray-500">+{finding.evidence.length - 2} more</li>
-            )}
-          </ul>
+          {findingEvidence.facts.length > 0 && (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {findingEvidence.facts.map((fact) => (
+                <div
+                  className="rounded-lg border border-gray-200 bg-white/80 px-3 py-2"
+                  key={`${fact.label}:${fact.value}`}
+                >
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">
+                    {fact.label}
+                  </p>
+                  <p className="mt-1 text-xs font-medium text-gray-900">
+                    {fact.value}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+          {findingEvidence.notes.length > 0 && (
+            <ul className="space-y-1">
+              {findingEvidence.notes.slice(0, 2).map((item, idx) => (
+                <li key={`${item}-${idx}`} className="text-xs text-gray-600 flex items-start gap-1.5">
+                  <span className="mt-1.5 h-1.5 w-1.5 flex-none rounded-full bg-gray-400" />
+                  {item}
+                </li>
+              ))}
+              {findingEvidence.notes.length > 2 && (
+                <li className="text-xs text-gray-500">+{findingEvidence.notes.length - 2} more</li>
+              )}
+            </ul>
+          )}
         </div>
       )}
 
@@ -122,7 +157,7 @@ function FindingCard({
       {finding.recommendedAction && (
         <div className="border-t border-gray-200 pt-2 space-y-2">
           {executionLabel && (
-            <span className="inline-block rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-amber-800">
+            <span className={`inline-block rounded-full border px-2 py-0.5 text-xs font-semibold uppercase tracking-wider ${executionTone}`}>
               {executionLabel}
             </span>
           )}
@@ -244,6 +279,7 @@ export function FindingsSection({
   context,
   currentDocumentId,
   loading = false,
+  onOpenAnalyze,
 }: FindingsSectionProps) {
   const documentIds = buildFleetGraphFindingDocumentIds(currentDocumentId, context)
   const findings = useFleetGraphFindings(documentIds)
@@ -252,8 +288,13 @@ export function FindingsSection({
     openedAt: null,
     review: null,
   })
+  const [applyReceipt, setApplyReceipt] = useState<ApplyReceipt | null>(null)
+  const [hiddenFindingKeys, setHiddenFindingKeys] = useState<string[]>([])
   const [localNotice, setLocalNotice] = useState<LocalNotice | null>(null)
   const snoozeRefreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const visibleFindings = findings.findings.filter(
+    (finding) => !hiddenFindingKeys.includes(finding.findingKey)
+  )
 
   useEffect(() => () => {
     if (snoozeRefreshTimeoutRef.current !== null) {
@@ -279,6 +320,7 @@ export function FindingsSection({
   }
 
   async function handleDismiss(findingId: string) {
+    setApplyReceipt(null)
     setLocalNotice(null)
     findings.resetActionState()
 
@@ -299,6 +341,7 @@ export function FindingsSection({
   }
 
   async function handleSnooze(findingId: string, preset: '10s' | '4h') {
+    setApplyReceipt(null)
     setLocalNotice(null)
     findings.resetActionState()
 
@@ -333,17 +376,48 @@ export function FindingsSection({
     }
 
     setLocalNotice(null)
+    setApplyReceipt(null)
     findings.resetActionState()
 
     try {
       const response = await findings.applyFinding(findingId)
       setReviewState({ findingId: null, openedAt: null, review: null })
 
-      const message = buildApplyNotice(response.finding)
-      if (message) {
+      const notice = buildApplyNotice(response.finding)
+      if (!notice) {
+        return
+      }
+
+      if (notice.tone === 'error') {
         setLocalNotice({
-          message,
-          tone: 'success',
+          message: notice.message,
+          tone: 'error',
+        })
+        return
+      }
+
+      setHiddenFindingKeys((current) => current.includes(response.finding.findingKey)
+        ? current
+        : [...current, response.finding.findingKey])
+      setApplyReceipt({
+        findingKey: response.finding.findingKey,
+        message: notice.message,
+        tone: notice.tone,
+      })
+
+      const refetchResult = await findings.refetchFindings()
+      const stillActive = refetchResult.data?.findings.some((finding) =>
+        finding.findingKey === response.finding.findingKey
+      )
+
+      if (stillActive) {
+        setApplyReceipt(null)
+        setHiddenFindingKeys((current) =>
+          current.filter((findingKey) => findingKey !== response.finding.findingKey)
+        )
+        setLocalNotice({
+          message: 'FleetGraph could not confirm that Ship changed. This finding is still active.',
+          tone: 'error',
         })
       }
     } catch (error) {
@@ -352,6 +426,7 @@ export function FindingsSection({
   }
 
   async function handleReview(findingId: string) {
+    setApplyReceipt(null)
     setLocalNotice(null)
     findings.resetActionState()
 
@@ -388,6 +463,26 @@ export function FindingsSection({
         </p>
       )}
 
+      {applyReceipt && (
+        <div className={`rounded-lg border px-3 py-3 ${noticeToneClassName(applyReceipt.tone)}`}>
+          <p className="text-sm font-medium">{applyReceipt.message}</p>
+          <p className="mt-1 text-xs opacity-80">
+            FleetGraph retired this finding and can keep going from here.
+          </p>
+          <button
+            className="mt-3 rounded border border-current/20 bg-white/70 px-3 py-1.5 text-xs font-semibold hover:bg-white"
+            onClick={() => {
+              setApplyReceipt(null)
+              setLocalNotice(null)
+              onOpenAnalyze()
+            }}
+            type="button"
+          >
+            Analyze what's next
+          </button>
+        </div>
+      )}
+
       {/* Loading state */}
       {(findings.isLoading || loading) && (
         <div className="flex items-center gap-2 text-xs text-gray-500">
@@ -397,7 +492,7 @@ export function FindingsSection({
       )}
 
       {/* Empty state */}
-      {!findings.isLoading && !loading && findings.findings.length === 0 && (
+      {!findings.isLoading && !loading && visibleFindings.length === 0 && (
         <div className="text-center py-6">
           <div className="text-gray-400 mb-2">
             <svg className="w-8 h-8 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -410,9 +505,9 @@ export function FindingsSection({
       )}
 
       {/* Findings list */}
-      {findings.findings.length > 0 && (
+      {visibleFindings.length > 0 && (
         <div className="space-y-2">
-          {findings.findings.map((finding) => (
+          {visibleFindings.map((finding) => (
             <FindingCard
               key={finding.id}
               finding={finding}

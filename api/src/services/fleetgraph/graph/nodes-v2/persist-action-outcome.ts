@@ -18,9 +18,7 @@
 
 import type { ResponsePayload, TraceMetadata } from '../types-v2.js'
 import type { FleetGraphStateV2, FleetGraphStateV2Update } from '../state-v2.js'
-import {
-  isJsonObject,
-} from '../../actions/executor.js'
+import { buildFleetGraphActionSuccessMessage } from '../../actions/action-outcome.js'
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Dependencies
@@ -48,19 +46,11 @@ function buildApprovedActionText(state: FleetGraphStateV2) {
   }
 
   switch (approval.actionDraft.actionType) {
-    case 'start_week': {
-      const title = approval.reasonedFinding.targetEntity.name
-      const body = isJsonObject(state.actionResult?.responseBody)
-        ? state.actionResult.responseBody
-        : undefined
-      const count = Number(body?.snapshot_issue_count ?? 0)
-      const scopedIssueText = Number.isFinite(count) && count > 0
-        ? ` with ${count} scoped issue${count === 1 ? '' : 's'} ready to track`
-        : ''
-      return title
-        ? `Week "${title}" is now active in Ship${scopedIssueText}.`
-        : `The week is now active in Ship${scopedIssueText}.`
-    }
+    case 'start_week':
+      return buildFleetGraphActionSuccessMessage('start_week', {
+        responseBody: state.actionResult?.responseBody,
+        targetName: approval.reasonedFinding.targetEntity.name,
+      })
     default:
       return `FleetGraph applied ${approval.actionDraft.actionType}.`
   }

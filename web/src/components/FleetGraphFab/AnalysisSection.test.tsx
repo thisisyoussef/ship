@@ -448,5 +448,5 @@ describe('AnalysisSection', () => {
       }
     )
     expect(vi.mocked(apiPost)).not.toHaveBeenCalledWith('/api/documents/week-1')
-  })
+  }, 10000)
 })

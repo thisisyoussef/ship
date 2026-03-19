@@ -213,12 +213,12 @@ function trimUrl(value?: string) {
 /**
  * Checks if FleetGraph V2 (three-lane architecture) is enabled.
  *
- * V2 can be enabled with gradual rollout using FLEETGRAPH_V2_ROLLOUT_PERCENT.
- * When rollout is configured, a random sample determines eligibility.
+ * V2 is now the DEFAULT. To use V1, set FLEETGRAPH_V2_ENABLED=false.
+ * Rollout percentage can still be used for gradual rollback if needed.
  *
  * @param env - Environment variables (defaults to process.env)
  * @param requestId - Optional request/session ID for deterministic rollout
- * @returns true if V2 should be used for this request
+ * @returns true if V2 should be used for this request (default: true)
  */
 export function isFleetGraphV2Enabled(
   env: FleetGraphDeploymentEnv | NodeJS.ProcessEnv = process.env,
@@ -226,29 +226,28 @@ export function isFleetGraphV2Enabled(
 ): boolean {
   const deploymentEnv = env as FleetGraphDeploymentEnv
 
-  // In non-production, check explicit flag (defaults to false)
-  if ((deploymentEnv.NODE_ENV || '').trim().toLowerCase() !== 'production') {
-    return isTruthy(deploymentEnv.FLEETGRAPH_V2_ENABLED)
+  // Explicit disable takes precedence
+  if (deploymentEnv.FLEETGRAPH_V2_ENABLED !== undefined) {
+    if (!isTruthy(deploymentEnv.FLEETGRAPH_V2_ENABLED)) {
+      return false // Explicitly disabled
+    }
   }
 
-  // In production, must be explicitly enabled
-  if (!isTruthy(deploymentEnv.FLEETGRAPH_V2_ENABLED)) {
-    return false
-  }
-
-  // Check rollout percentage
+  // Check rollout percentage for gradual rollout/rollback
   const rolloutPercent = parseRolloutPercent(deploymentEnv.FLEETGRAPH_V2_ROLLOUT_PERCENT)
-  if (rolloutPercent >= 100) {
-    return true // 100% rollout
+
+  // If rollout is explicitly set to less than 100, use rollout logic
+  if (deploymentEnv.FLEETGRAPH_V2_ROLLOUT_PERCENT !== undefined && rolloutPercent < 100) {
+    if (rolloutPercent <= 0) {
+      return false // 0% rollout (effectively disabled)
+    }
+    // Deterministic rollout based on request ID or random
+    const hash = requestId ? simpleHash(requestId) : Math.random() * 100
+    return hash < rolloutPercent
   }
 
-  if (rolloutPercent <= 0) {
-    return false // 0% rollout (effectively disabled)
-  }
-
-  // Deterministic rollout based on request ID or random
-  const hash = requestId ? simpleHash(requestId) : Math.random() * 100
-  return hash < rolloutPercent
+  // Default: V2 is enabled
+  return true
 }
 
 /**

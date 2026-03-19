@@ -220,6 +220,9 @@ function computeCompositeScore(dimensions: ScoreDimensions): number {
 /**
  * Scores candidate findings and determines the branch.
  *
+ * Uses a fingerprint-based cache to ensure consistent scores within a thread.
+ * Once a finding is scored, subsequent appearances get the cached score.
+ *
  * @param state - Current graph state with candidate findings
  * @returns State update with scored findings and branch decision
  */
@@ -228,9 +231,14 @@ export function scoreCandidates(
 ): FleetGraphStateV2Update {
   const scoredFindings: ScoredFinding[] = []
   const suppressedSet = new Set(state.suppressedFingerprints)
+  const existingCache = state.scoreCache ?? {}
+  const updatedCache: Record<string, number> = { ...existingCache }
 
   for (const candidate of state.candidateFindings) {
     const suppressed = suppressedSet.has(candidate.fingerprint)
+
+    // Check cache first for consistent scoring within a thread
+    const cachedScore = existingCache[candidate.fingerprint]
 
     const dimensions: ScoreDimensions = {
       urgency: scoreUrgency(candidate),
@@ -239,7 +247,15 @@ export function scoreCandidates(
       confidence: scoreConfidence(candidate, state.partialData),
     }
 
-    const compositeScore = computeCompositeScore(dimensions)
+    // Use cached score if available, otherwise compute and cache
+    const compositeScore = cachedScore !== undefined
+      ? cachedScore
+      : computeCompositeScore(dimensions)
+
+    // Store in cache for future invocations in this thread
+    if (cachedScore === undefined) {
+      updatedCache[candidate.fingerprint] = compositeScore
+    }
 
     scoredFindings.push({
       ...candidate,
@@ -280,6 +296,7 @@ export function scoreCandidates(
 
   return {
     scoredFindings,
+    scoreCache: updatedCache,
     branch,
     path: ['score_candidates'],
   }

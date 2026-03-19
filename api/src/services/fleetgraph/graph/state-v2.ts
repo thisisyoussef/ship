@@ -223,6 +223,9 @@ export const FleetGraphStateV2Annotation = Annotation.Root({
   /** Post-score findings with composite scores */
   scoredFindings: replaceValue<ScoredFinding[]>([]),
 
+  /** Cache of scores by fingerprint (persists across thread invocations) */
+  scoreCache: replaceValue<Record<string, number>>({}),
+
   // ════════════════════════════════════════════════════════════════════════════
   // Branch decision
   // ════════════════════════════════════════════════════════════════════════════

@@ -51,6 +51,17 @@ export interface FetchResult<T> {
   error: FetchError | null
 }
 
+const TEAM_PEOPLE_PATH = '/api/team/people'
+
+type RawShipPeopleResponse =
+  | Array<ShipPerson & { user_id?: string | null }>
+  | {
+    documents?: Array<ShipPerson & { user_id?: string | null }>
+    people?: Array<ShipPerson & { user_id?: string | null }>
+  }
+  | null
+  | undefined
+
 // ──────────────────────────────────────────────────────────────────────────────
 // Fetch Helpers
 // ──────────────────────────────────────────────────────────────────────────────
@@ -89,6 +100,55 @@ function buildUrl(config: ParallelFetchConfig, path: string): string {
     throw new Error('FleetGraph requires baseUrl or requestContext.baseUrl.')
   }
   return `${baseUrl}${path}`
+}
+
+function normalizePeople(rawData: RawShipPeopleResponse): ShipPerson[] {
+  const rawList = Array.isArray(rawData)
+    ? rawData
+    : (rawData?.documents ?? rawData?.people ?? [])
+
+  const people = new Map<string, ShipPerson>()
+
+  for (const rawPerson of rawList) {
+    const personDocumentId = typeof rawPerson?.id === 'string' ? rawPerson.id : ''
+    const userId = typeof rawPerson?.user_id === 'string' && rawPerson.user_id.trim().length > 0
+      ? rawPerson.user_id
+      : undefined
+    const canonicalId = userId ?? personDocumentId
+    const name = typeof rawPerson?.name === 'string' ? rawPerson.name : ''
+
+    if (!canonicalId || !name) {
+      continue
+    }
+
+    const rawProperties = rawPerson.properties && typeof rawPerson.properties === 'object'
+      ? rawPerson.properties
+      : undefined
+    const properties = {
+      ...(rawProperties ?? {}),
+      ...(personDocumentId && personDocumentId !== canonicalId ? { personDocumentId } : {}),
+    }
+
+    people.set(canonicalId, {
+      id: canonicalId,
+      name,
+      email: typeof rawPerson.email === 'string' ? rawPerson.email : undefined,
+      role: typeof rawPerson.role === 'string' ? rawPerson.role : undefined,
+      reportsTo: typeof rawPerson.reportsTo === 'string' ? rawPerson.reportsTo : undefined,
+      properties: Object.keys(properties).length > 0 ? properties : undefined,
+    })
+  }
+
+  return Array.from(people.values())
+}
+
+function matchesPersonId(person: ShipPerson, targetId: string): boolean {
+  if (person.id === targetId) {
+    return true
+  }
+
+  return typeof person.properties?.personDocumentId === 'string'
+    && person.properties.personDocumentId === targetId
 }
 
 async function fetchWithRetry<T>(
@@ -196,7 +256,7 @@ function getTodayDateString(): string {
  * - GET /api/projects
  * - GET /api/weeks
  * - GET /api/issues (via documents endpoint)
- * - GET /api/people
+ * - GET /api/team/people
  * - GET /api/accountability/action-items
  * - GET /api/documents?document_type=standup (filtered to today)
  *
@@ -228,11 +288,11 @@ export async function fetchWorkspaceSnapshot(
         config,
         'GET /api/issues'
       ),
-      fetchWithRetry<{ documents?: ShipPerson[]; people?: ShipPerson[] } | ShipPerson[]>(
-        buildUrl(config, '/api/people'),
+      fetchWithRetry<RawShipPeopleResponse>(
+        buildUrl(config, TEAM_PEOPLE_PATH),
         headers,
         config,
-        'GET /api/people'
+        'GET /api/team/people'
       ),
       fetchWithRetry<{ items?: ShipAccountabilityItem[] } | ShipAccountabilityItem[]>(
         buildUrl(config, '/api/accountability/action-items'),
@@ -273,10 +333,7 @@ export async function fetchWorkspaceSnapshot(
     : (issuesRaw?.documents ?? [])
 
   // Parse people
-  const peopleRaw = peopleResult.data
-  const people: ShipPerson[] = Array.isArray(peopleRaw)
-    ? peopleRaw
-    : (peopleRaw?.documents ?? peopleRaw?.people ?? [])
+  const people = normalizePeople(peopleResult.data)
 
   // Parse accountability
   const accountabilityRaw = accountabilityResult.data
@@ -329,7 +386,7 @@ export async function fetchWorkspaceSnapshot(
  * - GET /api/issues/:id/iterations
  * - GET /api/issues/:id/children
  * - GET /api/documents/:id/comments
- * - GET /api/people (if not cached)
+ * - GET /api/team/people (if not cached)
  */
 export async function fetchIssueCluster(
   issueId: string,
@@ -374,11 +431,11 @@ export async function fetchIssueCluster(
 
   if (!cachedPeople) {
     calls.push(
-      fetchWithRetry<{ documents?: ShipPerson[]; people?: ShipPerson[] } | ShipPerson[]>(
-        buildUrl(config, '/api/people'),
+      fetchWithRetry<RawShipPeopleResponse>(
+        buildUrl(config, TEAM_PEOPLE_PATH),
         headers,
         config,
-        'GET /api/people'
+        'GET /api/team/people'
       )
     )
   }
@@ -405,10 +462,7 @@ export async function fetchIssueCluster(
 
   let relatedPeople: ShipPerson[] = cachedPeople ?? []
   if (!cachedPeople && results[5]) {
-    const peopleRaw = (results[5] as FetchResult<{ documents?: ShipPerson[]; people?: ShipPerson[] } | ShipPerson[]>).data
-    relatedPeople = Array.isArray(peopleRaw)
-      ? peopleRaw
-      : (peopleRaw?.documents ?? peopleRaw?.people ?? [])
+    relatedPeople = normalizePeople((results[5] as FetchResult<RawShipPeopleResponse>).data)
   }
 
   return {
@@ -437,7 +491,7 @@ export async function fetchIssueCluster(
  * - GET /api/weeks/:id/standups
  * - GET /api/weeks/:id/review
  * - GET /api/weeks/:id/scope-changes
- * - GET /api/people (if not cached)
+ * - GET /api/team/people (if not cached)
  */
 export async function fetchWeekCluster(
   weekId: string,
@@ -482,11 +536,11 @@ export async function fetchWeekCluster(
 
   if (!cachedPeople) {
     calls.push(
-      fetchWithRetry<{ documents?: ShipPerson[]; people?: ShipPerson[] } | ShipPerson[]>(
-        buildUrl(config, '/api/people'),
+      fetchWithRetry<RawShipPeopleResponse>(
+        buildUrl(config, TEAM_PEOPLE_PATH),
         headers,
         config,
-        'GET /api/people'
+        'GET /api/team/people'
       )
     )
   }
@@ -512,10 +566,7 @@ export async function fetchWeekCluster(
 
   let relatedPeople: ShipPerson[] = cachedPeople ?? []
   if (!cachedPeople && results[5]) {
-    const peopleRaw = (results[5] as FetchResult<{ documents?: ShipPerson[]; people?: ShipPerson[] } | ShipPerson[]>).data
-    relatedPeople = Array.isArray(peopleRaw)
-      ? peopleRaw
-      : (peopleRaw?.documents ?? peopleRaw?.people ?? [])
+    relatedPeople = normalizePeople((results[5] as FetchResult<RawShipPeopleResponse>).data)
   }
 
   return {
@@ -544,7 +595,7 @@ export async function fetchWeekCluster(
  * - GET /api/projects/:id/weeks
  * - GET /api/projects/:id/retro
  * - GET /api/activity/project/:id
- * - GET /api/people (if not cached)
+ * - GET /api/team/people (if not cached)
  */
 export async function fetchProjectCluster(
   projectId: string,
@@ -589,11 +640,11 @@ export async function fetchProjectCluster(
 
   if (!cachedPeople) {
     calls.push(
-      fetchWithRetry<{ documents?: ShipPerson[]; people?: ShipPerson[] } | ShipPerson[]>(
-        buildUrl(config, '/api/people'),
+      fetchWithRetry<RawShipPeopleResponse>(
+        buildUrl(config, TEAM_PEOPLE_PATH),
         headers,
         config,
-        'GET /api/people'
+        'GET /api/team/people'
       )
     )
   }
@@ -623,10 +674,7 @@ export async function fetchProjectCluster(
 
   let relatedPeople: ShipPerson[] = cachedPeople ?? []
   if (!cachedPeople && results[5]) {
-    const peopleRaw = (results[5] as FetchResult<{ documents?: ShipPerson[]; people?: ShipPerson[] } | ShipPerson[]>).data
-    relatedPeople = Array.isArray(peopleRaw)
-      ? peopleRaw
-      : (peopleRaw?.documents ?? peopleRaw?.people ?? [])
+    relatedPeople = normalizePeople((results[5] as FetchResult<RawShipPeopleResponse>).data)
   }
 
   return {
@@ -707,19 +755,16 @@ export async function fetchProgramCluster(
   // Fetch people if not cached
   let relatedPeople: ShipPerson[] = cachedPeople ?? []
   if (!cachedPeople) {
-    const peopleResult = await fetchWithRetry<{ documents?: ShipPerson[]; people?: ShipPerson[] } | ShipPerson[]>(
-      buildUrl(config, '/api/people'),
+    const peopleResult = await fetchWithRetry<RawShipPeopleResponse>(
+      buildUrl(config, TEAM_PEOPLE_PATH),
       headers,
       config,
-      'GET /api/people'
+      'GET /api/team/people'
     )
 
     if (peopleResult.error) errors.push(peopleResult.error)
 
-    const peopleRaw = peopleResult.data
-    relatedPeople = Array.isArray(peopleRaw)
-      ? peopleRaw
-      : (peopleRaw?.documents ?? peopleRaw?.people ?? [])
+    relatedPeople = normalizePeople(peopleResult.data)
   }
 
   return {
@@ -749,7 +794,7 @@ export interface ActorAndRolesResult {
  *
  * Endpoints:
  * - GET /api/workspaces/current
- * - GET /api/people
+ * - GET /api/team/people
  */
 export async function fetchActorAndRoles(
   actorId: string,
@@ -765,11 +810,11 @@ export async function fetchActorAndRoles(
       config,
       'GET /api/workspaces/current'
     ),
-    fetchWithRetry<{ documents?: ShipPerson[]; people?: ShipPerson[] } | ShipPerson[]>(
-      buildUrl(config, '/api/people'),
+    fetchWithRetry<RawShipPeopleResponse>(
+      buildUrl(config, TEAM_PEOPLE_PATH),
       headers,
       config,
-      'GET /api/people'
+      'GET /api/team/people'
     ),
   ])
 
@@ -778,12 +823,9 @@ export async function fetchActorAndRoles(
 
   const isAdmin = workspaceResult.data?.user?.is_admin ?? false
 
-  const peopleRaw = peopleResult.data
-  const people: ShipPerson[] = Array.isArray(peopleRaw)
-    ? peopleRaw
-    : (peopleRaw?.documents ?? peopleRaw?.people ?? [])
+  const people = normalizePeople(peopleResult.data)
 
-  const actorPerson = people.find((p) => p.id === actorId) ?? null
+  const actorPerson = people.find((p) => matchesPersonId(p, actorId)) ?? null
 
   return {
     actorPerson,

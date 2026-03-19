@@ -5,12 +5,13 @@
  * Type: Parallel REST fan-out
  * LLM: No
  *
- * Fetches a complete workspace snapshot with 5 parallel REST calls:
+ * Fetches a complete workspace snapshot with 6 parallel REST calls:
  * - GET /api/projects
  * - GET /api/weeks
  * - GET /api/issues
- * - GET /api/people
+ * - GET /api/team/people
  * - GET /api/accountability/action-items
+ * - GET /api/documents?document_type=standup
  *
  * See docs/specs/fleetgraph/THREE_LANE_ARCHITECTURE.md for full specification.
  */

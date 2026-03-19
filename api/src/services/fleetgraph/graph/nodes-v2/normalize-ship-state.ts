@@ -29,6 +29,7 @@ import type {
   ShipWeek,
   TemporalEnrichment,
 } from '../types-v2.js'
+import { detectSuspectEntities } from '../suspect-detectors.js'
 import type { FleetGraphStateV2, FleetGraphStateV2Update } from '../state-v2.js'
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -343,8 +344,18 @@ export function normalizeShipState(
     resolvedPersons: resolvePersons(uniquePeople),
   }
 
+  const suspectEntities = state.suspectEntities.length > 0
+    ? state.suspectEntities
+    : detectSuspectEntities({
+      issues: uniqueIssues,
+      people: uniquePeople,
+      projects: uniqueProjects,
+      weeks: uniqueWeeks,
+    })
+
   return {
     normalizedContext,
+    suspectEntities,
     path: ['normalize_ship_state'],
   }
 }

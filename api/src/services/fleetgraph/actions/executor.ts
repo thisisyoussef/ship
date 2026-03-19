@@ -51,9 +51,15 @@ export function isAlreadyActiveResult(result: ShipRestActionResult) {
 export function resolveShipRestBaseUrl(
   request: Pick<Request, 'get' | 'protocol'>
 ) {
+  const configuredBaseUrl = process.env.SHIP_API_BASE_URL?.trim()
+    || process.env.APP_BASE_URL?.trim()
+  if (configuredBaseUrl) {
+    return configuredBaseUrl.replace(/\/+$/, '')
+  }
+
   const forwardedProto = request.get('x-forwarded-proto')?.split(',')[0]?.trim()
-  const forwardedHost = request.get('x-forwarded-host')?.split(',')[0]?.trim()
-  const host = forwardedHost ?? request.get('host')
+  const host = request.get('host')?.split(',')[0]?.trim()
+    ?? request.get('x-forwarded-host')?.split(',')[0]?.trim()
   if (!host) {
     throw new Error('Unable to resolve the Ship REST base URL for FleetGraph.')
   }

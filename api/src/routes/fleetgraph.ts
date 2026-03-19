@@ -289,15 +289,15 @@ export function createFleetGraphRouter(
       return deps.runtimeV2
     }
 
-    const baseUrl = process.env.SHIP_API_BASE_URL || `${req.protocol}://${req.get('host')}`
+    const requestContext = buildShipRestRequestContext(req)
     const token = process.env.FLEETGRAPH_SERVICE_TOKEN || ''
 
     return createFleetGraphV2Runtime({
       actionStore,
       checkpointer: sharedCheckpointer,
       fetchConfig: {
-        baseUrl,
-        requestContext: buildShipRestRequestContext(req),
+        baseUrl: requestContext.baseUrl,
+        requestContext,
         token,
       },
       findingStore,

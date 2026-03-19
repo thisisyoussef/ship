@@ -91,6 +91,15 @@ In handoff or the next update, say:
 
 If you did escalate, say exactly what made it a real scope or architecture change.
 
+## Post-Merge Correction Rule
+
+If the correction is fixing a shipped regression or a deployed behavior break:
+- do not stop at a local patch and wait for the user to separately ask about GitHub state
+- after the bounded fix and validation, return to `.ai/workflows/story-handoff.md`
+- include the revised completion gate and GitHub/finalization plan for the correction
+- if the user already asked to "fix it" or "ensure it is merged," treat that as intent to carry the correction through the normal finalization flow unless they explicitly say `local-only`
+- still follow the standard approval and recovery rules from story handoff and git finalization
+
 ---
 
 ## Exit Criteria

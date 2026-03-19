@@ -45,6 +45,8 @@ interface FleetGraphShipApiConfig {
   token: string
 }
 
+const TEAM_PEOPLE_PATH = '/api/team/people'
+
 function buildReadHeaders(
   config: FleetGraphShipApiConfig,
   requestContext?: ShipRestRequestContext
@@ -150,17 +152,16 @@ export function createFleetGraphShipApiClient(
 
     async fetchMembers(
       userIds: string[],
-      workspaceId: string,
+      _workspaceId: string,
       requestContext?: ShipRestRequestContext
     ) {
       if (userIds.length === 0) {
         return []
       }
 
-      const ids = userIds.map((id) => encodeURIComponent(id)).join(',')
       const url = buildReadUrl(
         config,
-        `/api/people?workspace_id=${encodeURIComponent(workspaceId)}&ids=${ids}`,
+        TEAM_PEOPLE_PATH,
         requestContext
       )
       const response = await fetchFn(url, {
@@ -173,11 +174,29 @@ export function createFleetGraphShipApiClient(
       }
 
       const raw = await response.json() as { documents?: unknown[]; people?: unknown[] } | unknown[]
-      if (Array.isArray(raw)) {
-        return raw
-      }
-      const list = raw.people ?? raw.documents ?? []
-      return Array.isArray(list) ? list : []
+      const list = Array.isArray(raw)
+        ? raw
+        : Array.isArray(raw.people)
+          ? raw.people
+          : Array.isArray(raw.documents)
+            ? raw.documents
+            : []
+      const wantedIds = new Set(userIds)
+
+      return list.filter((entry) => {
+        if (!entry || typeof entry !== 'object') {
+          return false
+        }
+
+        const personId = typeof (entry as { id?: unknown }).id === 'string'
+          ? (entry as { id: string }).id
+          : ''
+        const userId = typeof (entry as { user_id?: unknown }).user_id === 'string'
+          ? (entry as { user_id: string }).user_id
+          : ''
+
+        return wantedIds.has(personId) || wantedIds.has(userId)
+      })
     },
 
     async listSprintIssues(sprintId: string, requestContext?: ShipRestRequestContext) {

@@ -135,4 +135,46 @@ describe('FleetGraph Ship API client', () => {
       })
     )
   })
+
+  it('fetches members from the live team people route and matches user ids or person document ids', async () => {
+    const fetchFn = vi.fn(async () => new Response(JSON.stringify([
+      {
+        id: 'person-doc-1',
+        user_id: 'user-1',
+        name: 'Alice PM',
+      },
+      {
+        id: 'person-doc-2',
+        user_id: 'user-2',
+        name: 'Bob Eng',
+      },
+    ])))
+    const client = createFleetGraphShipApiClient(
+      {
+        baseUrl: 'https://ship-demo-production.up.railway.app',
+        token: 'token',
+      },
+      { fetchFn }
+    )
+
+    await expect(client.fetchMembers(['user-2', 'person-doc-1'], 'workspace-1')).resolves.toEqual([
+      {
+        id: 'person-doc-1',
+        user_id: 'user-1',
+        name: 'Alice PM',
+      },
+      {
+        id: 'person-doc-2',
+        user_id: 'user-2',
+        name: 'Bob Eng',
+      },
+    ])
+
+    expect(fetchFn).toHaveBeenCalledWith(
+      'https://ship-demo-production.up.railway.app/api/team/people',
+      expect.objectContaining({
+        method: 'GET',
+      })
+    )
+  })
 })

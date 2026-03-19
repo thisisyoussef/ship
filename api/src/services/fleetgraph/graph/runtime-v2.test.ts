@@ -243,4 +243,70 @@ describe('createFleetGraphV2Runtime on-demand parity', () => {
       },
     })
   })
+
+  it('recomputes week-start drift on repeated analyze runs for the same thread', async () => {
+    const routes = makeWeekRoutes()
+    const runtime = createRuntime(createFetchFn(routes))
+    const input = makeAnalyzeInput()
+
+    const initialState = await runtime.invoke(input)
+
+    expect(initialState.branch).toBe('action_required')
+    expect(initialState.reasonedFindings?.map((finding) => finding.findingType)).toContain(
+      'week_start_drift'
+    )
+
+    routes[`${BASE_URL}/api/documents/${WEEK_ID}`] = {
+      belongs_to: [
+        {
+          id: 'project-1',
+          title: 'Demo Project',
+          type: 'project',
+        },
+      ],
+      documentType: 'sprint',
+      id: WEEK_ID,
+      owner_id: PERSON_ID,
+      properties: {
+        assignee_ids: [PERSON_ID],
+        sprint_number: 2,
+        status: 'active',
+      },
+      status: 'active',
+      title: 'FleetGraph Demo Week',
+    }
+    routes[`${BASE_URL}/api/weeks/${WEEK_ID}`] = {
+      id: WEEK_ID,
+      issue_count: 1,
+      name: 'FleetGraph Demo Week',
+      owner: {
+        id: USER_ID,
+        name: 'Casey PM',
+      },
+      sprint_number: 2,
+      status: 'active',
+      workspace_sprint_start_date: '2026-03-10T00:00:00.000Z',
+    }
+    routes[`${BASE_URL}/api/weeks/${WEEK_ID}/issues`] = [
+      {
+        id: 'issue-1',
+        priority: 'high',
+        state: 'in_progress',
+        title: 'Fix the launch blocker',
+      },
+    ]
+
+    const nextState = await runtime.invoke(input)
+
+    expect(nextState.branch).toBe('quiet')
+    expect(nextState.actionDrafts).toEqual([])
+    expect(nextState.pendingApproval).toBeNull()
+    expect(nextState.reasonedFindings).toBeNull()
+    expect(nextState.responsePayload).toMatchObject({
+      type: 'chat_answer',
+      answer: {
+        text: 'I analyzed this sprint and did not find anything that needs immediate attention.',
+      },
+    })
+  })
 })

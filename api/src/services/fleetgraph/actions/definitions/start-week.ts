@@ -21,9 +21,9 @@ const definition: FleetGraphActionDefinition = {
   executionAdapter: 'single_request',
 
   label: 'Review and apply',
-  reviewTitle: 'Confirm before starting this week',
-  reviewSummary: 'FleetGraph thinks this week is ready to start. Nothing changes in Ship until you confirm.',
-  confirmLabel: 'Start week in Ship',
+  reviewTitle: 'Start this week in Ship?',
+  reviewSummary: 'This week already started, but Ship still shows it as planning. If you confirm, FleetGraph will start it in Ship.',
+  confirmLabel: 'Start week',
 
   endpointPattern: /^\/api\/weeks\/[^/]+\/start$/,
 

@@ -73,7 +73,7 @@ describe('FleetGraph finding action service', () => {
 
     expect(actionStore.beginExecution).not.toHaveBeenCalled()
     expect(result.finding.id).toBe(finding.id)
-    expect(result.review.confirmLabel).toBe('Start week in Ship')
+    expect(result.review.confirmLabel).toBe('Start week')
   })
 
   it('applies a finding action through the shared execution service', async () => {

@@ -1,6 +1,10 @@
 import { task } from '@langchain/langgraph'
 
 import { buildEmptyDialogSubmission } from '../../actions/drafts.js'
+import {
+  isJsonObject,
+  readShipActionMessage,
+} from '../../actions/executor.js'
 import { getActionDefinition } from '../../actions/registry.js'
 import type { ParallelFetchConfig } from '../../proactive/parallel-fetch.js'
 import type { ActionResult, FleetGraphActionType } from '../types-v2.js'
@@ -24,6 +28,62 @@ export interface ExecuteConfirmedActionDeps {
       shouldExecute: boolean
     }>
   }
+}
+
+function buildActionFailureMessage(
+  actionType: FleetGraphActionType,
+  responseBody: unknown,
+  statusCode: number
+) {
+  const body = isJsonObject(responseBody) ? responseBody : undefined
+
+  switch (actionType) {
+    case 'start_week':
+      return readShipActionMessage(
+        body,
+        statusCode > 0
+          ? `Ship could not start this week (HTTP ${statusCode}).`
+          : 'Ship could not start this week.'
+      )
+    default:
+      return readShipActionMessage(
+        body,
+        statusCode > 0
+          ? `Ship could not apply this FleetGraph action (HTTP ${statusCode}).`
+          : 'Ship could not apply this FleetGraph action.'
+      )
+  }
+}
+
+export function normalizeActionResult(
+  actionType: FleetGraphActionType,
+  result: ActionResult
+): ActionResult {
+  if (!result.success) {
+    return {
+      ...result,
+      errorMessage: buildActionFailureMessage(
+        actionType,
+        result.responseBody,
+        result.statusCode
+      ),
+    }
+  }
+
+  if (actionType === 'start_week' && isJsonObject(result.responseBody)) {
+    const status = typeof result.responseBody.status === 'string'
+      ? result.responseBody.status.toLowerCase()
+      : undefined
+    if (status && status !== 'active') {
+      return {
+        ...result,
+        errorMessage: 'Ship responded, but this week is still marked Planning. Nothing changed in Ship.',
+        success: false,
+      }
+    }
+  }
+
+  return result
 }
 
 async function executeEndpoint(
@@ -187,9 +247,15 @@ export async function executeConfirmedAction(
   )
 
   const actionResult = await executeTask()
+  const normalizedActionResult = actionResult
+    ? normalizeActionResult(
+      pendingApproval.actionDraft.actionType,
+      actionResult,
+    )
+    : null
 
   return {
-    actionResult: actionResult ?? {
+    actionResult: normalizedActionResult ?? {
       endpoint: `${firstEndpoint.method} ${firstEndpoint.path}`,
       errorMessage: 'FleetGraph did not produce an execution result.',
       executedAt: new Date().toISOString(),

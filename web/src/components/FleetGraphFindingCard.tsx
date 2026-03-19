@@ -102,11 +102,11 @@ export function FleetGraphFindingCard({
                 <div className="space-y-3 rounded-md border border-emerald-200 bg-white/70 px-3 py-3">
                   <div className="space-y-1">
                     <p className="text-base font-semibold text-slate-950">
-                      {review?.title ?? 'Confirm before starting this week'}
+                      {review?.title ?? 'Start this week in Ship?'}
                     </p>
                     <p className="text-sm text-slate-700">
                       {review?.summary
-                        ?? 'FleetGraph thinks this week is ready to start. Nothing changes in Ship until you confirm.'}
+                        ?? 'This week has passed its planned start, but Ship still lists it as Planning. Starting it now will unlock tracking and standups for the team.'}
                     </p>
                   </div>
                   {review?.evidence.length ? (
@@ -131,7 +131,7 @@ export function FleetGraphFindingCard({
                       onClick={() => onApply(finding.id)}
                       type="button"
                     >
-                      {review?.confirmLabel ?? 'Start week in Ship'}
+                      {review?.confirmLabel ?? 'Start week'}
                     </button>
                   </div>
                 </div>
@@ -143,10 +143,10 @@ export function FleetGraphFindingCard({
                     onClick={() => onReview(finding.id)}
                     type="button"
                   >
-                    Review and apply
+                    Review week start
                   </button>
                   <p className="text-xs opacity-90">
-                    You review this first. FleetGraph only acts after you confirm.
+                    You review this first. Ship will not change until you confirm.
                   </p>
                 </div>
               )}

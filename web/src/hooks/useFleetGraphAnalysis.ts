@@ -9,6 +9,7 @@ import type {
   FleetGraphResponsePayload,
   FleetGraphThreadResponse,
 } from '@/lib/fleetgraph-entry'
+import { documentContextKeys } from './useDocumentContextQuery'
 import { documentKeys } from './useDocumentsQuery'
 import { sprintKeys } from './useWeeksQuery'
 
@@ -245,7 +246,7 @@ export function useFleetGraphAnalysis() {
         const nextConversation = retireCompletedAction(prev, data.actionDraft.actionId)
         const notice = data.responsePayload
           ? readResponseText(data.responsePayload)
-          : `FleetGraph applied ${data.actionDraft.actionType}.`
+          : 'FleetGraph completed the requested change in Ship.'
 
         return [
           ...nextConversation,
@@ -264,6 +265,10 @@ export function useFleetGraphAnalysis() {
       if (data.actionDraft.targetType === 'project') {
         queryClient.invalidateQueries({ queryKey: documentKeys.lists() })
       }
+      queryClient.invalidateQueries({ queryKey: ['document', data.actionDraft.targetId] })
+      queryClient.invalidateQueries({
+        queryKey: documentContextKeys.detail(data.actionDraft.targetId),
+      })
       queryClient.invalidateQueries({ queryKey: documentKeys.detail(data.actionDraft.targetId) })
 
       if (analysisRequest) {

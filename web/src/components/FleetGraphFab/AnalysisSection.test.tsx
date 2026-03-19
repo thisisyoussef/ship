@@ -116,7 +116,7 @@ describe('AnalysisSection', () => {
           ],
           fields: [],
           kind: 'confirm',
-          summary: 'This week already started, but Ship still shows it as planning. If you confirm, FleetGraph will start it in Ship.',
+          summary: 'This week has passed its planned start, but Ship still lists it as Planning. Starting it now will unlock issue tracking and standups for the team.',
           title: 'Start this week in Ship?',
         },
         threadId: 'fleetgraph:workspace-1:analyze:project-1:action:start_week:week-1',
@@ -130,8 +130,11 @@ describe('AnalysisSection', () => {
 
     expect(await screen.findByRole('dialog')).toBeInTheDocument()
     expect(screen.getByText('Start this week in Ship?')).toBeInTheDocument()
-    expect(screen.getByText('What FleetGraph noticed')).toBeInTheDocument()
-    expect(screen.getByText('Key facts')).toBeInTheDocument()
+    expect(screen.getByText("What you're approving")).toBeInTheDocument()
+    expect(screen.getByText('Check these details')).toBeInTheDocument()
+    expect(screen.getByText('Time since planned start')).toBeInTheDocument()
+    expect(screen.getByText('3 days, 21 hours')).toBeInTheDocument()
+    expect(screen.queryByText('hoursSinceStart: 93')).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
 
@@ -220,7 +223,7 @@ describe('AnalysisSection', () => {
           ],
           fields: [],
           kind: 'confirm',
-          summary: 'This week already started, but Ship still shows it as planning. If you confirm, FleetGraph will start it in Ship.',
+          summary: 'This week has passed its planned start, but Ship still lists it as Planning. Starting it now will unlock issue tracking and standups for the team.',
           title: 'Start this week in Ship?',
         },
         threadId: 'fleetgraph:workspace-1:analyze:project-1:action:start_week:week-1',
@@ -246,7 +249,7 @@ describe('AnalysisSection', () => {
           answer: {
             entityLinks: [],
             suggestedNextSteps: [],
-            text: 'Started Week 1 in Ship.',
+            text: 'Week "Week 1" is now active in Ship.',
           },
           type: 'chat_answer',
         },
@@ -304,7 +307,7 @@ describe('AnalysisSection', () => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
 
-    expect(await screen.findByText('Started Week 1 in Ship.')).toBeInTheDocument()
+    expect(await screen.findByText('Week "Week 1" is now active in Ship.')).toBeInTheDocument()
     expect(await screen.findByText('The week is active now, but it still needs an owner.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Assign owner' })).toBeInTheDocument()
 

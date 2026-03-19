@@ -84,7 +84,7 @@ export function buildSnoozeNotice(snoozedUntil?: string, durationLabel = '4 hour
 export function buildApplyNotice(finding: FleetGraphFinding) {
   switch (finding.actionExecution?.status) {
     case 'applied':
-      return 'Week started in Ship.';
+      return 'This week is now active in Ship.'
     case 'already_applied':
       return 'This week was already active in Ship.';
     default:

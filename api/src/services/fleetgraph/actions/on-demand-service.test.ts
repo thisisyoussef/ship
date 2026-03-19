@@ -60,16 +60,16 @@ function makeApprovalInterrupt() {
       actionDraft: ACTION_DRAFT,
       dialogSpec: {
         cancelLabel: 'Cancel',
-        confirmLabel: 'Start week in Ship',
+        confirmLabel: 'Start week',
         evidence: ACTION_DRAFT.evidence,
         fields: [],
         kind: 'confirm',
-        summary: 'FleetGraph thinks this week is ready to start.',
-        title: 'Confirm before starting this week',
+        summary: 'This week has passed its planned start, but Ship still lists it as Planning. Starting it now will unlock issue tracking and standups for the team.',
+        title: 'Start this week in Ship?',
       },
       id: 'approval:finding-1:start_week:week-1',
-      summary: 'FleetGraph thinks this week is ready to start.',
-      title: 'Confirm before starting this week',
+      summary: 'This week has passed its planned start, but Ship still lists it as Planning. Starting it now will unlock issue tracking and standups for the team.',
+      title: 'Start this week in Ship?',
       type: 'approval_request',
     },
   }
@@ -124,7 +124,7 @@ describe('FleetGraph on-demand action service', () => {
       threadId: REVIEW_THREAD_ID,
     })
     expect(result.actionDraft.actionId).toBe(ACTION_DRAFT.actionId)
-    expect(result.dialogSpec.confirmLabel).toBe('Start week in Ship')
+    expect(result.dialogSpec.confirmLabel).toBe('Start week')
   })
 
   it('resumes review threads with structured dialog submissions', async () => {

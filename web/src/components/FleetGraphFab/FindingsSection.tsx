@@ -10,6 +10,7 @@ import type { DocumentContext } from '@/hooks/useDocumentContextQuery'
 import { useFleetGraphFindings } from '@/hooks/useFleetGraphFindings'
 import { buildFleetGraphFindingDocumentIds } from '@/lib/fleetgraph-findings'
 import type { FleetGraphFinding, FleetGraphFindingReview } from '@/lib/fleetgraph-findings'
+import { partitionFleetGraphReviewEvidence } from '@/lib/fleetgraph-review-presenter'
 import {
   buildApplyNotice,
   buildDismissNotice,
@@ -67,6 +68,10 @@ function FindingCard({
   onCancelReview: () => void
 }) {
   const executionLabel = finding.actionExecution ? renderExecutionLabel(finding) : null
+  const reviewEvidence = partitionFleetGraphReviewEvidence(review?.evidence ?? [])
+  const reviewButtonLabel = finding.findingType === 'week_start_drift'
+    ? 'Review week start'
+    : 'Review action'
 
   // Map finding types to visual styles
   const findingTypeStyles: Record<string, { border: string; badge: string }> = {
@@ -135,22 +140,42 @@ function FindingCard({
               </p>
             </div>
           ) : confirming ? (
-            <div className="space-y-2 rounded-md border border-emerald-200 bg-white/80 p-2">
+            <div className="space-y-3 rounded-xl border border-emerald-200 bg-white/90 p-3">
               <div className="text-xs">
                 <p className="font-semibold text-gray-900">
-                  {review?.title ?? 'Confirm before applying'}
+                  {review?.title ?? 'Start this week in Ship?'}
                 </p>
-                <p className="text-gray-600">
-                  {review?.summary ?? 'FleetGraph will apply this action after you confirm.'}
+                <p className="mt-1 text-gray-600">
+                  {review?.summary ?? 'This week has passed its planned start, but Ship still lists it as Planning.'}
+                </p>
+                <p className="mt-1 text-[11px] leading-5 text-gray-500">
+                  Ship will not change until you confirm.
                 </p>
               </div>
-              {review?.evidence.length ? (
-                <ul className="list-disc pl-4 text-xs text-gray-600 space-y-0.5">
-                  {review.evidence.map((item, idx) => (
-                    <li key={idx}>{item}</li>
+              {reviewEvidence.facts.length > 0 && (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {reviewEvidence.facts.map((fact) => (
+                    <div
+                      className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2"
+                      key={`${fact.label}:${fact.value}`}
+                    >
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">
+                        {fact.label}
+                      </p>
+                      <p className="mt-1 text-xs font-medium text-gray-900">
+                        {fact.value}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {reviewEvidence.notes.length > 0 && (
+                <ul className="list-disc pl-4 text-xs text-gray-600 space-y-1">
+                  {reviewEvidence.notes.map((item) => (
+                    <li key={item}>{item}</li>
                   ))}
                 </ul>
-              ) : null}
+              )}
               <div className="flex justify-end gap-2">
                 <button
                   className="text-xs px-2 py-1 rounded border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-50"
@@ -161,7 +186,7 @@ function FindingCard({
                   {review?.cancelLabel ?? 'Cancel'}
                 </button>
                 <button
-                  className="text-xs px-2 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
+                  className="rounded bg-emerald-600 px-2 py-1 text-xs text-white hover:bg-emerald-700 disabled:opacity-50"
                   disabled={isMutating}
                   onClick={() => onApply(finding.id)}
                   type="button"
@@ -177,7 +202,7 @@ function FindingCard({
               onClick={() => onReview(finding.id)}
               type="button"
             >
-              Review and apply
+              {reviewButtonLabel}
             </button>
           )}
         </div>

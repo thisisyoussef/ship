@@ -9,6 +9,7 @@ import {
   renderExecutionTone,
   renderFindingStatus,
 } from '@/lib/fleetgraph-findings-presenter';
+import { partitionFleetGraphReviewEvidence } from '@/lib/fleetgraph-review-presenter';
 
 const buttonClassName =
   'rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50';
@@ -65,6 +66,7 @@ export function FleetGraphFindingCard({
   review,
 }: FleetGraphFindingCardProps) {
   const executionLabel = finding.actionExecution ? renderExecutionLabel(finding) : null;
+  const reviewEvidence = partitionFleetGraphReviewEvidence(review?.evidence ?? []);
 
   return (
     <article className="rounded-xl border border-border bg-muted/20 px-4 py-4 shadow-sm">
@@ -109,9 +111,26 @@ export function FleetGraphFindingCard({
                         ?? 'This week has passed its planned start, but Ship still lists it as Planning. Starting it now will unlock tracking and standups for the team.'}
                     </p>
                   </div>
-                  {review?.evidence.length ? (
+                  {reviewEvidence.facts.length > 0 ? (
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {reviewEvidence.facts.map((fact) => (
+                        <div
+                          className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"
+                          key={`${fact.label}:${fact.value}`}
+                        >
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                            {fact.label}
+                          </p>
+                          <p className="mt-1 text-sm font-medium text-slate-900">
+                            {fact.value}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                  {reviewEvidence.notes.length > 0 ? (
                     <ul className="list-disc space-y-1 pl-5 text-sm text-slate-700">
-                      {review.evidence.map((item) => (
+                      {reviewEvidence.notes.map((item) => (
                         <li key={item}>{item}</li>
                       ))}
                     </ul>

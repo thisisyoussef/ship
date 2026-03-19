@@ -9,10 +9,26 @@ export interface FleetGraphReviewEvidence {
 }
 
 const FRIENDLY_LABELS: Record<string, string> = {
+  approvalType: 'Approval requested',
+  businessDaysSinceSubmission: 'Waiting for approval',
+  businessDaysSinceUpdate: 'Blocker age',
+  daysUntil: 'Schedule buffer',
+  dueHour: 'Standup due by',
   entityTitle: 'Week name',
   hoursSinceStart: 'Time since planned start',
+  issueCount: 'Scoped issues',
+  issueTitle: 'Issue',
+  openIssueCount: 'Open work items',
+  percentOfTotal: 'Share of open work',
+  personName: 'Team member',
+  projectTitle: 'Project',
+  ratioToMedian: 'Load vs typical teammate',
   sprintStartDate: 'Scheduled start',
   status: 'Current Ship status',
+  submittedAt: 'Submitted',
+  targetDate: 'Target date',
+  weekTitle: 'Week name',
+  workload: 'Estimated workload',
 }
 
 function humanizeKey(rawKey: string) {
@@ -46,6 +62,36 @@ function formatFactValue(key: string, rawValue: string) {
     return formatDurationFromHours(rawValue)
   }
 
+  if (key === 'daysUntil') {
+    const days = Math.round(Number(rawValue))
+    return Number.isFinite(days) ? `${days} day${days === 1 ? '' : 's'}` : rawValue
+  }
+
+  if (key === 'businessDaysSinceSubmission' || key === 'businessDaysSinceUpdate') {
+    const days = Math.round(Number(rawValue))
+    return Number.isFinite(days) ? `${days} business day${days === 1 ? '' : 's'}` : rawValue
+  }
+
+  if (key === 'percentOfTotal') {
+    const percent = Math.round(Number(rawValue) * 100)
+    return Number.isFinite(percent) ? `${percent}%` : rawValue
+  }
+
+  if (key === 'ratioToMedian') {
+    const ratio = Number(rawValue)
+    return Number.isFinite(ratio) ? `${ratio.toFixed(1)}x` : rawValue
+  }
+
+  if (key === 'dueHour' || key === 'currentHour') {
+    const hour = Math.round(Number(rawValue))
+    if (!Number.isFinite(hour)) {
+      return rawValue
+    }
+    const suffix = hour >= 12 ? 'PM' : 'AM'
+    const twelveHour = hour % 12 || 12
+    return `${twelveHour}:00 ${suffix}`
+  }
+
   if (key.toLowerCase().includes('date')) {
     const date = new Date(rawValue)
     if (!Number.isNaN(date.getTime())) {
@@ -53,12 +99,17 @@ function formatFactValue(key: string, rawValue: string) {
         weekday: 'short',
         day: 'numeric',
         month: 'short',
+        timeZone: 'UTC',
         year: 'numeric',
       }).format(date)
     }
   }
 
   if (key === 'status') {
+    return rawValue.charAt(0).toUpperCase() + rawValue.slice(1)
+  }
+
+  if (key === 'approvalType') {
     return rawValue.charAt(0).toUpperCase() + rawValue.slice(1)
   }
 

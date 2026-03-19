@@ -14,6 +14,7 @@ import {
   type FleetGraphExecutionPlan,
   type FleetGraphSelectOption,
 } from './registry.js'
+import { normalizeFleetGraphExecutionResult } from './action-outcome.js'
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -174,7 +175,9 @@ export class ActionExecutionService {
     )
 
     // Execute the plan
-    const results = await this.executeplan(executionPlan)
+    const results = (await this.executeplan(executionPlan)).map((result) =>
+      normalizeFleetGraphExecutionResult(parsed.actionType, result)
+    )
 
     // Determine overall status
     const allSuccess = results.every(r => r.status === 'success')

@@ -13,6 +13,7 @@
 import { actionDraftFromProposedAction } from '../../actions/drafts.js'
 import type { LLMAdapter } from '../../llm/types.js'
 import type { FleetGraphStateV2, FleetGraphStateV2Update } from '../state-v2.js'
+import { buildFindingEvidence } from './finding-evidence.js'
 import type {
   FleetGraphActionType,
   FleetGraphV2SuspectType,
@@ -155,36 +156,6 @@ interface LLMResponse {
   overallAnalysis?: string
 }
 
-function stringifyValue(value: unknown): string | null {
-  if (typeof value === 'string' && value.trim().length > 0) {
-    return value.trim()
-  }
-  if (typeof value === 'number' || typeof value === 'boolean') {
-    return String(value)
-  }
-  return null
-}
-
-function buildEvidence(scored: ScoredFinding, metadata: Record<string, unknown>) {
-  const evidence = Object.entries(metadata)
-    .map(([key, value]) => {
-      const text = stringifyValue(value)
-      return text ? `${key}: ${text}` : null
-    })
-    .filter((value): value is string => value !== null)
-    .slice(0, 4)
-
-  if (evidence.length > 0) {
-    return evidence
-  }
-
-  return [
-    `finding_type: ${scored.findingType}`,
-    `target_entity_id: ${scored.targetEntityId}`,
-    `composite_score: ${scored.compositeScore}`,
-  ]
-}
-
 function buildConversationContext(state: FleetGraphStateV2) {
   const recentTurns = state.conversationHistory.slice(-4)
   const sections: string[] = []
@@ -254,7 +225,11 @@ function reasonFinding(
   }
 
   const reasoned: ReasonedFinding = {
-    evidence: buildEvidence(scored, metadata),
+    evidence: buildFindingEvidence(
+      scored.findingType as FleetGraphV2SuspectType,
+      scored,
+      metadata,
+    ),
     fingerprint: scored.fingerprint,
     findingType: scored.findingType as FleetGraphV2SuspectType,
     title: template.title(metadata),

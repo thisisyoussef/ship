@@ -7,6 +7,7 @@ import type { FleetGraphActionDraft, FleetGraphActionType } from './registry.js'
 import type { FleetGraphStateV2 } from '../graph/state-v2.js'
 import type { ReasonedFinding } from '../graph/types-v2.js'
 import { requestedActionFromActionDraft } from './drafts.js'
+import { buildFleetGraphActionSuccessMessage } from './action-outcome.js'
 
 const SUPPORTED_FINDING_TYPES = new Set([
   'approval_gap',
@@ -108,7 +109,13 @@ export function createFleetGraphV2FindingStoreAdapter(
               },
               findingId: finding.id,
               message: state.actionResult.success
-                ? `FleetGraph applied ${pendingApproval.actionDraft.actionType}.`
+                ? buildFleetGraphActionSuccessMessage(
+                  pendingApproval.actionDraft.actionType,
+                  {
+                    responseBody: state.actionResult.responseBody,
+                    targetName: pendingApproval.reasonedFinding.targetEntity.name,
+                  }
+                )
                 : (state.actionResult.errorMessage ?? 'FleetGraph action failed.'),
               resultStatusCode: state.actionResult.statusCode,
               status: state.actionResult.success ? 'applied' : 'failed',

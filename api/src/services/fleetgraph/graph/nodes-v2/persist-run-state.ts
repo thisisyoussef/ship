@@ -22,21 +22,7 @@ import type { FleetGraphStateV2, FleetGraphStateV2Update } from '../state-v2.js'
 
 export interface PersistRunStateDeps {
   findingStore?: {
-    recordRunState(params: {
-      runId: string
-      workspaceId: string
-      branch: string
-      candidateCount: number
-      findingTypes: string[]
-      dedupeHit: boolean
-      surfacedFindings: Array<{
-        fingerprint: string
-        evidenceHash: string
-        findingType: string
-        entityId: string
-      }>
-      traceMetadata: TraceMetadata
-    }): Promise<void>
+    recordRunState(state: FleetGraphStateV2): Promise<void>
   }
 }
 
@@ -72,31 +58,8 @@ export async function persistRunState(
     completedAt: now.toISOString(),
   }
 
-  // Build surfaced findings for persistence
-  const surfacedFindings = (state.reasonedFindings ?? []).map((f) => {
-    const scored = state.scoredFindings.find(
-      (s) => s.fingerprint === f.fingerprint
-    )
-    return {
-      fingerprint: f.fingerprint,
-      evidenceHash: scored?.fingerprint ?? f.fingerprint, // Use fingerprint as evidence hash
-      findingType: f.findingType,
-      entityId: f.targetEntity.id,
-    }
-  })
-
-  // Persist to store if available
   if (deps.findingStore) {
-    await deps.findingStore.recordRunState({
-      runId: state.runId,
-      workspaceId: state.workspaceId,
-      branch: state.branch,
-      candidateCount: state.candidateFindings.length,
-      findingTypes: state.scoredFindings.map((f) => f.findingType),
-      dedupeHit: state.dedupeHits.length > 0,
-      surfacedFindings,
-      traceMetadata,
-    })
+    await deps.findingStore.recordRunState(state)
   }
 
   return {

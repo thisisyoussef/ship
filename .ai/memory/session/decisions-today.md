@@ -128,6 +128,14 @@
 - Decided FleetGraph should expose its real compiled graph to LangGraph Studio instead of relying only on LangSmith traces plus the custom debug dock.
 - Decided the repo-owned Studio path should default to an in-memory checkpointer for preview safety, with Postgres thread inspection available only through an explicit `FLEETGRAPH_STUDIO_CHECKPOINTER=postgres` opt-in.
 - Added `langgraph.json`, `pnpm fleetgraph:studio:dev`, and `pnpm --filter @ship/api fleetgraph:studio:examples` so Studio inspection is reproducible from the repo root.
+- Started the FleetGraph V2 native rollout pack on `codex/fleetgraph-v2-native-rollout` to remove the remaining route, worker, and web compatibility layers around the V2 graph.
+- Decided the canonical FleetGraph contract should now be the native V2 thread payload: `responsePayload`, `reasonedFindings`, `actionDrafts`, `pendingApproval`, `dialogSpec`, and structured resume input.
+- Removed V1-shaped route mapping/fallback behavior from `/api/fleetgraph/entry`, `/api/fleetgraph/analyze`, `/api/fleetgraph/thread/:threadId/turn`, and the thread action review/apply routes so they now run straight on the V2 runtime.
+- Migrated follow-up chat turns, on-demand review/apply, and the worker path onto native V2 state/checkpoint semantics, including conversation history, typed dialog submissions, and persistence through the existing finding/action tables.
+- Updated the FleetGraph web hooks/components and OpenAPI surface to consume the native V2 contracts, including typed dialog review/apply flows instead of browser-direct Ship mutations.
+- Verified `web/src/components/FleetGraphFab/AnalysisSection.test.tsx` passes and both `api` and `web` typecheck cleanly after the native V2 cutover.
+- Could not run the FleetGraph API route/service Vitest slices in this workspace because the API integration test harness requires a local Postgres role `ship`, which is not available here.
+- Updated `.ai/workflows/story-handoff.md` and `.ai/workflows/git-finalization.md` so future handoffs must explicitly state whether work is local-only, pushed-without-PR, on an open PR, or already merged on GitHub.
 
 Record session-level technical decisions.
 

@@ -1,13 +1,13 @@
 import type { Pool } from 'pg'
 
 import { pool as defaultPool } from '../../../db/client.js'
-import type { FleetGraphState } from '../graph/types.js'
 import type {
   FleetGraphDedupeLedger,
   FleetGraphEnqueueInput,
   FleetGraphEnqueueResult,
   FleetGraphQueueJob,
   FleetGraphSweepSchedule,
+  FleetGraphWorkerStateSummary,
   FleetGraphWorkerStore,
 } from './types.js'
 
@@ -99,18 +99,20 @@ function mapSweep(row: Record<string, unknown>): FleetGraphSweepSchedule {
   }
 }
 
-function checkpointSummary(checkpoint: unknown, fallbackState?: FleetGraphState) {
+function checkpointSummary(checkpoint: unknown, fallbackState?: FleetGraphWorkerStateSummary) {
   const values = checkpoint && typeof checkpoint === 'object'
     ? (checkpoint as { values?: Record<string, unknown> }).values
     : undefined
+  const branch = typeof values?.branch === 'string'
+    ? values.branch
+    : fallbackState?.branch
+  const outcome = typeof values?.outcome === 'string'
+    ? values.outcome
+    : fallbackState?.outcome ?? branch
 
   return {
-    branch: typeof values?.branch === 'string'
-      ? values.branch
-      : fallbackState?.branch,
-    outcome: typeof values?.outcome === 'string'
-      ? values.outcome
-      : fallbackState?.outcome,
+    branch,
+    outcome,
     path: parseCheckpointPath(values?.path ?? fallbackState?.path),
   }
 }

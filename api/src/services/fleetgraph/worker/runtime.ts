@@ -17,13 +17,34 @@ function runtimeInputFromJob(job: {
   trigger: 'document-context' | 'event' | 'scheduled-sweep' | 'human-review'
   workspaceId: string
 }) {
+  const triggerType = job.trigger === 'scheduled-sweep'
+    ? 'sweep' as const
+    : job.trigger === 'event'
+      ? 'enqueue' as const
+      : 'user_chat' as const
+
   return {
-    contextKind: job.mode === 'on_demand' ? 'entry' as const : 'proactive' as const,
-    documentId: job.documentId,
-    mode: job.mode,
-    routeSurface: job.routeSurface,
+    activeTab: null,
+    actorId: null,
+    dirtyCoalescedIds: [],
+    dirtyEntityId: null,
+    dirtyEntityType: null,
+    dirtyWriteType: null,
+    documentId: job.documentId ?? null,
+    documentType: null,
+    mode: job.mode === 'proactive'
+      ? 'proactive' as const
+      : triggerType === 'enqueue'
+        ? 'event_driven' as const
+        : 'on_demand' as const,
+    nestedPath: null,
+    projectContextId: null,
+    selectedActionId: null,
     threadId: job.threadId,
-    trigger: job.trigger,
+    triggerSource: job.routeSurface ?? 'worker',
+    triggerType,
+    userQuestion: null,
+    viewerUserId: null,
     workspaceId: job.workspaceId,
   }
 }

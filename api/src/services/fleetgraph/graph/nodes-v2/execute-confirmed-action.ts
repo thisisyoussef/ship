@@ -1,52 +1,40 @@
-/**
- * execute_confirmed_action - Shared Pipeline (Post-Approval)
- *
- * Lane: Shared
- * Type: REST mutation (wrapped in task() for idempotent replay)
- * LLM: No
- *
- * Executes the confirmed action against the Ship API.
- *
- * Ship write endpoints used:
- * - POST /api/weeks/:id/start
- * - PATCH /api/issues/:id
- * - POST /api/weeks/:id/approve-plan
- * - POST /api/weeks/:id/request-plan-changes
- * - POST /api/weeks/:id/carryover
- * - POST /api/documents/:id/comments
- *
- * See docs/specs/fleetgraph/THREE_LANE_ARCHITECTURE.md for full specification.
- */
-
 import { task } from '@langchain/langgraph'
 
+import { buildEmptyDialogSubmission } from '../../actions/drafts.js'
+import { getActionDefinition } from '../../actions/registry.js'
 import type { ParallelFetchConfig } from '../../proactive/parallel-fetch.js'
-import type { ActionResult } from '../types-v2.js'
+import type { ActionResult, FleetGraphActionType } from '../types-v2.js'
 import type { FleetGraphStateV2, FleetGraphStateV2Update } from '../state-v2.js'
-
-// ──────────────────────────────────────────────────────────────────────────────
-// Dependencies
-// ──────────────────────────────────────────────────────────────────────────────
 
 export interface ExecuteConfirmedActionDeps {
   config: ParallelFetchConfig
+  findingStore?: {
+    beginActionExecution(params: {
+      actionType: FleetGraphActionType
+      endpoint: { method: string; path: string }
+      findingKey?: string
+      workspaceId: string
+    }): Promise<{
+      execution?: {
+        endpoint: { method: string; path: string }
+        message: string
+        resultStatusCode?: number
+        status: 'already_applied' | 'applied' | 'failed' | 'pending'
+      }
+      shouldExecute: boolean
+    }>
+  }
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Execution Logic
-// ──────────────────────────────────────────────────────────────────────────────
-
-async function executeAction(
-  endpoint: { method: string; path: string; body?: Record<string, unknown> },
+async function executeEndpoint(
+  endpoint: { method: string; path: string; body?: unknown },
   config: ParallelFetchConfig
 ): Promise<ActionResult> {
   const fetchFn = config.fetchFn ?? fetch
   const baseUrl = config.requestContext?.baseUrl ?? config.baseUrl
-  const url = `${baseUrl}${endpoint.path}`
-
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
     accept: 'application/json',
+    'content-type': 'application/json',
   }
 
   if (config.requestContext?.cookieHeader) {
@@ -60,91 +48,162 @@ async function executeAction(
   }
 
   try {
-    const response = await fetchFn(url, {
-      method: endpoint.method,
-      headers,
+    const response = await fetchFn(`${baseUrl}${endpoint.path}`, {
       body: endpoint.body ? JSON.stringify(endpoint.body) : undefined,
+      headers,
+      method: endpoint.method,
     })
-
     const responseBody = await response.json().catch(() => null)
 
     return {
-      success: response.ok,
       endpoint: `${endpoint.method} ${endpoint.path}`,
-      statusCode: response.status,
-      responseBody,
       errorMessage: response.ok ? undefined : `HTTP ${response.status}`,
       executedAt: new Date().toISOString(),
+      method: endpoint.method,
+      path: endpoint.path,
+      responseBody,
+      statusCode: response.status,
+      success: response.ok,
     }
-  } catch (err) {
+  } catch (error) {
     return {
-      success: false,
       endpoint: `${endpoint.method} ${endpoint.path}`,
-      statusCode: 0,
-      errorMessage: err instanceof Error ? err.message : 'Unknown error',
+      errorMessage: error instanceof Error ? error.message : 'Unknown FleetGraph action error',
       executedAt: new Date().toISOString(),
+      method: endpoint.method,
+      path: endpoint.path,
+      statusCode: 0,
+      success: false,
     }
   }
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Node Implementation
-// ──────────────────────────────────────────────────────────────────────────────
+async function executePlan(
+  endpoints: Array<{ method: string; path: string; body?: unknown }>,
+  sequential: boolean,
+  config: ParallelFetchConfig
+) {
+  if (sequential) {
+    let lastResult: ActionResult | null = null
+    for (const endpoint of endpoints) {
+      lastResult = await executeEndpoint(endpoint, config)
+      if (!lastResult.success) {
+        return lastResult
+      }
+    }
+    return lastResult
+  }
 
-/**
- * Executes the confirmed action against the Ship API.
- *
- * Uses LangGraph's task() wrapper to ensure idempotent replay -
- * if the graph is resumed multiple times, the action is only executed once.
- *
- * @param state - Current graph state with pending approval
- * @param deps - Dependencies including fetch config
- * @returns State update with action result
- */
+  const results = await Promise.all(endpoints.map((endpoint) => executeEndpoint(endpoint, config)))
+  return results.find((result) => !result.success) ?? results[results.length - 1] ?? null
+}
+
 export async function executeConfirmedAction(
   state: FleetGraphStateV2,
   deps: ExecuteConfirmedActionDeps
 ): Promise<FleetGraphStateV2Update> {
-  if (!state.pendingApproval) {
+  const pendingApproval = state.pendingApproval
+  if (!pendingApproval) {
     return {
       actionResult: {
-        success: false,
         endpoint: 'unknown',
-        statusCode: 0,
-        errorMessage: 'No pending approval to execute',
+        errorMessage: 'No pending FleetGraph approval was available to execute.',
         executedAt: new Date().toISOString(),
+        statusCode: 0,
+        success: false,
       },
       path: ['execute_confirmed_action'],
     }
   }
 
-  const { proposedAction } = state.pendingApproval
-
-  // Wrap in task() for idempotent replay
-  const executeTask = task(
-    `execute_action_${state.pendingApproval.id}`,
-    async () => {
-      return executeAction(proposedAction.endpoint, deps.config)
+  const definition = getActionDefinition(pendingApproval.actionDraft.actionType)
+  if (!definition) {
+    return {
+      actionResult: {
+        endpoint: 'unknown',
+        errorMessage: `Unknown action type ${pendingApproval.actionDraft.actionType}`,
+        executedAt: new Date().toISOString(),
+        statusCode: 0,
+        success: false,
+      },
+      path: ['execute_confirmed_action'],
     }
+  }
+
+  const submission = state.dialogSubmission
+    ?? buildEmptyDialogSubmission(pendingApproval.actionDraft.actionId)
+  const executionPlan = definition.buildExecutionPlan(
+    pendingApproval.actionDraft,
+    submission
+  )
+  const firstEndpoint = executionPlan.endpoints[0]
+
+  if (!firstEndpoint) {
+    return {
+      actionResult: {
+        endpoint: 'unknown',
+        errorMessage: 'No execution endpoint was generated for this FleetGraph action.',
+        executedAt: new Date().toISOString(),
+        statusCode: 0,
+        success: false,
+      },
+      path: ['execute_confirmed_action'],
+    }
+  }
+
+  if (deps.findingStore) {
+    const begin = await deps.findingStore.beginActionExecution({
+      actionType: pendingApproval.actionDraft.actionType,
+      endpoint: {
+        method: firstEndpoint.method,
+        path: firstEndpoint.path,
+      },
+      findingKey: pendingApproval.reasonedFinding.fingerprint,
+      workspaceId: state.workspaceId,
+    })
+    if (!begin.shouldExecute) {
+      return {
+        actionResult: {
+          endpoint: `${begin.execution?.endpoint.method ?? firstEndpoint.method} ${begin.execution?.endpoint.path ?? firstEndpoint.path}`,
+          errorMessage: begin.execution?.status === 'failed' ? begin.execution.message : undefined,
+          executedAt: new Date().toISOString(),
+          method: begin.execution?.endpoint.method ?? firstEndpoint.method,
+          path: begin.execution?.endpoint.path ?? firstEndpoint.path,
+          statusCode: begin.execution?.resultStatusCode ?? 200,
+          success: begin.execution?.status !== 'failed',
+        },
+        path: ['execute_confirmed_action'],
+      }
+    }
+  }
+
+  const executeTask = task(
+    `fleetgraph_v2_execute_${pendingApproval.id}`,
+    async () => executePlan(
+      executionPlan.endpoints,
+      executionPlan.sequential,
+      deps.config,
+    )
   )
 
   const actionResult = await executeTask()
 
   return {
-    actionResult,
+    actionResult: actionResult ?? {
+      endpoint: `${firstEndpoint.method} ${firstEndpoint.path}`,
+      errorMessage: 'FleetGraph did not produce an execution result.',
+      executedAt: new Date().toISOString(),
+      method: firstEndpoint.method,
+      path: firstEndpoint.path,
+      statusCode: 0,
+      success: false,
+    },
     path: ['execute_confirmed_action'],
   }
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Routing Function
-// ──────────────────────────────────────────────────────────────────────────────
-
 export type ExecuteConfirmedActionRoute = 'persist_action_outcome'
 
-/**
- * Always routes to persist_action_outcome after execution.
- */
 export function routeFromExecuteConfirmedAction(
   _state: FleetGraphStateV2
 ): ExecuteConfirmedActionRoute {

@@ -85,11 +85,17 @@ export function buildEntryDebugSnapshot(
   activeTab?: string,
   nestedPath?: string
 ): FleetGraphDebugEntrySnapshot {
+  const endpoint = result.pendingApproval?.actionDraft?.contextHints?.endpoint as
+    | FleetGraphDebugEndpoint
+    | undefined
+
   return {
-    approvalEndpoint: result.approval?.endpoint,
+    approvalEndpoint: endpoint,
     routeLabel: buildFleetGraphRouteLabel(activeTab, nestedPath),
-    surfaceLabel: result.summary.surfaceLabel,
+    surfaceLabel: result.entry.route.surface,
     threadId: result.entry.threadId,
-    title: result.summary.title,
+    title: result.responsePayload.type === 'chat_answer'
+      ? result.responsePayload.answer.text
+      : result.entry.current.title,
   };
 }

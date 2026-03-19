@@ -7,9 +7,15 @@ import {
 } from '../actions/types.js'
 
 export const FLEETGRAPH_FINDING_TYPES = [
+  'approval_gap',
+  'blocker_aging',
+  'deadline_risk',
+  'empty_active_week',
+  'missing_standup',
   'sprint_no_owner',
   'unassigned_sprint_issues',
   'week_start_drift',
+  'workload_imbalance',
 ] as const
 
 export const FLEETGRAPH_FINDING_STATUSES = [

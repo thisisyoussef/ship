@@ -7,6 +7,23 @@
 
 import { z } from 'zod'
 
+import {
+  FleetGraphActionDraftSchema,
+  FleetGraphDialogSpecSchema,
+  FleetGraphDialogSubmissionSchema,
+  type FleetGraphActionDraft,
+  type FleetGraphActionType,
+  type FleetGraphDialogSpec,
+  type FleetGraphDialogSubmission,
+} from '../actions/registry.js'
+
+export type {
+  FleetGraphActionDraft,
+  FleetGraphActionType,
+  FleetGraphDialogSpec,
+  FleetGraphDialogSubmission,
+}
+
 // ──────────────────────────────────────────────────────────────────────────────
 // Constants
 // ──────────────────────────────────────────────────────────────────────────────
@@ -343,6 +360,7 @@ export interface ReasonedFinding {
   findingType: FleetGraphV2SuspectType
   title: string
   explanation: string
+  evidence: string[]
   targetEntity: {
     id: string
     type: string
@@ -358,6 +376,7 @@ export interface ReasonedFinding {
 
 export interface ProposedAction {
   findingFingerprint: string
+  actionType?: FleetGraphActionType
   label: string
   endpoint: {
     method: 'GET' | 'POST' | 'PATCH' | 'DELETE'
@@ -380,8 +399,11 @@ export interface ProposedAction {
 
 export interface PendingApproval {
   id: string
+  actionDraft: FleetGraphActionDraft
+  dialogSpec: FleetGraphDialogSpec
   proposedAction: ProposedAction
   reasonedFinding: ReasonedFinding
+  validationError?: string
   previewHtml?: string
   createdAt: string
 }
@@ -389,10 +411,18 @@ export interface PendingApproval {
 export interface ActionResult {
   success: boolean
   endpoint: string
+  method?: string
+  path?: string
   statusCode: number
   responseBody?: unknown
   errorMessage?: string
   executedAt: string
+}
+
+export interface FleetGraphConversationTurn {
+  role: 'user' | 'assistant'
+  content: string
+  timestamp: string
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -460,6 +490,21 @@ export interface TraceMetadata {
   completedAt?: string
 }
 
+export const FleetGraphConversationTurnSchema = z.object({
+  content: z.string().min(1),
+  role: z.enum(['user', 'assistant']),
+  timestamp: z.string().datetime(),
+}).strict()
+
+export const FleetGraphV2ResumeInputSchema = z.object({
+  actionId: z.string().min(1).optional(),
+  decision: z.enum(FLEETGRAPH_V2_APPROVAL_DECISIONS),
+  dialogSubmission: FleetGraphDialogSubmissionSchema.optional(),
+  snoozeMinutes: z.number().int().positive().max(7 * 24 * 60).optional(),
+}).strict()
+
+export type FleetGraphV2ResumeInput = z.infer<typeof FleetGraphV2ResumeInputSchema>
+
 // ──────────────────────────────────────────────────────────────────────────────
 // Zod Schemas for Validation
 // ──────────────────────────────────────────────────────────────────────────────
@@ -482,6 +527,7 @@ export const FleetGraphV2RuntimeInputSchema = z.object({
   nestedPath: nonEmptyString.nullable().default(null),
   projectContextId: nonEmptyString.nullable().default(null),
   userQuestion: nonEmptyString.nullable().default(null),
+  selectedActionId: nonEmptyString.nullable().default(null),
 
   // Event context (event-driven only)
   dirtyEntityId: nonEmptyString.nullable().default(null),
@@ -497,4 +543,8 @@ export type FleetGraphV2RuntimeInput = z.infer<typeof FleetGraphV2RuntimeInputSc
 
 export function parseFleetGraphV2RuntimeInput(input: unknown): FleetGraphV2RuntimeInput {
   return FleetGraphV2RuntimeInputSchema.parse(input)
+}
+
+export function parseFleetGraphV2ResumeInput(input: unknown): FleetGraphV2ResumeInput {
+  return FleetGraphV2ResumeInputSchema.parse(input)
 }

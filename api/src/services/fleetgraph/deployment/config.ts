@@ -261,7 +261,7 @@ export function resolveFleetGraphV2Readiness(
 } {
   const deploymentEnv = env as FleetGraphDeploymentEnv
   return {
-    enabled: isTruthy(deploymentEnv.FLEETGRAPH_V2_ENABLED),
+    enabled: isFleetGraphV2Enabled(deploymentEnv),
     rolloutPercent: parseRolloutPercent(deploymentEnv.FLEETGRAPH_V2_ROLLOUT_PERCENT),
   }
 }

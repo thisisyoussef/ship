@@ -33,11 +33,16 @@ import { registerPostStandupAction } from './post-standup.js'
 import { registerEscalateRiskAction } from './escalate-risk.js'
 import { registerRebalanceLoadAction } from './rebalance-load.js'
 
+let firstPackRegistered = false
+
 /**
  * Register all first-pack actions with the registry.
  * Call this once at startup.
  */
 export function registerFirstPackActions(): void {
+  if (firstPackRegistered) {
+    return
+  }
   registerStartWeekAction()
   registerApproveWeekPlanAction()
   registerApproveProjectPlanAction()
@@ -47,4 +52,9 @@ export function registerFirstPackActions(): void {
   registerPostStandupAction()
   registerEscalateRiskAction()
   registerRebalanceLoadAction()
+  firstPackRegistered = true
+}
+
+export function ensureFirstPackActionsRegistered(): void {
+  registerFirstPackActions()
 }

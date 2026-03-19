@@ -1,8 +1,8 @@
 # Ship - Single Source of Truth
 
-**Last Updated**: 2026-03-17
-**Current Phase**: FleetGraph Studio integration pack
-**Active Sprint**: Expose the real FleetGraph graph through local LangGraph Studio with reproducible examples and docs
+**Last Updated**: 2026-03-19
+**Current Phase**: FleetGraph V2 native rollout pack
+**Active Sprint**: Close the native end-to-end FleetGraph V2 rollout across API, worker, web, and rollout docs
 **Project Status**: Active
 **Canonical Deployment Baseline**: API on AWS Elastic Beanstalk, frontend on S3/CloudFront, config/secrets on AWS-native services
 **Sanctioned Public Demo**: Railway public demo, deployed with `scripts/deploy-railway-demo.sh`
@@ -12,15 +12,14 @@
 ## Current Focus
 
 ### Active Task
-- **Title**: Complete the FleetGraph LangGraph orchestration refactor pack
- - **Title**: Add local LangGraph Studio inspection for FleetGraph
-- **Status**: In progress
+- **Title**: Close the FleetGraph V2 native rollout pack
+- **Status**: Ready for audit
 - **Owner**: Codex
 
 ### Next Immediate Actions
-1. Expose the compiled FleetGraph graph through `langgraph.json` and repo-owned Studio helpers.
-2. Verify Studio preview works without requiring a live local Postgres checkpointer.
-3. Hand off the Studio pack for audit before finalization.
+1. Run the FleetGraph API route/service tests in a DB-ready environment and capture the native V2 regression proof.
+2. QA the visible FleetGraph entry, follow-up chat, confirm action, and typed-dialog action flows on the best available Ship surface.
+3. Refresh the sanctioned Railway demo after merge or record the exact deployment block in handoff.
 
 ---
 
@@ -60,6 +59,7 @@
 - The current realtime layer is delivery-oriented WebSocket plumbing, not a durable trigger bus.
 - The recommended MVP shape is same-origin FleetGraph API routes for chat plus a separate background worker for proactive runs.
 - The current local refactor moves orchestration into LangGraph itself: scenario fan-out, ranking, interrupts, and action resume now live in graph nodes and tasks.
+- The canonical FleetGraph contract is now the native V2 thread payload: `responsePayload`, `reasonedFindings`, `actionDrafts`, `pendingApproval`, and structured resume input flow through the same runtime/checkpoint model across routes, worker, and web.
 
 ---
 
@@ -79,6 +79,7 @@
 - `docs/specs/fleetgraph/FLEETGRAPH-FEEDBACK-ROUND2-PHASE/`
 - `docs/specs/fleetgraph/FLEETGRAPH-LANGGRAPH-ORCHESTRATION-PHASE/`
 - `docs/specs/fleetgraph/FLEETGRAPH-STUDIO-INTEGRATION-PHASE/`
+- `docs/specs/fleetgraph/FLEETGRAPH-V2-NATIVE-ROLLOUT-PACK/`
 - `api/src/services/fleetgraph/llm/`
 - `api/src/services/fleetgraph/tracing/`
 - `api/src/services/fleetgraph/graph/`

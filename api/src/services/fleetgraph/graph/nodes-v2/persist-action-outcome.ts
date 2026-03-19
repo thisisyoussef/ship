@@ -25,16 +25,10 @@ import type { FleetGraphStateV2, FleetGraphStateV2Update } from '../state-v2.js'
 
 export interface PersistActionOutcomeDeps {
   findingStore?: {
-    recordActionOutcome(params: {
-      approvalId: string
-      decision: string
-      actionEndpoint?: string
-      actionStatus?: string
-      actionStatusCode?: number
+    recordActionOutcome(
+      state: FleetGraphStateV2,
       snoozedUntil?: Date
-      dismissedUntil?: Date
-      resolvedAt?: Date
-    }): Promise<void>
+    ): Promise<void>
   }
 }
 
@@ -43,7 +37,6 @@ export interface PersistActionOutcomeDeps {
 // ──────────────────────────────────────────────────────────────────────────────
 
 const SNOOZE_DURATION_HOURS = 4
-const DISMISS_COOLDOWN_HOURS = 24
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Node Implementation
@@ -62,35 +55,12 @@ export async function persistActionOutcome(
 ): Promise<FleetGraphStateV2Update> {
   const now = new Date()
   const approval = state.pendingApproval
+  const snoozedUntil = state.approvalDecision === 'snoozed'
+    ? new Date(now.getTime() + SNOOZE_DURATION_HOURS * 60 * 60 * 1000)
+    : undefined
 
   if (approval && deps.findingStore) {
-    const params: Parameters<NonNullable<typeof deps.findingStore>['recordActionOutcome']>[0] = {
-      approvalId: approval.id,
-      decision: state.approvalDecision ?? 'unknown',
-    }
-
-    switch (state.approvalDecision) {
-      case 'approved':
-        if (state.actionResult) {
-          params.actionEndpoint = state.actionResult.endpoint
-          params.actionStatus = state.actionResult.success ? 'success' : 'failed'
-          params.actionStatusCode = state.actionResult.statusCode
-          if (state.actionResult.success) {
-            params.resolvedAt = now
-          }
-        }
-        break
-
-      case 'dismissed':
-        params.dismissedUntil = new Date(now.getTime() + DISMISS_COOLDOWN_HOURS * 60 * 60 * 1000)
-        break
-
-      case 'snoozed':
-        params.snoozedUntil = new Date(now.getTime() + SNOOZE_DURATION_HOURS * 60 * 60 * 1000)
-        break
-    }
-
-    await deps.findingStore.recordActionOutcome(params)
+    await deps.findingStore.recordActionOutcome(state, snoozedUntil)
   }
 
   // Build response payload based on outcome
@@ -100,7 +70,7 @@ export async function persistActionOutcome(
     responsePayload = {
       type: 'chat_answer',
       answer: {
-        text: `Action completed successfully: ${approval?.proposedAction.label ?? 'Unknown action'}`,
+        text: `Action completed successfully: ${approval?.actionDraft.actionType ?? approval?.proposedAction.label ?? 'Unknown action'}`,
         entityLinks: approval ? [{
           id: approval.reasonedFinding.targetEntity.id,
           type: approval.reasonedFinding.targetEntity.type,

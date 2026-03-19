@@ -1,20 +1,23 @@
+import { MemorySaver } from '@langchain/langgraph'
 import { Router, type Request, type Response } from 'express'
 import { ZodError } from 'zod'
 
 import {
+  createFleetGraphFindingActionService,
+  createFleetGraphFindingActionStore,
   createFleetGraphOnDemandActionService,
   buildShipRestRequestContext,
-  createFleetGraphFindingActionService,
   FleetGraphFindingActionError,
   FleetGraphOnDemandActionError,
-  type FleetGraphFindingActionReview,
+  type FleetGraphActionDraft,
+  type FleetGraphDialogSubmission,
   type FleetGraphFindingActionExecutionRecord,
+  type FleetGraphFindingActionReview,
 } from '../services/fleetgraph/actions/index.js'
 import {
   buildFleetGraphEvidenceChecklist,
   FleetGraphDeploymentReadinessResponseSchema,
   isFleetGraphServiceAuthorized,
-  isFleetGraphV2Enabled,
   isSurfaceEnabled,
   resolveFleetGraphSurfaceReadiness,
   resolveFleetGraphV2Readiness,
@@ -27,22 +30,17 @@ import {
   type FleetGraphFindingRecord,
 } from '../services/fleetgraph/findings/index.js'
 import {
-  createFleetGraphRuntime,
   createFleetGraphV2Runtime,
-  type FleetGraphInterruptSummary,
-  type FleetGraphRuntime,
+  type FleetGraphStateV2,
   type FleetGraphV2Runtime,
   type FleetGraphV2RuntimeInput,
+  type ResponsePayload,
+  parseFleetGraphV2ResumeInput,
 } from '../services/fleetgraph/graph/index.js'
 import {
   createLLMAdapter,
   resolveLLMConfig,
 } from '../services/fleetgraph/llm/index.js'
-import {
-  FleetGraphOnDemandActionApplyResponseSchema,
-  FleetGraphOnDemandActionReviewResponseSchema,
-} from '../services/fleetgraph/graph/on-demand-actions.js'
-import { createFleetGraphEntryService, FleetGraphEntryError } from '../services/fleetgraph/entry/index.js'
 import { authMiddleware } from '../middleware/auth.js'
 import { getAuthContext } from './route-helpers.js'
 
@@ -50,10 +48,8 @@ type RouterType = ReturnType<typeof Router>
 
 interface FleetGraphRouterDeps {
   actionService?: ReturnType<typeof createFleetGraphFindingActionService>
-  entryService?: ReturnType<typeof createFleetGraphEntryService>
   findingStore?: ReturnType<typeof createFleetGraphFindingStore>
   onDemandActionService?: ReturnType<typeof createFleetGraphOnDemandActionService>
-  runtime?: FleetGraphRuntime
   runtimeV2?: FleetGraphV2Runtime
 }
 
@@ -69,6 +65,26 @@ function readServiceToken(request: Request) {
   }
 
   return undefined
+}
+
+function serializeActionExecution(
+  execution?: FleetGraphFindingActionExecutionRecord
+) {
+  if (!execution) {
+    return undefined
+  }
+
+  return {
+    actionType: execution.actionType,
+    appliedAt: execution.appliedAt?.toISOString(),
+    attemptCount: execution.attemptCount,
+    endpoint: execution.endpoint,
+    findingId: execution.findingId,
+    message: execution.message,
+    resultStatusCode: execution.resultStatusCode,
+    status: execution.status,
+    updatedAt: execution.updatedAt.toISOString(),
+  }
 }
 
 function serializeFinding(finding: FleetGraphFindingRecord) {
@@ -96,26 +112,6 @@ function serializeFinding(finding: FleetGraphFindingRecord) {
   }
 }
 
-function serializeActionExecution(
-  execution?: FleetGraphFindingActionExecutionRecord
-) {
-  if (!execution) {
-    return undefined
-  }
-
-  return {
-    actionType: execution.actionType,
-    appliedAt: execution.appliedAt?.toISOString(),
-    attemptCount: execution.attemptCount,
-    endpoint: execution.endpoint,
-    findingId: execution.findingId,
-    message: execution.message,
-    resultStatusCode: execution.resultStatusCode,
-    status: execution.status,
-    updatedAt: execution.updatedAt.toISOString(),
-  }
-}
-
 function serializeReview(review: FleetGraphFindingActionReview) {
   return {
     cancelLabel: review.cancelLabel,
@@ -127,22 +123,15 @@ function serializeReview(review: FleetGraphFindingActionReview) {
   }
 }
 
-function serializeInterrupt(interrupt: FleetGraphInterruptSummary) {
+function serializeCheckpoint(
+  snapshot: Awaited<ReturnType<FleetGraphV2Runtime['getCheckpointHistory']>>[number]
+) {
   return {
-    id: interrupt.id,
-    taskName: interrupt.taskName,
-    value: interrupt.value,
-  }
-}
-
-function serializeCheckpoint(snapshot: Awaited<ReturnType<FleetGraphRuntime['getState']>>) {
-  const values = snapshot.values as Record<string, unknown>
-  return {
-    branch: typeof values.branch === 'string' ? values.branch : undefined,
+    branch: snapshot.values.branch,
     createdAt: snapshot.createdAt,
     next: snapshot.next,
-    outcome: typeof values.outcome === 'string' ? values.outcome : undefined,
-    path: Array.isArray(values.path) ? values.path : [],
+    outcome: snapshot.values.branch,
+    path: snapshot.values.path ?? [],
     taskCount: snapshot.tasks.length,
     threadId: snapshot.config.configurable?.thread_id,
   }
@@ -160,41 +149,166 @@ function readDocumentIds(request: Request) {
   )
 }
 
+function buildDefaultResponsePayload(
+  state: FleetGraphStateV2
+): ResponsePayload {
+  if (state.branch === 'action_required') {
+    return {
+      type: 'chat_answer',
+      answer: {
+        entityLinks: [],
+        suggestedNextSteps: state.actionDrafts.map((draft) => draft.actionType),
+        text: state.analysisNarrative
+          ?? 'FleetGraph found a change worth reviewing before it applies anything in Ship.',
+      },
+    }
+  }
+
+  return {
+    type: 'chat_answer',
+    answer: {
+      entityLinks: [],
+      suggestedNextSteps: [],
+      text: `I analyzed this ${state.documentType ?? 'document'} and did not find anything that needs immediate attention.`,
+    },
+  }
+}
+
+function readPendingApprovalFromInterrupts(
+  state: FleetGraphStateV2,
+  interrupts: Awaited<ReturnType<FleetGraphV2Runtime['getPendingInterrupts']>>
+) {
+  const approvalInterrupt = interrupts.find((item) =>
+    item.taskName === 'approval_interrupt'
+    && item.value
+    && typeof item.value === 'object'
+    && (item.value as { type?: string }).type === 'approval_request'
+  )
+
+  if (!approvalInterrupt?.value || typeof approvalInterrupt.value !== 'object') {
+    return state.pendingApproval ?? null
+  }
+
+  const payload = approvalInterrupt.value as {
+    actionDraft?: FleetGraphActionDraft
+    dialogSpec?: unknown
+    id?: string
+    summary?: string
+    title?: string
+    validationError?: string
+  }
+
+  return {
+    actionDraft: payload.actionDraft ?? null,
+    dialogSpec: payload.dialogSpec ?? null,
+    id: payload.id,
+    summary: payload.summary,
+    title: payload.title,
+    validationError: payload.validationError,
+  }
+}
+
+async function serializeNativeState(
+  runtime: FleetGraphV2Runtime,
+  threadId: string,
+  state: FleetGraphStateV2
+) {
+  const pendingApproval = readPendingApprovalFromInterrupts(
+    state,
+    await runtime.getPendingInterrupts(threadId).catch(() => [])
+  )
+
+  return {
+    actionDrafts: state.actionDrafts,
+    branch: state.branch,
+    contextSummary: state.contextSummary,
+    path: state.path,
+    pendingApproval,
+    reasonedFindings: state.reasonedFindings ?? [],
+    responsePayload: state.responsePayload ?? buildDefaultResponsePayload(state),
+    threadId,
+    turnCount: state.turnCount,
+  }
+}
+
+function buildAnalyzeInput(
+  auth: NonNullable<ReturnType<typeof getAuthContext>>,
+  threadId: string,
+  params: {
+    activeTab?: string | null
+    documentId: string
+    documentType: string
+    nestedPath?: string | null
+    selectedActionId?: string | null
+    triggerSource: string
+    userQuestion?: string | null
+  }
+): FleetGraphV2RuntimeInput {
+  return {
+    activeTab: params.activeTab ?? null,
+    actorId: auth.userId ?? null,
+    dirtyCoalescedIds: [],
+    dirtyEntityId: null,
+    dirtyEntityType: null,
+    dirtyWriteType: null,
+    documentId: params.documentId,
+    documentType: params.documentType as FleetGraphV2RuntimeInput['documentType'],
+    mode: 'on_demand',
+    nestedPath: params.nestedPath ?? null,
+    projectContextId: null,
+    selectedActionId: params.selectedActionId ?? null,
+    threadId,
+    triggerSource: params.triggerSource,
+    triggerType: 'user_chat',
+    userQuestion: params.userQuestion ?? null,
+    viewerUserId: auth.userId ?? null,
+    workspaceId: auth.workspaceId,
+  }
+}
+
 export function createFleetGraphRouter(
   deps: FleetGraphRouterDeps = {}
 ) {
-  const runtime = deps.runtime ?? createFleetGraphRuntime()
-  const entryService = deps.entryService ?? createFleetGraphEntryService({ runtime })
   const findingStore = deps.findingStore ?? createFleetGraphFindingStore()
+  const actionStore = createFleetGraphFindingActionStore()
   const actionService = deps.actionService ?? createFleetGraphFindingActionService({
+    actionStore,
     findingStore,
-    runtime,
   })
-  const onDemandActionService = deps.onDemandActionService ?? createFleetGraphOnDemandActionService({
-    runtime,
-  })
+  const sharedCheckpointer = new MemorySaver()
+  let llm: ReturnType<typeof createLLMAdapter> | undefined
+  try {
+    const llmConfig = resolveLLMConfig(process.env)
+    llm = llmConfig ? createLLMAdapter(llmConfig) : undefined
+  } catch {
+    llm = undefined
+  }
 
-  // V2 runtime - lazy initialization with request context
-  let runtimeV2: FleetGraphV2Runtime | null = deps.runtimeV2 ?? null
   function getV2Runtime(req: Request): FleetGraphV2Runtime {
-    if (runtimeV2) return runtimeV2
+    if (deps.runtimeV2) {
+      return deps.runtimeV2
+    }
 
     const baseUrl = process.env.SHIP_API_BASE_URL || `${req.protocol}://${req.get('host')}`
     const token = process.env.FLEETGRAPH_SERVICE_TOKEN || ''
 
-    // Create LLM adapter for V2 enhanced reasoning
-    const llmConfig = resolveLLMConfig(process.env)
-    const llm = llmConfig ? createLLMAdapter(llmConfig) : undefined
-
-    runtimeV2 = createFleetGraphV2Runtime({
+    return createFleetGraphV2Runtime({
+      actionStore,
+      checkpointer: sharedCheckpointer,
       fetchConfig: {
         baseUrl,
-        token,
         requestContext: buildShipRestRequestContext(req),
+        token,
       },
+      findingStore,
       llm,
     })
-    return runtimeV2
+  }
+
+  function getOnDemandActionService(req: Request) {
+    return deps.onDemandActionService ?? createFleetGraphOnDemandActionService({
+      runtime: getV2Runtime(req),
+    })
   }
 
   const router: RouterType = Router()
@@ -208,22 +322,15 @@ export function createFleetGraphRouter(
     const api = resolveFleetGraphSurfaceReadiness('api')
     const worker = resolveFleetGraphSurfaceReadiness('worker')
     const v2 = resolveFleetGraphV2Readiness()
-    const response = FleetGraphDeploymentReadinessResponseSchema.parse({
-      api,
-      checklist: buildFleetGraphEvidenceChecklist({ api, worker }, {}),
-      worker,
+
+    res.status(api.ready && worker.ready ? 200 : 503).json({
+      ...FleetGraphDeploymentReadinessResponseSchema.parse({
+        api,
+        checklist: buildFleetGraphEvidenceChecklist({ api, worker }, {}),
+        worker,
+      }),
+      v2,
     })
-
-    // Add V2 info to response (outside schema for now, during migration)
-    const extendedResponse = {
-      ...response,
-      v2: {
-        enabled: v2.enabled,
-        rolloutPercent: v2.rolloutPercent,
-      },
-    }
-
-    res.status(api.ready && worker.ready ? 200 : 503).json(extendedResponse)
   })
 
   router.post('/entry', authMiddleware, async (req: Request, res: Response) => {
@@ -237,129 +344,51 @@ export function createFleetGraphRouter(
       return
     }
 
-    // Check if V2 is enabled for this request
-    const threadId = `fleetgraph:${auth.workspaceId}:entry:${Date.now()}`
-    const useV2 = isFleetGraphV2Enabled(process.env, threadId)
-
-    if (useV2) {
-      try {
-        const body = req.body as {
-          context?: { current?: { id?: string; document_type?: string; title?: string } }
-          route?: { activeTab?: string; nestedPath?: string[]; surface?: string }
-          trigger?: { documentId?: string; documentType?: string; mode?: string }
-          draft?: { requestedAction?: unknown }
-        }
-
-        const documentId = body.trigger?.documentId ?? body.context?.current?.id
-        const documentType = body.trigger?.documentType ?? body.context?.current?.document_type
-
-        if (!documentId || !documentType) {
-          res.status(400).json({ error: 'documentId and documentType are required' })
-          return
-        }
-
-        const v2Runtime = getV2Runtime(req)
-        const v2State = await v2Runtime.invoke({
-          workspaceId: auth.workspaceId,
-          threadId,
-          mode: 'on_demand',
-          triggerType: 'user_chat',
-          triggerSource: body.route?.surface ?? 'document-page',
-          actorId: auth.userId ?? null,
-          viewerUserId: auth.userId ?? null,
-          documentId,
-          documentType: documentType as 'issue' | 'project' | 'sprint' | 'wiki' | 'person' | 'program' | null,
-          activeTab: body.route?.activeTab ?? null,
-          nestedPath: body.route?.nestedPath?.join('/') ?? null,
-          projectContextId: null,
-          userQuestion: null,
-          dirtyEntityId: null,
-          dirtyEntityType: null,
-          dirtyWriteType: null,
-          dirtyCoalescedIds: [],
-        })
-
-        // Map V2 branch to V1 outcome
-        const outcomeMap: Record<string, string> = {
-          quiet: 'quiet',
-          advisory: 'advisory',
-          action_required: 'approval_required',
-          fallback: 'fallback',
-        }
-        const outcome = outcomeMap[v2State.branch] ?? 'quiet'
-
-        // Extract detail/title from ResponsePayload if available
-        let responseDetail = `FleetGraph V2 analyzed ${body.context?.current?.title ?? 'this document'}.`
-        let responseTitle = outcome === 'quiet' ? 'No action needed' : 'FleetGraph ready'
-
-        if (v2State.responsePayload?.type === 'insight_cards' && v2State.responsePayload.cards.length > 0) {
-          responseTitle = v2State.responsePayload.cards[0]?.title ?? responseTitle
-          responseDetail = v2State.responsePayload.cards[0]?.body ?? responseDetail
-        } else if (v2State.responsePayload?.type === 'chat_answer') {
-          responseDetail = v2State.responsePayload.answer.text
-        } else if (v2State.responsePayload?.type === 'degraded') {
-          responseDetail = v2State.responsePayload.disclaimer
-        }
-
-        // Build V1-compatible response from V2 state
-        const response = {
-          entry: {
-            current: {
-              documentType,
-              id: documentId,
-              title: body.context?.current?.title ?? 'Untitled',
-            },
-            route: {
-              activeTab: body.route?.activeTab,
-              nestedPath: body.route?.nestedPath ?? [],
-              surface: body.route?.surface ?? 'document-page',
-            },
-            threadId,
-          },
-          run: {
-            branch: v2State.branch === 'action_required' ? 'approval_required' : v2State.branch,
-            outcome,
-            path: v2State.path,
-            routeSurface: body.route?.surface ?? 'document-page',
-            threadId,
-          },
-          summary: {
-            detail: responseDetail,
-            surfaceLabel: body.route?.surface ?? 'document-page',
-            title: responseTitle,
-          },
-          // Include V2-specific data for clients that support it
-          v2: {
-            reasonedFindings: v2State.reasonedFindings,
-            scoredFindings: v2State.scoredFindings,
-            proposedActions: v2State.proposedActions,
-            pendingApproval: v2State.pendingApproval,
-          },
-        }
-
-        res.json(response)
-        return
-      } catch (error) {
-        console.error('FleetGraph V2 entry error, falling back to V1:', error)
-        // Fall through to V1 entry service
-      }
-    }
-
-    // V1 path
     try {
-      const response = await entryService.createEntry(req.body, auth)
-      res.json(response)
+      const body = req.body as {
+        context?: { current?: { document_type?: string; id?: string; title?: string } }
+        route?: { activeTab?: string; nestedPath?: string[]; surface?: string }
+        trigger?: { documentId?: string; documentType?: string }
+      }
+
+      const documentId = body.trigger?.documentId ?? body.context?.current?.id
+      const documentType = body.trigger?.documentType ?? body.context?.current?.document_type
+      if (!documentId || !documentType) {
+        res.status(400).json({ error: 'documentId and documentType are required' })
+        return
+      }
+
+      const threadId = `fleetgraph:${auth.workspaceId}:entry:${documentId}:${Date.now()}`
+      const runtime = getV2Runtime(req)
+      const state = await runtime.invoke(
+        buildAnalyzeInput(auth, threadId, {
+          activeTab: body.route?.activeTab ?? null,
+          documentId,
+          documentType,
+          nestedPath: body.route?.nestedPath?.join('/') ?? null,
+          triggerSource: body.route?.surface ?? 'document-page',
+          userQuestion: null,
+        }),
+        { threadId }
+      )
+
+      res.json({
+        entry: {
+          current: {
+            documentType,
+            id: documentId,
+            title: body.context?.current?.title ?? 'Untitled',
+          },
+          route: {
+            activeTab: body.route?.activeTab,
+            nestedPath: body.route?.nestedPath ?? [],
+            surface: body.route?.surface ?? 'document-page',
+          },
+          threadId,
+        },
+        ...(await serializeNativeState(runtime, threadId, state)),
+      })
     } catch (error) {
-      if (error instanceof FleetGraphEntryError) {
-        res.status(error.statusCode).json({ error: error.message })
-        return
-      }
-
-      if (error instanceof ZodError) {
-        res.status(400).json({ error: error.issues[0]?.message ?? 'Invalid FleetGraph payload' })
-        return
-      }
-
       console.error('FleetGraph entry error:', error)
       res.status(500).json({ error: 'Failed to create FleetGraph entry' })
     }
@@ -371,16 +400,14 @@ export function createFleetGraphRouter(
       return
     }
 
-    const documentIds = readDocumentIds(req)
-
     try {
       const findings = await findingStore.listActiveFindings({
-        documentIds,
+        documentIds: readDocumentIds(req),
         workspaceId: auth.workspaceId,
       })
       const findingsWithExecutions = await actionService.attachExecutions(
         findings,
-        auth.workspaceId
+        auth.workspaceId,
       )
 
       res.json(FleetGraphFindingListResponseSchema.parse({
@@ -403,6 +430,7 @@ export function createFleetGraphRouter(
       : []
 
     try {
+      const runtime = getV2Runtime(req)
       const threads = await Promise.all(
         threadIds.map(async (threadId) => {
           const [history, pendingInterrupts] = await Promise.all([
@@ -412,7 +440,7 @@ export function createFleetGraphRouter(
 
           return {
             checkpoints: history.map(serializeCheckpoint),
-            pendingInterrupts: pendingInterrupts.map(serializeInterrupt),
+            pendingInterrupts,
             threadId,
           }
         })
@@ -434,7 +462,7 @@ export function createFleetGraphRouter(
     try {
       const finding = await findingStore.dismissFinding(
         String(req.params.id),
-        auth.workspaceId
+        auth.workspaceId,
       )
 
       if (!finding) {
@@ -444,7 +472,7 @@ export function createFleetGraphRouter(
 
       const [findingWithExecution] = await actionService.attachExecutions(
         [finding],
-        auth.workspaceId
+        auth.workspaceId,
       )
       if (!findingWithExecution) {
         throw new Error('FleetGraph finding execution hydration failed after dismiss.')
@@ -497,11 +525,10 @@ export function createFleetGraphRouter(
       const durationMs = body.seconds !== undefined
         ? body.seconds * 1_000
         : (body.minutes ?? 240) * 60_000
-      const snoozedUntil = new Date(Date.now() + durationMs)
       const finding = await findingStore.snoozeFinding(
         String(req.params.id),
         auth.workspaceId,
-        snoozedUntil
+        new Date(Date.now() + durationMs),
       )
 
       if (!finding) {
@@ -511,7 +538,7 @@ export function createFleetGraphRouter(
 
       const [findingWithExecution] = await actionService.attachExecutions(
         [finding],
-        auth.workspaceId
+        auth.workspaceId,
       )
       if (!findingWithExecution) {
         throw new Error('FleetGraph finding execution hydration failed after snooze.')
@@ -565,20 +592,20 @@ export function createFleetGraphRouter(
     }
 
     try {
-      const response = await onDemandActionService.reviewThreadAction({
+      const response = await getOnDemandActionService(req).reviewThreadAction({
         actionId: String(req.params.actionId),
         threadId: String(req.params.threadId),
         workspaceId: auth.workspaceId,
       })
 
-      res.json(FleetGraphOnDemandActionReviewResponseSchema.parse(response))
+      res.json(response)
     } catch (error) {
       if (error instanceof FleetGraphOnDemandActionError) {
         res.status(error.statusCode).json({ error: error.message })
         return
       }
 
-      console.error('FleetGraph on-demand action review error:', error)
+      console.error('FleetGraph on-demand review error:', error)
       res.status(500).json({ error: 'Failed to prepare FleetGraph action review' })
     }
   })
@@ -590,154 +617,124 @@ export function createFleetGraphRouter(
     }
 
     try {
-      const response = await onDemandActionService.applyThreadAction({
+      const body = req.body as {
+        dialogSubmission?: { values?: FleetGraphDialogSubmission['values'] }
+        values?: FleetGraphDialogSubmission['values']
+      }
+
+      const response = await getOnDemandActionService(req).applyThreadAction({
         actionId: String(req.params.actionId),
-        request: req,
+        submission: body.values ?? body.dialogSubmission?.values,
         threadId: String(req.params.threadId),
         workspaceId: auth.workspaceId,
       })
 
-      res.json(FleetGraphOnDemandActionApplyResponseSchema.parse(response))
+      res.json(response)
     } catch (error) {
       if (error instanceof FleetGraphOnDemandActionError) {
         res.status(error.statusCode).json({ error: error.message })
         return
       }
 
-      console.error('FleetGraph on-demand action apply error:', error)
+      console.error('FleetGraph on-demand apply error:', error)
       res.status(500).json({ error: 'Failed to apply FleetGraph action' })
     }
   })
 
-  // ── V2 Three-Lane Architecture Invoke ──
-  // Unified endpoint for all three lanes: proactive sweep, on-demand, event-driven
   router.post('/v2/invoke', authMiddleware, async (req: Request, res: Response) => {
     const auth = getAuthContext(req, res)
-    if (!auth) return
+    if (!auth) {
+      return
+    }
 
     try {
       const body = req.body as Partial<FleetGraphV2RuntimeInput>
-
-      // Validate required fields
       if (!body.triggerType) {
         res.status(400).json({ error: 'triggerType is required (sweep, user_chat, or enqueue)' })
         return
       }
 
-      // Derive mode from trigger type
-      const modeMap = {
-        sweep: 'proactive' as const,
-        user_chat: 'on_demand' as const,
-        enqueue: 'event_driven' as const,
-      }
-      const mode = modeMap[body.triggerType]
-
-      // Build input with defaults
-      const threadId = body.threadId ??
-        `fleetgraph:${auth.workspaceId}:v2:${body.triggerType}:${Date.now()}`
-
-      const input: FleetGraphV2RuntimeInput = {
-        workspaceId: auth.workspaceId,
-        threadId,
-        mode,
-        triggerType: body.triggerType,
-        triggerSource: body.triggerSource ?? 'api',
-        actorId: body.actorId ?? auth.userId ?? null,
-        viewerUserId: body.viewerUserId ?? auth.userId ?? null,
-        documentId: body.documentId ?? null,
-        documentType: body.documentType ?? null,
+      const threadId = body.threadId ?? `fleetgraph:${auth.workspaceId}:v2:${body.triggerType}:${Date.now()}`
+      const runtime = getV2Runtime(req)
+      const state = await runtime.invoke({
         activeTab: body.activeTab ?? null,
-        nestedPath: body.nestedPath ?? null,
-        projectContextId: body.projectContextId ?? null,
-        userQuestion: body.userQuestion ?? null,
+        actorId: body.actorId ?? auth.userId ?? null,
+        dirtyCoalescedIds: body.dirtyCoalescedIds ?? [],
         dirtyEntityId: body.dirtyEntityId ?? null,
         dirtyEntityType: body.dirtyEntityType ?? null,
         dirtyWriteType: body.dirtyWriteType ?? null,
-        dirtyCoalescedIds: body.dirtyCoalescedIds ?? [],
-      }
-
-      const v2Runtime = getV2Runtime(req)
-      const state = await v2Runtime.invoke(input, { threadId })
-
-      res.json({
-        branch: state.branch,
-        mode: state.mode,
-        path: state.path,
-        reasonedFindings: state.reasonedFindings,
-        responsePayload: state.responsePayload,
-        runId: state.runId,
+        documentId: body.documentId ?? null,
+        documentType: body.documentType ?? null,
+        mode: body.mode ?? (body.triggerType === 'sweep'
+          ? 'proactive'
+          : body.triggerType === 'enqueue'
+            ? 'event_driven'
+            : 'on_demand'),
+        nestedPath: body.nestedPath ?? null,
+        projectContextId: body.projectContextId ?? null,
+        selectedActionId: body.selectedActionId ?? null,
         threadId,
-        traceMetadata: state.traceMetadata,
-      })
+        triggerSource: body.triggerSource ?? 'api',
+        triggerType: body.triggerType,
+        userQuestion: body.userQuestion ?? null,
+        viewerUserId: body.viewerUserId ?? auth.userId ?? null,
+        workspaceId: auth.workspaceId,
+      }, { threadId })
+
+      res.json(await serializeNativeState(runtime, threadId, state))
     } catch (error) {
       console.error('FleetGraph V2 invoke error:', error)
-      const message = error instanceof Error ? error.message : 'Failed to invoke FleetGraph V2'
-      res.status(500).json({ error: message })
+      res.status(500).json({ error: 'Failed to invoke FleetGraph V2' })
     }
   })
 
-  // ── V2 Resume (for approval interrupts) ──
   router.post('/v2/resume/:threadId', authMiddleware, async (req: Request, res: Response) => {
     const auth = getAuthContext(req, res)
-    if (!auth) return
+    if (!auth) {
+      return
+    }
 
     try {
-      const { decision } = req.body as { decision?: 'approved' | 'dismissed' | 'snoozed' }
-
-      if (!decision) {
-        res.status(400).json({ error: 'decision is required (approved, dismissed, or snoozed)' })
-        return
-      }
-
       const threadId = String(req.params.threadId)
-      const v2Runtime = getV2Runtime(req)
-      const state = await v2Runtime.resume(threadId, decision)
-
-      res.json({
-        actionResult: state.actionResult,
-        approvalDecision: state.approvalDecision,
-        branch: state.branch,
-        path: state.path,
-        responsePayload: state.responsePayload,
-        threadId,
-      })
+      const runtime = getV2Runtime(req)
+      const state = await runtime.resume(threadId, parseFleetGraphV2ResumeInput(req.body ?? {}))
+      res.json(await serializeNativeState(runtime, threadId, state))
     } catch (error) {
       console.error('FleetGraph V2 resume error:', error)
-      const message = error instanceof Error ? error.message : 'Failed to resume FleetGraph V2'
-      res.status(500).json({ error: message })
+      res.status(500).json({ error: 'Failed to resume FleetGraph V2' })
     }
   })
 
-  // ── V2 Get State (for debugging/UI) ──
   router.get('/v2/state/:threadId', authMiddleware, async (req: Request, res: Response) => {
     const auth = getAuthContext(req, res)
-    if (!auth) return
+    if (!auth) {
+      return
+    }
 
     try {
-      const threadId = String(req.params.threadId)
-      const v2Runtime = getV2Runtime(req)
-      const snapshot = await v2Runtime.getState(threadId)
+      const runtime = getV2Runtime(req)
+      const snapshot = await runtime.getState(String(req.params.threadId))
 
       res.json({
-        threadId,
+        tasks: snapshot.tasks,
+        threadId: String(req.params.threadId),
         values: snapshot.values,
       })
     } catch (error) {
       console.error('FleetGraph V2 state error:', error)
-      const message = error instanceof Error ? error.message : 'Failed to get FleetGraph V2 state'
-      res.status(500).json({ error: message })
+      res.status(500).json({ error: 'Failed to get FleetGraph V2 state' })
     }
   })
 
-  // ── On-demand analysis (auto-analysis on document open) ──
   router.post('/analyze', authMiddleware, async (req: Request, res: Response) => {
     const auth = getAuthContext(req, res)
-    if (!auth) return
+    if (!auth) {
+      return
+    }
 
     try {
-      const { documentId, documentType, documentTitle } = req.body as {
+      const { documentId, documentType } = req.body as {
         documentId?: string
-        documentTitle?: string
         documentType?: string
       }
 
@@ -747,165 +744,29 @@ export function createFleetGraphRouter(
       }
 
       const threadId = `fleetgraph:${auth.workspaceId}:analyze:${documentId}`
-      const useV2 = isFleetGraphV2Enabled(process.env, threadId)
-
-      if (useV2) {
-        const v2Runtime = getV2Runtime(req)
-        const v2State = await v2Runtime.invoke({
-          workspaceId: auth.workspaceId,
-          threadId,
-          mode: 'on_demand',
-          triggerType: 'user_chat',
-          triggerSource: 'document-page',
-          actorId: auth.userId ?? null,
-          viewerUserId: auth.userId ?? null,
+      const runtime = getV2Runtime(req)
+      const state = await runtime.invoke(
+        buildAnalyzeInput(auth, threadId, {
           documentId,
-          documentType: documentType as 'issue' | 'project' | 'sprint' | 'wiki' | 'person' | 'program' | null,
-          activeTab: null,
-          nestedPath: null,
-          projectContextId: null,
+          documentType,
+          triggerSource: 'document-page',
           userQuestion: null,
-          dirtyEntityId: null,
-          dirtyEntityType: null,
-          dirtyWriteType: null,
-          dirtyCoalescedIds: [],
-        })
+        }),
+        { threadId }
+      )
 
-        // Map V2 branch to V1 outcome
-        const outcomeMap: Record<string, string> = {
-          quiet: 'quiet',
-          advisory: 'advisory',
-          action_required: 'approval_required',
-          fallback: 'fallback',
-        }
-
-        // Extract analysis text from ResponsePayload
-        let analysisText = ''
-        if (v2State.responsePayload?.type === 'insight_cards' && v2State.responsePayload.cards.length > 0) {
-          analysisText = v2State.responsePayload.cards.map(c => c.body).join('\n\n')
-        } else if (v2State.responsePayload?.type === 'chat_answer') {
-          analysisText = v2State.responsePayload.answer.text
-        } else if (v2State.responsePayload?.type === 'degraded') {
-          analysisText = v2State.responsePayload.disclaimer
-        }
-
-        // Map V2 reasonedFindings to V1 FleetGraphFinding format
-        const analysisFindings = (v2State.reasonedFindings ?? []).map((rf, index) => {
-          // Find corresponding proposed action if any
-          const proposedAction = v2State.proposedActions.find(
-            pa => pa.findingFingerprint === rf.fingerprint
-          )
-
-          // Derive action type from finding type
-          const actionTypeMap: Record<string, string> = {
-            week_start_drift: 'start_week',
-            empty_active_week: 'assign_issues',
-            missing_standup: 'post_standup',
-            approval_gap: 'approve_week_plan',
-            deadline_risk: 'escalate_risk',
-            workload_imbalance: 'rebalance_load',
-            blocker_aging: 'post_comment',
-          }
-          const actionType = actionTypeMap[rf.findingType] ?? 'post_comment'
-
-          return {
-            actionTier: index === 0 ? 'A' : index === 1 ? 'B' : 'C',
-            evidence: [] as string[], // V2 doesn't include evidence in ReasonedFinding
-            findingType: rf.findingType,
-            proposedAction: proposedAction ? {
-              actionId: `${actionType}:${proposedAction.targetEntity.id}`,
-              actionType,
-              dialogKind: 'confirm' as const,
-              endpoint: {
-                method: proposedAction.endpoint.method,
-                path: proposedAction.endpoint.path,
-              },
-              label: proposedAction.label,
-              reviewSummary: proposedAction.safetyRationale,
-              reviewTitle: rf.title,
-              targetId: proposedAction.targetEntity.id,
-              targetType: proposedAction.targetEntity.type as 'project' | 'sprint',
-            } : undefined,
-            severity: rf.severity,
-            summary: rf.explanation,
-            title: rf.title,
-          }
-        })
-
-        // Derive action type for pending approval
-        const pendingActionTypeMap: Record<string, string> = {
-          week_start_drift: 'start_week',
-          empty_active_week: 'assign_issues',
-          missing_standup: 'post_standup',
-          approval_gap: 'approve_week_plan',
-          deadline_risk: 'escalate_risk',
-          workload_imbalance: 'rebalance_load',
-          blocker_aging: 'post_comment',
-        }
-        const pendingActionType = v2State.pendingApproval?.reasonedFinding
-          ? pendingActionTypeMap[v2State.pendingApproval.reasonedFinding.findingType] ?? 'post_comment'
-          : 'post_comment'
-
-        res.json({
-          analysisFindings,
-          analysisText,
-          outcome: outcomeMap[v2State.branch] ?? 'quiet',
-          path: v2State.path,
-          pendingAction: v2State.pendingApproval?.proposedAction ? {
-            actionId: `${pendingActionType}:${v2State.pendingApproval.proposedAction.targetEntity.id}`,
-            actionType: pendingActionType,
-            dialogKind: 'confirm' as const,
-            endpoint: {
-              method: v2State.pendingApproval.proposedAction.endpoint.method,
-              path: v2State.pendingApproval.proposedAction.endpoint.path,
-            },
-            label: v2State.pendingApproval.proposedAction.label,
-            reviewSummary: v2State.pendingApproval.proposedAction.safetyRationale,
-            reviewTitle: v2State.pendingApproval.reasonedFinding.title,
-            targetId: v2State.pendingApproval.proposedAction.targetEntity.id,
-            targetType: v2State.pendingApproval.proposedAction.targetEntity.type as 'project' | 'sprint',
-          } : undefined,
-          threadId,
-          v2: true,
-        })
-        return
-      }
-
-      // V1 path
-      const state = await runtime.invoke({
-        contextKind: 'entry',
-        documentId,
-        documentTitle: documentTitle || 'Untitled',
-        documentType,
-        mode: 'on_demand',
-        routeSurface: 'document-page',
-        threadId,
-        trigger: 'document-context',
-        workspaceId: auth.workspaceId,
-      }, {
-        fleetgraphReadRequestContext: buildShipRestRequestContext(req),
-      })
-
-      const extended = state as unknown as Record<string, unknown>
-      res.json({
-        analysisFindings: extended.analysisFindings ?? [],
-        analysisText: extended.analysisText ?? '',
-        outcome: state.outcome,
-        path: state.path,
-        pendingAction: extended.pendingAction,
-        threadId,
-      })
+      res.json(await serializeNativeState(runtime, threadId, state))
     } catch (error) {
       console.error('FleetGraph analyze error:', error)
-      const message = error instanceof Error ? error.message : 'Failed to analyze document'
-      res.status(500).json({ error: message })
+      res.status(500).json({ error: 'Failed to analyze document' })
     }
   })
 
-  // ── Conversation turn (follow-up questions) ──
   router.post('/thread/:threadId/turn', authMiddleware, async (req: Request, res: Response) => {
     const auth = getAuthContext(req, res)
-    if (!auth) return
+    if (!auth) {
+      return
+    }
 
     try {
       const { message } = req.body as { message?: string }
@@ -915,41 +776,28 @@ export function createFleetGraphRouter(
       }
 
       const threadId = String(req.params.threadId)
+      const runtime = getV2Runtime(req)
+      const snapshot = await runtime.getState(threadId)
+      const state = snapshot.values
 
-      // Get existing state to extract context
-      const existingState = await runtime.getState(threadId)
-      const values = existingState.values as Record<string, unknown> | undefined
-
-      if (!values?.documentId) {
-        res.status(404).json({ error: 'No active session found for this thread' })
+      if (!state.documentId || state.workspaceId !== auth.workspaceId) {
+        res.status(404).json({ error: 'No active FleetGraph session found for this thread' })
         return
       }
 
-      // TODO: pass userMessage to graph once reason node is wired into master's scenario runner
-      const state = await runtime.invoke({
-        contextKind: 'entry' as const,
-        documentId: values.documentId as string,
-        documentTitle: (values.documentTitle as string) ?? 'Untitled',
-        documentType: (values.documentType as string) ?? 'document',
-        mode: 'on_demand' as const,
-        routeSurface: 'document-page',
-        threadId,
-        trigger: 'document-context' as const,
-        workspaceId: auth.workspaceId,
-      }, {
-        fleetgraphReadRequestContext: buildShipRestRequestContext(req),
-      })
+      const nextState = await runtime.invoke(
+        buildAnalyzeInput(auth, threadId, {
+          activeTab: state.activeTab,
+          documentId: state.documentId,
+          documentType: state.documentType ?? 'project',
+          nestedPath: state.nestedPath,
+          triggerSource: state.triggerSource || 'document-page',
+          userQuestion: message,
+        }),
+        { threadId }
+      )
 
-      const extended = state as unknown as Record<string, unknown>
-      res.json({
-        analysisFindings: extended.analysisFindings ?? [],
-        analysisText: extended.analysisText ?? '',
-        outcome: state.outcome,
-        path: state.path,
-        pendingAction: extended.pendingAction,
-        threadId,
-        turnCount: extended.turnCount,
-      })
+      res.json(await serializeNativeState(runtime, threadId, nextState))
     } catch (error) {
       console.error('FleetGraph turn error:', error)
       res.status(500).json({ error: 'Failed to process conversation turn' })

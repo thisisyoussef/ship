@@ -3,49 +3,33 @@
  *
  * Lane: Shared
  * Type: LLM reasoning (with template fallback)
- * LLM: **Yes** - this is the first (and often only) LLM call in the graph
+ * LLM: Yes
  *
- * For each scored finding, produces:
- * - 1-3 sentence explanation of why the human should care right now
- * - Names specific person, entity, and deadline involved
- * - Proposes concrete next action with requires_approval flag
- *
- * Two modes:
- * 1. Template-only (no LLM): Fast, deterministic explanations from templates
- * 2. LLM-enhanced (with LLM): Templates provide structure, LLM personalizes
- *
- * Token budget:
- * - Proactive: ~4,700 tokens total
- * - On-demand: ~7,000 tokens total
- *
- * See docs/specs/fleetgraph/THREE_LANE_ARCHITECTURE.md for full specification.
+ * This node converts scored findings into human-readable explanations, keeps
+ * multi-turn on-demand context alive, and emits shared action-registry drafts
+ * instead of V1-shaped review actions.
  */
 
+import { actionDraftFromProposedAction } from '../../actions/drafts.js'
+import type { LLMAdapter } from '../../llm/types.js'
+import type { FleetGraphStateV2, FleetGraphStateV2Update } from '../state-v2.js'
 import type {
+  FleetGraphActionType,
   FleetGraphV2SuspectType,
   ProposedAction,
   ReasonedFinding,
   ScoredFinding,
 } from '../types-v2.js'
-import type { FleetGraphStateV2, FleetGraphStateV2Update } from '../state-v2.js'
-import type { LLMAdapter } from '../../llm/types.js'
-
-// ──────────────────────────────────────────────────────────────────────────────
-// Dependencies
-// ──────────────────────────────────────────────────────────────────────────────
 
 export interface ReasonFindingsDeps {
   llm?: LLMAdapter
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Templates
-// ──────────────────────────────────────────────────────────────────────────────
-
 const FINDING_TEMPLATES: Record<FleetGraphV2SuspectType, {
   title: (metadata: Record<string, unknown>) => string
   explanation: (metadata: Record<string, unknown>) => string
   action?: {
+    actionType: FleetGraphActionType
     label: string
     method: 'POST' | 'PATCH'
     pathTemplate: string
@@ -55,81 +39,172 @@ const FINDING_TEMPLATES: Record<FleetGraphV2SuspectType, {
   week_start_drift: {
     title: (m) => `Week "${m.weekTitle ?? 'Untitled'}" is still in planning`,
     explanation: (m) => {
-      const hours = Math.round(m.hoursSinceStart as number ?? 0)
-      return `This week started ${hours} hours ago but is still marked as "planning". ` +
-        `The team may be waiting for it to become active to begin work. ` +
-        `Starting the week will unlock issue tracking and standup submission.`
+      const hours = Math.round((m.hoursSinceStart as number) ?? 0)
+      return `This week started ${hours} hours ago but is still marked as planning. Starting it would unblock issue tracking and standup submission.`
     },
     action: {
+      actionType: 'start_week',
       label: 'Start this week',
       method: 'POST',
       pathTemplate: '/api/weeks/{entityId}/start',
       requiresApproval: true,
     },
   },
-
   empty_active_week: {
     title: (m) => `Active week "${m.weekTitle ?? 'Untitled'}" has no issues`,
-    explanation: (_m) =>
-      `This week is marked as "active" but has no issues assigned to it. ` +
-      `Either issues need to be added, or the week status should be reconsidered.`,
+    explanation: () =>
+      'This week is active but has no scoped issues, so the team may not have a concrete plan to execute against.',
   },
-
   missing_standup: {
-    title: (m) => `${m.personName ?? 'A team member'} hasn't posted a standup`,
+    title: (m) => `${m.personName ?? 'A team member'} has not posted a standup`,
     explanation: (m) =>
-      `It's past noon and ${m.personName ?? 'this person'} has active issues ` +
-      `but hasn't posted a standup update today. Consider reaching out.`,
+      `${m.personName ?? 'This person'} still has active work but no standup update today, which reduces visibility for the rest of the team.`,
   },
-
   approval_gap: {
     title: (m) => `${m.entityTitle ?? 'A submission'} needs review`,
     explanation: (m) => {
-      const days = Math.round(m.businessDaysSinceSubmission as number ?? 0)
-      return `This ${m.entityType ?? 'item'} was submitted ${days} business day(s) ago ` +
-        `and is still awaiting approval. The submitter may be blocked.`
+      const days = Math.round((m.businessDaysSinceSubmission as number) ?? 0)
+      return `This ${m.entityType ?? 'item'} has been waiting ${days} business day(s) for approval, so the owner may be blocked on the next step.`
     },
     action: {
+      actionType: 'approve_week_plan',
       label: 'Review and approve',
       method: 'POST',
       pathTemplate: '/api/{entityType}s/{entityId}/approve-plan',
       requiresApproval: true,
     },
   },
-
   deadline_risk: {
     title: (m) => `Project "${m.projectTitle ?? 'Untitled'}" deadline at risk`,
     explanation: (m) => {
-      const days = Math.round(m.daysUntil as number ?? 0)
-      const issues = m.openIssueCount as number ?? 0
-      return `Target date is in ${days} day(s) with ${issues} open issues. ` +
-        `${m.hasStaleHighPriority ? 'At least one high-priority issue is stale. ' : ''}` +
-        `Consider reviewing scope or timeline.`
+      const days = Math.round((m.daysUntil as number) ?? 0)
+      const issues = Math.round((m.openIssueCount as number) ?? 0)
+      const staleNote = m.hasStaleHighPriority ? ' At least one high-priority issue is stale.' : ''
+      return `The target date is ${days} day(s) away with ${issues} open issues.${staleNote}`
     },
   },
-
   workload_imbalance: {
     title: (m) => `${m.personName ?? 'A team member'} may be overloaded`,
     explanation: (m) => {
-      const percent = Math.round((m.percentOfTotal as number ?? 0) * 100)
-      return `This person has ${percent}% of the team's open work estimate. ` +
-        `Consider redistributing issues to balance the load.`
+      const percent = Math.round((((m.percentOfTotal as number) ?? 0)) * 100)
+      return `This person is carrying about ${percent}% of the visible open work estimate, which is a signal to rebalance assignments.`
     },
   },
-
   blocker_aging: {
     title: (m) => `Issue "${m.issueTitle ?? 'Untitled'}" has an aging blocker`,
     explanation: (m) => {
-      const days = Math.round(m.businessDaysSinceUpdate as number ?? 0)
-      return `This issue has reported a blocker for ${days} business days without update. ` +
-        `Consider escalating or reassigning.`
+      const days = Math.round((m.businessDaysSinceUpdate as number) ?? 0)
+      return `This blocker has gone ${days} business day(s) without a meaningful update, so the issue may need escalation or reassignment.`
     },
   },
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Reasoning Logic
-// ──────────────────────────────────────────────────────────────────────────────
+const ACTION_CONFIGS: Record<FleetGraphActionType, { method: 'POST' | 'PATCH'; pathTemplate: string }> = {
+  start_week: { method: 'POST', pathTemplate: '/api/weeks/{entityId}/start' },
+  approve_week_plan: { method: 'POST', pathTemplate: '/api/weeks/{entityId}/approve-plan' },
+  approve_project_plan: { method: 'POST', pathTemplate: '/api/projects/{entityId}/approve-plan' },
+  assign_owner: { method: 'PATCH', pathTemplate: '/api/documents/{entityId}' },
+  assign_issues: { method: 'PATCH', pathTemplate: '/api/documents/{entityId}' },
+  post_comment: { method: 'POST', pathTemplate: '/api/documents/{entityId}/comments' },
+  post_standup: { method: 'POST', pathTemplate: '/api/standups' },
+  escalate_risk: { method: 'POST', pathTemplate: '/api/documents/{entityId}/comments' },
+  rebalance_load: { method: 'PATCH', pathTemplate: '/api/documents/{entityId}' },
+}
+
+const LLM_SYSTEM_INSTRUCTIONS = `You are FleetGraph, a project intelligence agent for Ship.
+
+You improve structured findings and answer follow-up questions about the current document.
+
+Return valid JSON:
+{
+  "findings": [
+    {
+      "fingerprint": "string",
+      "enhancedTitle": "string | null",
+      "enhancedExplanation": "string",
+      "suggestedAction": null or {
+        "actionType": "start_week | approve_week_plan | approve_project_plan | assign_owner | assign_issues | post_comment | post_standup | escalate_risk | rebalance_load",
+        "label": "string",
+        "rationale": "string"
+      }
+    }
+  ],
+  "overallAnalysis": "string"
+}
+
+Guidelines:
+- Keep the answer concise and specific.
+- When there is a user question, answer it directly first.
+- Use only grounded facts from the provided context.
+- If there are no important issues, say that plainly.
+- Do not invent people, dates, or entities.`
+
+interface LLMEnhancedFinding {
+  fingerprint: string
+  enhancedExplanation: string
+  enhancedTitle?: string | null
+  suggestedAction?: {
+    actionType: FleetGraphActionType
+    label: string
+    rationale: string
+  } | null
+}
+
+interface LLMResponse {
+  findings: LLMEnhancedFinding[]
+  overallAnalysis?: string
+}
+
+function stringifyValue(value: unknown): string | null {
+  if (typeof value === 'string' && value.trim().length > 0) {
+    return value.trim()
+  }
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value)
+  }
+  return null
+}
+
+function buildEvidence(scored: ScoredFinding, metadata: Record<string, unknown>) {
+  const evidence = Object.entries(metadata)
+    .map(([key, value]) => {
+      const text = stringifyValue(value)
+      return text ? `${key}: ${text}` : null
+    })
+    .filter((value): value is string => value !== null)
+    .slice(0, 4)
+
+  if (evidence.length > 0) {
+    return evidence
+  }
+
+  return [
+    `finding_type: ${scored.findingType}`,
+    `target_entity_id: ${scored.targetEntityId}`,
+    `composite_score: ${scored.compositeScore}`,
+  ]
+}
+
+function buildConversationContext(state: FleetGraphStateV2) {
+  const recentTurns = state.conversationHistory.slice(-4)
+  const sections: string[] = []
+
+  if (recentTurns.length > 0) {
+    sections.push(
+      `## Recent Conversation\n${recentTurns.map((turn) => `${turn.role}: ${turn.content}`).join('\n')}`
+    )
+  }
+
+  if (state.contextSummary) {
+    sections.push(`## Earlier Context Summary\n${state.contextSummary}`)
+  }
+
+  if (state.userQuestion) {
+    sections.push(`## User Question\n${state.userQuestion}`)
+  }
+
+  return sections.join('\n\n')
+}
 
 function reasonFinding(
   scored: ScoredFinding,
@@ -138,13 +213,16 @@ function reasonFinding(
   const template = FINDING_TEMPLATES[scored.findingType as FleetGraphV2SuspectType]
 
   if (!template) {
-    // Fallback for unknown finding types
     return {
       reasoned: {
+        evidence: [
+          `target_entity_id: ${scored.targetEntityId}`,
+          `finding_type: ${scored.findingType}`,
+        ],
         fingerprint: scored.fingerprint,
         findingType: scored.findingType as FleetGraphV2SuspectType,
         title: `Finding: ${scored.findingType}`,
-        explanation: `A ${scored.findingType} was detected for entity ${scored.targetEntityId}.`,
+        explanation: `A ${scored.findingType} signal was detected for entity ${scored.targetEntityId}.`,
         targetEntity: {
           id: scored.targetEntityId,
           type: scored.targetEntityType,
@@ -155,29 +233,28 @@ function reasonFinding(
     }
   }
 
-  // Enrich metadata with resolved names
-  const metadata: Record<string, unknown> = {
-    ...scored.rawData,
-  }
-
-  // Try to resolve entity names from normalized context
-  const entity = state.normalizedContext?.nodes.find(
-    (n) => n.id === scored.targetEntityId
-  )
+  const metadata: Record<string, unknown> = { ...scored.rawData }
+  const entity = state.normalizedContext?.nodes.find((node) => node.id === scored.targetEntityId)
   if (entity) {
     metadata.entityTitle = entity.title
     if (entity.type === 'week') metadata.weekTitle = entity.title
     if (entity.type === 'project') metadata.projectTitle = entity.title
     if (entity.type === 'issue') metadata.issueTitle = entity.title
+    metadata.entityType = entity.type
   }
 
-  // Resolve person names
-  const person = state.normalizedContext?.resolvedPersons[scored.targetEntityId]
+  const affectedPersonId = typeof metadata.personId === 'string'
+    ? metadata.personId
+    : (typeof scored.rawData.ownerId === 'string' ? scored.rawData.ownerId : null)
+  const person = affectedPersonId
+    ? state.normalizedContext?.resolvedPersons[affectedPersonId]
+    : state.normalizedContext?.resolvedPersons[scored.targetEntityId]
   if (person) {
     metadata.personName = person.name
   }
 
   const reasoned: ReasonedFinding = {
+    evidence: buildEvidence(scored, metadata),
     fingerprint: scored.fingerprint,
     findingType: scored.findingType as FleetGraphV2SuspectType,
     title: template.title(metadata),
@@ -191,14 +268,18 @@ function reasonFinding(
     severity: scored.severity,
   }
 
-  // Build proposed action if template has one
   let action: ProposedAction | undefined
   if (template.action) {
+    const actionType = template.action.actionType === 'approve_week_plan'
+      && scored.targetEntityType === 'project'
+      ? 'approve_project_plan'
+      : template.action.actionType
     const path = template.action.pathTemplate
       .replace('{entityId}', scored.targetEntityId)
       .replace('{entityType}', scored.targetEntityType)
 
     action = {
+      actionType,
       findingFingerprint: scored.fingerprint,
       label: template.action.label,
       endpoint: {
@@ -208,103 +289,45 @@ function reasonFinding(
       targetEntity: reasoned.targetEntity,
       requiresApproval: template.action.requiresApproval,
       rollbackFeasibility: 'easy',
-      safetyRationale: `This action is a standard ${scored.targetEntityType} operation with clear rollback path.`,
+      safetyRationale: `This is a standard ${actionType} Ship action on the current ${scored.targetEntityType}.`,
     }
   }
 
   return { reasoned, action }
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-// LLM Prompt
-// ──────────────────────────────────────────────────────────────────────────────
-
-const LLM_SYSTEM_INSTRUCTIONS = `You are FleetGraph, a project intelligence agent for Ship — a project management tool.
-
-You enhance structured findings with personalized, context-aware explanations. You receive pre-detected findings with template explanations and improve them.
-
-RESPONSE FORMAT: You MUST respond with valid JSON matching this schema:
-{
-  "findings": [
-    {
-      "fingerprint": "string — MUST match the input fingerprint exactly",
-      "enhancedTitle": "string — improved title (or null to keep original)",
-      "enhancedExplanation": "string — 2-3 sentence personalized explanation",
-      "additionalContext": "string — optional extra insight based on the data",
-      "suggestedAction": null or {
-        "actionType": "start_week | approve_week_plan | approve_project_plan | assign_owner | assign_issues | post_comment | escalate_risk | rebalance_load | post_standup",
-        "label": "string — button label",
-        "rationale": "string — why this action helps"
-      }
-    }
-  ],
-  "overallAnalysis": "string — 1-2 sentence summary of all findings together"
-}
-
-GUIDELINES:
-- Keep explanations concise but specific — name people, dates, and numbers
-- Focus on "why should I care right now" not just "what is the issue"
-- If the finding already has a good action, don't suggest a different one
-- Only suggest actions from the supported list above
-- If data is missing, say so rather than guessing
-- Be direct and actionable, not vague`
-
 function buildLLMInput(
   templateFindings: Array<{ reasoned: ReasonedFinding; action?: ProposedAction }>,
   state: FleetGraphStateV2
-): string {
-  const parts: string[] = []
-
-  // Context
-  parts.push(`## Context
+) {
+  const parts = [
+    `## Context
 - Mode: ${state.mode}
-- Document: ${state.documentId ?? 'workspace-wide'} (${state.documentType ?? 'multiple'})
-- Actor Role: ${state.roleLens ?? 'unknown'}`)
+- Document: ${state.documentId ?? 'workspace'} (${state.documentType ?? 'multiple'})
+- Role lens: ${state.roleLens}`,
+  ]
 
-  // Findings to enhance
-  parts.push(`## Findings to Enhance`)
-  for (const { reasoned, action } of templateFindings) {
-    parts.push(`
-### Finding: ${reasoned.fingerprint}
-- Type: ${reasoned.findingType}
-- Severity: ${reasoned.severity}
-- Target: ${reasoned.targetEntity.name} (${reasoned.targetEntity.type})
-- Template Title: ${reasoned.title}
-- Template Explanation: ${reasoned.explanation}
-${reasoned.affectedPerson ? `- Affected Person: ${reasoned.affectedPerson.name}` : ''}
-${action ? `- Current Action: ${action.label} (${action.endpoint.method} ${action.endpoint.path})` : '- No action proposed'}`)
+  const conversationContext = buildConversationContext(state)
+  if (conversationContext) {
+    parts.push(conversationContext)
   }
 
-  // Available data summary
-  if (state.normalizedContext) {
-    const nodeTypes = state.normalizedContext.nodes.reduce((acc, n) => {
-      acc[n.type] = (acc[n.type] || 0) + 1
-      return acc
-    }, {} as Record<string, number>)
-    parts.push(`
-## Available Data
-- Nodes: ${JSON.stringify(nodeTypes)}
-- People resolved: ${Object.keys(state.normalizedContext.resolvedPersons).length}`)
+  if (templateFindings.length > 0) {
+    parts.push('## Findings')
+    for (const { reasoned, action } of templateFindings) {
+      parts.push([
+        `Fingerprint: ${reasoned.fingerprint}`,
+        `Title: ${reasoned.title}`,
+        `Explanation: ${reasoned.explanation}`,
+        `Evidence: ${reasoned.evidence.join('; ')}`,
+        action ? `Suggested action: ${action.label}` : 'Suggested action: none',
+      ].join('\n'))
+    }
+  } else {
+    parts.push('## Findings\nNo scored findings crossed the threshold. Answer the user based on the current document context.')
   }
 
-  return parts.join('\n')
-}
-
-interface LLMEnhancedFinding {
-  fingerprint: string
-  enhancedTitle?: string | null
-  enhancedExplanation: string
-  additionalContext?: string
-  suggestedAction?: {
-    actionType: string
-    label: string
-    rationale: string
-  } | null
-}
-
-interface LLMResponse {
-  findings: LLMEnhancedFinding[]
-  overallAnalysis?: string
+  return parts.join('\n\n')
 }
 
 function parseLLMResponse(text: string): LLMResponse | null {
@@ -316,154 +339,138 @@ function parseLLMResponse(text: string): LLMResponse | null {
   try {
     return JSON.parse(cleaned) as LLMResponse
   } catch {
-    console.warn('[FleetGraph V2] Failed to parse LLM response as JSON')
     return null
   }
 }
 
-function applyLLMEnhancements(
-  templateFindings: Array<{ reasoned: ReasonedFinding; action?: ProposedAction }>,
-  llmResponse: LLMResponse
-): Array<{ reasoned: ReasonedFinding; action?: ProposedAction }> {
-  const enhanced: Array<{ reasoned: ReasonedFinding; action?: ProposedAction }> = []
-
-  for (const { reasoned, action } of templateFindings) {
-    const llmFinding = llmResponse.findings.find(f => f.fingerprint === reasoned.fingerprint)
-
-    if (llmFinding) {
-      // Apply enhancements
-      const enhancedReasoned: ReasonedFinding = {
-        ...reasoned,
-        title: llmFinding.enhancedTitle ?? reasoned.title,
-        explanation: llmFinding.enhancedExplanation || reasoned.explanation,
-      }
-
-      // If LLM suggests an action and we don't have one, consider adding it
-      let enhancedAction = action
-      if (!action && llmFinding.suggestedAction) {
-        const actionConfig = getActionConfig(llmFinding.suggestedAction.actionType)
-        if (actionConfig) {
-          enhancedAction = {
-            findingFingerprint: reasoned.fingerprint,
-            label: llmFinding.suggestedAction.label,
-            endpoint: {
-              method: actionConfig.method,
-              path: actionConfig.pathTemplate.replace('{entityId}', reasoned.targetEntity.id),
-            },
-            targetEntity: reasoned.targetEntity,
-            requiresApproval: true,
-            rollbackFeasibility: 'easy',
-            safetyRationale: llmFinding.suggestedAction.rationale,
-          }
-        }
-      }
-
-      enhanced.push({ reasoned: enhancedReasoned, action: enhancedAction })
-    } else {
-      // Keep original if LLM didn't provide enhancement
-      enhanced.push({ reasoned, action })
-    }
+function buildSuggestedAction(
+  reasoned: ReasonedFinding,
+  suggestedAction: NonNullable<LLMEnhancedFinding['suggestedAction']>
+): ProposedAction | undefined {
+  const config = ACTION_CONFIGS[suggestedAction.actionType]
+  if (!config) {
+    return undefined
   }
 
-  return enhanced
+  return {
+    actionType: suggestedAction.actionType,
+    findingFingerprint: reasoned.fingerprint,
+    label: suggestedAction.label,
+    endpoint: {
+      method: config.method,
+      path: config.pathTemplate.replace('{entityId}', reasoned.targetEntity.id),
+    },
+    targetEntity: reasoned.targetEntity,
+    requiresApproval: true,
+    rollbackFeasibility: 'easy',
+    safetyRationale: suggestedAction.rationale,
+  }
 }
 
-const ACTION_CONFIGS: Record<string, { method: 'POST' | 'PATCH'; pathTemplate: string }> = {
-  start_week: { method: 'POST', pathTemplate: '/api/weeks/{entityId}/start' },
-  approve_week_plan: { method: 'POST', pathTemplate: '/api/weeks/{entityId}/approve-plan' },
-  approve_project_plan: { method: 'POST', pathTemplate: '/api/projects/{entityId}/approve-plan' },
-  assign_owner: { method: 'PATCH', pathTemplate: '/api/documents/{entityId}' },
-  assign_issues: { method: 'PATCH', pathTemplate: '/api/documents/{entityId}' },
-  post_comment: { method: 'POST', pathTemplate: '/api/documents/{entityId}/comments' },
-  escalate_risk: { method: 'POST', pathTemplate: '/api/documents/{entityId}/comments' },
-  rebalance_load: { method: 'PATCH', pathTemplate: '/api/documents/{entityId}' },
-  post_standup: { method: 'POST', pathTemplate: '/api/standups' },
+function buildAnalysisNarrative(
+  state: FleetGraphStateV2,
+  findings: ReasonedFinding[],
+  overallAnalysis?: string
+) {
+  if (overallAnalysis && overallAnalysis.trim().length > 0) {
+    return overallAnalysis.trim()
+  }
+
+  if (state.userQuestion) {
+    if (findings.length === 0) {
+      return `I checked this ${state.documentType ?? 'document'} against your question and I do not see an immediate issue to flag right now.`
+    }
+    return `For your question, the most relevant signal is ${findings[0]?.title ?? 'the current document state'}. ${findings[0]?.explanation ?? ''}`.trim()
+  }
+
+  if (findings.length === 0) {
+    return `I analyzed this ${state.documentType ?? 'document'} and did not find anything that needs immediate attention.`
+  }
+
+  if (findings.length === 1) {
+    return `${findings[0]!.title}. ${findings[0]!.explanation}`
+  }
+
+  return `${findings[0]!.title} is the highest-priority signal right now. ${findings[0]!.explanation}`
 }
 
-function getActionConfig(actionType: string) {
-  return ACTION_CONFIGS[actionType]
-}
-
-// ──────────────────────────────────────────────────────────────────────────────
-// Node Implementation
-// ──────────────────────────────────────────────────────────────────────────────
-
-/**
- * Reasons about scored findings to produce human-readable explanations.
- *
- * Two modes:
- * 1. Template-only (no LLM): Fast, deterministic explanations from templates
- * 2. LLM-enhanced (with LLM): Templates provide structure, LLM personalizes
- *
- * @param state - Current graph state with scored findings
- * @param deps - Dependencies including optional LLM
- * @returns State update with reasoned findings and proposed actions
- */
 export async function reasonFindings(
   state: FleetGraphStateV2,
   deps: ReasonFindingsDeps = {}
 ): Promise<FleetGraphStateV2Update> {
-  // Only process non-suppressed findings above threshold
   const qualifyingFindings = state.scoredFindings.filter(
-    (f) => !f.suppressed && f.compositeScore >= 30
+    (finding) => !finding.suppressed && finding.compositeScore >= 30
   )
 
-  // Step 1: Generate template-based findings
-  const templateFindings: Array<{ reasoned: ReasonedFinding; action?: ProposedAction }> = []
-  for (const scored of qualifyingFindings) {
-    templateFindings.push(reasonFinding(scored, state))
-  }
+  const templateFindings = qualifyingFindings.map((finding) => reasonFinding(finding, state))
+  let enhancedFindings = templateFindings
+  let overallAnalysis: string | undefined
 
-  // Step 2: If LLM available, enhance with personalized explanations
-  let finalFindings = templateFindings
-
-  if (deps.llm && templateFindings.length > 0) {
+  if (deps.llm && (templateFindings.length > 0 || Boolean(state.userQuestion))) {
     try {
-      const input = buildLLMInput(templateFindings, state)
       const response = await deps.llm.generate({
         instructions: LLM_SYSTEM_INSTRUCTIONS,
-        input,
-        maxOutputTokens: 2000,
-        temperature: 0.3,
+        input: buildLLMInput(templateFindings, state),
+        maxOutputTokens: 1800,
+        temperature: 0.2,
       })
-
       const parsed = parseLLMResponse(response.text)
       if (parsed) {
-        finalFindings = applyLLMEnhancements(templateFindings, parsed)
+        overallAnalysis = parsed.overallAnalysis
+        enhancedFindings = templateFindings.map(({ reasoned, action }) => {
+          const match = parsed.findings.find((item) => item.fingerprint === reasoned.fingerprint)
+          if (!match) {
+            return { reasoned, action }
+          }
+
+          return {
+            action: action ?? (match.suggestedAction
+              ? buildSuggestedAction(reasoned, match.suggestedAction)
+              : undefined),
+            reasoned: {
+              ...reasoned,
+              explanation: match.enhancedExplanation || reasoned.explanation,
+              title: match.enhancedTitle ?? reasoned.title,
+            },
+          }
+        })
       }
     } catch (error) {
-      console.warn('[FleetGraph V2] LLM enhancement failed, using template fallback:', error)
-      // Keep template findings on error
+      console.warn('[FleetGraph V2] LLM reasoning failed, falling back to templates.', error)
     }
   }
 
-  // Step 3: Extract results
-  const reasonedFindings: ReasonedFinding[] = []
-  const proposedActions: ProposedAction[] = []
-
-  for (const { reasoned, action } of finalFindings) {
-    reasonedFindings.push(reasoned)
-    if (action) {
-      proposedActions.push(action)
-    }
-  }
+  const reasonedFindings = enhancedFindings.map((entry) => entry.reasoned)
+  const proposedActions = enhancedFindings
+    .map((entry) => entry.action)
+    .filter((value): value is ProposedAction => Boolean(value))
+  const actionDrafts = proposedActions
+    .map((action) => {
+      const reasonedFinding = reasonedFindings.find(
+        (finding) => finding.fingerprint === action.findingFingerprint
+      )
+      return reasonedFinding
+        ? actionDraftFromProposedAction(action, reasonedFinding.evidence)
+        : undefined
+    })
+    .filter((value): value is NonNullable<typeof value> => Boolean(value))
+  const analysisNarrative = buildAnalysisNarrative(
+    state,
+    reasonedFindings,
+    overallAnalysis,
+  )
 
   return {
-    reasonedFindings,
-    proposedActions,
+    actionDrafts,
+    analysisNarrative,
     path: ['reason_findings'],
+    proposedActions,
+    reasonedFindings,
   }
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Routing Function
-// ──────────────────────────────────────────────────────────────────────────────
-
 export type ReasonFindingsRoute = 'policy_gate'
 
-/**
- * Always routes to policy_gate after reasoning.
- */
 export function routeFromReasonFindings(
   _state: FleetGraphStateV2
 ): ReasonFindingsRoute {

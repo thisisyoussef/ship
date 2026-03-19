@@ -47,6 +47,7 @@ export interface ResolveTriggerContextInput {
   activeTab?: string | null
   nestedPath?: string | null
   projectContextId?: string | null
+  selectedActionId?: string | null
   userQuestion?: string | null
 
   // Event context (event-driven only)
@@ -154,6 +155,7 @@ export function resolveTriggerContext(
     activeTab: state.activeTab,
     nestedPath: state.nestedPath,
     projectContextId: state.projectContextId,
+    selectedActionId: state.selectedActionId,
     userQuestion: state.userQuestion,
     dirtyEntityId: state.dirtyEntityId,
     dirtyEntityType: state.dirtyEntityType,
@@ -203,6 +205,7 @@ export function resolveTriggerContext(
     activeTab: input.activeTab ?? null,
     nestedPath: input.nestedPath ?? null,
     projectContextId: input.projectContextId ?? null,
+    selectedActionId: input.selectedActionId ?? null,
     userQuestion: input.userQuestion ?? null,
     dirtyEntityId: input.dirtyEntityId ?? null,
     dirtyEntityType: input.dirtyEntityType ?? null,

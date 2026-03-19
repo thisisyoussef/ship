@@ -16,6 +16,9 @@ import type {
   CandidateFinding,
   DedupeHit,
   FetchError,
+  FleetGraphActionDraft,
+  FleetGraphConversationTurn,
+  FleetGraphDialogSubmission,
   FleetGraphV2Branch,
   FleetGraphV2DocumentType,
   FleetGraphV2Mode,
@@ -122,6 +125,9 @@ export const FleetGraphStateV2Annotation = Annotation.Root({
 
   /** User's question (on-demand only) */
   userQuestion: replaceValue<string | null>(null),
+
+  /** Explicit action selected for native review/apply flows */
+  selectedActionId: replaceValue<string | null>(null),
 
   // ════════════════════════════════════════════════════════════════════════════
   // Event context (event-driven only)
@@ -243,6 +249,21 @@ export const FleetGraphStateV2Annotation = Annotation.Root({
   /** Actions proposed by the LLM */
   proposedActions: replaceValue<ProposedAction[]>([]),
 
+  /** Shared action-registry drafts derived from proposed actions */
+  actionDrafts: replaceValue<FleetGraphActionDraft[]>([]),
+
+  /** Primary narrative for on-demand chat responses */
+  analysisNarrative: replaceValue<string | null>(null),
+
+  /** Multi-turn assistant/user transcript */
+  conversationHistory: replaceValue<FleetGraphConversationTurn[]>([]),
+
+  /** Summary of older turns once the transcript gets long */
+  contextSummary: replaceValue<string | null>(null),
+
+  /** Number of user/assistant exchanges on this thread */
+  turnCount: replaceValue<number>(0),
+
   // ════════════════════════════════════════════════════════════════════════════
   // HITL state
   // ════════════════════════════════════════════════════════════════════════════
@@ -252,6 +273,9 @@ export const FleetGraphStateV2Annotation = Annotation.Root({
 
   /** User's decision on pending approval */
   approvalDecision: replaceValue<FleetGraphV2ApprovalDecision | null>(null),
+
+  /** Typed dialog values submitted with approval */
+  dialogSubmission: replaceValue<FleetGraphDialogSubmission | null>(null),
 
   /** Result of executing the confirmed action */
   actionResult: replaceValue<ActionResult | null>(null),

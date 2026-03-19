@@ -12,13 +12,19 @@
  * All lanes converge at normalize_ship_state → score → branch → deliver
  */
 
-import { END, START, StateGraph } from '@langchain/langgraph'
+import { Command, END, START, StateGraph } from '@langchain/langgraph'
 import { MemorySaver } from '@langchain/langgraph'
 
+import { createFleetGraphFindingActionStore } from '../actions/index.js'
+import { createFleetGraphV2FindingStoreAdapter } from '../actions/runtime-v2-store.js'
+import { ensureFirstPackActionsRegistered } from '../actions/definitions/index.js'
+import type { FleetGraphFindingActionStore } from '../actions/types.js'
+import { createFleetGraphFindingStore as createNativeFindingStore } from '../findings/index.js'
+import type { FleetGraphFindingStore } from '../findings/types.js'
 import type { ParallelFetchConfig } from '../proactive/parallel-fetch.js'
 import type { LLMAdapter } from '../llm/types.js'
 import { FleetGraphStateV2Annotation, type FleetGraphStateV2 } from './state-v2.js'
-import type { FleetGraphV2RuntimeInput } from './types-v2.js'
+import type { FleetGraphV2ResumeInput, FleetGraphV2RuntimeInput } from './types-v2.js'
 
 // Import all nodes
 import {
@@ -126,7 +132,9 @@ import {
 
 export interface FleetGraphV2RuntimeConfig {
   fetchConfig: ParallelFetchConfig
+  actionStore?: FleetGraphFindingActionStore
   checkpointer?: MemorySaver
+  findingStore?: FleetGraphFindingStore
   llm?: LLMAdapter
 }
 
@@ -138,7 +146,12 @@ export interface FleetGraphV2RuntimeConfig {
  * Creates the FleetGraph V2 StateGraph with all nodes and edges.
  */
 export function createFleetGraphV2Graph(config: FleetGraphV2RuntimeConfig) {
+  ensureFirstPackActionsRegistered()
   const builder = new StateGraph(FleetGraphStateV2Annotation)
+  const persistence = createFleetGraphV2FindingStoreAdapter({
+    actionStore: config.actionStore ?? createFleetGraphFindingActionStore(),
+    findingStore: config.findingStore ?? createNativeFindingStore(),
+  })
 
   // ────────────────────────────────────────────────────────────────────────────
   // Add Nodes
@@ -199,13 +212,16 @@ export function createFleetGraphV2Graph(config: FleetGraphV2RuntimeConfig) {
   builder.addNode('emit_advisory', emitAdvisory)
   builder.addNode('approval_interrupt', approvalInterrupt)
   builder.addNode('execute_confirmed_action', (state: FleetGraphStateV2) =>
-    executeConfirmedAction(state, { config: config.fetchConfig })
+    executeConfirmedAction(state, {
+      config: config.fetchConfig,
+      findingStore: persistence,
+    })
   )
   builder.addNode('persist_action_outcome', (state: FleetGraphStateV2) =>
-    persistActionOutcome(state)
+    persistActionOutcome(state, { findingStore: persistence })
   )
   builder.addNode('persist_run_state', (state: FleetGraphStateV2) =>
-    persistRunState(state)
+    persistRunState(state, { findingStore: persistence })
   )
   builder.addNode('fallback', fallback)
 
@@ -341,11 +357,28 @@ export interface FleetGraphV2Runtime {
     options?: { threadId?: string }
   ): Promise<FleetGraphStateV2>
 
-  getState(threadId: string): Promise<{ values: FleetGraphStateV2 }>
+  getCheckpointHistory(threadId: string): Promise<Array<{
+    config: { configurable?: { thread_id?: string } }
+    createdAt?: string
+    next?: string[]
+    tasks: Array<{ interrupts: Array<{ id?: string; value?: unknown }>; name: string }>
+    values: FleetGraphStateV2
+  }>>
+
+  getPendingInterrupts(threadId: string): Promise<Array<{
+    id?: string
+    taskName: string
+    value?: unknown
+  }>>
+
+  getState(threadId: string): Promise<{
+    tasks: Array<{ interrupts: Array<{ id?: string; value?: unknown }>; name: string }>
+    values: FleetGraphStateV2
+  }>
 
   resume(
     threadId: string,
-    decision: 'approved' | 'dismissed' | 'snoozed'
+    input: FleetGraphV2ResumeInput
   ): Promise<FleetGraphStateV2>
 }
 
@@ -362,7 +395,7 @@ export function createFleetGraphV2Runtime(
     async invoke(input, options = {}) {
       const threadId = options.threadId ?? input.threadId
 
-      const result = await graph.invoke(
+      await graph.invoke(
         {
           workspaceId: input.workspaceId,
           threadId,
@@ -375,6 +408,7 @@ export function createFleetGraphV2Runtime(
           activeTab: input.activeTab,
           nestedPath: input.nestedPath,
           projectContextId: input.projectContextId,
+          selectedActionId: input.selectedActionId,
           userQuestion: input.userQuestion,
           dirtyEntityId: input.dirtyEntityId,
           dirtyEntityType: input.dirtyEntityType,
@@ -384,28 +418,65 @@ export function createFleetGraphV2Runtime(
         { configurable: { thread_id: threadId } }
       )
 
-      return result as FleetGraphStateV2
+      const snapshot = await graph.getState({ configurable: { thread_id: threadId } })
+      return snapshot.values as FleetGraphStateV2
+    },
+
+    async getCheckpointHistory(threadId) {
+      const history = []
+      for await (const snapshot of graph.getStateHistory({
+        configurable: { thread_id: threadId },
+      })) {
+        history.push(snapshot as Awaited<ReturnType<typeof graph.getState>>)
+      }
+      return history.map((snapshot) => ({
+        config: snapshot.config,
+        createdAt: snapshot.createdAt,
+        next: snapshot.next,
+        tasks: snapshot.tasks.map((taskState) => ({
+          interrupts: taskState.interrupts.map((item) => ({
+            id: item.id,
+            value: item.value,
+          })),
+          name: taskState.name,
+        })),
+        values: snapshot.values as FleetGraphStateV2,
+      }))
+    },
+
+    async getPendingInterrupts(threadId) {
+      const snapshot = await this.getState(threadId)
+      return snapshot.tasks.flatMap((taskState) =>
+        taskState.interrupts.map((item) => ({
+          id: item.id,
+          taskName: taskState.name,
+          value: item.value,
+        }))
+      )
     },
 
     async getState(threadId) {
       const snapshot = await graph.getState({ configurable: { thread_id: threadId } })
-      return { values: snapshot.values as FleetGraphStateV2 }
+      return {
+        tasks: snapshot.tasks.map((taskState) => ({
+          interrupts: taskState.interrupts.map((item) => ({
+            id: item.id,
+            value: item.value,
+          })),
+          name: taskState.name,
+        })),
+        values: snapshot.values as FleetGraphStateV2,
+      }
     },
 
-    async resume(threadId, decision) {
-      // Update the graph state with the approval decision
-      await graph.updateState(
-        { configurable: { thread_id: threadId } },
-        { approvalDecision: decision }
-      )
-
-      // Resume execution
-      const result = await graph.invoke(
-        null,
+    async resume(threadId, input) {
+      await graph.invoke(
+        new Command({ resume: input }),
         { configurable: { thread_id: threadId } }
       )
 
-      return result as FleetGraphStateV2
+      const snapshot = await graph.getState({ configurable: { thread_id: threadId } })
+      return snapshot.values as FleetGraphStateV2
     },
   }
 }

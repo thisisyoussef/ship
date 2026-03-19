@@ -1,54 +1,92 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { createFleetGraphOnDemandActionService, FleetGraphOnDemandActionError } from './on-demand-service.js'
+import { createFleetGraphOnDemandActionService } from './on-demand-service.js'
 
 const ANALYSIS_THREAD_ID = 'fleetgraph:workspace-1:analyze:project-1'
+const REVIEW_THREAD_ID = `${ANALYSIS_THREAD_ID}:action:start_week:week-1`
+const ACTION_DRAFT = {
+  actionId: 'start_week:week-1',
+  actionType: 'start_week',
+  contextHints: {
+    endpoint: {
+      method: 'POST',
+      path: '/api/weeks/week-1/start',
+    },
+    findingFingerprint: 'finding-1',
+  },
+  evidence: ['The week is still planning after its expected start window.'],
+  rationale: 'The week should be active by now.',
+  targetId: 'week-1',
+  targetType: 'sprint',
+} as const
 
 function makeAnalysisState(overrides: Record<string, unknown> = {}) {
   return {
-    analysisFindings: [
-      {
-        actionTier: 'C',
-        evidence: ['The week is still planning after its expected start window.'],
-        findingType: 'drift',
-        proposedAction: {
-          actionType: 'start_week',
-          endpoint: {
-            method: 'POST',
-            path: '/api/weeks/week-1/start',
-          },
-          targetId: 'week-1',
-          targetType: 'sprint',
-        },
-        severity: 'warning',
-        summary: 'This week should be active by now.',
-        title: 'Week start drift',
-      },
-    ],
-    approvalRequired: false,
-    branch: 'reasoned',
-    candidateCount: 1,
-    checkpointNamespace: 'fleetgraph',
-    contextKind: 'entry',
+    actionDrafts: [ACTION_DRAFT],
+    activeTab: null,
+    actorId: 'user-1',
+    branch: 'action_required',
+    contextSummary: null,
+    conversationHistory: [],
     documentId: 'project-1',
-    documentTitle: 'Launch planner',
     documentType: 'project',
     mode: 'on_demand',
-    outcome: 'advisory',
-    path: ['resolve_trigger_context', 'fetch_medium', 'reason', 'persist_result'],
-    routeSurface: 'document-page',
-    scenarioResults: [],
+    nestedPath: null,
+    path: ['resolve_trigger_context', 'reason_findings', 'approval_interrupt'],
+    pendingApproval: null,
+    projectContextId: null,
+    reasonedFindings: [],
+    responsePayload: {
+      answer: {
+        entityLinks: [],
+        suggestedNextSteps: ['start_week'],
+        text: 'This week should be active by now.',
+      },
+      type: 'chat_answer',
+    },
     threadId: ANALYSIS_THREAD_ID,
-    trigger: 'document-context',
+    triggerSource: 'document-page',
+    turnCount: 1,
+    viewerUserId: 'viewer-1',
     workspaceId: 'workspace-1',
     ...overrides,
   }
 }
 
+function makeApprovalInterrupt() {
+  return {
+    taskName: 'approval_interrupt',
+    value: {
+      actionDraft: ACTION_DRAFT,
+      dialogSpec: {
+        cancelLabel: 'Cancel',
+        confirmLabel: 'Start week in Ship',
+        evidence: ACTION_DRAFT.evidence,
+        fields: [],
+        kind: 'confirm',
+        summary: 'FleetGraph thinks this week is ready to start.',
+        title: 'Confirm before starting this week',
+      },
+      id: 'approval:finding-1:start_week:week-1',
+      summary: 'FleetGraph thinks this week is ready to start.',
+      title: 'Confirm before starting this week',
+      type: 'approval_request',
+    },
+  }
+}
+
 describe('FleetGraph on-demand action service', () => {
   it('creates a review thread from an analysis thread action', async () => {
+    let reviewInterruptChecks = 0
     const runtime = {
-      getPendingInterrupts: vi.fn(async () => []),
+      getPendingInterrupts: vi.fn(async (threadId: string) => {
+        if (threadId !== REVIEW_THREAD_ID) {
+          return []
+        }
+
+        reviewInterruptChecks += 1
+        return reviewInterruptChecks === 1 ? [] : [makeApprovalInterrupt()]
+      }),
       getState: vi.fn(async (threadId: string) => {
         if (threadId === ANALYSIS_THREAD_ID) {
           return { values: makeAnalysisState() }
@@ -56,9 +94,8 @@ describe('FleetGraph on-demand action service', () => {
         throw new Error('missing review thread')
       }),
       invoke: vi.fn(async () => makeAnalysisState({
-        branch: 'approval_required',
-        outcome: 'approval_required',
         path: ['resolve_trigger_context', 'approval_interrupt'],
+        threadId: REVIEW_THREAD_ID,
       })),
       resume: vi.fn(),
     }
@@ -68,54 +105,58 @@ describe('FleetGraph on-demand action service', () => {
     })
 
     const result = await service.reviewThreadAction({
-      actionId: 'start_week:week-1',
+      actionId: ACTION_DRAFT.actionId,
       threadId: ANALYSIS_THREAD_ID,
       workspaceId: 'workspace-1',
     })
 
     expect(runtime.invoke).toHaveBeenCalledWith(expect.objectContaining({
-      contextKind: 'entry',
       documentId: 'project-1',
+      documentType: 'project',
       mode: 'on_demand',
-      requestedAction: expect.objectContaining({
-        endpoint: {
-          method: 'POST',
-          path: '/api/weeks/week-1/start',
-        },
-        type: 'start_week',
-      }),
-      threadId: `${ANALYSIS_THREAD_ID}:action:start_week:week-1`,
-      trigger: 'human-review',
-    }))
-    expect(result.action.actionId).toBe('start_week:week-1')
-    expect(result.review.confirmLabel).toBe('Start week in Ship')
+      selectedActionId: ACTION_DRAFT.actionId,
+      threadId: REVIEW_THREAD_ID,
+      triggerSource: 'human-review',
+      triggerType: 'user_chat',
+      userQuestion: null,
+      workspaceId: 'workspace-1',
+    }), {
+      threadId: REVIEW_THREAD_ID,
+    })
+    expect(result.actionDraft.actionId).toBe(ACTION_DRAFT.actionId)
+    expect(result.dialogSpec.confirmLabel).toBe('Start week in Ship')
   })
 
-  it('forwards the current request context when applying a thread action', async () => {
+  it('resumes review threads with structured dialog submissions', async () => {
     const runtime = {
-      getPendingInterrupts: vi.fn(async () => [{ taskName: 'approval_interrupt' }]),
+      getPendingInterrupts: vi.fn(async (threadId: string) => (
+        threadId === REVIEW_THREAD_ID ? [makeApprovalInterrupt()] : []
+      )),
       getState: vi.fn(async (threadId: string) => {
         if (threadId === ANALYSIS_THREAD_ID) {
           return { values: makeAnalysisState() }
         }
         return {
           values: makeAnalysisState({
-            actionOutcome: undefined,
-            path: ['resolve_trigger_context', 'approval_interrupt', 'execute_action'],
-            threadId,
+            approvalDecision: null,
+            threadId: REVIEW_THREAD_ID,
           }),
         }
       }),
       invoke: vi.fn(),
       resume: vi.fn(async () => makeAnalysisState({
-        actionOutcome: {
-          message: 'Week started successfully with 0 scoped issues.',
-          resultStatusCode: 200,
-          status: 'applied',
+        actionResult: {
+          endpoint: 'POST /api/weeks/week-1/start',
+          errorMessage: 'Ship rejected this action.',
+          executedAt: '2026-03-19T10:00:00.000Z',
+          method: 'POST',
+          path: '/api/weeks/week-1/start',
+          statusCode: 409,
+          success: false,
         },
-        branch: 'approval_required',
-        outcome: 'approval_required',
-        path: ['resolve_trigger_context', 'approval_interrupt', 'execute_action'],
+        approvalDecision: 'approved',
+        path: ['resolve_trigger_context', 'approval_interrupt', 'execute_confirmed_action'],
+        threadId: REVIEW_THREAD_ID,
       })),
     }
 
@@ -123,43 +164,26 @@ describe('FleetGraph on-demand action service', () => {
       runtime: runtime as never,
     })
 
-    const request = {
-      get(name: string) {
-        if (name === 'host') {
-          return 'ship-demo-production.up.railway.app'
-        }
-        if (name === 'x-forwarded-proto') {
-          return 'https'
-        }
-        return undefined
-      },
-      header(name: string) {
-        if (name === 'cookie') return 'ship_session=demo'
-        if (name === 'x-csrf-token') return 'csrf-token'
-        return undefined
-      },
-      protocol: 'http',
-    } as const
-
     const result = await service.applyThreadAction({
-      actionId: 'start_week:week-1',
-      request: request as never,
+      actionId: ACTION_DRAFT.actionId,
+      submission: {
+        note: 'Start it now',
+      },
       threadId: ANALYSIS_THREAD_ID,
       workspaceId: 'workspace-1',
     })
 
-    expect(runtime.resume).toHaveBeenCalledWith(
-      `${ANALYSIS_THREAD_ID}:action:start_week:week-1`,
-      'approved',
-      {
-        fleetgraphActionRequestContext: {
-          baseUrl: 'https://ship-demo-production.up.railway.app',
-          cookieHeader: 'ship_session=demo',
-          csrfToken: 'csrf-token',
+    expect(runtime.resume).toHaveBeenCalledWith(REVIEW_THREAD_ID, {
+      actionId: ACTION_DRAFT.actionId,
+      decision: 'approved',
+      dialogSubmission: {
+        actionId: ACTION_DRAFT.actionId,
+        values: {
+          note: 'Start it now',
         },
-      }
-    )
-    expect(result.actionOutcome.status).toBe('applied')
+      },
+    })
+    expect(result.actionResult.success).toBe(false)
   })
 
   it('returns the existing outcome when the review thread already ran', async () => {
@@ -171,12 +195,16 @@ describe('FleetGraph on-demand action service', () => {
         }
         return {
           values: makeAnalysisState({
-            actionOutcome: {
-              message: 'Project plan approved in Ship.',
-              resultStatusCode: 200,
-              status: 'applied',
+            actionResult: {
+              endpoint: 'POST /api/weeks/week-1/start',
+              executedAt: '2026-03-19T10:00:00.000Z',
+              method: 'POST',
+              path: '/api/weeks/week-1/start',
+              statusCode: 200,
+              success: true,
             },
-            path: ['resolve_trigger_context', 'approval_interrupt', 'execute_action'],
+            approvalDecision: 'approved',
+            path: ['resolve_trigger_context', 'approval_interrupt', 'execute_confirmed_action'],
             threadId,
           }),
         }
@@ -190,18 +218,13 @@ describe('FleetGraph on-demand action service', () => {
     })
 
     const result = await service.applyThreadAction({
-      actionId: 'start_week:week-1',
-      request: {
-        get: vi.fn(),
-        header: vi.fn(),
-        protocol: 'http',
-      } as never,
+      actionId: ACTION_DRAFT.actionId,
       threadId: ANALYSIS_THREAD_ID,
       workspaceId: 'workspace-1',
     })
 
     expect(runtime.resume).not.toHaveBeenCalled()
-    expect(result.actionOutcome.message).toBe('Project plan approved in Ship.')
+    expect(result.actionResult.success).toBe(true)
   })
 
   it('rejects actions from a different workspace', async () => {
@@ -221,7 +244,7 @@ describe('FleetGraph on-demand action service', () => {
     })
 
     await expect(service.reviewThreadAction({
-      actionId: 'start_week:week-1',
+      actionId: ACTION_DRAFT.actionId,
       threadId: ANALYSIS_THREAD_ID,
       workspaceId: 'workspace-1',
     })).rejects.toMatchObject({

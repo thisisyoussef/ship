@@ -52,66 +52,73 @@ describe('AnalysisSection', () => {
   it('opens a server-backed confirm dialog for supported actions and cancels safely', async () => {
     vi.mocked(apiPost)
       .mockResolvedValueOnce(jsonResponse({
-        analysisFindings: [
+        actionDrafts: [
           {
-            actionTier: 'C',
-            evidence: ['The week is still planning after the expected start window.'],
-            findingType: 'drift',
-            proposedAction: {
-              actionId: 'start_week:week-1',
-              actionType: 'start_week',
-              dialogKind: 'confirm',
-              endpoint: {
-                method: 'POST',
-                path: '/api/weeks/week-1/start',
-              },
-              label: 'Review and apply',
-              reviewSummary: 'FleetGraph thinks this week is ready to start. Nothing changes in Ship until you confirm.',
-              reviewTitle: 'Confirm before starting this week',
-              targetId: 'week-1',
-              targetType: 'sprint',
+            actionId: 'start_week:week-1',
+            actionType: 'start_week',
+            contextHints: {
+              findingFingerprint: 'finding-1',
             },
+            evidence: ['The week is still planning after the expected start window.'],
+            rationale: 'This week should be active by now.',
+            targetId: 'week-1',
+            targetType: 'sprint',
+          },
+        ],
+        branch: 'action_required',
+        path: ['resolve_trigger_context', 'reason_findings', 'approval_interrupt'],
+        pendingApproval: null,
+        reasonedFindings: [
+          {
+            evidence: ['The week is still planning after the expected start window.'],
+            explanation: 'This week should be active by now.',
+            findingType: 'week_start_drift',
+            fingerprint: 'finding-1',
             severity: 'warning',
-            summary: 'This week should be active by now.',
+            targetEntity: {
+              id: 'week-1',
+              name: 'Week 1',
+              type: 'sprint',
+            },
             title: 'Week start drift',
           },
         ],
-        analysisText: 'Week needs to be started.',
-        outcome: 'advisory',
-        path: ['resolve_trigger_context', 'fetch_medium', 'reason', 'persist_result'],
+        responsePayload: {
+          answer: {
+            entityLinks: [],
+            suggestedNextSteps: ['start_week'],
+            text: 'Week needs to be started.',
+          },
+          type: 'chat_answer',
+        },
         threadId: 'fleetgraph:workspace-1:analyze:project-1',
       }))
       .mockResolvedValueOnce(jsonResponse({
-        action: {
+        actionDraft: {
           actionId: 'start_week:week-1',
           actionType: 'start_week',
-          dialogKind: 'confirm',
-          endpoint: {
-            method: 'POST',
-            path: '/api/weeks/week-1/start',
-          },
           evidence: ['The week is still planning after the expected start window.'],
-          label: 'Review and apply',
-          reviewSummary: 'FleetGraph thinks this week is ready to start. Nothing changes in Ship until you confirm.',
-          reviewTitle: 'Confirm before starting this week',
+          rationale: 'This week should be active by now.',
           targetId: 'week-1',
           targetType: 'sprint',
         },
-        review: {
+        dialogSpec: {
           cancelLabel: 'Cancel',
           confirmLabel: 'Start week in Ship',
           evidence: ['The week is still planning after the expected start window.'],
+          fields: [],
+          kind: 'confirm',
           summary: 'FleetGraph thinks this week is ready to start. Nothing changes in Ship until you confirm.',
-          threadId: 'fleetgraph:workspace-1:analyze:project-1:action:start_week:week-1',
           title: 'Confirm before starting this week',
         },
+        threadId: 'fleetgraph:workspace-1:analyze:project-1:action:start_week:week-1',
       }))
 
     renderAnalysisSection()
 
     expect(await screen.findByText('Week needs to be started.')).toBeInTheDocument()
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Review and apply' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Review week start' }))
 
     expect(await screen.findByRole('dialog')).toBeInTheDocument()
     expect(screen.getByText('Confirm before starting this week')).toBeInTheDocument()
@@ -134,101 +141,127 @@ describe('AnalysisSection', () => {
     expect(vi.mocked(apiPost)).toHaveBeenCalledTimes(2)
   })
 
-  it('applies supported actions through FleetGraph and surfaces failures truthfully', async () => {
+  it('submits typed dialog values through FleetGraph and surfaces failures truthfully', async () => {
     vi.mocked(apiPost)
       .mockResolvedValueOnce(jsonResponse({
-        analysisFindings: [
+        actionDrafts: [
           {
-            actionTier: 'B',
-            evidence: ['Project plan is submitted and unapproved.'],
-            findingType: 'risk',
-            proposedAction: {
-              actionId: 'approve_project_plan:project-1',
-              actionType: 'approve_project_plan',
-              dialogKind: 'confirm',
-              endpoint: {
-                method: 'POST',
-                path: '/api/projects/project-1/approve-plan',
-              },
-              label: 'Review project approval',
-              reviewSummary: 'FleetGraph is ready to approve this project plan. Nothing changes in Ship until you confirm.',
-              reviewTitle: 'Confirm before approving this project plan',
-              targetId: 'project-1',
-              targetType: 'project',
+            actionId: 'assign_owner:week-1',
+            actionType: 'assign_owner',
+            contextHints: {
+              findingFingerprint: 'finding-2',
             },
-            severity: 'info',
-            summary: 'The plan is ready for approval.',
-            title: 'Project ready for approval',
+            evidence: ['Week 1 has no owner assigned.'],
+            rationale: 'Assign an accountable owner before execution.',
+            targetId: 'week-1',
+            targetType: 'sprint',
           },
         ],
-        analysisText: 'Project plan is ready for approval.',
-        outcome: 'advisory',
-        path: ['resolve_trigger_context', 'fetch_medium', 'reason', 'persist_result'],
+        branch: 'action_required',
+        path: ['resolve_trigger_context', 'reason_findings', 'approval_interrupt'],
+        pendingApproval: null,
+        reasonedFindings: [
+          {
+            evidence: ['Week 1 has no owner assigned.'],
+            explanation: 'This week needs a directly accountable owner.',
+            findingType: 'sprint_no_owner',
+            fingerprint: 'finding-2',
+            severity: 'warning',
+            targetEntity: {
+              id: 'week-1',
+              name: 'Week 1',
+              type: 'sprint',
+            },
+            title: 'Week needs an owner',
+          },
+        ],
+        responsePayload: {
+          answer: {
+            entityLinks: [],
+            suggestedNextSteps: ['assign_owner'],
+            text: 'Week 1 needs an owner.',
+          },
+          type: 'chat_answer',
+        },
         threadId: 'fleetgraph:workspace-1:analyze:project-1',
       }))
       .mockResolvedValueOnce(jsonResponse({
-        action: {
-          actionId: 'approve_project_plan:project-1',
-          actionType: 'approve_project_plan',
-          dialogKind: 'confirm',
-          endpoint: {
-            method: 'POST',
-            path: '/api/projects/project-1/approve-plan',
-          },
-          evidence: ['Project plan is submitted and unapproved.'],
-          label: 'Review project approval',
-          reviewSummary: 'FleetGraph is ready to approve this project plan. Nothing changes in Ship until you confirm.',
-          reviewTitle: 'Confirm before approving this project plan',
-          targetId: 'project-1',
-          targetType: 'project',
+        actionDraft: {
+          actionId: 'assign_owner:week-1',
+          actionType: 'assign_owner',
+          evidence: ['Week 1 has no owner assigned.'],
+          rationale: 'Assign an accountable owner before execution.',
+          targetId: 'week-1',
+          targetType: 'sprint',
         },
-        review: {
+        dialogSpec: {
           cancelLabel: 'Cancel',
-          confirmLabel: 'Approve project plan',
-          evidence: ['Project plan is submitted and unapproved.'],
-          summary: 'FleetGraph is ready to approve this project plan. Nothing changes in Ship until you confirm.',
-          threadId: 'fleetgraph:workspace-1:analyze:project-1:action:approve_project_plan:project-1',
-          title: 'Confirm before approving this project plan',
+          confirmLabel: 'Assign owner',
+          evidence: ['Week 1 has no owner assigned.'],
+          fields: [
+            {
+              label: 'Owner',
+              name: 'ownerId',
+              options: [
+                { label: 'Alice', value: 'person-1' },
+                { label: 'Jordan', value: 'person-2' },
+              ],
+              placeholder: 'Choose an owner',
+              required: true,
+              type: 'single_select',
+            },
+          ],
+          kind: 'single_select',
+          summary: 'Choose the teammate who should own this week.',
+          title: 'Assign an owner before continuing',
         },
+        threadId: 'fleetgraph:workspace-1:analyze:project-1:action:assign_owner:week-1',
       }))
       .mockResolvedValueOnce(jsonResponse({
-        action: {
-          actionId: 'approve_project_plan:project-1',
-          actionType: 'approve_project_plan',
-          dialogKind: 'confirm',
-          endpoint: {
-            method: 'POST',
-            path: '/api/projects/project-1/approve-plan',
-          },
-          evidence: ['Project plan is submitted and unapproved.'],
-          label: 'Review project approval',
-          reviewSummary: 'FleetGraph is ready to approve this project plan. Nothing changes in Ship until you confirm.',
-          reviewTitle: 'Confirm before approving this project plan',
-          targetId: 'project-1',
-          targetType: 'project',
+        actionDraft: {
+          actionId: 'assign_owner:week-1',
+          actionType: 'assign_owner',
+          evidence: ['Week 1 has no owner assigned.'],
+          rationale: 'Assign an accountable owner before execution.',
+          targetId: 'week-1',
+          targetType: 'sprint',
         },
-        actionOutcome: {
-          message: 'Project plan approved in Ship.',
-          resultStatusCode: 200,
-          status: 'applied',
+        actionResult: {
+          endpoint: 'PATCH /api/documents/week-1',
+          errorMessage: 'Ship rejected the owner assignment.',
+          executedAt: '2026-03-19T10:00:00.000Z',
+          method: 'PATCH',
+          path: '/api/documents/week-1',
+          statusCode: 409,
+          success: false,
         },
+        threadId: 'fleetgraph:workspace-1:analyze:project-1:action:assign_owner:week-1',
       }))
 
     renderAnalysisSection()
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Review project approval' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Assign owner' }))
     expect(await screen.findByRole('dialog')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Approve project plan' }))
+
+    fireEvent.change(screen.getByRole('combobox'), {
+      target: { value: 'person-2' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Assign owner' }))
 
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
 
-    expect(await screen.findByText('Project plan approved in Ship.')).toBeInTheDocument()
+    expect(await screen.findByText('Ship rejected the owner assignment.')).toBeInTheDocument()
     expect(vi.mocked(apiPost)).toHaveBeenNthCalledWith(
       3,
-      '/api/fleetgraph/thread/fleetgraph%3Aworkspace-1%3Aanalyze%3Aproject-1/actions/approve_project_plan%3Aproject-1/apply'
+      '/api/fleetgraph/thread/fleetgraph%3Aworkspace-1%3Aanalyze%3Aproject-1/actions/assign_owner%3Aweek-1/apply',
+      {
+        values: {
+          ownerId: 'person-2',
+        },
+      }
     )
-    expect(vi.mocked(apiPost)).not.toHaveBeenCalledWith('/api/projects/project-1/approve-plan')
+    expect(vi.mocked(apiPost)).not.toHaveBeenCalledWith('/api/documents/week-1')
   })
 })

@@ -1,7 +1,5 @@
 import type {
   FleetGraphMode,
-  FleetGraphOutcome,
-  FleetGraphState,
   FleetGraphTrigger,
 } from '../graph/types.js'
 
@@ -70,7 +68,7 @@ export interface FleetGraphDedupeLedger {
   lastEnqueuedAt?: Date
   lastError?: string
   lastJobId?: string
-  lastOutcome?: FleetGraphOutcome | 'failed'
+  lastOutcome?: string
   lastStartedAt?: Date
   nextEligibleAt?: Date
   threadId: string
@@ -95,7 +93,7 @@ export interface FleetGraphEnqueueResult {
 
 export interface FleetGraphRunNextResult {
   job: FleetGraphQueueJob | null
-  state?: FleetGraphState
+  state?: FleetGraphWorkerStateSummary
   status: 'completed' | 'failed' | 'idle' | 'requeued'
 }
 
@@ -109,7 +107,7 @@ export interface FleetGraphSweepResult {
 export interface FleetGraphWorkerStore {
   claimDueSweepSchedules(now: Date, limit: number, sweepIntervalMs: number): Promise<FleetGraphSweepSchedule[]>
   claimNextJob(now: Date): Promise<FleetGraphQueueJob | null>
-  completeJob(jobId: string, state: FleetGraphState, checkpoint: unknown, now: Date, cooldownMs: number): Promise<FleetGraphQueueJob>
+  completeJob(jobId: string, state: FleetGraphWorkerStateSummary, checkpoint: unknown, now: Date, cooldownMs: number): Promise<FleetGraphQueueJob>
   enqueue(input: FleetGraphEnqueueInput, now: Date, maxAttempts: number): Promise<FleetGraphEnqueueResult>
   failJob(jobId: string, errorMessage: string, checkpoint: unknown, now: Date, retryDelayMs: number): Promise<FleetGraphQueueJob>
   getLedger(dedupeKey: string): Promise<FleetGraphDedupeLedger | null>
@@ -122,8 +120,14 @@ export interface FleetGraphWorkerRuntimeDeps {
   now?: () => Date
   runtime: {
     getState(threadId: string): Promise<unknown>
-    invoke(input: unknown): Promise<FleetGraphState>
+    invoke(input: unknown): Promise<FleetGraphWorkerStateSummary>
   }
   settings: FleetGraphWorkerSettings
   store: FleetGraphWorkerStore
+}
+
+export interface FleetGraphWorkerStateSummary {
+  branch?: string
+  outcome?: string
+  path: string[]
 }

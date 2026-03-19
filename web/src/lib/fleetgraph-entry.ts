@@ -1,6 +1,5 @@
 import type { DocumentContext } from '@/hooks/useDocumentContextQuery'
 
-// All FleetGraph action types (V1 + V2 additions)
 export type FleetGraphActionType =
   | 'approve_project_plan'
   | 'approve_week_plan'
@@ -27,29 +26,146 @@ export interface FleetGraphEntryInput {
   userId: string
 }
 
-export interface FleetGraphApprovalOption {
-  id: 'apply' | 'dismiss' | 'snooze'
+export interface FleetGraphDialogSelectOption {
+  description?: string
+  disabled?: boolean
   label: string
+  value: string
 }
 
-export interface FleetGraphApprovalEnvelope {
-  endpoint: {
-    method: 'DELETE' | 'PATCH' | 'POST'
-    path: string
-  }
+export type FleetGraphDialogField =
+  | {
+      name: string
+      type: 'hidden'
+      value: string
+    }
+  | {
+      label: string
+      name: string
+      options: FleetGraphDialogSelectOption[]
+      placeholder?: string
+      required?: boolean
+      type: 'single_select'
+    }
+  | {
+      label: string
+      maxItems?: number
+      minItems?: number
+      name: string
+      options: FleetGraphDialogSelectOption[]
+      placeholder?: string
+      required?: boolean
+      type: 'multi_select'
+    }
+  | {
+      label: string
+      maxLength?: number
+      minLength?: number
+      name: string
+      placeholder?: string
+      required?: boolean
+      type: 'text_input'
+    }
+  | {
+      label: string
+      maxLength?: number
+      minLength?: number
+      name: string
+      placeholder?: string
+      required?: boolean
+      rows?: number
+      type: 'textarea'
+    }
+
+export interface FleetGraphDialogSpec {
+  cancelLabel: string
+  confirmLabel: string
   evidence: string[]
-  options: FleetGraphApprovalOption[]
-  rationale: string
-  state: 'pending_confirmation'
+  fields: FleetGraphDialogField[]
+  kind: 'composite' | 'confirm' | 'multi_select' | 'single_select' | 'text_input' | 'textarea'
   summary: string
-  targetId: string
-  targetType: 'document' | 'project' | 'sprint' | 'person'
   title: string
-  type: FleetGraphActionType
 }
 
-export interface FleetGraphEntryResponse {
-  approval?: FleetGraphApprovalEnvelope
+export interface FleetGraphActionDraft {
+  actionId: string
+  actionType: FleetGraphActionType
+  contextHints?: Record<string, unknown>
+  evidence: string[]
+  rationale: string
+  targetId: string
+  targetType: 'document' | 'issue' | 'person' | 'project' | 'sprint'
+}
+
+export interface FleetGraphReasonedFinding {
+  affectedPerson?: {
+    id: string
+    name: string
+  }
+  deadline?: string
+  evidence: string[]
+  explanation: string
+  findingType: string
+  fingerprint: string
+  severity: 'critical' | 'info' | 'warning'
+  targetEntity: {
+    id: string
+    name: string
+    type: string
+  }
+  title: string
+}
+
+export interface FleetGraphPendingApproval {
+  actionDraft?: FleetGraphActionDraft | null
+  dialogSpec?: FleetGraphDialogSpec | null
+  id?: string
+  summary?: string
+  title?: string
+  validationError?: string
+}
+
+export interface FleetGraphChatAnswer {
+  entityLinks: Array<{ id: string; name: string; type: string }>
+  relatedContextSummary?: string
+  suggestedNextSteps: string[]
+  text: string
+}
+
+export type FleetGraphResponsePayload =
+  | { type: 'chat_answer'; answer: FleetGraphChatAnswer }
+  | { type: 'degraded'; disclaimer: string; partialAnswer?: FleetGraphChatAnswer }
+  | { type: 'empty' }
+  | {
+      type: 'insight_cards'
+      cards: Array<{
+        actionButtons: Array<{
+          action: 'apply' | 'dismiss' | 'snooze' | 'view_evidence'
+          label: string
+          requiresApproval?: boolean
+        }>
+        body: string
+        findingFingerprint: string
+        id: string
+        severityBadge: 'critical' | 'info' | 'warning'
+        targetPerson?: { id: string; name: string }
+        title: string
+      }>
+    }
+
+export interface FleetGraphThreadResponse {
+  actionDrafts: FleetGraphActionDraft[]
+  branch: 'action_required' | 'advisory' | 'fallback' | 'quiet'
+  contextSummary?: string | null
+  path: string[]
+  pendingApproval?: FleetGraphPendingApproval | null
+  reasonedFindings: FleetGraphReasonedFinding[]
+  responsePayload: FleetGraphResponsePayload
+  threadId: string
+  turnCount?: number
+}
+
+export interface FleetGraphEntryResponse extends FleetGraphThreadResponse {
   entry: {
     current: {
       documentType: string
@@ -63,84 +179,14 @@ export interface FleetGraphEntryResponse {
     }
     threadId: string
   }
-  run: {
-    branch: string
-    outcome: 'advisory' | 'approval_required' | 'fallback' | 'quiet'
-    path: string[]
-    routeSurface: string
-    threadId: string
-  }
-  summary: {
-    detail: string
-    surfaceLabel: string
-    title: string
-  }
 }
 
 function splitNestedPath(value?: string) {
   return value ? value.split('/').filter(Boolean) : []
 }
 
-function buildRequestedAction(document: FleetGraphEntryDocument) {
-  if (document.documentType === 'project') {
-    return {
-      endpoint: {
-        method: 'POST' as const,
-        path: `/api/projects/${document.id}/approve-plan`,
-      },
-      evidence: [
-        'Project plan approval changes persistent project state.',
-        'Project context is available on the current Ship page.',
-      ],
-      rationale: 'Approving a project plan is a consequential Ship write.',
-      summary: 'Approve the current project plan.',
-      targetId: document.id,
-      targetType: 'project' as const,
-      title: 'Approve project plan',
-      type: 'approve_project_plan' as const,
-    }
-  }
-
-  if (document.documentType === 'sprint') {
-    return {
-      endpoint: {
-        method: 'POST' as const,
-        path: `/api/weeks/${document.id}/approve-plan`,
-      },
-      evidence: [
-        'Week plan approval changes persistent sprint approval state.',
-        'FleetGraph is operating from the current week context.',
-      ],
-      rationale: 'Week approval is a consequential Ship write.',
-      summary: 'Approve the current week plan.',
-      targetId: document.id,
-      targetType: 'sprint' as const,
-      title: 'Approve week plan',
-      type: 'approve_week_plan' as const,
-    }
-  }
-
-  return {
-    endpoint: {
-      method: 'POST' as const,
-      path: `/api/documents/${document.id}/comments`,
-    },
-    evidence: [
-      'Posting a persistent comment creates durable workspace state.',
-      'The current document context is already loaded in Ship.',
-    ],
-    rationale: 'Persistent comments should pass through human review first.',
-    summary: 'Post a comment on the current document.',
-    targetId: document.id,
-    targetType: 'document' as const,
-    title: 'Post comment',
-    type: 'post_comment' as const,
-  }
-}
-
 export function buildFleetGraphEntryPayload(
-  input: FleetGraphEntryInput,
-  previewApproval = false
+  input: FleetGraphEntryInput
 ) {
   if (!input.document.workspaceId) {
     throw new Error('FleetGraph needs a workspace id from the current document.')
@@ -148,9 +194,6 @@ export function buildFleetGraphEntryPayload(
 
   return {
     context: input.context,
-    draft: previewApproval
-      ? { requestedAction: buildRequestedAction(input.document) }
-      : undefined,
     route: {
       activeTab: input.activeTab,
       nestedPath: splitNestedPath(input.nestedPath),

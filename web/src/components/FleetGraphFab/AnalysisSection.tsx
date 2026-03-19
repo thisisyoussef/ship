@@ -1,17 +1,15 @@
-/**
- * AnalysisSection - Chat-based analysis tab content for the FleetGraph FAB
- *
- * Provides conversational interface for document analysis
- */
-
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import {
   useFleetGraphAnalysis,
   type ConversationEntry,
-  type FleetGraphFinding,
 } from '@/hooks/useFleetGraphAnalysis'
+import type {
+  FleetGraphActionDraft,
+  FleetGraphDialogField,
+  FleetGraphReasonedFinding,
+} from '@/lib/fleetgraph-entry'
 
 interface AnalysisSectionProps {
   documentId: string
@@ -19,49 +17,188 @@ interface AnalysisSectionProps {
   documentType: string
 }
 
-function FindingBadge({ severity }: { severity: FleetGraphFinding['severity'] }) {
+function actionLabel(actionDraft: FleetGraphActionDraft) {
+  switch (actionDraft.actionType) {
+    case 'start_week':
+      return 'Review week start'
+    case 'approve_project_plan':
+      return 'Review project approval'
+    case 'approve_week_plan':
+      return 'Review week approval'
+    case 'assign_owner':
+      return 'Assign owner'
+    case 'assign_issues':
+      return 'Assign issues'
+    case 'post_comment':
+      return 'Post comment'
+    case 'post_standup':
+      return 'Post standup'
+    case 'escalate_risk':
+      return 'Respond to risk'
+    case 'rebalance_load':
+      return 'Rebalance workload'
+    default:
+      return 'Review action'
+  }
+}
+
+function buildInitialDialogValues(fields: FleetGraphDialogField[]) {
+  return fields.reduce<Record<string, string | string[] | null>>((values, field) => {
+    if (field.type === 'hidden') {
+      values[field.name] = field.value
+      return values
+    }
+
+    values[field.name] = field.type === 'multi_select' ? [] : ''
+    return values
+  }, {})
+}
+
+function readFindingActionDraft(
+  entry: ConversationEntry,
+  finding: FleetGraphReasonedFinding
+) {
+  return entry.actionDrafts?.find((draft) =>
+    typeof draft.contextHints?.findingFingerprint === 'string'
+    && draft.contextHints.findingFingerprint === finding.fingerprint
+  )
+}
+
+function FindingBadge({ severity }: { severity: FleetGraphReasonedFinding['severity'] }) {
   const colors = {
     critical: 'bg-red-100 text-red-800 border-red-200',
     info: 'bg-blue-100 text-blue-800 border-blue-200',
     warning: 'bg-amber-100 text-amber-800 border-amber-200',
   }
+
   return (
-    <span className={`text-xs px-1.5 py-0.5 rounded border ${colors[severity]}`}>
+    <span className={`rounded border px-1.5 py-0.5 text-xs ${colors[severity]}`}>
       {severity}
     </span>
   )
 }
 
-interface FindingCardProps {
-  finding: FleetGraphFinding
-  isApplyingThis: boolean
-  onConfirmRequest: () => void
+function renderDialogField(
+  field: FleetGraphDialogField,
+  value: string | string[] | null,
+  onChange: (name: string, nextValue: string | string[] | null) => void
+) {
+  if (field.type === 'hidden') {
+    return null
+  }
+
+  if (field.type === 'single_select') {
+    return (
+      <label className="block text-sm text-foreground" key={field.name}>
+        <span className="mb-1 block font-medium">{field.label}</span>
+        <select
+          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+          onChange={(event) => onChange(field.name, event.target.value)}
+          value={typeof value === 'string' ? value : ''}
+        >
+          <option value="">{field.placeholder ?? 'Select an option'}</option>
+          {field.options.map((option) => (
+            <option disabled={option.disabled} key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </label>
+    )
+  }
+
+  if (field.type === 'multi_select') {
+    const selectedValues = Array.isArray(value) ? value : []
+    return (
+      <fieldset className="space-y-2" key={field.name}>
+        <legend className="text-sm font-medium text-foreground">{field.label}</legend>
+        {field.options.map((option) => (
+          <label className="flex items-center gap-2 text-sm text-foreground" key={option.value}>
+            <input
+              checked={selectedValues.includes(option.value)}
+              disabled={option.disabled}
+              onChange={(event) => {
+                const nextValues = event.target.checked
+                  ? [...selectedValues, option.value]
+                  : selectedValues.filter((entry) => entry !== option.value)
+                onChange(field.name, nextValues)
+              }}
+              type="checkbox"
+            />
+            <span>{option.label}</span>
+          </label>
+        ))}
+      </fieldset>
+    )
+  }
+
+  if (field.type === 'textarea') {
+    return (
+      <label className="block text-sm text-foreground" key={field.name}>
+        <span className="mb-1 block font-medium">{field.label}</span>
+        <textarea
+          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+          onChange={(event) => onChange(field.name, event.target.value)}
+          placeholder={field.placeholder}
+          rows={field.rows ?? 4}
+          value={typeof value === 'string' ? value : ''}
+        />
+      </label>
+    )
+  }
+
+  return (
+    <label className="block text-sm text-foreground" key={field.name}>
+      <span className="mb-1 block font-medium">{field.label}</span>
+      <input
+        className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+        onChange={(event) => onChange(field.name, event.target.value)}
+        placeholder={field.placeholder}
+        type="text"
+        value={typeof value === 'string' ? value : ''}
+      />
+    </label>
+  )
 }
 
-function FindingCard({ finding, isApplyingThis, onConfirmRequest }: FindingCardProps) {
+interface FindingCardProps {
+  actionDraft?: FleetGraphActionDraft
+  finding: FleetGraphReasonedFinding
+  isReviewingThis: boolean
+  onReviewAction: (actionDraft: FleetGraphActionDraft) => void
+}
+
+function FindingCard({
+  actionDraft,
+  finding,
+  isReviewingThis,
+  onReviewAction,
+}: FindingCardProps) {
   return (
-    <div className="border border-gray-200 rounded-md p-2 space-y-1 bg-white">
+    <div className="space-y-1 rounded-md border border-gray-200 bg-white p-2">
       <div className="flex items-center gap-2">
         <FindingBadge severity={finding.severity} />
         <span className="text-xs font-medium text-gray-900">{finding.title}</span>
       </div>
-      <p className="text-xs text-gray-600">{finding.summary}</p>
-      {finding.proposedAction && finding.actionTier !== 'A' && (
+      <p className="text-xs text-gray-600">{finding.explanation}</p>
+      {finding.evidence.length > 0 && (
+        <ul className="list-disc space-y-1 pl-4 text-[11px] text-gray-500">
+          {finding.evidence.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+      )}
+      {actionDraft && (
         <div className="pt-1">
           <button
-            className="text-xs px-2 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50 transition-colors"
-            disabled={isApplyingThis}
-            onClick={onConfirmRequest}
+            className="rounded bg-indigo-600 px-2 py-1 text-xs text-white transition-colors hover:bg-indigo-700 disabled:opacity-50"
+            disabled={isReviewingThis}
+            onClick={() => onReviewAction(actionDraft)}
             type="button"
           >
-            {isApplyingThis ? 'Reviewing...' : (finding.proposedAction.label ?? 'Review and apply')}
+            {isReviewingThis ? 'Reviewing...' : actionLabel(actionDraft)}
           </button>
         </div>
-      )}
-      {finding.actionTier === 'A' && finding.proposedAction && (
-        <p className="text-xs text-indigo-600 font-medium pt-1">
-          Suggested: {finding.proposedAction.label}
-        </p>
       )}
     </div>
   )
@@ -69,40 +206,39 @@ function FindingCard({ finding, isApplyingThis, onConfirmRequest }: FindingCardP
 
 interface ConversationMessageProps {
   entry: ConversationEntry
-  isApplying: boolean
-  pendingActionFindingId: string | null
-  onConfirmFinding: (finding: FleetGraphFinding) => void
+  isReviewing: boolean
+  pendingActionId: string | null
+  onReviewAction: (actionDraft: FleetGraphActionDraft) => void
 }
 
 function ConversationMessage({
   entry,
-  isApplying,
-  pendingActionFindingId,
-  onConfirmFinding,
+  isReviewing,
+  pendingActionId,
+  onReviewAction,
 }: ConversationMessageProps) {
   const isUser = entry.role === 'user'
+
   return (
     <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}>
       <div
         className={`max-w-[85%] rounded-lg px-2.5 py-1.5 text-xs ${
-          isUser
-            ? 'bg-indigo-600 text-white'
-            : 'bg-gray-100 text-gray-900'
+          isUser ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-900'
         }`}
       >
         {entry.content}
       </div>
       {entry.findings && entry.findings.length > 0 && (
-        <div className="mt-1.5 space-y-1.5 w-full">
-          {entry.findings.map((finding, idx) => {
-            const key = `${finding.findingType}:${finding.title}`
-            const actionKey = finding.proposedAction?.actionId ?? key
+        <div className="mt-1.5 w-full space-y-1.5">
+          {entry.findings.map((finding) => {
+            const actionDraft = readFindingActionDraft(entry, finding)
             return (
               <FindingCard
-                key={idx}
+                actionDraft={actionDraft}
                 finding={finding}
-                isApplyingThis={isApplying && pendingActionFindingId === actionKey}
-                onConfirmRequest={() => onConfirmFinding(finding)}
+                isReviewingThis={Boolean(actionDraft) && isReviewing && pendingActionId === actionDraft?.actionId}
+                key={finding.fingerprint}
+                onReviewAction={onReviewAction}
               />
             )
           })}
@@ -118,8 +254,9 @@ export function AnalysisSection({
   documentType,
 }: AnalysisSectionProps) {
   const [input, setInput] = useState('')
-  const scrollRef = useRef<HTMLDivElement>(null)
+  const [reviewValues, setReviewValues] = useState<Record<string, string | string[] | null>>({})
   const hasAnalyzedRef = useRef(false)
+  const scrollRef = useRef<HTMLDivElement>(null)
 
   const {
     actionNotice,
@@ -131,22 +268,20 @@ export function AnalysisSection({
     dismissActionReview,
     isAnalyzing,
     isApplying,
-    isReviewing,
     isResponding,
-    pendingActionFindingId,
+    isReviewing,
+    pendingActionId,
     requestActionReview,
     sendMessage,
   } = useFleetGraphAnalysis()
 
-  // Auto-analyze on mount
   useEffect(() => {
     if (!hasAnalyzedRef.current && documentId) {
       hasAnalyzedRef.current = true
       analyze(documentId, documentType, documentTitle)
     }
-  }, [documentId, documentType, documentTitle, analyze])
+  }, [analyze, documentId, documentTitle, documentType])
 
-  // Auto-scroll on new messages
   useEffect(() => {
     scrollRef.current?.scrollTo({
       behavior: 'smooth',
@@ -154,66 +289,79 @@ export function AnalysisSection({
     })
   }, [conversation.length])
 
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault()
+  useEffect(() => {
+    if (!currentReview) {
+      setReviewValues({})
+      return
+    }
+
+    setReviewValues(buildInitialDialogValues(currentReview.dialogSpec.fields))
+  }, [currentReview])
+
+  const reviewFields = useMemo(
+    () => currentReview?.dialogSpec.fields ?? [],
+    [currentReview]
+  )
+
+  const handleSubmit = (event: FormEvent) => {
+    event.preventDefault()
     const message = input.trim()
-    if (!message || isResponding) return
+    if (!message || isResponding) {
+      return
+    }
     sendMessage(message)
     setInput('')
   }
 
   return (
     <>
-      <div className="flex flex-col h-full">
-        {/* Conversation area */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto space-y-2 min-h-0">
+      <div className="flex h-full flex-col">
+        <div className="flex-1 space-y-2 overflow-y-auto min-h-0" ref={scrollRef}>
           {isAnalyzing && conversation.length === 0 && (
             <div className="flex items-center gap-2 text-xs text-gray-500">
-              <div className="w-3 h-3 border-2 border-indigo-300 border-t-indigo-600 rounded-full animate-spin" />
+              <div className="h-3 w-3 animate-spin rounded-full border-2 border-indigo-300 border-t-indigo-600" />
               Analyzing {documentType}...
             </div>
           )}
 
-          {conversation.map((entry, idx) => (
+          {conversation.map((entry, index) => (
             <ConversationMessage
-              key={idx}
               entry={entry}
-              isApplying={isApplying || isReviewing}
-              pendingActionFindingId={pendingActionFindingId}
-              onConfirmFinding={(finding) => requestActionReview(finding)}
+              isReviewing={isApplying || isReviewing}
+              key={index}
+              onReviewAction={requestActionReview}
+              pendingActionId={pendingActionId}
             />
           ))}
 
           {isResponding && (
             <div className="flex items-center gap-2 text-xs text-gray-500">
-              <div className="w-3 h-3 border-2 border-indigo-300 border-t-indigo-600 rounded-full animate-spin" />
+              <div className="h-3 w-3 animate-spin rounded-full border-2 border-indigo-300 border-t-indigo-600" />
               Thinking...
             </div>
           )}
         </div>
 
-        {/* Action error */}
         {applyError && (
-          <p className="text-xs text-red-500 py-1">{applyError}</p>
+          <p className="py-1 text-xs text-red-500">{applyError}</p>
         )}
 
         {actionNotice && (
-          <p className="text-xs text-emerald-700 py-1">{actionNotice}</p>
+          <p className="py-1 text-xs text-emerald-700">{actionNotice}</p>
         )}
 
-        {/* Chat input */}
-        <form className="pt-2 border-t border-gray-200 mt-2" onSubmit={handleSubmit}>
+        <form className="mt-2 border-t border-gray-200 pt-2" onSubmit={handleSubmit}>
           <div className="flex gap-2">
             <input
-              className="flex-1 text-xs text-gray-900 border border-gray-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="flex-1 rounded-lg border border-gray-300 px-2.5 py-1.5 text-xs text-gray-900 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500"
               disabled={isAnalyzing || isResponding}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={(event) => setInput(event.target.value)}
               placeholder="Ask a follow-up..."
               type="text"
               value={input}
             />
             <button
-              className="px-2.5 py-1.5 bg-indigo-600 text-white text-xs rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+              className="rounded-lg bg-indigo-600 px-2.5 py-1.5 text-xs text-white transition-colors hover:bg-indigo-700 disabled:opacity-50"
               disabled={!input.trim() || isAnalyzing || isResponding}
               type="submit"
             >
@@ -225,23 +373,38 @@ export function AnalysisSection({
 
       {currentReview && (
         <ConfirmDialog
-          open={currentReview !== null}
-          title={currentReview.review.title}
-          description={currentReview.review.summary}
-          confirmLabel={currentReview.review.confirmLabel}
-          cancelLabel={currentReview.review.cancelLabel}
-          onConfirm={() => {
-            applyReviewedAction()
-          }}
+          cancelLabel={currentReview.dialogSpec.cancelLabel}
+          confirmLabel={currentReview.dialogSpec.confirmLabel}
+          description={currentReview.dialogSpec.summary}
           onCancel={dismissActionReview}
+          onConfirm={() => applyReviewedAction(reviewValues)}
+          open={Boolean(currentReview)}
+          title={currentReview.dialogSpec.title}
         >
-          {currentReview.review.evidence.length > 0 && (
-            <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
-              {currentReview.review.evidence.map((item, idx) => (
-                <li key={idx}>{item}</li>
-              ))}
-            </ul>
-          )}
+          <div className="space-y-3">
+            {currentReview.validationError && (
+              <p className="text-sm text-red-600">{currentReview.validationError}</p>
+            )}
+            {reviewFields.map((field) =>
+              renderDialogField(
+                field,
+                reviewValues[field.name] ?? null,
+                (name, value) => {
+                  setReviewValues((prev) => ({
+                    ...prev,
+                    [name]: value,
+                  }))
+                },
+              )
+            )}
+            {currentReview.dialogSpec.evidence.length > 0 && (
+              <ul className="list-disc space-y-1 pl-4 text-sm text-gray-700">
+                {currentReview.dialogSpec.evidence.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            )}
+          </div>
         </ConfirmDialog>
       )}
     </>

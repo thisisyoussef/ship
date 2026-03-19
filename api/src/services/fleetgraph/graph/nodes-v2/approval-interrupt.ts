@@ -1,129 +1,170 @@
-/**
- * approval_interrupt - Shared Pipeline (HITL Gate)
- *
- * Lane: Shared
- * Type: LangGraph interrupt() - pauses execution
- * LLM: No
- *
- * Builds a PendingApproval object and uses LangGraph's interrupt()
- * to pause execution until the user approves, dismisses, or snoozes.
- *
- * Resume behavior:
- * - approved → execute_confirmed_action
- * - dismissed → persist_action_outcome
- * - snoozed → persist_action_outcome (with snooze metadata)
- *
- * See docs/specs/fleetgraph/THREE_LANE_ARCHITECTURE.md for full specification.
- */
-
 import { interrupt } from '@langchain/langgraph'
 
-import type { PendingApproval, TraceMetadata } from '../types-v2.js'
+import { buildEmptyDialogSubmission } from '../../actions/drafts.js'
+import {
+  getActionDefinition,
+  type FleetGraphSelectOption,
+} from '../../actions/registry.js'
 import type { FleetGraphStateV2, FleetGraphStateV2Update } from '../state-v2.js'
+import type {
+  FleetGraphDialogSpec,
+  FleetGraphV2ResumeInput,
+  PendingApproval,
+  TraceMetadata,
+} from '../types-v2.js'
+import { parseFleetGraphV2ResumeInput } from '../types-v2.js'
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Node Implementation
-// ──────────────────────────────────────────────────────────────────────────────
+function readDialogOptions(draft: PendingApproval['actionDraft']) {
+  const rawOptions = draft.contextHints?.dialogOptions
+  if (!rawOptions || typeof rawOptions !== 'object') {
+    return {}
+  }
+  return rawOptions as Record<string, FleetGraphSelectOption[]>
+}
 
-/**
- * Interrupts execution for human-in-the-loop approval.
- *
- * This node uses LangGraph's interrupt() to pause the graph and
- * wait for user input. The graph will resume with the user's decision.
- *
- * @param state - Current graph state with proposed actions
- * @returns State update with pending approval
- */
-export function approvalInterrupt(
-  state: FleetGraphStateV2
-): FleetGraphStateV2Update {
-  // Get the first action requiring approval
-  const actionToApprove = state.proposedActions.find((a) => a.requiresApproval)
-
-  if (!actionToApprove) {
-    // No action requires approval - shouldn't reach here but handle gracefully
-    return {
-      path: ['approval_interrupt'],
-      branch: 'advisory',
-    }
+function buildPendingApproval(state: FleetGraphStateV2): PendingApproval | null {
+  const actionDraft = state.selectedActionId
+    ? state.actionDrafts.find((draft) => draft.actionId === state.selectedActionId)
+    : state.actionDrafts[0]
+  if (!actionDraft) {
+    return null
   }
 
-  // Find the corresponding reasoned finding
-  const finding = state.reasonedFindings?.find(
-    (f) => f.fingerprint === actionToApprove.findingFingerprint
+  const definition = getActionDefinition(actionDraft.actionType)
+  if (!definition) {
+    return null
+  }
+
+  const findingFingerprint = typeof actionDraft.contextHints?.findingFingerprint === 'string'
+    ? actionDraft.contextHints.findingFingerprint
+    : undefined
+  const reasonedFinding = state.reasonedFindings?.find((finding) =>
+    finding.fingerprint === findingFingerprint
   )
-
-  if (!finding) {
-    return {
-      path: ['approval_interrupt'],
-      branch: 'fallback',
-      fallbackReason: 'No finding found for action requiring approval',
-    }
+  if (!reasonedFinding) {
+    return null
   }
 
-  // Build pending approval
-  const pendingApproval: PendingApproval = {
-    id: `approval:${finding.fingerprint}:${Date.now()}`,
-    proposedAction: actionToApprove,
-    reasonedFinding: finding,
-    createdAt: new Date().toISOString(),
+  const proposedAction = state.proposedActions.find((action) =>
+    action.findingFingerprint === reasonedFinding.fingerprint
+  )
+  if (!proposedAction) {
+    return null
   }
 
-  // Update trace metadata
-  const traceMetadata: TraceMetadata = {
-    ...state.traceMetadata,
-    branch: 'action_required',
-    approvalRequired: true,
-  }
-
-  // Interrupt execution and wait for user decision
-  // The interrupt value will be displayed to the user
-  const interruptValue = {
-    type: 'approval_request',
-    id: pendingApproval.id,
-    title: finding.title,
-    summary: finding.explanation,
-    action: {
-      label: actionToApprove.label,
-      endpoint: actionToApprove.endpoint,
-      safetyRationale: actionToApprove.safetyRationale,
-    },
-    targetEntity: finding.targetEntity,
-    options: {
-      apply: { label: 'Apply', description: `${actionToApprove.label}` },
-      dismiss: { label: 'Dismiss', description: 'Hide this finding with cooldown' },
-      snooze: { label: 'Snooze', description: 'Hide for 4 hours' },
-    },
-  }
-
-  // Use LangGraph's interrupt() to pause execution
-  interrupt(interruptValue)
-
-  // This return is used when the graph resumes
   return {
-    pendingApproval,
-    traceMetadata,
-    path: ['approval_interrupt'],
+    actionDraft,
+    createdAt: new Date().toISOString(),
+    dialogSpec: definition.buildDialogSpec(actionDraft, readDialogOptions(actionDraft)),
+    id: `approval:${reasonedFinding.fingerprint}:${actionDraft.actionId}`,
+    proposedAction,
+    reasonedFinding,
   }
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Routing Function
-// ──────────────────────────────────────────────────────────────────────────────
+function interruptPayload(
+  pendingApproval: PendingApproval
+) {
+  return {
+    actionDraft: pendingApproval.actionDraft,
+    dialogSpec: pendingApproval.dialogSpec,
+    id: pendingApproval.id,
+    options: {
+      apply: { label: pendingApproval.dialogSpec.confirmLabel },
+      dismiss: { label: 'Dismiss' },
+      snooze: { label: 'Snooze' },
+    },
+    summary: pendingApproval.reasonedFinding.explanation,
+    title: pendingApproval.reasonedFinding.title,
+    type: 'approval_request',
+  }
+}
+
+function validateResumeInput(
+  pendingApproval: PendingApproval,
+  resumeInput: FleetGraphV2ResumeInput
+): { error?: string; normalizedSubmission?: FleetGraphV2ResumeInput['dialogSubmission'] } {
+  if (resumeInput.actionId && resumeInput.actionId !== pendingApproval.actionDraft.actionId) {
+    return { error: 'That action does not match the pending FleetGraph review.' }
+  }
+
+  if (resumeInput.decision !== 'approved') {
+    return {}
+  }
+
+  const definition = getActionDefinition(pendingApproval.actionDraft.actionType)
+  if (!definition) {
+    return { error: 'FleetGraph could not resolve that action definition.' }
+  }
+
+  const normalizedSubmission = resumeInput.dialogSubmission
+    ?? buildEmptyDialogSubmission(pendingApproval.actionDraft.actionId)
+  const validation = definition.validateSubmission(
+    normalizedSubmission,
+    pendingApproval.dialogSpec
+  )
+
+  return validation.valid
+    ? { normalizedSubmission }
+    : { error: validation.error }
+}
+
+export function approvalInterrupt(
+  state: FleetGraphStateV2
+): FleetGraphStateV2Update {
+  const pendingApproval = buildPendingApproval(state)
+  if (!pendingApproval) {
+    return {
+      branch: 'fallback',
+      fallbackReason: 'No reviewable FleetGraph action was available for approval.',
+      path: ['approval_interrupt'],
+    }
+  }
+
+  const traceMetadata: TraceMetadata = {
+    ...state.traceMetadata,
+    approvalRequired: true,
+    branch: 'action_required',
+  }
+
+  let resumeValue = interrupt(interruptPayload(pendingApproval)) as unknown
+  while (true) {
+    try {
+      const resumeInput = parseFleetGraphV2ResumeInput(resumeValue)
+      const validation = validateResumeInput(pendingApproval, resumeInput)
+      if (!validation.error) {
+        return {
+          approvalDecision: resumeInput.decision,
+          dialogSubmission: validation.normalizedSubmission ?? null,
+          path: ['approval_interrupt'],
+          pendingApproval,
+          traceMetadata,
+        }
+      }
+
+      resumeValue = interrupt({
+        ...interruptPayload(pendingApproval),
+        validationError: validation.error,
+      })
+    } catch (error) {
+      resumeValue = interrupt({
+        ...interruptPayload(pendingApproval),
+        validationError: error instanceof Error
+          ? error.message
+          : 'Invalid FleetGraph action submission.',
+      })
+    }
+  }
+}
 
 export type ApprovalInterruptRoute =
   | 'execute_confirmed_action'
   | 'persist_action_outcome'
 
-/**
- * Routes based on the user's approval decision.
- */
 export function routeFromApprovalInterrupt(
   state: FleetGraphStateV2
 ): ApprovalInterruptRoute {
-  if (state.approvalDecision === 'approved') {
-    return 'execute_confirmed_action'
-  }
-  // dismissed or snoozed
-  return 'persist_action_outcome'
+  return state.approvalDecision === 'approved'
+    ? 'execute_confirmed_action'
+    : 'persist_action_outcome'
 }

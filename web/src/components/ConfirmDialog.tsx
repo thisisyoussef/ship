@@ -8,7 +8,7 @@ interface ConfirmDialogProps {
   cancelLabel?: string;
   cancelDisabled?: boolean;
   confirmDisabled?: boolean;
-  variant?: 'default' | 'destructive';
+  variant?: 'default' | 'destructive' | 'success';
   onConfirm: () => void;
   onCancel: () => void;
   children?: React.ReactNode;
@@ -29,7 +29,9 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   const confirmButtonClass = variant === 'destructive'
     ? 'bg-red-600 hover:bg-red-700 focus:ring-red-600'
-    : 'bg-accent hover:bg-accent/90 focus:ring-accent';
+    : variant === 'success'
+      ? 'bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-600'
+      : 'bg-accent hover:bg-accent/90 focus:ring-accent';
 
   return (
     <Dialog.Root open={open} onOpenChange={(isOpen) => !isOpen && onCancel()}>

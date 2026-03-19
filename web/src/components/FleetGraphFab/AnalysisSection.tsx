@@ -10,16 +10,12 @@ import type {
   FleetGraphDialogField,
   FleetGraphReasonedFinding,
 } from '@/lib/fleetgraph-entry'
+import { partitionFleetGraphReviewEvidence } from '@/lib/fleetgraph-review-presenter'
 
 interface AnalysisSectionProps {
   documentId: string
   documentTitle: string
   documentType: string
-}
-
-interface ReviewFact {
-  label: string
-  value: string
 }
 
 function actionLabel(actionDraft: FleetGraphActionDraft) {
@@ -67,73 +63,6 @@ function readFindingActionDraft(
     typeof draft.contextHints?.findingFingerprint === 'string'
     && draft.contextHints.findingFingerprint === finding.fingerprint
   )
-}
-
-function humanizeKey(rawKey: string) {
-  const labels: Record<string, string> = {
-    entityTitle: 'Week',
-    hoursSinceStart: 'Started',
-    sprintStartDate: 'Start date',
-    status: 'Current status',
-  }
-
-  return labels[rawKey]
-    ?? rawKey.replace(/([a-z])([A-Z])/g, '$1 $2')
-      .replace(/[_-]+/g, ' ')
-      .replace(/^\w/, (char) => char.toUpperCase())
-}
-
-function formatFactValue(key: string, rawValue: string) {
-  if (key === 'hoursSinceStart') {
-    const hours = Number(rawValue)
-    if (Number.isFinite(hours)) {
-      return `${Math.round(hours)} hours ago`
-    }
-  }
-
-  if (key.toLowerCase().includes('date')) {
-    const date = new Date(rawValue)
-    if (!Number.isNaN(date.getTime())) {
-      return new Intl.DateTimeFormat('en-US', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-      }).format(date)
-    }
-  }
-
-  if (key === 'status') {
-    return rawValue.charAt(0).toUpperCase() + rawValue.slice(1)
-  }
-
-  return rawValue
-}
-
-function partitionReviewEvidence(evidence: string[]) {
-  const facts: ReviewFact[] = []
-  const notes: string[] = []
-
-  for (const item of evidence) {
-    const separatorIndex = item.indexOf(':')
-    if (separatorIndex <= 0) {
-      notes.push(item)
-      continue
-    }
-
-    const key = item.slice(0, separatorIndex).trim()
-    const rawValue = item.slice(separatorIndex + 1).trim()
-    if (!key || !rawValue) {
-      notes.push(item)
-      continue
-    }
-
-    facts.push({
-      label: humanizeKey(key),
-      value: formatFactValue(key, rawValue),
-    })
-  }
-
-  return { facts, notes }
 }
 
 function FindingBadge({ severity }: { severity: FleetGraphReasonedFinding['severity'] }) {
@@ -386,7 +315,7 @@ export function AnalysisSection({
   )
 
   const reviewEvidence = useMemo(
-    () => partitionReviewEvidence(currentReview?.dialogSpec.evidence ?? []),
+    () => partitionFleetGraphReviewEvidence(currentReview?.dialogSpec.evidence ?? []),
     [currentReview]
   )
 
@@ -462,11 +391,12 @@ export function AnalysisSection({
           cancelLabel={currentReview.dialogSpec.cancelLabel}
           confirmDisabled={isApplying}
           confirmLabel={isApplying ? 'Applying...' : currentReview.dialogSpec.confirmLabel}
-          description="Review this suggestion before anything changes in Ship."
+          description="You'll review the details first. Ship won't change until you confirm."
           onCancel={dismissActionReview}
           onConfirm={() => applyReviewedAction(reviewValues)}
           open={Boolean(currentReview)}
           title={currentReview.dialogSpec.title}
+          variant="success"
         >
           <div className="space-y-4">
             {currentReview.validationError && (
@@ -475,12 +405,15 @@ export function AnalysisSection({
               </div>
             )}
 
-            <section className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-700">
-                What FleetGraph noticed
+            <section className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-600">
+                What you're approving
               </p>
-              <p className="mt-2 text-sm leading-6 text-amber-950">
+              <p className="mt-2 text-sm leading-6 text-slate-900">
                 {currentReview.dialogSpec.summary}
+              </p>
+              <p className="mt-2 text-xs leading-5 text-slate-600">
+                Ship will only be updated after you press {currentReview.dialogSpec.confirmLabel}.
               </p>
             </section>
 
@@ -504,7 +437,7 @@ export function AnalysisSection({
             {reviewEvidence.facts.length > 0 && (
               <section className="space-y-3">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">
-                  Key facts
+                  Check these details
                 </p>
                 <div className="grid gap-2 sm:grid-cols-2">
                   {reviewEvidence.facts.map((fact) => (
@@ -527,7 +460,7 @@ export function AnalysisSection({
             {reviewEvidence.notes.length > 0 && (
               <section className="space-y-2">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">
-                  Why this was suggested
+                  Why FleetGraph suggested this
                 </p>
                 <ul className="list-disc space-y-1 pl-5 text-sm leading-6 text-foreground">
                   {reviewEvidence.notes.map((item) => (

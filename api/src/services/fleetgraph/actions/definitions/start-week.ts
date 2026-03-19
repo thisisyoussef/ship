@@ -20,9 +20,9 @@ const definition: FleetGraphActionDefinition = {
   dialogKind: 'confirm',
   executionAdapter: 'single_request',
 
-  label: 'Review and apply',
+  label: 'Review week start',
   reviewTitle: 'Start this week in Ship?',
-  reviewSummary: 'This week already started, but Ship still shows it as planning. If you confirm, FleetGraph will start it in Ship.',
+  reviewSummary: 'This week has passed its planned start, but Ship still lists it as Planning. Starting it now will unlock issue tracking and standups for the team.',
   confirmLabel: 'Start week',
 
   endpointPattern: /^\/api\/weeks\/[^/]+\/start$/,

@@ -140,11 +140,11 @@ const ACTION_CONFIG = {
     targetType: 'person',
   },
   start_week: {
-    confirmLabel: 'Start week in Ship',
+    confirmLabel: 'Start week',
     endpointPattern: /^\/api\/weeks\/[^/]+\/start$/,
-    label: 'Review and apply',
-    reviewSummary: 'FleetGraph thinks this week is ready to start. Nothing changes in Ship until you confirm.',
-    reviewTitle: 'Confirm before starting this week',
+    label: 'Review week start',
+    reviewSummary: 'This week has passed its planned start, but Ship still lists it as Planning. Starting it now will unlock issue tracking and standups for the team.',
+    reviewTitle: 'Start this week in Ship?',
     targetType: 'sprint',
   },
 } as const satisfies Record<FleetGraphOnDemandActionType, {

@@ -11,6 +11,7 @@
  */
 
 import type { ParallelFetchConfig } from '../../proactive/parallel-fetch.js'
+import { logFleetGraph } from '../../logging.js'
 import type { ShipDocument, FetchError } from '../types-v2.js'
 import type { FleetGraphStateV2, FleetGraphStateV2Update } from '../state-v2.js'
 
@@ -108,6 +109,21 @@ export async function fetchPrimaryDocumentNode(
   const { document, error } = await fetchDocument(state.documentId, deps.config)
 
   if (error) {
+    const baseUrl = deps.config.requestContext?.baseUrl ?? deps.config.baseUrl
+    logFleetGraph('error', 'fetch_primary_document:error', {
+      baseUrl,
+      documentId: state.documentId,
+      documentType: state.documentType,
+      endpoint: error.endpoint,
+      hasCookieHeader: Boolean(deps.config.requestContext?.cookieHeader),
+      hasCsrfToken: Boolean(deps.config.requestContext?.csrfToken),
+      message: error.message,
+      retryCount: error.retryCount,
+      statusCode: error.statusCode,
+      threadId: state.threadId,
+      workspaceId: state.workspaceId,
+    })
+
     return {
       rawPrimaryDocument: null,
       fetchErrors: [error],
@@ -121,9 +137,13 @@ export async function fetchPrimaryDocumentNode(
   const expectedDocType = state.documentType?.toLowerCase()
 
   if (serverDocType && expectedDocType && serverDocType !== expectedDocType) {
-    console.warn(
-      `FleetGraph: Document type mismatch. Expected ${expectedDocType}, got ${serverDocType}. Using server-side type.`
-    )
+    logFleetGraph('warn', 'fetch_primary_document:type_mismatch', {
+      documentId: state.documentId,
+      expectedDocType,
+      serverDocType,
+      threadId: state.threadId,
+      workspaceId: state.workspaceId,
+    })
   }
 
   return {

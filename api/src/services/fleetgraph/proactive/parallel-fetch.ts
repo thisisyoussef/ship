@@ -6,6 +6,7 @@
  */
 
 import type { ShipRestRequestContext } from '../actions/executor.js'
+import { logFleetGraph } from '../logging.js'
 import type {
   IssueCluster,
   ProjectCluster,
@@ -115,6 +116,14 @@ async function fetchWithRetry<T>(
           continue
         }
 
+        logFleetGraph('warn', 'ship_fetch:error', {
+          endpoint,
+          message: `HTTP ${response.status}: ${response.statusText}`,
+          retryCount: attempt,
+          statusCode: response.status,
+          url,
+        })
+
         return {
           data: null,
           error: {
@@ -135,6 +144,13 @@ async function fetchWithRetry<T>(
         await new Promise((resolve) => setTimeout(resolve, delay))
         continue
       }
+
+      logFleetGraph('error', 'ship_fetch:exception', {
+        endpoint,
+        message: err instanceof Error ? err.message : 'Unknown fetch error',
+        retryCount: attempt,
+        url,
+      })
 
       return {
         data: null,

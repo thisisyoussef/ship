@@ -14,6 +14,7 @@
  * See docs/specs/fleetgraph/THREE_LANE_ARCHITECTURE.md for full specification.
  */
 
+import { logFleetGraph } from '../../logging.js'
 import type { ResponsePayload, TraceMetadata } from '../types-v2.js'
 import type { FleetGraphStateV2, FleetGraphStateV2Update } from '../state-v2.js'
 
@@ -63,22 +64,42 @@ export function fallback(
         suggestedNextSteps: ['Try refreshing the page', 'Check your connection'],
       } : undefined,
     }
+
+    logFleetGraph('warn', 'fallback:on_demand', {
+      authError: Boolean(authError),
+      branch: state.branch,
+      disclaimer,
+      documentId: state.documentId,
+      documentType: state.documentType,
+      fallbackReason: state.fallbackReason,
+      fetchErrors: state.fetchErrors.map((entry) => ({
+        endpoint: entry.endpoint,
+        message: entry.message,
+        retryCount: entry.retryCount,
+        statusCode: entry.statusCode,
+      })),
+      partialData: state.partialData,
+      path: state.path,
+      threadId: state.threadId,
+      userQuestion: state.userQuestion,
+      workspaceId: state.workspaceId,
+    })
   } else {
     // Proactive: suppress all delivery
     responsePayload = { type: 'empty' }
 
     // Log the failure for observability
-    console.warn('[FleetGraph] Proactive sweep failed:', {
-      workspaceId: state.workspaceId,
-      runId: state.runId,
+    logFleetGraph('warn', 'fallback:proactive', {
+      authError: Boolean(authError),
       fallbackReason: state.fallbackReason,
       fetchErrors: state.fetchErrors.map((e) => ({
         endpoint: e.endpoint,
-        statusCode: e.statusCode,
         message: e.message,
+        statusCode: e.statusCode,
       })),
-      authError: authError ? true : false,
-      rateLimitError: rateLimitError ? true : false,
+      rateLimitError: Boolean(rateLimitError),
+      runId: state.runId,
+      workspaceId: state.workspaceId,
     })
   }
 

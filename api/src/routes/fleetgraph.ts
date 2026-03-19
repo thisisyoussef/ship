@@ -41,6 +41,7 @@ import {
   createLLMAdapter,
   resolveLLMConfig,
 } from '../services/fleetgraph/llm/index.js'
+import { logFleetGraph } from '../services/fleetgraph/logging.js'
 import { authMiddleware } from '../middleware/auth.js'
 import { getAuthContext } from './route-helpers.js'
 
@@ -51,6 +52,22 @@ interface FleetGraphRouterDeps {
   findingStore?: ReturnType<typeof createFleetGraphFindingStore>
   onDemandActionService?: ReturnType<typeof createFleetGraphOnDemandActionService>
   runtimeV2?: FleetGraphV2Runtime
+}
+
+function summarizeFetchErrors(
+  entries: Array<{
+    endpoint: string
+    message: string
+    retryCount: number
+    statusCode?: number
+  }> | undefined
+) {
+  return (entries ?? []).map((entry) => ({
+    endpoint: entry.endpoint,
+    message: entry.message,
+    retryCount: entry.retryCount,
+    statusCode: entry.statusCode,
+  }))
 }
 
 function readServiceToken(request: Request) {
@@ -744,6 +761,21 @@ export function createFleetGraphRouter(
       }
 
       const threadId = `fleetgraph:${auth.workspaceId}:analyze:${documentId}`
+      const requestContext = buildShipRestRequestContext(req)
+      logFleetGraph('info', 'analyze:start', {
+        documentId,
+        documentType,
+        forwardedHost: req.get('x-forwarded-host'),
+        forwardedProto: req.get('x-forwarded-proto'),
+        hasCookieHeader: Boolean(requestContext.cookieHeader),
+        hasCsrfToken: Boolean(requestContext.csrfToken),
+        host: req.get('host'),
+        shipBaseUrl: requestContext.baseUrl,
+        threadId,
+        userId: auth.userId,
+        workspaceId: auth.workspaceId,
+      })
+
       const runtime = getV2Runtime(req)
       const state = await runtime.invoke(
         buildAnalyzeInput(auth, threadId, {
@@ -754,6 +786,18 @@ export function createFleetGraphRouter(
         }),
         { threadId }
       )
+
+      logFleetGraph('info', 'analyze:complete', {
+        branch: state.branch,
+        documentId,
+        documentType,
+        fallbackReason: state.fallbackReason,
+        fetchErrors: summarizeFetchErrors(state.fetchErrors),
+        partialData: state.partialData,
+        path: state.path,
+        responseType: state.responsePayload?.type,
+        threadId,
+      })
 
       res.json(await serializeNativeState(runtime, threadId, state))
     } catch (error) {
@@ -776,6 +820,20 @@ export function createFleetGraphRouter(
       }
 
       const threadId = String(req.params.threadId)
+      const requestContext = buildShipRestRequestContext(req)
+      logFleetGraph('info', 'turn:start', {
+        forwardedHost: req.get('x-forwarded-host'),
+        forwardedProto: req.get('x-forwarded-proto'),
+        hasCookieHeader: Boolean(requestContext.cookieHeader),
+        hasCsrfToken: Boolean(requestContext.csrfToken),
+        host: req.get('host'),
+        messageLength: message.length,
+        shipBaseUrl: requestContext.baseUrl,
+        threadId,
+        userId: auth.userId,
+        workspaceId: auth.workspaceId,
+      })
+
       const runtime = getV2Runtime(req)
       const snapshot = await runtime.getState(threadId)
       const state = snapshot.values
@@ -796,6 +854,18 @@ export function createFleetGraphRouter(
         }),
         { threadId }
       )
+
+      logFleetGraph('info', 'turn:complete', {
+        branch: nextState.branch,
+        documentId: nextState.documentId,
+        documentType: nextState.documentType,
+        fallbackReason: nextState.fallbackReason,
+        fetchErrors: summarizeFetchErrors(nextState.fetchErrors),
+        partialData: nextState.partialData,
+        path: nextState.path,
+        responseType: nextState.responsePayload?.type,
+        threadId,
+      })
 
       res.json(await serializeNativeState(runtime, threadId, nextState))
     } catch (error) {

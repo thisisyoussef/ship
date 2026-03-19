@@ -7,12 +7,16 @@ export const FLEETGRAPH_ACTION_TYPES = [
   'approve_week_plan',
   'assign_issues',
   'assign_owner',
+  'escalate_risk',
   'post_comment',
+  'post_standup',
+  'rebalance_load',
   'start_week',
 ] as const
 
 export const FLEETGRAPH_ACTION_TARGET_TYPES = [
   'document',
+  'person',
   'project',
   'sprint',
 ] as const

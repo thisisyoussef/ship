@@ -8,10 +8,18 @@ import {
 const SUPPORTED_ON_DEMAND_ACTION_TYPES = [
   'approve_project_plan',
   'approve_week_plan',
+  'assign_issues',
+  'assign_owner',
+  'escalate_risk',
+  'post_comment',
+  'post_standup',
+  'rebalance_load',
   'start_week',
 ] as const
 
 const SUPPORTED_TARGET_TYPES = [
+  'document',
+  'person',
   'project',
   'sprint',
 ] as const
@@ -83,6 +91,54 @@ const ACTION_CONFIG = {
     reviewTitle: 'Confirm before approving this week plan',
     targetType: 'sprint',
   },
+  assign_issues: {
+    confirmLabel: 'Assign issues',
+    endpointPattern: /^\/api\/documents\/[^/]+$/,
+    label: 'Assign issues to sprint',
+    reviewSummary: 'FleetGraph will assign the selected issues to this sprint. Nothing changes until you confirm.',
+    reviewTitle: 'Confirm issue assignment',
+    targetType: 'sprint',
+  },
+  assign_owner: {
+    confirmLabel: 'Assign owner',
+    endpointPattern: /^\/api\/documents\/[^/]+$/,
+    label: 'Assign owner',
+    reviewSummary: 'FleetGraph will assign an owner to this document. Nothing changes until you confirm.',
+    reviewTitle: 'Confirm owner assignment',
+    targetType: 'document',
+  },
+  escalate_risk: {
+    confirmLabel: 'Post decision',
+    endpointPattern: /^\/api\/documents\/[^/]+\/comments$/,
+    label: 'Respond to risk',
+    reviewSummary: 'FleetGraph will post your risk response decision as a comment. Nothing changes until you confirm.',
+    reviewTitle: 'Confirm risk response',
+    targetType: 'project',
+  },
+  post_comment: {
+    confirmLabel: 'Post comment',
+    endpointPattern: /^\/api\/documents\/[^/]+\/comments$/,
+    label: 'Post comment',
+    reviewSummary: 'FleetGraph will post this comment to the document. Nothing changes until you confirm.',
+    reviewTitle: 'Confirm before posting comment',
+    targetType: 'document',
+  },
+  post_standup: {
+    confirmLabel: 'Post standup',
+    endpointPattern: /^\/api\/standups$/,
+    label: 'Post standup',
+    reviewSummary: 'FleetGraph will create a standup entry for today. Nothing changes until you confirm.',
+    reviewTitle: 'Confirm standup creation',
+    targetType: 'person',
+  },
+  rebalance_load: {
+    confirmLabel: 'Reassign issues',
+    endpointPattern: /^\/api\/documents\/[^/]+$/,
+    label: 'Rebalance workload',
+    reviewSummary: 'FleetGraph will reassign issues to balance workload. Nothing changes until you confirm.',
+    reviewTitle: 'Confirm workload rebalancing',
+    targetType: 'person',
+  },
   start_week: {
     confirmLabel: 'Start week in Ship',
     endpointPattern: /^\/api\/weeks\/[^/]+\/start$/,
@@ -97,7 +153,7 @@ const ACTION_CONFIG = {
   label: string
   reviewSummary: string
   reviewTitle: string
-  targetType: 'project' | 'sprint'
+  targetType: 'document' | 'person' | 'project' | 'sprint'
 }>
 
 function readString(value: unknown) {

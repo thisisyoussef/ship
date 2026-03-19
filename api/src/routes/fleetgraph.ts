@@ -35,6 +35,10 @@ import {
   type FleetGraphV2RuntimeInput,
 } from '../services/fleetgraph/graph/index.js'
 import {
+  createLLMAdapter,
+  resolveLLMConfig,
+} from '../services/fleetgraph/llm/index.js'
+import {
   FleetGraphOnDemandActionApplyResponseSchema,
   FleetGraphOnDemandActionReviewResponseSchema,
 } from '../services/fleetgraph/graph/on-demand-actions.js'
@@ -178,12 +182,17 @@ export function createFleetGraphRouter(
     const baseUrl = process.env.SHIP_API_BASE_URL || `${req.protocol}://${req.get('host')}`
     const token = process.env.FLEETGRAPH_SERVICE_TOKEN || ''
 
+    // Create LLM adapter for V2 enhanced reasoning
+    const llmConfig = resolveLLMConfig(process.env)
+    const llm = llmConfig ? createLLMAdapter(llmConfig) : undefined
+
     runtimeV2 = createFleetGraphV2Runtime({
       fetchConfig: {
         baseUrl,
         token,
         requestContext: buildShipRestRequestContext(req),
       },
+      llm,
     })
     return runtimeV2
   }

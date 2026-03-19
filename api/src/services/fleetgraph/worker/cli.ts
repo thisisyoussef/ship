@@ -5,6 +5,7 @@ import { loadProductionSecrets } from '../../../config/ssm.js'
 import { assertFleetGraphSurfaceReadiness, isFleetGraphV2Enabled } from '../deployment/index.js'
 import { createFleetGraphProactiveRuntime, resolveFleetGraphShipApiConfig } from '../proactive/index.js'
 import { createFleetGraphV2Runtime } from '../graph/runtime-v2.js'
+import { createLLMAdapter, resolveLLMConfig } from '../llm/index.js'
 import type { ParallelFetchConfig } from '../proactive/parallel-fetch.js'
 import { resolveFleetGraphWorkerSettings } from './config.js'
 import { createFleetGraphWorkerStore } from './store.js'
@@ -23,7 +24,11 @@ function createV2RuntimeAdapter() {
     token: apiConfig.token,
   }
 
-  const v2Runtime = createFleetGraphV2Runtime({ fetchConfig })
+  // Create LLM adapter for V2 enhanced reasoning
+  const llmConfig = resolveLLMConfig(process.env)
+  const llm = llmConfig ? createLLMAdapter(llmConfig) : undefined
+
+  const v2Runtime = createFleetGraphV2Runtime({ fetchConfig, llm })
 
   return {
     async invoke(input: unknown): Promise<FleetGraphState> {

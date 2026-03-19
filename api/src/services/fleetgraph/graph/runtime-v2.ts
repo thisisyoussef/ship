@@ -16,6 +16,7 @@ import { END, START, StateGraph } from '@langchain/langgraph'
 import { MemorySaver } from '@langchain/langgraph'
 
 import type { ParallelFetchConfig } from '../proactive/parallel-fetch.js'
+import type { LLMAdapter } from '../llm/types.js'
 import { FleetGraphStateV2Annotation, type FleetGraphStateV2 } from './state-v2.js'
 import type { FleetGraphV2RuntimeInput } from './types-v2.js'
 
@@ -126,6 +127,7 @@ import {
 export interface FleetGraphV2RuntimeConfig {
   fetchConfig: ParallelFetchConfig
   checkpointer?: MemorySaver
+  llm?: LLMAdapter
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -191,7 +193,7 @@ export function createFleetGraphV2Graph(config: FleetGraphV2RuntimeConfig) {
   builder.addNode('score_candidates', scoreCandidates)
   builder.addNode('quiet_exit', quietExit)
   builder.addNode('reason_findings', (state: FleetGraphStateV2) =>
-    reasonFindings(state)
+    reasonFindings(state, { llm: config.llm })
   )
   builder.addNode('policy_gate', policyGate)
   builder.addNode('emit_advisory', emitAdvisory)

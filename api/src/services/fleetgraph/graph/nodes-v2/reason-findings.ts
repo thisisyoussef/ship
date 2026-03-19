@@ -2,13 +2,17 @@
  * reason_findings - Shared Pipeline (Advisory + Action Branches)
  *
  * Lane: Shared
- * Type: LLM reasoning
+ * Type: LLM reasoning (with template fallback)
  * LLM: **Yes** - this is the first (and often only) LLM call in the graph
  *
  * For each scored finding, produces:
  * - 1-3 sentence explanation of why the human should care right now
  * - Names specific person, entity, and deadline involved
  * - Proposes concrete next action with requires_approval flag
+ *
+ * Two modes:
+ * 1. Template-only (no LLM): Fast, deterministic explanations from templates
+ * 2. LLM-enhanced (with LLM): Templates provide structure, LLM personalizes
  *
  * Token budget:
  * - Proactive: ~4,700 tokens total
@@ -24,15 +28,14 @@ import type {
   ScoredFinding,
 } from '../types-v2.js'
 import type { FleetGraphStateV2, FleetGraphStateV2Update } from '../state-v2.js'
+import type { LLMAdapter } from '../../llm/types.js'
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Dependencies
 // ──────────────────────────────────────────────────────────────────────────────
 
 export interface ReasonFindingsDeps {
-  llm?: {
-    invoke(prompt: string): Promise<string>
-  }
+  llm?: LLMAdapter
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -213,14 +216,184 @@ function reasonFinding(
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
+// LLM Prompt
+// ──────────────────────────────────────────────────────────────────────────────
+
+const LLM_SYSTEM_INSTRUCTIONS = `You are FleetGraph, a project intelligence agent for Ship — a project management tool.
+
+You enhance structured findings with personalized, context-aware explanations. You receive pre-detected findings with template explanations and improve them.
+
+RESPONSE FORMAT: You MUST respond with valid JSON matching this schema:
+{
+  "findings": [
+    {
+      "fingerprint": "string — MUST match the input fingerprint exactly",
+      "enhancedTitle": "string — improved title (or null to keep original)",
+      "enhancedExplanation": "string — 2-3 sentence personalized explanation",
+      "additionalContext": "string — optional extra insight based on the data",
+      "suggestedAction": null or {
+        "actionType": "start_week | approve_week_plan | approve_project_plan | assign_owner | assign_issues | post_comment | escalate_risk | rebalance_load | post_standup",
+        "label": "string — button label",
+        "rationale": "string — why this action helps"
+      }
+    }
+  ],
+  "overallAnalysis": "string — 1-2 sentence summary of all findings together"
+}
+
+GUIDELINES:
+- Keep explanations concise but specific — name people, dates, and numbers
+- Focus on "why should I care right now" not just "what is the issue"
+- If the finding already has a good action, don't suggest a different one
+- Only suggest actions from the supported list above
+- If data is missing, say so rather than guessing
+- Be direct and actionable, not vague`
+
+function buildLLMInput(
+  templateFindings: Array<{ reasoned: ReasonedFinding; action?: ProposedAction }>,
+  state: FleetGraphStateV2
+): string {
+  const parts: string[] = []
+
+  // Context
+  parts.push(`## Context
+- Mode: ${state.mode}
+- Document: ${state.documentId ?? 'workspace-wide'} (${state.documentType ?? 'multiple'})
+- Actor Role: ${state.roleLens ?? 'unknown'}`)
+
+  // Findings to enhance
+  parts.push(`## Findings to Enhance`)
+  for (const { reasoned, action } of templateFindings) {
+    parts.push(`
+### Finding: ${reasoned.fingerprint}
+- Type: ${reasoned.findingType}
+- Severity: ${reasoned.severity}
+- Target: ${reasoned.targetEntity.name} (${reasoned.targetEntity.type})
+- Template Title: ${reasoned.title}
+- Template Explanation: ${reasoned.explanation}
+${reasoned.affectedPerson ? `- Affected Person: ${reasoned.affectedPerson.name}` : ''}
+${action ? `- Current Action: ${action.label} (${action.endpoint.method} ${action.endpoint.path})` : '- No action proposed'}`)
+  }
+
+  // Available data summary
+  if (state.normalizedContext) {
+    const nodeTypes = state.normalizedContext.nodes.reduce((acc, n) => {
+      acc[n.type] = (acc[n.type] || 0) + 1
+      return acc
+    }, {} as Record<string, number>)
+    parts.push(`
+## Available Data
+- Nodes: ${JSON.stringify(nodeTypes)}
+- People resolved: ${Object.keys(state.normalizedContext.resolvedPersons).length}`)
+  }
+
+  return parts.join('\n')
+}
+
+interface LLMEnhancedFinding {
+  fingerprint: string
+  enhancedTitle?: string | null
+  enhancedExplanation: string
+  additionalContext?: string
+  suggestedAction?: {
+    actionType: string
+    label: string
+    rationale: string
+  } | null
+}
+
+interface LLMResponse {
+  findings: LLMEnhancedFinding[]
+  overallAnalysis?: string
+}
+
+function parseLLMResponse(text: string): LLMResponse | null {
+  const cleaned = text
+    .replace(/^```(?:json)?\s*\n?/m, '')
+    .replace(/\n?```\s*$/m, '')
+    .trim()
+
+  try {
+    return JSON.parse(cleaned) as LLMResponse
+  } catch {
+    console.warn('[FleetGraph V2] Failed to parse LLM response as JSON')
+    return null
+  }
+}
+
+function applyLLMEnhancements(
+  templateFindings: Array<{ reasoned: ReasonedFinding; action?: ProposedAction }>,
+  llmResponse: LLMResponse
+): Array<{ reasoned: ReasonedFinding; action?: ProposedAction }> {
+  const enhanced: Array<{ reasoned: ReasonedFinding; action?: ProposedAction }> = []
+
+  for (const { reasoned, action } of templateFindings) {
+    const llmFinding = llmResponse.findings.find(f => f.fingerprint === reasoned.fingerprint)
+
+    if (llmFinding) {
+      // Apply enhancements
+      const enhancedReasoned: ReasonedFinding = {
+        ...reasoned,
+        title: llmFinding.enhancedTitle ?? reasoned.title,
+        explanation: llmFinding.enhancedExplanation || reasoned.explanation,
+      }
+
+      // If LLM suggests an action and we don't have one, consider adding it
+      let enhancedAction = action
+      if (!action && llmFinding.suggestedAction) {
+        const actionConfig = getActionConfig(llmFinding.suggestedAction.actionType)
+        if (actionConfig) {
+          enhancedAction = {
+            findingFingerprint: reasoned.fingerprint,
+            label: llmFinding.suggestedAction.label,
+            endpoint: {
+              method: actionConfig.method,
+              path: actionConfig.pathTemplate.replace('{entityId}', reasoned.targetEntity.id),
+            },
+            targetEntity: reasoned.targetEntity,
+            requiresApproval: true,
+            rollbackFeasibility: 'easy',
+            safetyRationale: llmFinding.suggestedAction.rationale,
+          }
+        }
+      }
+
+      enhanced.push({ reasoned: enhancedReasoned, action: enhancedAction })
+    } else {
+      // Keep original if LLM didn't provide enhancement
+      enhanced.push({ reasoned, action })
+    }
+  }
+
+  return enhanced
+}
+
+const ACTION_CONFIGS: Record<string, { method: 'POST' | 'PATCH'; pathTemplate: string }> = {
+  start_week: { method: 'POST', pathTemplate: '/api/weeks/{entityId}/start' },
+  approve_week_plan: { method: 'POST', pathTemplate: '/api/weeks/{entityId}/approve-plan' },
+  approve_project_plan: { method: 'POST', pathTemplate: '/api/projects/{entityId}/approve-plan' },
+  assign_owner: { method: 'PATCH', pathTemplate: '/api/documents/{entityId}' },
+  assign_issues: { method: 'PATCH', pathTemplate: '/api/documents/{entityId}' },
+  post_comment: { method: 'POST', pathTemplate: '/api/documents/{entityId}/comments' },
+  escalate_risk: { method: 'POST', pathTemplate: '/api/documents/{entityId}/comments' },
+  rebalance_load: { method: 'PATCH', pathTemplate: '/api/documents/{entityId}' },
+  post_standup: { method: 'POST', pathTemplate: '/api/standups' },
+}
+
+function getActionConfig(actionType: string) {
+  return ACTION_CONFIGS[actionType]
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
 // Node Implementation
 // ──────────────────────────────────────────────────────────────────────────────
 
 /**
  * Reasons about scored findings to produce human-readable explanations.
  *
- * In V1, this uses template-based reasoning. Future versions will
- * integrate with an actual LLM for more nuanced explanations.
+ * Two modes:
+ * 1. Template-only (no LLM): Fast, deterministic explanations from templates
+ * 2. LLM-enhanced (with LLM): Templates provide structure, LLM personalizes
  *
  * @param state - Current graph state with scored findings
  * @param deps - Dependencies including optional LLM
@@ -228,18 +401,47 @@ function reasonFinding(
  */
 export async function reasonFindings(
   state: FleetGraphStateV2,
-  _deps: ReasonFindingsDeps = {}
+  deps: ReasonFindingsDeps = {}
 ): Promise<FleetGraphStateV2Update> {
-  const reasonedFindings: ReasonedFinding[] = []
-  const proposedActions: ProposedAction[] = []
-
   // Only process non-suppressed findings above threshold
   const qualifyingFindings = state.scoredFindings.filter(
     (f) => !f.suppressed && f.compositeScore >= 30
   )
 
+  // Step 1: Generate template-based findings
+  const templateFindings: Array<{ reasoned: ReasonedFinding; action?: ProposedAction }> = []
   for (const scored of qualifyingFindings) {
-    const { reasoned, action } = reasonFinding(scored, state)
+    templateFindings.push(reasonFinding(scored, state))
+  }
+
+  // Step 2: If LLM available, enhance with personalized explanations
+  let finalFindings = templateFindings
+
+  if (deps.llm && templateFindings.length > 0) {
+    try {
+      const input = buildLLMInput(templateFindings, state)
+      const response = await deps.llm.generate({
+        instructions: LLM_SYSTEM_INSTRUCTIONS,
+        input,
+        maxOutputTokens: 2000,
+        temperature: 0.3,
+      })
+
+      const parsed = parseLLMResponse(response.text)
+      if (parsed) {
+        finalFindings = applyLLMEnhancements(templateFindings, parsed)
+      }
+    } catch (error) {
+      console.warn('[FleetGraph V2] LLM enhancement failed, using template fallback:', error)
+      // Keep template findings on error
+    }
+  }
+
+  // Step 3: Extract results
+  const reasonedFindings: ReasonedFinding[] = []
+  const proposedActions: ProposedAction[] = []
+
+  for (const { reasoned, action } of finalFindings) {
     reasonedFindings.push(reasoned)
     if (action) {
       proposedActions.push(action)

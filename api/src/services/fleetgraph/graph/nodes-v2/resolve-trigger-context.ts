@@ -195,6 +195,8 @@ export function resolveTriggerContext(
   return {
     runId,
     mode,
+    branch: 'quiet',
+    fallbackReason: null,
     triggerType: input.triggerType,
     triggerSource: input.triggerSource ?? 'unknown',
     workspaceId: input.workspaceId,

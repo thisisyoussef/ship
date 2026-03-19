@@ -136,6 +136,7 @@
 - Verified `web/src/components/FleetGraphFab/AnalysisSection.test.tsx` passes and both `api` and `web` typecheck cleanly after the native V2 cutover.
 - Could not run the FleetGraph API route/service Vitest slices in this workspace because the API integration test harness requires a local Postgres role `ship`, which is not available here.
 - Updated `.ai/workflows/story-handoff.md` and `.ai/workflows/git-finalization.md` so future handoffs must explicitly state whether work is local-only, pushed-without-PR, on an open PR, or already merged on GitHub.
+- Decided stable FleetGraph analyze thread ids must clear per-run fetch, suspect, and approval/output state at `resolve_trigger_context`; otherwise a successful `start_week` mutation can still surface stale `week_start_drift` findings on the next analyze pass because LangGraph checkpoints reuse prior thread state.
 
 Record session-level technical decisions.
 

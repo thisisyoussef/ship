@@ -7,6 +7,14 @@
 
 import type { ShipRestRequestContext } from '../actions/executor.js'
 import { logFleetGraph } from '../logging.js'
+import {
+  normalizeShipIssue,
+  normalizeShipIssueList,
+  normalizeShipProject,
+  normalizeShipProjectList,
+  normalizeShipWeek,
+  normalizeShipWeekList,
+} from './ship-entity-normalizers.js'
 import type {
   IssueCluster,
   ProjectCluster,
@@ -255,7 +263,7 @@ function getTodayDateString(): string {
  * Endpoints:
  * - GET /api/projects
  * - GET /api/weeks
- * - GET /api/issues (via documents endpoint)
+ * - GET /api/issues
  * - GET /api/team/people
  * - GET /api/accountability/action-items
  * - GET /api/documents?document_type=standup (filtered to today)
@@ -270,8 +278,8 @@ export async function fetchWorkspaceSnapshot(
 
   const [projectsResult, weeksResult, issuesResult, peopleResult, accountabilityResult, standupsResult] =
     await Promise.all([
-      fetchWithRetry<{ documents?: ShipProject[]; projects?: ShipProject[] } | ShipProject[]>(
-        buildUrl(config, '/api/documents?document_type=project'),
+      fetchWithRetry<unknown[]>(
+        buildUrl(config, '/api/projects'),
         headers,
         config,
         'GET /api/projects'
@@ -282,8 +290,8 @@ export async function fetchWorkspaceSnapshot(
         config,
         'GET /api/weeks'
       ),
-      fetchWithRetry<{ documents?: ShipIssue[] } | ShipIssue[]>(
-        buildUrl(config, '/api/documents?document_type=issue'),
+      fetchWithRetry<unknown[]>(
+        buildUrl(config, '/api/issues'),
         headers,
         config,
         'GET /api/issues'
@@ -318,19 +326,15 @@ export async function fetchWorkspaceSnapshot(
 
   // Parse projects
   const projectsRaw = projectsResult.data
-  const projects: ShipProject[] = Array.isArray(projectsRaw)
-    ? projectsRaw
-    : (projectsRaw?.documents ?? projectsRaw?.projects ?? [])
+  const projects = normalizeShipProjectList(Array.isArray(projectsRaw) ? projectsRaw : [])
 
   // Parse weeks
   const weeksRaw = weeksResult.data
-  const weeks: ShipWeek[] = weeksRaw?.weeks ?? []
+  const weeks = normalizeShipWeekList(weeksRaw?.weeks ?? [])
 
   // Parse issues
   const issuesRaw = issuesResult.data
-  const issues: ShipIssue[] = Array.isArray(issuesRaw)
-    ? issuesRaw
-    : (issuesRaw?.documents ?? [])
+  const issues = normalizeShipIssueList(Array.isArray(issuesRaw) ? issuesRaw : [])
 
   // Parse people
   const people = normalizePeople(peopleResult.data)
@@ -397,7 +401,7 @@ export async function fetchIssueCluster(
   const errors: FetchError[] = []
 
   const calls: Promise<FetchResult<unknown>>[] = [
-    fetchWithRetry<ShipIssue>(
+    fetchWithRetry<unknown>(
       buildUrl(config, `/api/documents/${encodeURIComponent(issueId)}`),
       headers,
       config,
@@ -415,8 +419,8 @@ export async function fetchIssueCluster(
       config,
       `GET /api/issues/${issueId}/iterations`
     ),
-    fetchWithRetry<{ documents?: ShipIssue[] } | ShipIssue[]>(
-      buildUrl(config, `/api/documents?parent_id=${encodeURIComponent(issueId)}&document_type=issue`),
+    fetchWithRetry<{ documents?: unknown[] } | unknown[]>(
+      buildUrl(config, `/api/documents?parent_id=${encodeURIComponent(issueId)}&type=issue`),
       headers,
       config,
       `GET /api/issues/${issueId}/children`
@@ -445,20 +449,25 @@ export async function fetchIssueCluster(
   // Collect errors
   results.forEach((r) => { if (r.error) errors.push(r.error) })
 
-  const issueResult = results[0] as FetchResult<ShipIssue>
-  if (!issueResult.data) {
+  const issueResult = results[0] as FetchResult<unknown>
+  const issue = normalizeShipIssue(issueResult.data)
+  if (!issue) {
     return { cluster: null, errors }
   }
 
   const historyResult = results[1] as FetchResult<unknown[]>
   const iterationsResult = results[2] as FetchResult<unknown[]>
-  const childrenRaw = results[3] as FetchResult<{ documents?: ShipIssue[] } | ShipIssue[]>
+  const childrenRaw = results[3] as FetchResult<{ documents?: unknown[] } | unknown[]>
   const commentsResult = results[4] as FetchResult<unknown[]>
 
   const childrenData = childrenRaw.data
-  const children: ShipIssue[] = Array.isArray(childrenData)
-    ? childrenData
-    : (childrenData?.documents ?? [])
+  const children = normalizeShipIssueList(
+    Array.isArray(childrenData) ? childrenData : (childrenData?.documents ?? []),
+    {
+      projectId: issue.projectId,
+      sprintId: issue.sprintId,
+    }
+  )
 
   let relatedPeople: ShipPerson[] = cachedPeople ?? []
   if (!cachedPeople && results[5]) {
@@ -467,7 +476,7 @@ export async function fetchIssueCluster(
 
   return {
     cluster: {
-      issue: issueResult.data,
+      issue,
       history: historyResult.data ?? [],
       iterations: iterationsResult.data ?? [],
       children,
@@ -502,14 +511,14 @@ export async function fetchWeekCluster(
   const errors: FetchError[] = []
 
   const calls: Promise<FetchResult<unknown>>[] = [
-    fetchWithRetry<ShipWeek>(
-      buildUrl(config, `/api/documents/${encodeURIComponent(weekId)}`),
+    fetchWithRetry<unknown>(
+      buildUrl(config, `/api/weeks/${encodeURIComponent(weekId)}`),
       headers,
       config,
       `GET /api/weeks/${weekId}`
     ),
-    fetchWithRetry<{ documents?: ShipIssue[] } | ShipIssue[]>(
-      buildUrl(config, `/api/documents?document_type=issue&sprint_id=${encodeURIComponent(weekId)}`),
+    fetchWithRetry<unknown[]>(
+      buildUrl(config, `/api/weeks/${encodeURIComponent(weekId)}/issues`),
       headers,
       config,
       `GET /api/weeks/${weekId}/issues`
@@ -550,15 +559,17 @@ export async function fetchWeekCluster(
   // Collect errors
   results.forEach((r) => { if (r.error) errors.push(r.error) })
 
-  const weekResult = results[0] as FetchResult<ShipWeek>
-  if (!weekResult.data) {
+  const weekResult = results[0] as FetchResult<unknown>
+  const week = normalizeShipWeek(weekResult.data)
+  if (!week) {
     return { cluster: null, errors }
   }
 
-  const issuesRaw = (results[1] as FetchResult<{ documents?: ShipIssue[] } | ShipIssue[]>).data
-  const issues: ShipIssue[] = Array.isArray(issuesRaw)
-    ? issuesRaw
-    : (issuesRaw?.documents ?? [])
+  const issuesRaw = (results[1] as FetchResult<unknown[]>).data
+  const issues = normalizeShipIssueList(Array.isArray(issuesRaw) ? issuesRaw : [], {
+    projectId: week.projectId,
+    sprintId: weekId,
+  })
 
   const standupsResult = results[2] as FetchResult<unknown[]>
   const reviewResult = results[3] as FetchResult<unknown>
@@ -571,7 +582,7 @@ export async function fetchWeekCluster(
 
   return {
     cluster: {
-      week: weekResult.data,
+      week,
       issues,
       standups: standupsResult.data ?? [],
       review: reviewResult.data,
@@ -606,20 +617,20 @@ export async function fetchProjectCluster(
   const errors: FetchError[] = []
 
   const calls: Promise<FetchResult<unknown>>[] = [
-    fetchWithRetry<ShipProject>(
-      buildUrl(config, `/api/documents/${encodeURIComponent(projectId)}`),
+    fetchWithRetry<unknown>(
+      buildUrl(config, `/api/projects/${encodeURIComponent(projectId)}`),
       headers,
       config,
       `GET /api/projects/${projectId}`
     ),
-    fetchWithRetry<{ documents?: ShipIssue[] } | ShipIssue[]>(
-      buildUrl(config, `/api/documents?document_type=issue&project_id=${encodeURIComponent(projectId)}`),
+    fetchWithRetry<unknown[]>(
+      buildUrl(config, `/api/projects/${encodeURIComponent(projectId)}/issues`),
       headers,
       config,
       `GET /api/projects/${projectId}/issues`
     ),
-    fetchWithRetry<{ weeks?: ShipWeek[]; documents?: ShipWeek[] } | ShipWeek[]>(
-      buildUrl(config, `/api/documents?document_type=sprint&project_id=${encodeURIComponent(projectId)}`),
+    fetchWithRetry<unknown[]>(
+      buildUrl(config, `/api/projects/${encodeURIComponent(projectId)}/weeks`),
       headers,
       config,
       `GET /api/projects/${projectId}/weeks`
@@ -654,20 +665,21 @@ export async function fetchProjectCluster(
   // Collect errors
   results.forEach((r) => { if (r.error) errors.push(r.error) })
 
-  const projectResult = results[0] as FetchResult<ShipProject>
-  if (!projectResult.data) {
+  const projectResult = results[0] as FetchResult<unknown>
+  const project = normalizeShipProject(projectResult.data)
+  if (!project) {
     return { cluster: null, errors }
   }
 
-  const issuesRaw = (results[1] as FetchResult<{ documents?: ShipIssue[] } | ShipIssue[]>).data
-  const issues: ShipIssue[] = Array.isArray(issuesRaw)
-    ? issuesRaw
-    : (issuesRaw?.documents ?? [])
+  const issuesRaw = (results[1] as FetchResult<unknown[]>).data
+  const issues = normalizeShipIssueList(Array.isArray(issuesRaw) ? issuesRaw : [], {
+    projectId,
+  })
 
-  const weeksRaw = (results[2] as FetchResult<{ weeks?: ShipWeek[]; documents?: ShipWeek[] } | ShipWeek[]>).data
-  const weeks: ShipWeek[] = Array.isArray(weeksRaw)
-    ? weeksRaw
-    : (weeksRaw?.weeks ?? weeksRaw?.documents ?? [])
+  const weeksRaw = (results[2] as FetchResult<unknown[]>).data
+  const weeks = normalizeShipWeekList(Array.isArray(weeksRaw) ? weeksRaw : [], {
+    projectId,
+  })
 
   const retroResult = results[3] as FetchResult<unknown>
   const activityResult = results[4] as FetchResult<unknown[]>
@@ -679,7 +691,7 @@ export async function fetchProjectCluster(
 
   return {
     cluster: {
-      project: projectResult.data,
+      project,
       issues,
       weeks,
       retro: retroResult.data,
@@ -723,8 +735,8 @@ export async function fetchProgramCluster(
   }
 
   // Fetch related projects
-  const projectsResult = await fetchWithRetry<{ documents?: ShipProject[] } | ShipProject[]>(
-    buildUrl(config, `/api/documents?document_type=project&program_id=${encodeURIComponent(programId)}`),
+  const projectsResult = await fetchWithRetry<unknown[]>(
+    buildUrl(config, `/api/programs/${encodeURIComponent(programId)}/projects`),
     headers,
     config,
     `GET /api/programs/${programId}/projects`
@@ -732,14 +744,13 @@ export async function fetchProgramCluster(
 
   if (projectsResult.error) errors.push(projectsResult.error)
 
-  const projectsRaw = projectsResult.data
-  const projects: ShipProject[] = Array.isArray(projectsRaw)
-    ? projectsRaw
-    : (projectsRaw?.documents ?? [])
+  const projects = normalizeShipProjectList(
+    Array.isArray(projectsResult.data) ? projectsResult.data : []
+  )
 
   // Fetch related weeks
-  const weeksResult = await fetchWithRetry<{ documents?: ShipWeek[] } | ShipWeek[]>(
-    buildUrl(config, `/api/documents?document_type=sprint&program_id=${encodeURIComponent(programId)}`),
+  const weeksResult = await fetchWithRetry<{ weeks?: unknown[] }>(
+    buildUrl(config, `/api/programs/${encodeURIComponent(programId)}/sprints`),
     headers,
     config,
     `GET /api/programs/${programId}/weeks`
@@ -747,10 +758,7 @@ export async function fetchProgramCluster(
 
   if (weeksResult.error) errors.push(weeksResult.error)
 
-  const weeksRaw = weeksResult.data
-  const weeks: ShipWeek[] = Array.isArray(weeksRaw)
-    ? weeksRaw
-    : (weeksRaw?.documents ?? [])
+  const weeks = normalizeShipWeekList(weeksResult.data?.weeks ?? [])
 
   // Fetch people if not cached
   let relatedPeople: ShipPerson[] = cachedPeople ?? []

@@ -229,6 +229,15 @@ function computeCompositeScore(dimensions: ScoreDimensions): number {
 export function scoreCandidates(
   state: FleetGraphStateV2
 ): FleetGraphStateV2Update {
+  if (!state.normalizedContext) {
+    return {
+      branch: 'fallback',
+      fallbackReason: 'FleetGraph could not score candidates because normalized context was unavailable.',
+      fallbackStage: 'scoring',
+      path: ['score_candidates'],
+    }
+  }
+
   const scoredFindings: ScoredFinding[] = []
   const suppressedSet = new Set(state.suppressedFingerprints)
   const existingCache = state.scoreCache ?? {}
@@ -251,6 +260,15 @@ export function scoreCandidates(
     const compositeScore = cachedScore !== undefined
       ? cachedScore
       : computeCompositeScore(dimensions)
+
+    if (!Number.isFinite(compositeScore)) {
+      return {
+        branch: 'fallback',
+        fallbackReason: `FleetGraph produced an invalid score while evaluating ${candidate.findingType}.`,
+        fallbackStage: 'scoring',
+        path: ['score_candidates'],
+      }
+    }
 
     // Store in cache for future invocations in this thread
     if (cachedScore === undefined) {
@@ -309,7 +327,7 @@ export function scoreCandidates(
 export type ScoreCandidatesRoute =
   | 'quiet_exit'
   | 'reason_findings'
-  | 'fallback'
+  | 'fallback_scoring'
 
 /**
  * Routes based on the determined branch.
@@ -325,6 +343,6 @@ export function routeFromScoreCandidates(
       return 'reason_findings'
     case 'fallback':
     default:
-      return 'fallback'
+      return 'fallback_scoring'
   }
 }

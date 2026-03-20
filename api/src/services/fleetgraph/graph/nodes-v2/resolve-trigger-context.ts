@@ -185,6 +185,7 @@ export function resolveTriggerContext(
       runId,
       mode,
       branch: 'fallback',
+      fallbackStage: 'input',
       fallbackReason: validation.fallbackReason ?? 'Validation failed',
       traceMetadata,
       path: ['resolve_trigger_context'],
@@ -227,6 +228,7 @@ export function resolveTriggerContext(
     responsePayload: null,
     partialData: false,
     fallbackReason: null,
+    fallbackStage: null,
     triggerType: input.triggerType,
     triggerSource: input.triggerSource ?? 'unknown',
     workspaceId: input.workspaceId,
@@ -238,6 +240,11 @@ export function resolveTriggerContext(
     nestedPath: input.nestedPath ?? null,
     projectContextId: input.projectContextId ?? null,
     selectedActionId: input.selectedActionId ?? null,
+    surfaceTargets: [],
+    surfaceIssueId: null,
+    surfaceWeekId: null,
+    surfaceProjectId: null,
+    surfaceProgramId: null,
     userQuestion: input.userQuestion ?? null,
     dirtyEntityId: input.dirtyEntityId ?? null,
     dirtyEntityType: input.dirtyEntityType ?? null,
@@ -256,7 +263,7 @@ export type ResolveTriggerContextRoute =
   | 'fetch_workspace_snapshot'
   | 'fetch_actor_and_roles'
   | 'fetch_dirty_context'
-  | 'fallback'
+  | 'fallback_input'
 
 /**
  * Determines the next node based on the resolved mode.
@@ -266,7 +273,7 @@ export function routeFromTriggerContext(
 ): ResolveTriggerContextRoute {
   // Validation failure routes to fallback
   if (state.branch === 'fallback') {
-    return 'fallback'
+    return 'fallback_input'
   }
 
   // Route based on mode
@@ -278,6 +285,6 @@ export function routeFromTriggerContext(
     case 'event_driven':
       return 'fetch_dirty_context'
     default:
-      return 'fallback'
+      return 'fallback_input'
   }
 }

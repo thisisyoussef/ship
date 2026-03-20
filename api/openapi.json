@@ -6577,6 +6577,15 @@
             "type": "string",
             "nullable": true
           },
+          "fallbackStage": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "input",
+              "fetch",
+              "scoring"
+            ]
+          },
           "path": {
             "type": "array",
             "items": {
@@ -7791,6 +7800,15 @@
           "contextSummary": {
             "type": "string",
             "nullable": true
+          },
+          "fallbackStage": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "input",
+              "fetch",
+              "scoring"
+            ]
           },
           "path": {
             "type": "array",
@@ -10636,6 +10654,14 @@
                       },
                       "createdAt": {
                         "type": "string"
+                      },
+                      "fallbackStage": {
+                        "type": "string",
+                        "enum": [
+                          "input",
+                          "fetch",
+                          "scoring"
+                        ]
                       },
                       "next": {
                         "type": "array",
@@ -17644,6 +17670,15 @@
                       "type": "string",
                       "nullable": true
                     },
+                    "fallbackStage": {
+                      "type": "string",
+                      "nullable": true,
+                      "enum": [
+                        "input",
+                        "fetch",
+                        "scoring"
+                      ]
+                    },
                     "path": {
                       "type": "array",
                       "items": {
@@ -18594,6 +18629,15 @@
                       "type": "string",
                       "nullable": true
                     },
+                    "fallbackStage": {
+                      "type": "string",
+                      "nullable": true,
+                      "enum": [
+                        "input",
+                        "fetch",
+                        "scoring"
+                      ]
+                    },
                     "path": {
                       "type": "array",
                       "items": {
@@ -19472,6 +19516,15 @@
                     "contextSummary": {
                       "type": "string",
                       "nullable": true
+                    },
+                    "fallbackStage": {
+                      "type": "string",
+                      "nullable": true,
+                      "enum": [
+                        "input",
+                        "fetch",
+                        "scoring"
+                      ]
                     },
                     "path": {
                       "type": "array",
@@ -20599,6 +20652,14 @@
                                 },
                                 "createdAt": {
                                   "type": "string"
+                                },
+                                "fallbackStage": {
+                                  "type": "string",
+                                  "enum": [
+                                    "input",
+                                    "fetch",
+                                    "scoring"
+                                  ]
                                 },
                                 "next": {
                                   "type": "array",
@@ -23187,6 +23248,15 @@
                       "type": "string",
                       "nullable": true
                     },
+                    "fallbackStage": {
+                      "type": "string",
+                      "nullable": true,
+                      "enum": [
+                        "input",
+                        "fetch",
+                        "scoring"
+                      ]
+                    },
                     "path": {
                       "type": "array",
                       "items": {
@@ -24114,6 +24184,15 @@
                     "contextSummary": {
                       "type": "string",
                       "nullable": true
+                    },
+                    "fallbackStage": {
+                      "type": "string",
+                      "nullable": true,
+                      "enum": [
+                        "input",
+                        "fetch",
+                        "scoring"
+                      ]
                     },
                     "path": {
                       "type": "array",

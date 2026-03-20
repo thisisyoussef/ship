@@ -1,132 +1,147 @@
-/**
- * fallback - Shared Pipeline (Error Handler)
- *
- * Lane: Shared
- * Type: Error handler
- * LLM: No
- *
- * Handles degraded execution paths:
- * - partial_data with on_demand: Degraded answer with disclaimer
- * - partial_data with proactive: Suppress all delivery, log failure
- * - Auth errors (401/403): Mark workspace integration as unhealthy
- * - Rate limited (429): Back off, reduce concurrency
- *
- * See docs/specs/fleetgraph/THREE_LANE_ARCHITECTURE.md for full specification.
- */
-
 import { logFleetGraph } from '../../logging.js'
-import type { ResponsePayload, TraceMetadata } from '../types-v2.js'
+import type {
+  FleetGraphV2FallbackStage,
+  ResponsePayload,
+  TraceMetadata,
+} from '../types-v2.js'
 import type { FleetGraphStateV2, FleetGraphStateV2Update } from '../state-v2.js'
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Node Implementation
-// ──────────────────────────────────────────────────────────────────────────────
+export type FallbackRoute = 'persist_run_state'
 
-/**
- * Handles fallback/error cases.
- *
- * @param state - Current graph state with error information
- * @returns State update with degraded response
- */
-export function fallback(
+function buildDisclaimer(
+  stage: FleetGraphV2FallbackStage,
   state: FleetGraphStateV2
-): FleetGraphStateV2Update {
-  let responsePayload: ResponsePayload
-
-  // Check for specific error types
+) {
   const authError = state.fetchErrors.find(
-    (e) => e.statusCode === 401 || e.statusCode === 403
+    (entry) => entry.statusCode === 401 || entry.statusCode === 403
   )
   const rateLimitError = state.fetchErrors.find(
-    (e) => e.statusCode === 429
+    (entry) => entry.statusCode === 429
   )
 
-  if (state.mode === 'on_demand') {
-    // On-demand: provide degraded answer with disclaimer
-    let disclaimer: string
+  if (stage === 'input') {
+    return 'FleetGraph could not determine enough Ship context to analyze this request.'
+  }
 
+  if (stage === 'fetch') {
     if (authError) {
-      disclaimer = 'Unable to access Ship data. Please check your authentication.'
-    } else if (rateLimitError) {
-      disclaimer = 'Ship API is temporarily rate limited. Please try again in a moment.'
-    } else if (state.fallbackReason) {
-      disclaimer = state.fallbackReason
-    } else {
-      disclaimer = 'Some Ship data was unavailable, so this answer may be incomplete.'
+      return 'Unable to access Ship data. Please check your authentication.'
     }
+    if (rateLimitError) {
+      return 'Ship API is temporarily rate limited. Please try again in a moment.'
+    }
+    return 'Some Ship data was unavailable, so this answer may be incomplete.'
+  }
 
-    responsePayload = {
-      type: 'degraded',
-      disclaimer,
-      partialAnswer: state.userQuestion ? {
+  return 'FleetGraph gathered context, but could not finish the analysis reliably.'
+}
+
+function buildPartialAnswer(
+  stage: FleetGraphV2FallbackStage,
+  state: FleetGraphStateV2
+) {
+  switch (stage) {
+    case 'input':
+      return {
+        text: `I couldn't determine enough context to analyze this ${state.documentType ?? 'document'}.`,
+        entityLinks: [],
+        suggestedNextSteps: ['Refresh the page context', 'Open a specific Ship document first'],
+      }
+    case 'fetch':
+      return {
         text: `I wasn't able to fully analyze this ${state.documentType ?? 'document'} due to data access issues.`,
         entityLinks: [],
         suggestedNextSteps: ['Try refreshing the page', 'Check your connection'],
-      } : undefined,
-    }
+      }
+    case 'scoring':
+    default:
+      return {
+        text: `I gathered context for this ${state.documentType ?? 'document'}, but I could not finish scoring it safely.`,
+        entityLinks: [],
+        suggestedNextSteps: ['Try again in a moment', 'Refresh the page to rerun the analysis'],
+      }
+  }
+}
 
-    logFleetGraph('warn', 'fallback:on_demand', {
-      authError: Boolean(authError),
-      branch: state.branch,
+function buildFallback(
+  stage: FleetGraphV2FallbackStage,
+  state: FleetGraphStateV2
+): FleetGraphStateV2Update {
+  const disclaimer = buildDisclaimer(stage, state)
+  let responsePayload: ResponsePayload
+
+  if (state.mode === 'on_demand') {
+    responsePayload = {
+      type: 'degraded',
       disclaimer,
-      documentId: state.documentId,
-      documentType: state.documentType,
-      fallbackReason: state.fallbackReason,
-      fetchErrors: state.fetchErrors.map((entry) => ({
-        endpoint: entry.endpoint,
-        message: entry.message,
-        retryCount: entry.retryCount,
-        statusCode: entry.statusCode,
-      })),
-      partialData: state.partialData,
-      path: state.path,
-      threadId: state.threadId,
-      userQuestion: state.userQuestion,
-      workspaceId: state.workspaceId,
-    })
+      partialAnswer: buildPartialAnswer(stage, state),
+    }
   } else {
-    // Proactive: suppress all delivery
     responsePayload = { type: 'empty' }
-
-    // Log the failure for observability
-    logFleetGraph('warn', 'fallback:proactive', {
-      authError: Boolean(authError),
-      fallbackReason: state.fallbackReason,
-      fetchErrors: state.fetchErrors.map((e) => ({
-        endpoint: e.endpoint,
-        message: e.message,
-        statusCode: e.statusCode,
-      })),
-      rateLimitError: Boolean(rateLimitError),
-      runId: state.runId,
-      workspaceId: state.workspaceId,
-    })
   }
 
-  // Update trace metadata
+  logFleetGraph('warn', `fallback:${stage}`, {
+    branch: 'fallback',
+    disclaimer,
+    documentId: state.documentId,
+    documentType: state.documentType,
+    fallbackReason: state.fallbackReason,
+    fallbackStage: stage,
+    fetchErrors: state.fetchErrors.map((entry) => ({
+      endpoint: entry.endpoint,
+      message: entry.message,
+      retryCount: entry.retryCount,
+      statusCode: entry.statusCode,
+    })),
+    mode: state.mode,
+    partialData: state.partialData,
+    path: state.path,
+    runId: state.runId,
+    threadId: state.threadId,
+    workspaceId: state.workspaceId,
+  })
+
   const traceMetadata: TraceMetadata = {
     ...state.traceMetadata,
     branch: 'fallback',
+    fallbackStage: stage,
     completedAt: new Date().toISOString(),
   }
 
   return {
+    branch: 'fallback',
+    fallbackStage: stage,
     responsePayload,
     traceMetadata,
-    path: ['fallback'],
+    path: [`fallback_${stage}`],
   }
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Routing Function
-// ──────────────────────────────────────────────────────────────────────────────
+export function fallbackInput(state: FleetGraphStateV2): FleetGraphStateV2Update {
+  return buildFallback('input', state)
+}
 
-export type FallbackRoute = 'persist_run_state'
+export function fallbackFetch(state: FleetGraphStateV2): FleetGraphStateV2Update {
+  return buildFallback('fetch', state)
+}
 
-/**
- * Always routes to persist_run_state after fallback.
- */
-export function routeFromFallback(
+export function fallbackScoring(state: FleetGraphStateV2): FleetGraphStateV2Update {
+  return buildFallback('scoring', state)
+}
+
+export function routeFromFallbackInput(
+  _state: FleetGraphStateV2
+): FallbackRoute {
+  return 'persist_run_state'
+}
+
+export function routeFromFallbackFetch(
+  _state: FleetGraphStateV2
+): FallbackRoute {
+  return 'persist_run_state'
+}
+
+export function routeFromFallbackScoring(
   _state: FleetGraphStateV2
 ): FallbackRoute {
   return 'persist_run_state'

@@ -82,7 +82,7 @@ flowchart TD
   H --> I["policy_gate"]
   I -->|autonomous| J["emit_advisory"]
   I -->|human required| K["approval_interrupt<br/>dialog spec + hydrated options"]
-  F -->|fallback| L["fallback"]
+  F -->|fallback| L["fallback_input / fallback_fetch / fallback_scoring"]
   G --> M["persist_result"]
   J --> M
   K -->|resume approved + inputs| N["execute_action<br/>execution adapter -> Ship REST"]
@@ -119,8 +119,10 @@ flowchart TD
   - `persist_action_outcome`
 - Output and persistence nodes:
   - `persist_result`
-- Failure node:
-  - `fallback`
+- Failure nodes:
+  - `fallback_input`
+  - `fallback_fetch`
+  - `fallback_scoring`
 
 ### Edges
 
@@ -134,14 +136,19 @@ flowchart TD
 - `approval_interrupt` resolves the selected action through a shared action registry, hydrates dialog options from Ship REST or deterministic FleetGraph services, and pauses for human input
 - `approval_interrupt -> execute_action -> persist_action_outcome` only after explicit `resume(approved + validated inputs)`
 - `approval_interrupt -> persist_action_outcome` when the human dismisses or snoozes the action
-- any unrecoverable graph-side failure -> `fallback`
+- malformed trigger or unresolved surface -> `fallback_input`
+- fetch failure on primary document, workspace snapshot, or cluster fetch -> `fallback_fetch`
+- post-normalization / post-scoring anomaly -> `fallback_scoring`
 
 ### Branching conditions
 
 - `quiet`: scenario fan-out produced no candidate with a positive score
 - `reasoned`: a scenario produced advisory output and optional safe action drafts that still need policy classification
 - `approval_required`: a scenario produced a consequential action and the graph paused in `approval_interrupt`
-- `fallback`: the graph could not safely continue because required evidence or execution preconditions failed
+- `fallback`: public branch label meaning the graph could not safely continue
+  - `fallback_input`: FleetGraph could not determine a safe analysis surface from the trigger
+  - `fallback_fetch`: FleetGraph could not fetch enough Ship data to continue honestly
+  - `fallback_scoring`: FleetGraph gathered context but hit a downstream scoring/precondition anomaly
 
 ## Shared Action Module
 
@@ -312,7 +319,9 @@ Cover:
   - quiet runs
   - advisory/read-only runs
   - approval-required runs
-  - fallback runs
+  - fallback runs, including whether the failure happened at input resolution, data fetch, or scoring
+- `route_by_surface` may legitimately fan out to multiple cluster fetches for associated wiki, weekly, person, or question-expanded surfaces before normalization
+- `persist_action_outcome` should not directly self-loop the graph; the canonical reactivity path is the Ship write route emitting a fresh enqueue event so the follow-up run has a clean trigger envelope and its own bounded trace
 
 ### State management approach
 

@@ -101,6 +101,7 @@ export async function fetchPrimaryDocumentNode(
     return {
       rawPrimaryDocument: null,
       branch: 'fallback',
+      fallbackStage: 'fetch',
       fallbackReason: 'No document ID provided for on-demand analysis',
       path: ['fetch_primary_document'],
     }
@@ -126,6 +127,9 @@ export async function fetchPrimaryDocumentNode(
 
     return {
       rawPrimaryDocument: null,
+      branch: 'fallback',
+      fallbackStage: 'fetch',
+      fallbackReason: 'FleetGraph could not load the current Ship document.',
       fetchErrors: [error],
       partialData: true,
       path: ['fetch_primary_document'],
@@ -156,7 +160,7 @@ export async function fetchPrimaryDocumentNode(
 // Routing Function
 // ──────────────────────────────────────────────────────────────────────────────
 
-export type FetchPrimaryDocumentRoute = 'route_by_surface' | 'fallback'
+export type FetchPrimaryDocumentRoute = 'route_by_surface' | 'fallback_fetch'
 
 /**
  * Routes to route_by_surface if document was fetched, otherwise fallback.
@@ -165,7 +169,7 @@ export function routeFromPrimaryDocument(
   state: FleetGraphStateV2
 ): FetchPrimaryDocumentRoute {
   if (state.branch === 'fallback' || !state.rawPrimaryDocument) {
-    return 'fallback'
+    return 'fallback_fetch'
   }
   return 'route_by_surface'
 }

@@ -20,6 +20,7 @@ describe('resolveTriggerContext', () => {
 
     expect(state.branch).toBe('quiet')
     expect(state.fallbackReason).toBeNull()
+    expect(state.fallbackStage).toBeNull()
     expect(routeFromTriggerContext(state as never)).toBe('fetch_actor_and_roles')
   })
 
@@ -37,6 +38,7 @@ describe('resolveTriggerContext', () => {
 
     expect(state.branch).toBe('fallback')
     expect(state.fallbackReason).toBe('On-demand mode requires actorId')
-    expect(routeFromTriggerContext(state as never)).toBe('fallback')
+    expect(state.fallbackStage).toBe('input')
+    expect(routeFromTriggerContext(state as never)).toBe('fallback_input')
   })
 })

@@ -48,6 +48,7 @@ export async function persistRunState(
     ...state.traceMetadata,
     branch: state.branch,
     candidateCount: state.candidateFindings.length,
+    fallbackStage: state.fallbackStage ?? undefined,
     findingTypes: state.scoredFindings.map(
       (f) => f.findingType
     ) as TraceMetadata['findingTypes'],
@@ -63,6 +64,7 @@ export async function persistRunState(
   }
 
   return {
+    fallbackStage: state.fallbackStage,
     traceMetadata,
     path: ['persist_run_state'],
   }

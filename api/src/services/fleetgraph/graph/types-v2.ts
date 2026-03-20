@@ -47,6 +47,19 @@ export const FLEETGRAPH_V2_BRANCHES = [
   'fallback',
 ] as const
 
+export const FLEETGRAPH_V2_FALLBACK_STAGES = [
+  'input',
+  'fetch',
+  'scoring',
+] as const
+
+export const FLEETGRAPH_V2_SURFACE_TARGETS = [
+  'fetch_issue_cluster',
+  'fetch_week_cluster',
+  'fetch_project_cluster',
+  'fetch_program_cluster',
+] as const
+
 export const FLEETGRAPH_V2_DOCUMENT_TYPES = [
   'issue',
   'sprint',
@@ -98,6 +111,8 @@ export const FLEETGRAPH_V2_DIRTY_WRITE_TYPES = [
 export type FleetGraphV2Mode = (typeof FLEETGRAPH_V2_MODES)[number]
 export type FleetGraphV2TriggerType = (typeof FLEETGRAPH_V2_TRIGGER_TYPES)[number]
 export type FleetGraphV2Branch = (typeof FLEETGRAPH_V2_BRANCHES)[number]
+export type FleetGraphV2FallbackStage = (typeof FLEETGRAPH_V2_FALLBACK_STAGES)[number]
+export type FleetGraphSurfaceTarget = (typeof FLEETGRAPH_V2_SURFACE_TARGETS)[number]
 export type FleetGraphV2DocumentType = (typeof FLEETGRAPH_V2_DOCUMENT_TYPES)[number]
 export type FleetGraphV2RoleLens = (typeof FLEETGRAPH_V2_ROLE_LENSES)[number]
 export type FleetGraphV2ApprovalDecision = (typeof FLEETGRAPH_V2_APPROVAL_DECISIONS)[number]
@@ -163,6 +178,11 @@ export interface ShipAccountabilityItem {
 }
 
 export interface ShipDocument {
+  belongs_to?: Array<{
+    id: string
+    title?: string
+    type: string
+  }>
   id: string
   title: string
   documentType: string
@@ -479,6 +499,7 @@ export interface TraceMetadata {
   triggerSource: string
   mode: FleetGraphV2Mode
   branch?: FleetGraphV2Branch
+  fallbackStage?: FleetGraphV2FallbackStage
   candidateCount?: number
   findingTypes?: FleetGraphV2SuspectType[]
   dedupeHit?: boolean

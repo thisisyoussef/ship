@@ -43,12 +43,13 @@ export async function fetchProgramClusterNode(
   state: FleetGraphStateV2,
   deps: FetchProgramClusterDeps
 ): Promise<FleetGraphStateV2Update> {
-  const programId = state.documentId
+  const programId = state.surfaceProgramId ?? state.documentId
 
   if (!programId) {
     return {
       rawProgramCluster: null,
       branch: 'fallback',
+      fallbackStage: 'fetch',
       fallbackReason: 'No program ID provided for cluster fetch',
       path: ['fetch_program_cluster'],
     }
@@ -63,6 +64,18 @@ export async function fetchProgramClusterNode(
     cachedPeople
   )
 
+  if (!cluster) {
+    return {
+      rawProgramCluster: null,
+      branch: 'fallback',
+      fallbackStage: 'fetch',
+      fallbackReason: 'FleetGraph could not load the program context for this analysis.',
+      fetchErrors: errors,
+      partialData: true,
+      path: ['fetch_program_cluster'],
+    }
+  }
+
   return {
     rawProgramCluster: cluster,
     rawPeople: cluster?.relatedPeople ?? state.rawPeople,
@@ -76,13 +89,13 @@ export async function fetchProgramClusterNode(
 // Routing Function
 // ──────────────────────────────────────────────────────────────────────────────
 
-export type FetchProgramClusterRoute = 'normalize_ship_state'
+export type FetchProgramClusterRoute = 'normalize_ship_state' | 'fallback_fetch'
 
 /**
  * Always routes to normalize_ship_state after cluster fetch.
  */
 export function routeFromProgramCluster(
-  _state: FleetGraphStateV2
+  state: FleetGraphStateV2
 ): FetchProgramClusterRoute {
-  return 'normalize_ship_state'
+  return state.branch === 'fallback' ? 'fallback_fetch' : 'normalize_ship_state'
 }

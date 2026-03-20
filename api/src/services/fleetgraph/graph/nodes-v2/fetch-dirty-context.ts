@@ -113,6 +113,7 @@ export async function fetchDirtyContextNode(
     return {
       rawPrimaryDocument: null,
       branch: 'fallback',
+      fallbackStage: 'fetch',
       fallbackReason: 'No dirty entity ID provided for event-driven analysis',
       path: ['fetch_dirty_context'],
     }
@@ -130,6 +131,7 @@ export async function fetchDirtyContextNode(
       fetchErrors: allErrors,
       partialData: true,
       branch: 'fallback',
+      fallbackStage: 'fetch',
       fallbackReason: 'Failed to fetch dirty entity',
       path: ['fetch_dirty_context'],
     }
@@ -225,7 +227,7 @@ export async function fetchDirtyContextNode(
 // Routing Function
 // ──────────────────────────────────────────────────────────────────────────────
 
-export type FetchDirtyContextRoute = 'expand_affected_cluster' | 'fallback'
+export type FetchDirtyContextRoute = 'expand_affected_cluster' | 'fallback_fetch'
 
 /**
  * Routes to expand_affected_cluster or fallback on error.
@@ -234,7 +236,7 @@ export function routeFromDirtyContext(
   state: FleetGraphStateV2
 ): FetchDirtyContextRoute {
   if (state.branch === 'fallback') {
-    return 'fallback'
+    return 'fallback_fetch'
   }
   return 'expand_affected_cluster'
 }

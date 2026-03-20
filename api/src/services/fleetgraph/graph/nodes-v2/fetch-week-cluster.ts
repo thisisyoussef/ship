@@ -45,12 +45,13 @@ export async function fetchWeekClusterNode(
   state: FleetGraphStateV2,
   deps: FetchWeekClusterDeps
 ): Promise<FleetGraphStateV2Update> {
-  const weekId = state.documentId
+  const weekId = state.surfaceWeekId ?? state.documentId
 
   if (!weekId) {
     return {
       rawWeekCluster: null,
       branch: 'fallback',
+      fallbackStage: 'fetch',
       fallbackReason: 'No week ID provided for cluster fetch',
       path: ['fetch_week_cluster'],
     }
@@ -65,6 +66,18 @@ export async function fetchWeekClusterNode(
     cachedPeople
   )
 
+  if (!cluster) {
+    return {
+      rawWeekCluster: null,
+      branch: 'fallback',
+      fallbackStage: 'fetch',
+      fallbackReason: 'FleetGraph could not load the sprint or week context for this analysis.',
+      fetchErrors: errors,
+      partialData: true,
+      path: ['fetch_week_cluster'],
+    }
+  }
+
   return {
     rawWeekCluster: cluster,
     rawPeople: cluster?.relatedPeople ?? state.rawPeople,
@@ -78,13 +91,13 @@ export async function fetchWeekClusterNode(
 // Routing Function
 // ──────────────────────────────────────────────────────────────────────────────
 
-export type FetchWeekClusterRoute = 'normalize_ship_state'
+export type FetchWeekClusterRoute = 'normalize_ship_state' | 'fallback_fetch'
 
 /**
  * Always routes to normalize_ship_state after cluster fetch.
  */
 export function routeFromWeekCluster(
-  _state: FleetGraphStateV2
+  state: FleetGraphStateV2
 ): FetchWeekClusterRoute {
-  return 'normalize_ship_state'
+  return state.branch === 'fallback' ? 'fallback_fetch' : 'normalize_ship_state'
 }

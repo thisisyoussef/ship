@@ -63,6 +63,7 @@ function makeState(overrides: Record<string, unknown> = {}) {
       },
       type: 'chat_answer',
     },
+    fallbackStage: null,
     threadId: THREAD_ID,
     turnCount: 1,
     workspaceId: WORKSPACE_ID,
@@ -164,6 +165,34 @@ describe('FleetGraph native V2 routes', () => {
     expect(response.body.responsePayload.type).toBe('chat_answer')
     expect(response.body.actionDrafts[0].actionId).toBe('start_week:week-1')
     expect(response.body.pendingApproval.actionDraft.actionId).toBe('start_week:week-1')
+  })
+
+  it('surfaces fallback stage metadata in the analyze response', async () => {
+    runtimeV2.invoke.mockResolvedValueOnce(makeState({
+      actionDrafts: [],
+      branch: 'fallback',
+      fallbackReason: 'FleetGraph could not load the current Ship document.',
+      fallbackStage: 'fetch',
+      pendingApproval: null,
+      reasonedFindings: [],
+      responsePayload: {
+        disclaimer: 'Some Ship data was unavailable, so this answer may be incomplete.',
+        type: 'degraded',
+      },
+    }))
+    runtimeV2.getPendingInterrupts.mockResolvedValueOnce([])
+
+    const response = await request(app)
+      .post('/api/fleetgraph/analyze')
+      .send({
+        documentId: DOCUMENT_ID,
+        documentType: 'project',
+      })
+
+    expect(response.status).toBe(200)
+    expect(response.body.branch).toBe('fallback')
+    expect(response.body.fallbackStage).toBe('fetch')
+    expect(response.body.responsePayload.type).toBe('degraded')
   })
 
   it('routes follow-up turns through V2 with the user question', async () => {

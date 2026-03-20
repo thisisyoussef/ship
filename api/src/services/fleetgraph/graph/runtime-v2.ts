@@ -122,8 +122,9 @@ import {
   persistRunState,
 } from './nodes-v2/persist-run-state.js'
 import {
-  fallback,
-  routeFromFallback,
+  fallbackFetch,
+  fallbackInput,
+  fallbackScoring,
 } from './nodes-v2/fallback.js'
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -223,7 +224,9 @@ export function createFleetGraphV2Graph(config: FleetGraphV2RuntimeConfig) {
   builder.addNode('persist_run_state', (state: FleetGraphStateV2) =>
     persistRunState(state, { findingStore: persistence })
   )
-  builder.addNode('fallback', fallback)
+  builder.addNode('fallback_input', fallbackInput)
+  builder.addNode('fallback_fetch', fallbackFetch)
+  builder.addNode('fallback_scoring', fallbackScoring)
 
   // ────────────────────────────────────────────────────────────────────────────
   // Add Edges
@@ -243,13 +246,13 @@ export function createFleetGraphV2Graph(config: FleetGraphV2RuntimeConfig) {
     fetch_workspace_snapshot: 'fetch_workspace_snapshot',
     fetch_actor_and_roles: 'fetch_actor_and_roles',
     fetch_dirty_context: 'fetch_dirty_context',
-    fallback: 'fallback',
+    fallback_input: 'fallback_input',
   })
 
   // Edge 5-6: fetch_workspace_snapshot routing
   graph.addConditionalEdges('fetch_workspace_snapshot', routeFromWorkspaceSnapshot, {
     identify_dirty_entities: 'identify_dirty_entities',
-    fallback: 'fallback',
+    fallback_fetch: 'fallback_fetch',
   })
 
   // Edge 7-8: identify_dirty_entities routing
@@ -267,32 +270,40 @@ export function createFleetGraphV2Graph(config: FleetGraphV2RuntimeConfig) {
   // Edge 11: fetch_primary_document routing
   graph.addConditionalEdges('fetch_primary_document', routeFromPrimaryDocument, {
     route_by_surface: 'route_by_surface',
-    fallback: 'fallback',
+    fallback_fetch: 'fallback_fetch',
   })
 
   // Edge 12-16: route_by_surface routing
-  graph.addConditionalEdges('route_by_surface', (state: FleetGraphStateV2) => {
-    const route = routeFromSurface(state)
-    // Handle both single route and array of routes
-    return Array.isArray(route) ? route[0] : route
-  }, {
+  graph.addConditionalEdges('route_by_surface', routeFromSurface, {
     fetch_issue_cluster: 'fetch_issue_cluster',
     fetch_week_cluster: 'fetch_week_cluster',
     fetch_project_cluster: 'fetch_project_cluster',
     fetch_program_cluster: 'fetch_program_cluster',
-    fallback: 'fallback',
+    fallback_input: 'fallback_input',
   })
 
   // Edge 17-20: cluster fetches → normalize_ship_state
-  graph.addEdge('fetch_issue_cluster', 'normalize_ship_state')
-  graph.addEdge('fetch_week_cluster', 'normalize_ship_state')
-  graph.addEdge('fetch_project_cluster', 'normalize_ship_state')
-  graph.addEdge('fetch_program_cluster', 'normalize_ship_state')
+  graph.addConditionalEdges('fetch_issue_cluster', routeFromIssueCluster, {
+    normalize_ship_state: 'normalize_ship_state',
+    fallback_fetch: 'fallback_fetch',
+  })
+  graph.addConditionalEdges('fetch_week_cluster', routeFromWeekCluster, {
+    normalize_ship_state: 'normalize_ship_state',
+    fallback_fetch: 'fallback_fetch',
+  })
+  graph.addConditionalEdges('fetch_project_cluster', routeFromProjectCluster, {
+    normalize_ship_state: 'normalize_ship_state',
+    fallback_fetch: 'fallback_fetch',
+  })
+  graph.addConditionalEdges('fetch_program_cluster', routeFromProgramCluster, {
+    normalize_ship_state: 'normalize_ship_state',
+    fallback_fetch: 'fallback_fetch',
+  })
 
   // Edge 21: fetch_dirty_context routing
   graph.addConditionalEdges('fetch_dirty_context', routeFromDirtyContext, {
     expand_affected_cluster: 'expand_affected_cluster',
-    fallback: 'fallback',
+    fallback_fetch: 'fallback_fetch',
   })
 
   // Edge 22: expand_affected_cluster → normalize_ship_state
@@ -308,7 +319,7 @@ export function createFleetGraphV2Graph(config: FleetGraphV2RuntimeConfig) {
   graph.addConditionalEdges('score_candidates', routeFromScoreCandidates, {
     quiet_exit: 'quiet_exit',
     reason_findings: 'reason_findings',
-    fallback: 'fallback',
+    fallback_scoring: 'fallback_scoring',
   })
 
   // Edge 28: quiet_exit → persist_run_state
@@ -341,8 +352,10 @@ export function createFleetGraphV2Graph(config: FleetGraphV2RuntimeConfig) {
   // Edge 37: persist_action_outcome → END
   graph.addEdge('persist_action_outcome', END)
 
-  // Edge 38: fallback → persist_run_state
-  graph.addEdge('fallback', 'persist_run_state')
+  // Edge 38-40: fallback_* → persist_run_state
+  graph.addEdge('fallback_input', 'persist_run_state')
+  graph.addEdge('fallback_fetch', 'persist_run_state')
+  graph.addEdge('fallback_scoring', 'persist_run_state')
 
   return builder
 }

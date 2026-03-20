@@ -19,8 +19,10 @@ import type {
   FleetGraphActionDraft,
   FleetGraphConversationTurn,
   FleetGraphDialogSubmission,
+  FleetGraphSurfaceTarget,
   FleetGraphV2Branch,
   FleetGraphV2DocumentType,
+  FleetGraphV2FallbackStage,
   FleetGraphV2Mode,
   FleetGraphV2RoleLens,
   FleetGraphV2ApprovalDecision,
@@ -128,6 +130,21 @@ export const FleetGraphStateV2Annotation = Annotation.Root({
 
   /** Explicit action selected for native review/apply flows */
   selectedActionId: replaceValue<string | null>(null),
+
+  /** Cluster targets resolved from the current surface */
+  surfaceTargets: replaceValue<FleetGraphSurfaceTarget[]>([]),
+
+  /** Resolved issue target for compound surface routing */
+  surfaceIssueId: replaceValue<string | null>(null),
+
+  /** Resolved week target for compound surface routing */
+  surfaceWeekId: replaceValue<string | null>(null),
+
+  /** Resolved project target for compound surface routing */
+  surfaceProjectId: replaceValue<string | null>(null),
+
+  /** Resolved program target for compound surface routing */
+  surfaceProgramId: replaceValue<string | null>(null),
 
   // ════════════════════════════════════════════════════════════════════════════
   // Event context (event-driven only)
@@ -299,6 +316,9 @@ export const FleetGraphStateV2Annotation = Annotation.Root({
 
   /** Why this run fell back to degraded mode */
   fallbackReason: replaceValue<string | null>(null),
+
+  /** Which fallback bucket this run entered */
+  fallbackStage: replaceValue<FleetGraphV2FallbackStage | null>(null),
 
   // ════════════════════════════════════════════════════════════════════════════
   // Trace metadata

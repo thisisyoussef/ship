@@ -46,12 +46,13 @@ export async function fetchProjectClusterNode(
   deps: FetchProjectClusterDeps
 ): Promise<FleetGraphStateV2Update> {
   // Use project context ID if available (for weekly plan/retro), otherwise document ID
-  const projectId = state.projectContextId ?? state.documentId
+  const projectId = state.surfaceProjectId ?? state.projectContextId ?? state.documentId
 
   if (!projectId) {
     return {
       rawProjectCluster: null,
       branch: 'fallback',
+      fallbackStage: 'fetch',
       fallbackReason: 'No project ID provided for cluster fetch',
       path: ['fetch_project_cluster'],
     }
@@ -66,6 +67,18 @@ export async function fetchProjectClusterNode(
     cachedPeople
   )
 
+  if (!cluster) {
+    return {
+      rawProjectCluster: null,
+      branch: 'fallback',
+      fallbackStage: 'fetch',
+      fallbackReason: 'FleetGraph could not load the project context for this analysis.',
+      fetchErrors: errors,
+      partialData: true,
+      path: ['fetch_project_cluster'],
+    }
+  }
+
   return {
     rawProjectCluster: cluster,
     rawPeople: cluster?.relatedPeople ?? state.rawPeople,
@@ -79,13 +92,13 @@ export async function fetchProjectClusterNode(
 // Routing Function
 // ──────────────────────────────────────────────────────────────────────────────
 
-export type FetchProjectClusterRoute = 'normalize_ship_state'
+export type FetchProjectClusterRoute = 'normalize_ship_state' | 'fallback_fetch'
 
 /**
  * Always routes to normalize_ship_state after cluster fetch.
  */
 export function routeFromProjectCluster(
-  _state: FleetGraphStateV2
+  state: FleetGraphStateV2
 ): FetchProjectClusterRoute {
-  return 'normalize_ship_state'
+  return state.branch === 'fallback' ? 'fallback_fetch' : 'normalize_ship_state'
 }

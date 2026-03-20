@@ -108,6 +108,7 @@ const FleetGraphThreadResponseSchema = z.object({
   actionDrafts: z.array(FleetGraphActionDraftSchema),
   branch: z.enum(['action_required', 'advisory', 'fallback', 'quiet']),
   contextSummary: z.string().nullable().optional(),
+  fallbackStage: z.enum(['input', 'fetch', 'scoring']).nullable().optional(),
   path: z.array(nonEmptyString),
   pendingApproval: FleetGraphPendingApprovalSchema.nullish(),
   reasonedFindings: z.array(FleetGraphReasonedFindingSchema),
@@ -197,6 +198,7 @@ const FleetGraphInterruptSummarySchema = z.object({
 const FleetGraphDebugCheckpointSchema = z.object({
   branch: z.string().min(1).optional(),
   createdAt: z.string().optional(),
+  fallbackStage: z.enum(['input', 'fetch', 'scoring']).optional(),
   next: z.array(z.string().min(1)),
   outcome: z.string().min(1).optional(),
   path: z.array(z.string().min(1)),

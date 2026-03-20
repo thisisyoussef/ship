@@ -132,6 +132,15 @@ function makeAnalyzeInput(): FleetGraphV2RuntimeInput {
   }
 }
 
+function makeInput(
+  overrides: Partial<FleetGraphV2RuntimeInput>
+): FleetGraphV2RuntimeInput {
+  return {
+    ...makeAnalyzeInput(),
+    ...overrides,
+  }
+}
+
 function makeWeekRoutes(overrides: {
   issueDocuments?: unknown[]
   weekDocument?: Record<string, unknown>
@@ -192,6 +201,35 @@ function makeWeekRoutes(overrides: {
     [`${BASE_URL}/api/weeks/${WEEK_ID}/review`]: null,
     [`${BASE_URL}/api/weeks/${WEEK_ID}/scope-changes`]: [],
     [`${BASE_URL}/api/weeks/${WEEK_ID}/standups`]: [],
+  }
+}
+
+function makeProjectRoutes(projectId = 'project-1') {
+  return {
+    [`${BASE_URL}/api/projects/${projectId}`]: {
+      accountable_id: USER_ID,
+      id: projectId,
+      owner_id: PERSON_ID,
+      status: 'active',
+      target_date: '2026-03-24T00:00:00.000Z',
+      title: 'Demo Project',
+    },
+    [`${BASE_URL}/api/projects/${projectId}/activity`]: [],
+    [`${BASE_URL}/api/projects/${projectId}/issues`]: [],
+    [`${BASE_URL}/api/projects/${projectId}/retro`]: null,
+    [`${BASE_URL}/api/projects/${projectId}/weeks`]: [
+      {
+        id: WEEK_ID,
+        name: 'FleetGraph Demo Week',
+        owner: {
+          id: USER_ID,
+          name: 'Casey PM',
+        },
+        sprint_number: 2,
+        status: 'planning',
+        workspace_sprint_start_date: '2026-03-10T00:00:00.000Z',
+      },
+    ],
   }
 }
 
@@ -308,5 +346,72 @@ describe('createFleetGraphV2Runtime on-demand parity', () => {
         text: 'I analyzed this sprint and did not find anything that needs immediate attention.',
       },
     })
+  })
+
+  it('routes primary-document fetch failures through the fetch fallback path', async () => {
+    const runtime = createRuntime(createFetchFn({
+      [`${BASE_URL}/api/team/people`]: [
+        {
+          email: 'pm@example.com',
+          id: PERSON_ID,
+          name: 'Casey PM',
+          role: 'PM',
+          user_id: USER_ID,
+        },
+      ],
+      [`${BASE_URL}/api/workspaces/current`]: {
+        user: {
+          id: USER_ID,
+          is_admin: false,
+        },
+      },
+    }))
+
+    const state = await runtime.invoke(makeAnalyzeInput())
+
+    expect(state.branch).toBe('fallback')
+    expect(state.fallbackStage).toBe('fetch')
+    expect(state.path).toContain('fallback_fetch')
+    expect(state.responsePayload).toMatchObject({
+      disclaimer: expect.any(String),
+      type: 'degraded',
+    })
+  })
+
+  it('fans out compound wiki surfaces into both week and project clusters before normalization', async () => {
+    const wikiId = 'wiki-1'
+    const routes = {
+      ...makeWeekRoutes(),
+      ...makeProjectRoutes(),
+      [`${BASE_URL}/api/documents/${wikiId}`]: {
+        belongs_to: [
+          {
+            id: WEEK_ID,
+            title: 'FleetGraph Demo Week',
+            type: 'sprint',
+          },
+          {
+            id: 'project-1',
+            title: 'Demo Project',
+            type: 'project',
+          },
+        ],
+        documentType: 'wiki',
+        id: wikiId,
+        title: 'Project pulse',
+      },
+    }
+    const runtime = createRuntime(createFetchFn(routes))
+
+    const state = await runtime.invoke(makeInput({
+      documentId: wikiId,
+      documentType: 'wiki',
+      threadId: `fleetgraph:${WORKSPACE_ID}:analyze:${wikiId}`,
+    }))
+
+    expect(state.path).toContain('fetch_week_cluster')
+    expect(state.path).toContain('fetch_project_cluster')
+    expect(state.rawWeekCluster?.week.id).toBe(WEEK_ID)
+    expect(state.rawProjectCluster?.project.id).toBe('project-1')
   })
 })

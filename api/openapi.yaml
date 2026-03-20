@@ -4973,6 +4973,13 @@ components:
         contextSummary:
           type: string
           nullable: true
+        fallbackStage:
+          type: string
+          nullable: true
+          enum:
+            - input
+            - fetch
+            - scoring
         path:
           type: array
           items:
@@ -5863,6 +5870,13 @@ components:
         contextSummary:
           type: string
           nullable: true
+        fallbackStage:
+          type: string
+          nullable: true
+          enum:
+            - input
+            - fetch
+            - scoring
         path:
           type: array
           items:
@@ -7948,6 +7962,12 @@ components:
                       minLength: 1
                     createdAt:
                       type: string
+                    fallbackStage:
+                      type: string
+                      enum:
+                        - input
+                        - fetch
+                        - scoring
                     next:
                       type: array
                       items:
@@ -12665,6 +12685,13 @@ paths:
                   contextSummary:
                     type: string
                     nullable: true
+                  fallbackStage:
+                    type: string
+                    nullable: true
+                    enum:
+                      - input
+                      - fetch
+                      - scoring
                   path:
                     type: array
                     items:
@@ -13347,6 +13374,13 @@ paths:
                   contextSummary:
                     type: string
                     nullable: true
+                  fallbackStage:
+                    type: string
+                    nullable: true
+                    enum:
+                      - input
+                      - fetch
+                      - scoring
                   path:
                     type: array
                     items:
@@ -13977,6 +14011,13 @@ paths:
                   contextSummary:
                     type: string
                     nullable: true
+                  fallbackStage:
+                    type: string
+                    nullable: true
+                    enum:
+                      - input
+                      - fetch
+                      - scoring
                   path:
                     type: array
                     items:
@@ -14799,6 +14840,12 @@ paths:
                                 minLength: 1
                               createdAt:
                                 type: string
+                              fallbackStage:
+                                type: string
+                                enum:
+                                  - input
+                                  - fetch
+                                  - scoring
                               next:
                                 type: array
                                 items:
@@ -16702,6 +16749,13 @@ paths:
                   contextSummary:
                     type: string
                     nullable: true
+                  fallbackStage:
+                    type: string
+                    nullable: true
+                    enum:
+                      - input
+                      - fetch
+                      - scoring
                   path:
                     type: array
                     items:
@@ -17362,6 +17416,13 @@ paths:
                   contextSummary:
                     type: string
                     nullable: true
+                  fallbackStage:
+                    type: string
+                    nullable: true
+                    enum:
+                      - input
+                      - fetch
+                      - scoring
                   path:
                     type: array
                     items:

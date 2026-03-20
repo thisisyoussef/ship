@@ -29,6 +29,7 @@ export interface FleetGraphDebugEntrySnapshot {
 export interface FleetGraphDebugCheckpoint {
   branch?: string;
   createdAt?: string;
+  fallbackStage?: 'input' | 'fetch' | 'scoring';
   next?: string[];
   outcome?: string;
   path: string[];

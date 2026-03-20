@@ -157,6 +157,7 @@ export interface FleetGraphThreadResponse {
   actionDrafts: FleetGraphActionDraft[]
   branch: 'action_required' | 'advisory' | 'fallback' | 'quiet'
   contextSummary?: string | null
+  fallbackStage?: 'input' | 'fetch' | 'scoring' | null
   path: string[]
   pendingApproval?: FleetGraphPendingApproval | null
   reasonedFindings: FleetGraphReasonedFinding[]

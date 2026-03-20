@@ -67,6 +67,7 @@ export async function fetchWorkspaceSnapshotNode(
       fetchErrors: snapshot.fetchErrors,
       partialData: true,
       branch: 'fallback',
+      fallbackStage: 'fetch',
       fallbackReason: 'Critical proactive data (projects or weeks) unavailable',
       path: ['fetch_workspace_snapshot'],
     }
@@ -89,7 +90,7 @@ export async function fetchWorkspaceSnapshotNode(
 // Routing Function
 // ──────────────────────────────────────────────────────────────────────────────
 
-export type FetchWorkspaceSnapshotRoute = 'identify_dirty_entities' | 'fallback'
+export type FetchWorkspaceSnapshotRoute = 'identify_dirty_entities' | 'fallback_fetch'
 
 /**
  * Routes to fallback on critical failure, otherwise to identify_dirty_entities.
@@ -98,7 +99,7 @@ export function routeFromWorkspaceSnapshot(
   state: FleetGraphStateV2
 ): FetchWorkspaceSnapshotRoute {
   if (state.branch === 'fallback') {
-    return 'fallback'
+    return 'fallback_fetch'
   }
   return 'identify_dirty_entities'
 }

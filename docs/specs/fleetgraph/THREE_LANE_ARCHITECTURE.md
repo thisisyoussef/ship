@@ -56,7 +56,7 @@ All three lanes share the same downstream pipeline: normalize → score → bran
                        │
           ┌────────────┴──────────┬──────────────┬────────────┐
           ▼                       ▼              ▼             ▼
-    quiet_exit            reason_findings   approval_interrupt  fallback
+    quiet_exit            reason_findings   approval_interrupt  fallback_input
           │                       │              │              │
     persist_run_state      emit_advisory    ┌────┴────┐    persist_run_state
           │                       │         │         │         │
@@ -69,6 +69,10 @@ All three lanes share the same downstream pipeline: normalize → score → bran
                                         _outcome
                                               │
                                              END
+
+    fetch failures and scoring anomalies also branch to:
+      fallback_fetch   → persist_run_state → END
+      fallback_scoring → persist_run_state → END
 ```
 
 ---
@@ -95,6 +99,11 @@ interface FleetGraphState {
   nested_path: string | null;
   project_context_id: string | null;    // inherited from CurrentDocumentContext
   user_question: string | null;         // on-demand only
+  surface_targets: ("fetch_issue_cluster" | "fetch_week_cluster" | "fetch_project_cluster" | "fetch_program_cluster")[];
+  surface_issue_id: string | null;
+  surface_week_id: string | null;
+  surface_project_id: string | null;
+  surface_program_id: string | null;
 
   // ── Event context (event-driven only) ──
   dirty_entity_id: string | null;
@@ -151,6 +160,7 @@ interface FleetGraphState {
   partial_data: boolean;
   fetch_errors: FetchError[];
   fallback_reason: string | null;
+  fallback_stage: "input" | "fetch" | "scoring" | null;
 
   // ── Trace metadata ──
   trace_metadata: TraceMetadata;
@@ -180,7 +190,7 @@ interface FleetGraphState {
 2. For on-demand: extract `document_id`, `document_type`, `active_tab`, `nested_path`, `project_context_id` from the frontend context injection
 3. For event-driven: extract `dirty_entity_id`, `dirty_entity_type`, `dirty_write_type`, and any `dirty_coalesced_ids` from the queue payload
 4. Stamp `run_id` (UUID v4) and build initial `trace_metadata` with `workspace_id`, `trigger_type`, `trigger_source`, `mode`
-5. Validate that minimum required fields are present; if not, set `branch = "fallback"` and `fallback_reason`
+5. Validate that minimum required fields are present; if not, set `branch = "fallback"`, `fallback_reason`, and `fallback_stage = "input"`
 
 **Outgoing edges:**
 
@@ -189,7 +199,7 @@ interface FleetGraphState {
 | `mode == "proactive"` | `fetch_workspace_snapshot` |
 | `mode == "on_demand"` | `fetch_actor_and_roles` → `fetch_primary_document` (sequential) |
 | `mode == "event_driven"` | `fetch_dirty_context` |
-| validation failure | `fallback` |
+| validation failure | `fallback_input` |
 
 ---
 
@@ -215,7 +225,7 @@ interface FleetGraphState {
 
 **Error handling:**
 - If any single call fails after 2 retries with jitter, mark `partial_data = true` and append to `fetch_errors`
-- If `projects` or `weeks` fail (the two essential proactive signals), route to `fallback` instead of continuing
+- If `projects` or `weeks` fail (the two essential proactive signals), route to `fallback_fetch` instead of continuing
 - If only `people` fails, fall back to ownership fields embedded in project/week/issue documents
 
 **Outgoing edge:** `identify_dirty_entities`
@@ -891,7 +901,7 @@ sequenceDiagram
 
 ---
 
-### 25. `fallback`
+### 25. `fallback_input` / `fallback_fetch` / `fallback_scoring`
 
 **Lane:** Shared
 **Type:** Error handler
@@ -899,20 +909,27 @@ sequenceDiagram
 
 | Reads | Writes |
 |-------|--------|
-| `fetch_errors`, `fallback_reason`, `partial_data` | `response_payload` |
+| `fetch_errors`, `fallback_reason`, `partial_data`, `fallback_stage` | `response_payload`, `trace_metadata.fallback_stage` |
 
 **Logic:**
 
-1. If `partial_data == true` and `mode == "on_demand"`:
+1. `fallback_input` is reserved for malformed or insufficient trigger context:
+   - example: missing actor/document coupling, unresolved surface, or unusable document associations
+   - produce an honest "I couldn't determine enough context" degraded answer for on-demand mode
+2. `fallback_fetch` is reserved for data access failures:
+   - example: primary document fetch failure, critical workspace snapshot failure, or cluster fetch failure
+3. `fallback_scoring` is reserved for downstream anomalies after context was gathered:
+   - example: missing normalized context or invalid composite scores
+4. If `partial_data == true` and `mode == "on_demand"`:
    - Produce a degraded answer with a disclaimer: "Some Ship data was unavailable, so this answer may be incomplete."
    - Never propose mutations from partial data
-2. If `partial_data == true` and `mode == "proactive"`:
+5. If `partial_data == true` and `mode == "proactive"`:
    - Suppress all proactive delivery
    - Log the failure for observability
-3. If the failure is auth-related (`401` / `403`):
+6. If the failure is auth-related (`401` / `403`):
    - Mark workspace integration as unhealthy
    - Surface admin notification in FleetGraph UI
-4. If rate-limited (`429`):
+7. If rate-limited (`429`):
    - Back off, reduce concurrency, defer lower-priority sweeps
 
 **Outgoing edge:** `persist_run_state` → `END`
@@ -926,41 +943,49 @@ sequenceDiagram
 | 1 | `resolve_trigger_context` | `fetch_workspace_snapshot` | `mode == "proactive"` |
 | 2 | `resolve_trigger_context` | `fetch_actor_and_roles` | `mode == "on_demand"` |
 | 3 | `resolve_trigger_context` | `fetch_dirty_context` | `mode == "event_driven"` |
-| 4 | `resolve_trigger_context` | `fallback` | validation failure |
+| 4 | `resolve_trigger_context` | `fallback_input` | validation failure |
 | 5 | `fetch_workspace_snapshot` | `identify_dirty_entities` | always |
-| 6 | `fetch_workspace_snapshot` | `fallback` | critical fetch failure (projects or weeks) |
+| 6 | `fetch_workspace_snapshot` | `fallback_fetch` | critical fetch failure (projects or weeks) |
 | 7 | `identify_dirty_entities` | `expand_suspects` | `suspect_entities.length > 0` |
 | 8 | `identify_dirty_entities` | `normalize_ship_state` | `suspect_entities.length == 0` |
 | 9 | `expand_suspects` | `normalize_ship_state` | always (after parallel fan-out completes) |
 | 10 | `fetch_actor_and_roles` | `fetch_primary_document` | always |
-| 11 | `fetch_primary_document` | `route_by_surface` | always |
-| 12 | `route_by_surface` | `fetch_issue_cluster` | `document_type == "issue"` |
-| 13 | `route_by_surface` | `fetch_week_cluster` | `document_type == "sprint"` |
-| 14 | `route_by_surface` | `fetch_project_cluster` | `document_type == "project"` |
-| 15 | `route_by_surface` | `fetch_program_cluster` | `document_type == "program"` |
-| 16 | `route_by_surface` | `fetch_week_cluster` + `fetch_project_cluster` | `document_type in ("weekly_plan", "weekly_retro")` |
-| 17 | `fetch_issue_cluster` | `normalize_ship_state` | always |
-| 18 | `fetch_week_cluster` | `normalize_ship_state` | always |
-| 19 | `fetch_project_cluster` | `normalize_ship_state` | always |
-| 20 | `fetch_program_cluster` | `normalize_ship_state` | always |
-| 21 | `fetch_dirty_context` | `expand_affected_cluster` | always |
-| 22 | `expand_affected_cluster` | `normalize_ship_state` | always |
-| 23 | `normalize_ship_state` | `check_dedupe_cooldown` | always |
-| 24 | `check_dedupe_cooldown` | `score_candidates` | always |
-| 25 | `score_candidates` | `quiet_exit` | `branch == "quiet"` |
-| 26 | `score_candidates` | `reason_findings` | `branch in ("advisory", "action_required")` |
-| 27 | `score_candidates` | `fallback` | `branch == "fallback"` |
-| 28 | `quiet_exit` | `persist_run_state` | always |
-| 29 | `reason_findings` | `policy_gate` | always |
-| 30 | `policy_gate` | `emit_advisory` | all action drafts are autonomous |
-| 31 | `policy_gate` | `approval_interrupt` | any action draft requires human approval |
-| 32 | `emit_advisory` | `persist_run_state` | always |
-| 33 | `approval_interrupt` | `execute_confirmed_action` | `resume(approved)` |
-| 34 | `approval_interrupt` | `persist_action_outcome` | `resume(dismissed)` or `resume(snoozed)` |
-| 35 | `execute_confirmed_action` | `persist_action_outcome` | always |
-| 36 | `persist_run_state` | `END` | always |
-| 37 | `persist_action_outcome` | `END` | always |
-| 38 | `fallback` | `persist_run_state` | always |
+| 11 | `fetch_primary_document` | `route_by_surface` | success |
+| 12 | `fetch_primary_document` | `fallback_fetch` | primary document unavailable |
+| 13 | `route_by_surface` | `fetch_issue_cluster` | issue surface or associated issue target |
+| 14 | `route_by_surface` | `fetch_week_cluster` | sprint/week surface or associated week target |
+| 15 | `route_by_surface` | `fetch_project_cluster` | project surface or associated project target |
+| 16 | `route_by_surface` | `fetch_program_cluster` | program surface or associated program target |
+| 17 | `route_by_surface` | `fallback_input` | no analyzable surface could be resolved |
+| 18 | `fetch_issue_cluster` | `normalize_ship_state` | success |
+| 19 | `fetch_issue_cluster` | `fallback_fetch` | cluster fetch failed |
+| 20 | `fetch_week_cluster` | `normalize_ship_state` | success |
+| 21 | `fetch_week_cluster` | `fallback_fetch` | cluster fetch failed |
+| 22 | `fetch_project_cluster` | `normalize_ship_state` | success |
+| 23 | `fetch_project_cluster` | `fallback_fetch` | cluster fetch failed |
+| 24 | `fetch_program_cluster` | `normalize_ship_state` | success |
+| 25 | `fetch_program_cluster` | `fallback_fetch` | cluster fetch failed |
+| 26 | `fetch_dirty_context` | `expand_affected_cluster` | success |
+| 27 | `fetch_dirty_context` | `fallback_fetch` | dirty context unavailable |
+| 28 | `expand_affected_cluster` | `normalize_ship_state` | always |
+| 29 | `normalize_ship_state` | `check_dedupe_cooldown` | always |
+| 30 | `check_dedupe_cooldown` | `score_candidates` | always |
+| 31 | `score_candidates` | `quiet_exit` | `branch == "quiet"` |
+| 32 | `score_candidates` | `reason_findings` | `branch in ("advisory", "action_required")` |
+| 33 | `score_candidates` | `fallback_scoring` | `branch == "fallback"` after scoring anomaly |
+| 34 | `quiet_exit` | `persist_run_state` | always |
+| 35 | `reason_findings` | `policy_gate` | always |
+| 36 | `policy_gate` | `emit_advisory` | all action drafts are autonomous |
+| 37 | `policy_gate` | `approval_interrupt` | any action draft requires human approval |
+| 38 | `emit_advisory` | `persist_run_state` | always |
+| 39 | `approval_interrupt` | `execute_confirmed_action` | `resume(approved)` |
+| 40 | `approval_interrupt` | `persist_action_outcome` | `resume(dismissed)` or `resume(snoozed)` |
+| 41 | `execute_confirmed_action` | `persist_action_outcome` | always |
+| 42 | `persist_run_state` | `END` | always |
+| 43 | `persist_action_outcome` | `END` | always |
+| 44 | `fallback_input` | `persist_run_state` | always |
+| 45 | `fallback_fetch` | `persist_run_state` | always |
+| 46 | `fallback_scoring` | `persist_run_state` | always |
 
 ---
 
@@ -1004,7 +1029,7 @@ resolve_trigger_context
 resolve_trigger_context
   → fetch_actor_and_roles [2 REST calls]
     → fetch_primary_document [1 REST call]
-      → route_by_surface [issue]
+      → route_by_surface [issue + optional compound targets]
         → fetch_issue_cluster [6 parallel REST calls]
           → normalize_ship_state
             → check_dedupe_cooldown

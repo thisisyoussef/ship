@@ -97,11 +97,13 @@ export class OpenAIToolCallingAdapter implements LLMToolCallingAdapter {
 
     const tools = request.tools.map(formatToolForAPI)
 
+    // Note: OpenAI Responses API rejects max_output_tokens when tools are
+    // present. Omit it for tool-calling requests — the API uses a sensible
+    // default. Plain generate() still sends it (no tools in that path).
     const response = await this.fetchFn(`${this.config.baseUrl}/responses`, {
       body: JSON.stringify({
         input: request.messages,
         instructions: request.instructions,
-        max_output_tokens: request.maxOutputTokens,
         model: this.config.model,
         temperature: request.temperature,
         tools,

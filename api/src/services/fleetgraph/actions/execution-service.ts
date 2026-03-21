@@ -77,32 +77,6 @@ export interface ActionExecutionContext {
 export class ActionExecutionService {
   constructor(private context: ActionExecutionContext) {}
 
-  private async hydrateDialogOptions(
-    actionType: string,
-    definition: NonNullable<ReturnType<typeof getActionDefinition>>,
-    request: Pick<ActionReviewRequest, 'draft' | 'workspaceId'>
-  ) {
-    const definitionOptions = definition.hydrateOptions
-      ? await definition.hydrateOptions({
-          targetId: request.draft.targetId,
-          workspaceId: request.workspaceId,
-        })
-      : {}
-
-    const runtimeOptions = this.context.hydrateOptions
-      ? await this.context.hydrateOptions(
-          actionType,
-          request.draft.targetId,
-          request.workspaceId
-        )
-      : {}
-
-    return {
-      ...definitionOptions,
-      ...runtimeOptions,
-    }
-  }
-
   /**
    * Review an action - hydrates dialog options and returns dialog spec
    */
@@ -124,11 +98,19 @@ export class ActionExecutionService {
     }
 
     // Hydrate options if the definition supports it
-    const options = await this.hydrateDialogOptions(
-      parsed.actionType,
-      definition,
-      request
-    )
+    let options: Record<string, FleetGraphSelectOption[]> = {}
+    if (definition.hydrateOptions) {
+      options = await definition.hydrateOptions({
+        targetId: request.draft.targetId,
+        workspaceId: request.workspaceId,
+      })
+    } else if (this.context.hydrateOptions) {
+      options = await this.context.hydrateOptions(
+        parsed.actionType,
+        request.draft.targetId,
+        request.workspaceId
+      )
+    }
 
     // Build dialog spec
     const dialogSpec = definition.buildDialogSpec(request.draft, options)
@@ -161,11 +143,19 @@ export class ActionExecutionService {
     }
 
     // Re-hydrate options for validation
-    const options = await this.hydrateDialogOptions(
-      parsed.actionType,
-      definition,
-      request
-    )
+    let options: Record<string, FleetGraphSelectOption[]> = {}
+    if (definition.hydrateOptions) {
+      options = await definition.hydrateOptions({
+        targetId: request.draft.targetId,
+        workspaceId: request.workspaceId,
+      })
+    } else if (this.context.hydrateOptions) {
+      options = await this.context.hydrateOptions(
+        parsed.actionType,
+        request.draft.targetId,
+        request.workspaceId
+      )
+    }
 
     const dialogSpec = definition.buildDialogSpec(request.draft, options)
 

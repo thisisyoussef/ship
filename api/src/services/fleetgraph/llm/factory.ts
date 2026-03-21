@@ -9,8 +9,11 @@ import {
   type LLMAdapter,
   type LLMGenerateRequest,
   type LLMGenerateResponse,
+  type LLMToolCallingAdapter,
   type LLMUsage,
 } from './types.js';
+
+import { OpenAIToolCallingAdapter } from './tool-calling-adapter.js';
 
 const DEFAULT_OPENAI_MODEL = 'gpt-5-mini';
 const DEFAULT_OPENAI_BASE_URL = 'https://api.openai.com/v1';
@@ -91,6 +94,19 @@ export function createLLMAdapter(
     deps.bedrockClient ||
       new BedrockRuntimeClient({ region: config.bedrockAnthropic.region })
   );
+}
+
+export function createToolCallingAdapter(
+  config: FleetGraphLLMConfig,
+  deps: FactoryDependencies = {}
+): LLMToolCallingAdapter {
+  if (config.provider !== 'openai') {
+    throw new Error(
+      `Tool-calling adapter only supports OpenAI provider. Got "${config.provider}".`
+    );
+  }
+
+  return new OpenAIToolCallingAdapter(config.openai, deps.fetchFn || fetch);
 }
 
 function resolveProvider(rawProvider?: string): FleetGraphLLMProvider {

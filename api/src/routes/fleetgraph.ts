@@ -884,8 +884,9 @@ export function createFleetGraphRouter(
     }
 
     try {
-      const { documentId, documentType } = req.body as {
+      const { documentId, documentTitle, documentType } = req.body as {
         documentId?: string
+        documentTitle?: string
         documentType?: string
       }
 
@@ -901,6 +902,7 @@ export function createFleetGraphRouter(
         actorId: auth.userId,
         documentId,
         documentType,
+        documentTitle,
         requestContext,
       })
 

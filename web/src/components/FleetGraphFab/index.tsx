@@ -48,7 +48,7 @@ export function FleetGraphFab({
       {/* FAB Button */}
       <button
         aria-label="FleetGraph Intelligence"
-        className="fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 transition-colors flex items-center justify-center"
+        className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-12 h-12 rounded-full bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 transition-colors flex items-center justify-center"
         onClick={() => setIsOpen(!isOpen)}
         type="button"
       >
@@ -71,7 +71,7 @@ export function FleetGraphFab({
 
       {/* Panel */}
       {isOpen && (
-        <div className="fixed bottom-20 right-6 z-50 w-[420px] max-h-[75vh] bg-white rounded-xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden">
+        <div className="fixed bottom-[4.5rem] sm:bottom-20 z-50 max-h-[75vh] bg-white rounded-xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden right-2 left-2 sm:left-auto sm:right-6 sm:w-[420px]">
           {/* Header */}
           <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
             <div className="flex items-center gap-2">

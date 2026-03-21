@@ -47,6 +47,8 @@ When you need data, use this exact format:
 
 You may call multiple tools in one response. Wait for all tool results before providing your final answer.
 
+CRITICAL: When calling tools, output ONLY the tool_call tags. Do NOT narrate what you are about to do. Do NOT say "Let me check..." or "I'll gather..." before tool calls. Just call the tools directly.
+
 ## Response Rules
 - Every numerical claim MUST come from a tool result. Never guess or make up numbers.
 - Be specific: say "Sprint 14 has 3 open issues" not "the sprint has some issues."
@@ -56,6 +58,8 @@ You may call multiple tools in one response. Wait for all tool results before pr
 - Do NOT regurgitate raw JSON or internal field names. Translate everything to plain English.
 - When discussing sprints: mention status, owner, issue count, plan status, and what needs to happen next.
 - When discussing projects: mention status, owner, target date, open issues, and recent activity.
+- When the user says they applied an action, call tools to get the UPDATED state, then provide a concise summary of what changed. Do not narrate your process — just call the tools and answer.
+- NEVER output a response that only describes what you're about to do. Either call tools OR give a final answer — never just announce your intentions.
 
 ## Suggesting Actions
 When your analysis reveals actionable opportunities, suggest them using this format:
@@ -246,8 +250,15 @@ export function createAnalysisGraphService(deps: AnalysisGraphDeps) {
 
         // No tool calls → final answer
         if (requestedCalls.length === 0) {
+          const cleaned = cleanResponse(llmText)
+          // If the response is just narration with no substance (e.g., "Let me check..."),
+          // and we have tool results from prior rounds, force a summary round
+          if (cleaned.length < 50 && allToolCalls.length > 0 && round < MAX_ROUNDS - 1) {
+            // LLM gave an empty/narration-only response — push it to try again
+            continue
+          }
           return {
-            response: cleanResponse(llmText),
+            response: cleaned,
             toolCalls: allToolCalls,
             suggestedFollowups: parseFollowups(llmText),
             actionSuggestions: parseActionSuggestions(llmText),

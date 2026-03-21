@@ -14,12 +14,176 @@ import type {
 } from '../types-v2.js'
 import { parseFleetGraphV2ResumeInput } from '../types-v2.js'
 
-function readDialogOptions(draft: PendingApproval['actionDraft']) {
+function sortOptions(options: FleetGraphSelectOption[]) {
+  return [...options].sort((left, right) => left.label.localeCompare(right.label))
+}
+
+function readContextDialogOptions(draft: PendingApproval['actionDraft']) {
   const rawOptions = draft.contextHints?.dialogOptions
   if (!rawOptions || typeof rawOptions !== 'object') {
     return {}
   }
   return rawOptions as Record<string, FleetGraphSelectOption[]>
+}
+
+function readPeopleOptions(
+  state: FleetGraphStateV2,
+  excludedIds: string[] = []
+) {
+  const normalizedContext = state.normalizedContext
+  if (!normalizedContext) {
+    return []
+  }
+
+  const excluded = new Set(excludedIds)
+  const resolvedPeople = Object.values(normalizedContext.resolvedPersons)
+  const people = resolvedPeople.length > 0
+    ? resolvedPeople.map((person) => ({
+        label: person.name,
+        value: person.id,
+      }))
+    : normalizedContext.nodes
+      .filter((node) => node.type === 'person')
+      .map((node) => ({
+        label: node.title,
+        value: node.id,
+      }))
+
+  return sortOptions(
+    people.filter((option) => !excluded.has(option.value))
+  )
+}
+
+function readIssueData(
+  state: FleetGraphStateV2,
+  issueId: string
+) {
+  const issueNode = state.normalizedContext?.nodes.find((node) => node.id === issueId)
+  if (!issueNode || issueNode.type !== 'issue') {
+    return null
+  }
+
+  const rawData = issueNode.data
+  if (!rawData || typeof rawData !== 'object' || Array.isArray(rawData)) {
+    return { issueNode }
+  }
+
+  return {
+    issueNode,
+    issueData: rawData as Record<string, unknown>,
+  }
+}
+
+function readWeekIssueOptions(
+  state: FleetGraphStateV2,
+  weekId: string
+) {
+  const normalizedContext = state.normalizedContext
+  if (!normalizedContext) {
+    return []
+  }
+
+  const relatedIssueIds = new Set(
+    normalizedContext.adjacency[weekId]?.children ?? []
+  )
+  const candidateIssueIds = relatedIssueIds.size > 0
+    ? [...relatedIssueIds]
+    : normalizedContext.nodes
+      .filter((node) => {
+        if (node.type !== 'issue') {
+          return false
+        }
+
+        const rawData = node.data
+        if (!rawData || typeof rawData !== 'object' || Array.isArray(rawData)) {
+          return false
+        }
+
+        return rawData.sprintId === weekId
+      })
+      .map((node) => node.id)
+
+  const allIssues = candidateIssueIds
+    .map((issueId) => readIssueData(state, issueId))
+    .filter((issue): issue is NonNullable<typeof issue> => Boolean(issue))
+
+  const unassignedIssues = allIssues.filter((issue) =>
+    typeof issue.issueData?.assigneeId !== 'string'
+      || issue.issueData.assigneeId.trim().length === 0
+  )
+
+  const visibleIssues = unassignedIssues.length > 0 ? unassignedIssues : allIssues
+
+  return sortOptions(
+    visibleIssues.map(({ issueNode }) => ({
+      label: issueNode.title,
+      value: issueNode.id,
+    }))
+  )
+}
+
+function readAssignedIssueOptions(
+  state: FleetGraphStateV2,
+  personId: string
+) {
+  const normalizedContext = state.normalizedContext
+  if (!normalizedContext) {
+    return []
+  }
+
+  const assignedIssues = normalizedContext.nodes.filter((node) => {
+    if (node.type !== 'issue') {
+      return false
+    }
+
+    const rawData = node.data
+    if (!rawData || typeof rawData !== 'object' || Array.isArray(rawData)) {
+      return false
+    }
+
+    return rawData.assigneeId === personId
+  })
+
+  return sortOptions(
+    assignedIssues.map((node) => ({
+      label: node.title,
+      value: node.id,
+    }))
+  )
+}
+
+function readStateDialogOptions(
+  state: FleetGraphStateV2,
+  draft: PendingApproval['actionDraft']
+) {
+  switch (draft.actionType) {
+    case 'assign_owner':
+      return {
+        ownerId: readPeopleOptions(state),
+      }
+    case 'assign_issues':
+      return {
+        assigneeId: readPeopleOptions(state),
+        issueIds: readWeekIssueOptions(state, draft.targetId),
+      }
+    case 'rebalance_load':
+      return {
+        issues: readAssignedIssueOptions(state, draft.targetId),
+        people: readPeopleOptions(state, [draft.targetId]),
+      }
+    default:
+      return {}
+  }
+}
+
+function readDialogOptions(
+  state: FleetGraphStateV2,
+  draft: PendingApproval['actionDraft']
+) {
+  return {
+    ...readStateDialogOptions(state, draft),
+    ...readContextDialogOptions(draft),
+  }
 }
 
 function buildPendingApproval(state: FleetGraphStateV2): PendingApproval | null {
@@ -55,7 +219,7 @@ function buildPendingApproval(state: FleetGraphStateV2): PendingApproval | null 
   return {
     actionDraft,
     createdAt: new Date().toISOString(),
-    dialogSpec: definition.buildDialogSpec(actionDraft, readDialogOptions(actionDraft)),
+    dialogSpec: definition.buildDialogSpec(actionDraft, readDialogOptions(state, actionDraft)),
     id: `approval:${reasonedFinding.fingerprint}:${actionDraft.actionId}`,
     proposedAction,
     reasonedFinding,

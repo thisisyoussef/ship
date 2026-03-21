@@ -23,6 +23,14 @@ export interface AnalysisContext {
 
 // ── Response contract ─────────────────────────────────────────────
 
+export interface ActionSuggestion {
+  action: string
+  target_id: string
+  target_type: string
+  label: string
+  rationale: string
+}
+
 export interface AnalysisChatResponse {
   response: string
   tool_calls: ToolCallRecord[]
@@ -32,6 +40,7 @@ export interface AnalysisChatResponse {
   is_error: boolean
   error_type: string | null
   suggested_followups: string[]
+  action_suggestions: ActionSuggestion[]
 }
 
 export interface ToolCallRecord {

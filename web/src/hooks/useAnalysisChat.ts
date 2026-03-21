@@ -16,6 +16,13 @@ export interface AnalysisChatMessage {
     claims_grounded: boolean
     evidence_sources: string[]
   }
+  actionSuggestions?: Array<{
+    action: string
+    target_id: string
+    target_type: string
+    label: string
+    rationale: string
+  }>
   suggestedFollowups?: string[]
   timestamp: string
 }
@@ -36,6 +43,13 @@ interface AnalysisChatResponse {
     tool_calls_passed: number
     evidence_sources: string[]
   }
+  action_suggestions: Array<{
+    action: string
+    target_id: string
+    target_type: string
+    label: string
+    rationale: string
+  }>
   is_error: boolean
   error_type: string | null
   suggested_followups: string[]
@@ -72,6 +86,10 @@ export function useAnalysisChat() {
           context,
         })
 
+        if (response.status === 401) {
+          throw new Error('Your session has expired. Please refresh the page to continue.')
+        }
+
         if (!response.ok) {
           throw new Error('Analysis request failed')
         }
@@ -91,6 +109,7 @@ export function useAnalysisChat() {
               claims_grounded: data.verification.claims_grounded,
               evidence_sources: data.verification.evidence_sources,
             },
+            actionSuggestions: data.action_suggestions?.length > 0 ? data.action_suggestions : undefined,
             suggestedFollowups:
               data.suggested_followups.length > 0
                 ? data.suggested_followups

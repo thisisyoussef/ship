@@ -66,6 +66,7 @@ export function createAnalysisAgentService(deps: AnalysisAgentServiceDeps) {
           is_error: true,
           error_type: validation.errorType,
           suggested_followups: [],
+          action_suggestions: [],
         }
       }
 
@@ -96,6 +97,7 @@ export function createAnalysisAgentService(deps: AnalysisAgentServiceDeps) {
             `Are there any blockers?`,
             `Show me recent activity.`,
           ],
+          action_suggestions: [],
         }
       }
 
@@ -159,6 +161,7 @@ export function createAnalysisAgentService(deps: AnalysisAgentServiceDeps) {
         is_error: false,
         error_type: null,
         suggested_followups: result.suggestedFollowups,
+        action_suggestions: result.actionSuggestions,
       }
     },
   }

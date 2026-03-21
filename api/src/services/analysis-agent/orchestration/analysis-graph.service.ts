@@ -8,6 +8,13 @@ export interface AnalysisGraphResult {
   response: string
   toolCalls: ToolCallRecord[]
   suggestedFollowups: string[]
+  actionSuggestions: Array<{
+    action: string
+    target_id: string
+    target_type: string
+    label: string
+    rationale: string
+  }>
 }
 
 export interface AnalysisGraphDeps {
@@ -18,36 +25,52 @@ export interface AnalysisGraphDeps {
 
 const MAX_ROUNDS = 5
 
-const SYSTEM_PROMPT = `You are a Ship analysis assistant. You analyze project data and answer questions using tools.
+const SYSTEM_PROMPT = `You are a Ship analysis assistant. You help teams understand their project data and take action.
 
 ## Your Context
-You are embedded in Ship, a project management tool. The user is viewing a specific page.
-The analysis_context_get tool returns exactly what they're looking at.
+You are embedded in Ship, a project management tool. The user is currently viewing a specific page.
+You already know what they're looking at — the entity ID, type, and title are provided below.
+DO NOT ask the user for IDs, project names, or entity references — you already have them.
 
 ## How to Work
-1. ALWAYS start by understanding the context — call analysis_context_get if you haven't already.
-2. When asked about an entity, call entity_snapshot_get to get its current state.
+1. Start by calling analysis_context_get to understand what the user is viewing.
+2. Call entity_snapshot_get to get the current state of the entity.
 3. For trends and history, use metric_timeseries_get.
-4. For related work, use graph_neighbors_get.
+4. For related work (issues, sprints, standups), use graph_neighbors_get.
 5. For comparisons, use compare_entities_get.
 6. For "why" questions, use anomaly_explain_get.
 7. For evidence and proof, use evidence_lookup_get.
 
 ## Tool Calling
-When you need to call a tool, use this exact format:
+When you need data, use this exact format:
 <tool_call>{"name": "tool_name", "args": {...}}</tool_call>
 
 You may call multiple tools in one response. Wait for all tool results before providing your final answer.
 
 ## Response Rules
-- Every numerical claim MUST come from a tool result. Never guess.
+- Every numerical claim MUST come from a tool result. Never guess or make up numbers.
 - Be specific: say "Sprint 14 has 3 open issues" not "the sprint has some issues."
-- Keep answers concise — 2-4 sentences for simple questions.
-- After answering, suggest 2-3 follow-up questions the user might want to ask.
-- Format follow-ups as a JSON array in your response, wrapped in <followups>["q1","q2","q3"]</followups> tags.`
+- Use names and dates, not IDs.
+- Keep answers concise — 2-4 paragraphs for initial analysis, 1-2 for followups.
+- Do NOT mention internal fields like "confidence level", "confidence_score", "performance_rating", or "monetary_impact" — these are internal metrics irrelevant to the user.
+- Do NOT regurgitate raw JSON or internal field names. Translate everything to plain English.
+- When discussing sprints: mention status, owner, issue count, plan status, and what needs to happen next.
+- When discussing projects: mention status, owner, target date, open issues, and recent activity.
 
-const TOOL_CALL_REGEX = /<tool_call>(.*?)<\/tool_call>/gs
+## Suggesting Actions
+When your analysis reveals actionable opportunities, suggest them using this format:
+<action_suggestion>{"action": "action_type", "target_id": "entity_id", "target_type": "entity_type", "label": "Button label", "rationale": "Why this action makes sense"}</action_suggestion>
+
+Available action types: start_week, approve_week_plan, approve_project_plan, post_standup, post_comment, assign_owner
+Only suggest 1-2 actions when there is a clear, specific reason. The user sees these as interactive buttons.
+
+## Follow-up Suggestions
+After answering, suggest 2-3 follow-up questions in this format:
+<followups>["question 1", "question 2", "question 3"]</followups>`
+
+const TOOL_CALL_REGEX = /<tool_call>(.*?)<\/?tool_call>/gs
 const FOLLOWUPS_REGEX = /<followups>(.*?)<\/followups>/s
+const ACTION_SUGGESTION_REGEX = /<action_suggestion>(.*?)<\/?action_suggestion>/gs
 
 // ── Implementation ───────────────────────────────────────────────
 
@@ -141,12 +164,54 @@ export function createAnalysisGraphService(deps: AnalysisGraphDeps) {
     return []
   }
 
+  function parseActionSuggestions(text: string): Array<{
+    action: string
+    target_id: string
+    target_type: string
+    label: string
+    rationale: string
+  }> {
+    const suggestions: Array<{
+      action: string
+      target_id: string
+      target_type: string
+      label: string
+      rationale: string
+    }> = []
+    ACTION_SUGGESTION_REGEX.lastIndex = 0
+    let match: RegExpExecArray | null
+    while ((match = ACTION_SUGGESTION_REGEX.exec(text)) !== null) {
+      try {
+        const parsed = JSON.parse(match[1]!) as {
+          action: string
+          target_id: string
+          target_type: string
+          label: string
+          rationale: string
+        }
+        if (parsed.action && parsed.label) {
+          suggestions.push(parsed)
+        }
+      } catch {
+        // Skip malformed
+      }
+    }
+    return suggestions
+  }
+
   function cleanResponse(text: string): string {
-    // Remove tool_call and followups tags from the final response
-    return text
-      .replace(TOOL_CALL_REGEX, '')
-      .replace(FOLLOWUPS_REGEX, '')
-      .trim()
+    // Remove tool calls with either proper or malformed closing tags
+    let cleaned = text.replace(/<tool_call>.*?<\/?tool_call>/gs, '')
+    // Remove any orphaned opening tags (no matching close at all)
+    cleaned = cleaned.replace(/<\/?tool_call>/g, '')
+    // Remove action suggestions
+    cleaned = cleaned.replace(/<action_suggestion>.*?<\/?action_suggestion>/gs, '')
+    cleaned = cleaned.replace(/<\/?action_suggestion>/g, '')
+    // Remove followups tags
+    cleaned = cleaned.replace(FOLLOWUPS_REGEX, '')
+    // Collapse excessive whitespace
+    cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim()
+    return cleaned
   }
 
   return {
@@ -185,6 +250,7 @@ export function createAnalysisGraphService(deps: AnalysisGraphDeps) {
             response: cleanResponse(llmText),
             toolCalls: allToolCalls,
             suggestedFollowups: parseFollowups(llmText),
+            actionSuggestions: parseActionSuggestions(llmText),
           }
         }
 
@@ -231,6 +297,7 @@ export function createAnalysisGraphService(deps: AnalysisGraphDeps) {
         response: cleanResponse(finalResponse.text),
         toolCalls: allToolCalls,
         suggestedFollowups: parseFollowups(finalResponse.text),
+        actionSuggestions: parseActionSuggestions(finalResponse.text),
       }
     },
   }

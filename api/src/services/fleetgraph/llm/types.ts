@@ -45,8 +45,19 @@ export interface LLMToolSchema {
   };
 }
 
+export interface LLMToolCallingMessage {
+  role: 'system' | 'user' | 'assistant' | 'tool';
+  content: string;
+  tool_call_id?: string;
+  tool_calls?: Array<{
+    id: string;
+    type: 'function';
+    function: { name: string; arguments: string };
+  }>;
+}
+
 export interface LLMToolCallingRequest {
-  messages: Array<{ role: string; content: string; tool_call_id?: string }>;
+  messages: LLMToolCallingMessage[];
   tools: LLMToolSchema[];
   instructions: string;
   maxOutputTokens?: number;

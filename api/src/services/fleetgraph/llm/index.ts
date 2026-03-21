@@ -1,5 +1,6 @@
 export {
   createLLMAdapter,
+  createToolCallingAdapter,
   resolveLLMConfig,
   type FleetGraphEnv,
   type FleetGraphLLMConfig,
@@ -9,5 +10,11 @@ export type {
   LLMAdapter,
   LLMGenerateRequest,
   LLMGenerateResponse,
+  LLMToolCallingAdapter,
+  LLMToolCallingMessage,
+  LLMToolCallingOutputItem,
+  LLMToolCallingRequest,
+  LLMToolCallingResponse,
+  LLMToolSchema,
   LLMUsage,
 } from './types.js';

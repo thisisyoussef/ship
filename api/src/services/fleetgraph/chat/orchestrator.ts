@@ -11,10 +11,10 @@ import type {
   FleetGraphDialogSubmission,
 } from '../actions/registry.js'
 import { getActionDefinition } from '../actions/registry.js'
-import { defaultShipRestExecutor } from '../actions/executor.js'
+import type { ShipRestActionResult } from '../actions/executor.js'
 import type { LLMToolCallingAdapter } from '../llm/types.js'
 
-import { checkTurnPolicy, type PolicyContext } from './policy.js'
+import { checkToolCallPolicy, checkTurnPolicy, type PolicyContext } from './policy.js'
 import type { ChatSessionStore } from './session.js'
 import {
   ALL_TOOL_SCHEMAS,
@@ -99,6 +99,35 @@ export interface DismissActionInput {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
+// Ship REST executor with body support
+// ──────────────────────────────────────────────────────────────────────────────
+
+async function executeShipRest(
+  path: string,
+  requestContext: ShipRestRequestContext,
+  method = 'POST',
+  body?: Record<string, unknown>
+): Promise<ShipRestActionResult> {
+  const response = await fetch(`${requestContext.baseUrl}${path}`, {
+    headers: {
+      ...(requestContext.cookieHeader ? { cookie: requestContext.cookieHeader } : {}),
+      ...(requestContext.csrfToken ? { 'x-csrf-token': requestContext.csrfToken } : {}),
+      accept: 'application/json',
+      'content-type': 'application/json',
+    },
+    method,
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  })
+
+  const contentType = response.headers.get('content-type') ?? ''
+  const responseBody = contentType.includes('application/json')
+    ? await response.json() as Record<string, unknown>
+    : undefined
+
+  return { body: responseBody, ok: response.ok, status: response.status }
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
 // Internal loop result
 // ──────────────────────────────────────────────────────────────────────────────
 
@@ -138,6 +167,7 @@ export function createChatOrchestrator(deps: ChatOrchestratorDeps) {
             role: m.role,
             content: m.content,
             ...(m.tool_call_id ? { tool_call_id: m.tool_call_id } : {}),
+            ...(m.tool_calls ? { tool_calls: m.tool_calls } : {}),
           })),
           tools: ALL_TOOL_SCHEMAS,
           instructions: SYSTEM_PROMPT,
@@ -203,8 +233,13 @@ export function createChatOrchestrator(deps: ChatOrchestratorDeps) {
         toolCallsThisTurn++
         session.toolCallCount++
 
-        // Budget check
-        if (toolCallsThisTurn > MAX_TOOL_CALLS_PER_TURN) {
+        // Per-turn and lifetime budget check
+        const lifetimeCheck = checkToolCallPolicy({
+          session,
+          actorId: session.actorId,
+          workspaceId: session.workspaceId,
+        })
+        if (!lifetimeCheck.allowed || toolCallsThisTurn > MAX_TOOL_CALLS_PER_TURN) {
           session.messages.push({
             role: 'tool',
             tool_call_id: toolCall.id,
@@ -337,25 +372,38 @@ export function createChatOrchestrator(deps: ChatOrchestratorDeps) {
     const threadId = `fleetgraph:chat:${input.workspaceId}:${input.documentId}`
 
     // Reuse existing session if still valid, otherwise create fresh
-    let session = sessionStore.get(threadId)
-    if (session) {
-      // Session exists — just touch it, don't re-add system prompt
+    const existingSession = sessionStore.get(threadId)
+    if (existingSession) {
+      // Session already exists — return the last analysis without re-running
       sessionStore.touch(threadId)
-    } else {
-      session = sessionStore.create({
-        threadId,
-        workspaceId: input.workspaceId,
-        actorId: input.actorId,
-        documentId: input.documentId,
-        documentType: input.documentType,
-      })
-
-      // Add system message only on fresh sessions
-      session.messages.push({
-        role: 'system',
-        content: SYSTEM_PROMPT,
-      })
+      const lastAssistant = [...existingSession.messages]
+        .reverse()
+        .find((m) => m.role === 'assistant')
+      return {
+        analysisNarrative: lastAssistant?.content ?? 'Chat session resumed.',
+        actionDrafts: existingSession.pendingApproval
+          ? [existingSession.pendingApproval.actionDraft]
+          : [],
+        pendingApproval: existingSession.pendingApproval,
+        reasonedFindings: [],
+        toolCallsExecuted: 0,
+        llmRoundsUsed: 0,
+      }
     }
+
+    const session = sessionStore.create({
+      threadId,
+      workspaceId: input.workspaceId,
+      actorId: input.actorId,
+      documentId: input.documentId,
+      documentType: input.documentType,
+    })
+
+    // Add system message on fresh session
+    session.messages.push({
+      role: 'system',
+      content: SYSTEM_PROMPT,
+    })
 
     // Add initial user message
     session.messages.push({
@@ -468,13 +516,14 @@ export function createChatOrchestrator(deps: ChatOrchestratorDeps) {
           input.submission
         )
 
-        // Execute via Ship REST
+        // Execute via Ship REST (with body support)
         const results = []
         for (const endpoint of plan.endpoints) {
-          const result = await defaultShipRestExecutor(
+          const result = await executeShipRest(
             endpoint.path,
             input.requestContext,
-            endpoint.method
+            endpoint.method,
+            endpoint.body as Record<string, unknown> | undefined
           )
           results.push(result)
         }

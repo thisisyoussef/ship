@@ -105,6 +105,7 @@ export function useFleetGraphAnalysis() {
   const [currentReview, setCurrentReview] = useState<FleetGraphThreadActionReviewResponse | null>(null)
   const [applyError, setApplyError] = useState<string | null>(null)
   const [pendingActionId, setPendingActionId] = useState<string | null>(null)
+  const [lastPendingApproval, setLastPendingApproval] = useState<import('@/lib/fleetgraph-entry').FleetGraphPendingApproval | null>(null)
 
   const postAnalyze = useCallback(async (input: AnalysisRequest) => {
     const endpoint = !USE_LEGACY_LANGGRAPH_ANALYSIS
@@ -127,6 +128,7 @@ export function useFleetGraphAnalysis() {
       setThreadId(data.threadId)
       setCurrentReview(null)
       setApplyError(null)
+      setLastPendingApproval(data.pendingApproval ?? null)
       setConversation([buildAssistantConversationEntry(data)])
     },
   })
@@ -170,6 +172,7 @@ export function useFleetGraphAnalysis() {
     onSuccess: (data) => {
       setCurrentReview(null)
       setApplyError(null)
+      setLastPendingApproval(data.pendingApproval ?? null)
       setConversation((prev) => [
         ...prev,
         buildAssistantConversationEntry(data),
@@ -186,12 +189,18 @@ export function useFleetGraphAnalysis() {
       // In chat orchestrator mode, the pending approval already includes
       // the dialog spec from the chat response -- no separate review call needed.
       if (!USE_LEGACY_LANGGRAPH_ANALYSIS) {
-        // Find the pending approval from the latest conversation entry
-        const lastEntry = conversation[conversation.length - 1]
-        const pendingDraft = lastEntry?.actionDrafts?.find(d => d.actionId === actionDraft.actionId)
+        // Use the stored pending approval from the chat response
         return {
-          actionDraft: pendingDraft ?? actionDraft,
-          dialogSpec: {} as FleetGraphDialogSpec,
+          actionDraft: lastPendingApproval?.actionDraft ?? actionDraft,
+          dialogSpec: lastPendingApproval?.dialogSpec ?? {
+            kind: 'confirm',
+            title: `Confirm: ${actionDraft.actionType}`,
+            summary: actionDraft.rationale,
+            confirmLabel: 'Apply',
+            cancelLabel: 'Cancel',
+            fields: [],
+            evidence: actionDraft.evidence,
+          } as FleetGraphDialogSpec,
           threadId,
         } as FleetGraphThreadActionReviewResponse
       }
@@ -387,6 +396,7 @@ export function useFleetGraphAnalysis() {
     setConversation([])
     setCurrentReview(null)
     setPendingActionId(null)
+    setLastPendingApproval(null)
     setThreadId(null)
   }, [])
 

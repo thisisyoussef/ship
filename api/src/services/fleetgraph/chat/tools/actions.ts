@@ -20,13 +20,14 @@ import { zodToJsonSchema } from './schemas.js'
 // Helper: build a pending approval from action params
 // ──────────────────────────────────────────────────────────────────────────────
 
-function buildPendingApproval(opts: {
+async function buildPendingApproval(opts: {
   actionType: FleetGraphActionType
   targetId: string
+  workspaceId?: string
   rationale: string
   evidence: string[]
   contextHints?: Record<string, unknown>
-}): ChatToolResult {
+}): Promise<ChatToolResult> {
   const definition = getActionDefinition(opts.actionType)
   if (!definition) {
     return { success: false, error: `Unknown action type: ${opts.actionType}` }
@@ -44,7 +45,20 @@ function buildPendingApproval(opts: {
     contextHints: opts.contextHints,
   }
 
-  const dialogSpec = definition.buildDialogSpec(draft, {})
+  // Hydrate options for select-based dialogs (assign_owner, assign_issues, etc.)
+  let hydratedOptions: Record<string, import('../../actions/registry.js').FleetGraphSelectOption[]> = {}
+  if (definition.hydrateOptions && opts.workspaceId) {
+    try {
+      hydratedOptions = await definition.hydrateOptions({
+        targetId: opts.targetId,
+        workspaceId: opts.workspaceId,
+      })
+    } catch {
+      // Fall back to empty options if hydration fails
+    }
+  }
+
+  const dialogSpec = definition.buildDialogSpec(draft, hydratedOptions)
 
   const pendingApproval: PendingToolApproval = {
     toolCallId: '', // Filled by the orchestrator with the OpenAI tool_call.id
@@ -76,9 +90,11 @@ export const startWeekTool: ChatToolDefinition = {
 }
 
 export async function executeStartWeek(
-  params: { weekId: string }
+  params: { weekId: string },
+  workspaceId?: string
 ): Promise<ChatToolResult> {
   return buildPendingApproval({
+    workspaceId,
     actionType: 'start_week',
     targetId: params.weekId,
     rationale: `Start week ${params.weekId}`,
@@ -104,9 +120,11 @@ export const approveWeekPlanTool: ChatToolDefinition = {
 }
 
 export async function executeApproveWeekPlan(
-  params: { weekId: string }
+  params: { weekId: string },
+  workspaceId?: string
 ): Promise<ChatToolResult> {
   return buildPendingApproval({
+    workspaceId,
     actionType: 'approve_week_plan',
     targetId: params.weekId,
     rationale: `Approve week plan for ${params.weekId}`,
@@ -132,9 +150,11 @@ export const approveProjectPlanTool: ChatToolDefinition = {
 }
 
 export async function executeApproveProjectPlan(
-  params: { projectId: string }
+  params: { projectId: string },
+  workspaceId?: string
 ): Promise<ChatToolResult> {
   return buildPendingApproval({
+    workspaceId,
     actionType: 'approve_project_plan',
     targetId: params.projectId,
     rationale: `Approve project plan for ${params.projectId}`,
@@ -161,9 +181,11 @@ export const assignOwnerTool: ChatToolDefinition = {
 }
 
 export async function executeAssignOwner(
-  params: { documentId: string; ownerId: string }
+  params: { documentId: string; ownerId: string },
+  workspaceId?: string
 ): Promise<ChatToolResult> {
   return buildPendingApproval({
+    workspaceId,
     actionType: 'assign_owner',
     targetId: params.documentId,
     rationale: `Assign owner ${params.ownerId} to document ${params.documentId}`,
@@ -191,10 +213,12 @@ export const assignIssuesTool: ChatToolDefinition = {
 }
 
 export async function executeAssignIssues(
-  params: { issueIds: string[]; assigneeId: string }
+  params: { issueIds: string[]; assigneeId: string },
+  workspaceId?: string
 ): Promise<ChatToolResult> {
   const targetId = params.issueIds[0] ?? 'unknown'
   return buildPendingApproval({
+    workspaceId,
     actionType: 'assign_issues',
     targetId,
     rationale: `Assign ${params.issueIds.length} issue(s) to ${params.assigneeId}`,
@@ -222,9 +246,11 @@ export const postCommentTool: ChatToolDefinition = {
 }
 
 export async function executePostComment(
-  params: { documentId: string; text: string }
+  params: { documentId: string; text: string },
+  workspaceId?: string
 ): Promise<ChatToolResult> {
   return buildPendingApproval({
+    workspaceId,
     actionType: 'post_comment',
     targetId: params.documentId,
     rationale: `Post comment on document ${params.documentId}`,
@@ -252,9 +278,11 @@ export const postStandupTool: ChatToolDefinition = {
 }
 
 export async function executePostStandup(
-  params: { weekId: string; content: string }
+  params: { weekId: string; content: string },
+  workspaceId?: string
 ): Promise<ChatToolResult> {
   return buildPendingApproval({
+    workspaceId,
     actionType: 'post_standup',
     targetId: params.weekId,
     rationale: `Post standup for week ${params.weekId}`,
@@ -282,9 +310,11 @@ export const escalateRiskTool: ChatToolDefinition = {
 }
 
 export async function executeEscalateRisk(
-  params: { documentId: string; message: string }
+  params: { documentId: string; message: string },
+  workspaceId?: string
 ): Promise<ChatToolResult> {
   return buildPendingApproval({
+    workspaceId,
     actionType: 'escalate_risk',
     targetId: params.documentId,
     rationale: `Escalate risk on document ${params.documentId}`,
@@ -312,10 +342,12 @@ export const rebalanceLoadTool: ChatToolDefinition = {
 }
 
 export async function executeRebalanceLoad(
-  params: { issueIds: string[]; targetAssigneeId: string }
+  params: { issueIds: string[]; targetAssigneeId: string },
+  workspaceId?: string
 ): Promise<ChatToolResult> {
   const targetId = params.issueIds[0] ?? 'unknown'
   return buildPendingApproval({
+    workspaceId,
     actionType: 'rebalance_load',
     targetId,
     rationale: `Rebalance ${params.issueIds.length} issue(s) to ${params.targetAssigneeId}`,
@@ -343,27 +375,30 @@ export const ACTION_TOOLS: ChatToolDefinition[] = [
 /** Dispatch an action tool execution by name. */
 export async function executeActionTool(
   name: string,
-  params: unknown
+  params: unknown,
+  workspaceId?: string
 ): Promise<ChatToolResult> {
+  const p = params as Record<string, unknown>
+  const ws = workspaceId
   switch (name) {
     case 'start_week':
-      return executeStartWeek(params as { weekId: string })
+      return executeStartWeek(p as { weekId: string }, ws)
     case 'approve_week_plan':
-      return executeApproveWeekPlan(params as { weekId: string })
+      return executeApproveWeekPlan(p as { weekId: string }, ws)
     case 'approve_project_plan':
-      return executeApproveProjectPlan(params as { projectId: string })
+      return executeApproveProjectPlan(p as { projectId: string }, ws)
     case 'assign_owner':
-      return executeAssignOwner(params as { documentId: string; ownerId: string })
+      return executeAssignOwner(p as { documentId: string; ownerId: string }, ws)
     case 'assign_issues':
-      return executeAssignIssues(params as { issueIds: string[]; assigneeId: string })
+      return executeAssignIssues(p as { issueIds: string[]; assigneeId: string }, ws)
     case 'post_comment':
-      return executePostComment(params as { documentId: string; text: string })
+      return executePostComment(p as { documentId: string; text: string }, ws)
     case 'post_standup':
-      return executePostStandup(params as { weekId: string; content: string })
+      return executePostStandup(p as { weekId: string; content: string }, ws)
     case 'escalate_risk':
-      return executeEscalateRisk(params as { documentId: string; message: string })
+      return executeEscalateRisk(p as { documentId: string; message: string }, ws)
     case 'rebalance_load':
-      return executeRebalanceLoad(params as { issueIds: string[]; targetAssigneeId: string })
+      return executeRebalanceLoad(p as { issueIds: string[]; targetAssigneeId: string }, ws)
     default:
       return { success: false, error: `Unknown action tool: ${name}` }
   }

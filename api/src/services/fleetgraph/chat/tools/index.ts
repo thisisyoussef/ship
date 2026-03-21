@@ -77,5 +77,5 @@ export async function executeTool(
     return executeRetrievalTool(name, parsed.data, ctx)
   }
 
-  return executeActionTool(name, parsed.data)
+  return executeActionTool(name, parsed.data, ctx.workspaceId)
 }

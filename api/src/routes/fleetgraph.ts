@@ -841,7 +841,7 @@ export function createFleetGraphRouter(
 
     return {
       threadId: chatThreadId,
-      branch: hasPending ? 'action_required' as const : hasActions ? 'advisory' as const : 'advisory' as const,
+      branch: hasPending ? 'action_required' as const : hasActions ? 'advisory' as const : 'quiet' as const,
       path: ['chat_orchestrator'],
       responsePayload: {
         type: 'chat_answer' as const,

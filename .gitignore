@@ -129,3 +129,4 @@ vendor/
 
 # Vite PWA dev artifacts
 web/dev-dist/
+.gstack/

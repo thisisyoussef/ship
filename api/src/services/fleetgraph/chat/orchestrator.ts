@@ -34,7 +34,7 @@ import { MAX_LLM_ROUNDS_PER_TURN, MAX_TOOL_CALLS_PER_TURN } from './types.js'
 // System prompt
 // ──────────────────────────────────────────────────────────────────────────────
 
-const SYSTEM_PROMPT = `You are FleetGraph, a project intelligence assistant for Ship.
+const BASE_SYSTEM_PROMPT = `You are FleetGraph, a project intelligence assistant for Ship.
 
 You help users understand their projects, sprints, issues, and team accountability.
 
@@ -46,7 +46,7 @@ You have access to tools that fetch real-time data from Ship:
 - Accountability action items
 
 ## How to Help
-1. When analyzing a document, fetch the relevant data first
+1. You are already on the user's current page — use the document context below to start fetching relevant data immediately. NEVER ask the user for IDs or document types.
 2. Look for: deadline risks, stale work, missing standups, approval gaps, workload imbalance
 3. Answer questions directly with grounded facts
 4. When recommending an action, use the appropriate action tool
@@ -56,7 +56,28 @@ You have access to tools that fetch real-time data from Ship:
 - Do not invent people, dates, or statistics
 - Keep answers concise and actionable
 - When something looks fine, say so plainly
-- If you need more data to answer well, fetch it`
+- If you need more data to answer well, fetch it
+- NEVER ask the user for document IDs, project IDs, sprint IDs, or week IDs. You already have them from the context below.`
+
+function buildSystemPrompt(documentId: string, documentType: string, documentTitle?: string): string {
+  const typeToTool: Record<string, string> = {
+    sprint: 'fetch_week',
+    week: 'fetch_week',
+    project: 'fetch_project',
+    issue: 'fetch_issue',
+    program: 'fetch_program',
+  }
+  const tool = typeToTool[documentType] ?? 'fetch_week'
+  const titleLine = documentTitle ? `\nTitle: "${documentTitle}"` : ''
+
+  return `${BASE_SYSTEM_PROMPT}
+
+## Current Page Context
+Document ID: ${documentId}
+Document Type: ${documentType}${titleLine}
+
+To analyze this ${documentType}, start by calling the \`${tool}\` tool with the ID above. Do NOT ask the user for any IDs.`
+}
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Input types
@@ -72,6 +93,7 @@ export interface StartChatInput {
   actorId: string
   documentId: string
   documentType: string
+  documentTitle?: string
   requestContext: ShipRestRequestContext
 }
 
@@ -170,7 +192,7 @@ export function createChatOrchestrator(deps: ChatOrchestratorDeps) {
             ...(m.tool_calls ? { tool_calls: m.tool_calls } : {}),
           })),
           tools: ALL_TOOL_SCHEMAS,
-          instructions: SYSTEM_PROMPT,
+          instructions: session.messages.find((m) => m.role === 'system')?.content ?? BASE_SYSTEM_PROMPT,
           maxOutputTokens: 2000,
           temperature: 0.2,
         })
@@ -371,24 +393,11 @@ export function createChatOrchestrator(deps: ChatOrchestratorDeps) {
   async function startChat(input: StartChatInput): Promise<ChatTurnResult> {
     const threadId = `fleetgraph:chat:${input.workspaceId}:${input.documentId}`
 
-    // Reuse existing session if still valid, otherwise create fresh
+    // Always create a fresh session on startChat. Delete any stale session
+    // from a prior page visit or deploy to avoid showing old error messages.
     const existingSession = sessionStore.get(threadId)
     if (existingSession) {
-      // Session already exists — return the last analysis without re-running
-      sessionStore.touch(threadId)
-      const lastAssistant = [...existingSession.messages]
-        .reverse()
-        .find((m) => m.role === 'assistant')
-      return {
-        analysisNarrative: lastAssistant?.content ?? 'Chat session resumed.',
-        actionDrafts: existingSession.pendingApproval
-          ? [existingSession.pendingApproval.actionDraft]
-          : [],
-        pendingApproval: existingSession.pendingApproval,
-        reasonedFindings: [],
-        toolCallsExecuted: 0,
-        llmRoundsUsed: 0,
-      }
+      sessionStore.delete(threadId)
     }
 
     const session = sessionStore.create({
@@ -399,16 +408,16 @@ export function createChatOrchestrator(deps: ChatOrchestratorDeps) {
       documentType: input.documentType,
     })
 
-    // Add system message on fresh session
+    // Add system message with document context baked in
     session.messages.push({
       role: 'system',
-      content: SYSTEM_PROMPT,
+      content: buildSystemPrompt(input.documentId, input.documentType, input.documentTitle),
     })
 
-    // Add initial user message
+    // Add initial user message referencing the current page
     session.messages.push({
       role: 'user',
-      content: `Analyze this ${input.documentType} and tell me what's important.`,
+      content: `Analyze this ${input.documentType} and tell me what's important. The document ID is ${input.documentId}.`,
     })
 
     const ctx = buildToolContext(input.workspaceId, input.requestContext)

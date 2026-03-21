@@ -15,7 +15,7 @@ import {
 
 import { OpenAIToolCallingAdapter } from './tool-calling-adapter.js';
 
-const DEFAULT_OPENAI_MODEL = 'gpt-4o-mini';
+const DEFAULT_OPENAI_MODEL = 'gpt-4o';
 const DEFAULT_OPENAI_BASE_URL = 'https://api.openai.com/v1';
 const DEFAULT_BEDROCK_REGION = 'us-east-1';
 const DEFAULT_BEDROCK_MODEL =

@@ -20,9 +20,9 @@ const definition: FleetGraphActionDefinition = {
   dialogKind: 'single_select',
   executionAdapter: 'document_patch',
 
-  label: 'Assign owner',
-  reviewTitle: 'Assign an owner before continuing',
-  reviewSummary: 'Choose the teammate who should own this week.',
+  label: 'Assign week owner',
+  reviewTitle: 'Select new owner for this week',
+  reviewSummary: 'FleetGraph detected this week needs an owner. Select a team member to assign as owner.',
   confirmLabel: 'Assign owner',
 
   endpointPattern: /^\/api\/documents\/[^/]+$/,
@@ -31,7 +31,7 @@ const definition: FleetGraphActionDefinition = {
     // This will be implemented to fetch team people from Ship REST
     // For now, return empty - the caller should inject options
     return {
-      ownerId: [],
+      person_id: [],
     }
   },
 
@@ -44,11 +44,11 @@ const definition: FleetGraphActionDefinition = {
       fields: [
         {
           type: 'single_select',
-          name: 'ownerId',
-          label: 'Owner',
-          placeholder: 'Choose an owner',
+          name: 'person_id',
+          label: 'Select owner',
+          placeholder: 'Choose a team member...',
           required: true,
-          options: options.ownerId ?? [],
+          options: options.person_id ?? [],
         },
       ],
       title: this.reviewTitle,
@@ -63,15 +63,15 @@ const definition: FleetGraphActionDefinition = {
     submission: FleetGraphDialogSubmission,
     dialogSpec: FleetGraphDialogSpec
   ) {
-    const ownerId = submission.values.ownerId
-    if (typeof ownerId !== 'string' || ownerId.trim().length === 0) {
+    const personId = submission.values.person_id
+    if (typeof personId !== 'string' || personId.trim().length === 0) {
       return { valid: false as const, error: 'Please select an owner' }
     }
 
     // Verify the selected option exists in the dialog spec
-    const field = dialogSpec.fields.find((entry) => entry.name === 'ownerId')
+    const field = dialogSpec.fields.find(f => f.name === 'person_id')
     if (field?.type === 'single_select') {
-      const validOption = field.options.find((option) => option.value === ownerId)
+      const validOption = field.options.find(o => o.value === personId)
       if (!validOption) {
         return { valid: false as const, error: 'Invalid person selection' }
       }
@@ -81,7 +81,7 @@ const definition: FleetGraphActionDefinition = {
   },
 
   buildExecutionPlan(draft: FleetGraphActionDraft, submission: FleetGraphDialogSubmission) {
-    const ownerId = submission.values.ownerId as string
+    const personId = submission.values.person_id as string
     return {
       adapter: 'document_patch' as const,
       endpoints: [
@@ -90,7 +90,7 @@ const definition: FleetGraphActionDefinition = {
           path: `/api/documents/${draft.targetId}`,
           body: {
             properties: {
-              owner_id: ownerId,
+              owner_id: personId,
             },
           },
         },

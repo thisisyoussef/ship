@@ -13,10 +13,6 @@ import { documentContextKeys } from './useDocumentContextQuery'
 import { documentKeys } from './useDocumentsQuery'
 import { sprintKeys } from './useWeeksQuery'
 
-// Chat orchestrator is the default on-demand path. The legacy LangGraph
-// on-demand lane can be re-enabled by setting this to 'true'.
-const USE_LEGACY_LANGGRAPH_ANALYSIS =
-  import.meta.env.VITE_FLEETGRAPH_LEGACY_ANALYSIS === 'true'
 
 export interface FleetGraphThreadActionReviewResponse {
   actionDraft: FleetGraphActionDraft
@@ -105,12 +101,9 @@ export function useFleetGraphAnalysis() {
   const [currentReview, setCurrentReview] = useState<FleetGraphThreadActionReviewResponse | null>(null)
   const [applyError, setApplyError] = useState<string | null>(null)
   const [pendingActionId, setPendingActionId] = useState<string | null>(null)
-  const [lastPendingApproval, setLastPendingApproval] = useState<import('@/lib/fleetgraph-entry').FleetGraphPendingApproval | null>(null)
 
   const postAnalyze = useCallback(async (input: AnalysisRequest) => {
-    const endpoint = !USE_LEGACY_LANGGRAPH_ANALYSIS
-      ? '/api/fleetgraph/chat/start'
-      : '/api/fleetgraph/analyze'
+    const endpoint = '/api/fleetgraph/analyze'
     const response = await apiPost(endpoint, input)
     if (!response.ok) {
       throw new Error('FleetGraph analysis failed')
@@ -128,7 +121,6 @@ export function useFleetGraphAnalysis() {
       setThreadId(data.threadId)
       setCurrentReview(null)
       setApplyError(null)
-      setLastPendingApproval(data.pendingApproval ?? null)
       setConversation([buildAssistantConversationEntry(data)])
     },
   })
@@ -150,9 +142,7 @@ export function useFleetGraphAnalysis() {
       if (!threadId) {
         throw new Error('No active session')
       }
-      const endpoint = !USE_LEGACY_LANGGRAPH_ANALYSIS
-        ? `/api/fleetgraph/chat/${encodeURIComponent(threadId)}/message`
-        : `/api/fleetgraph/thread/${encodeURIComponent(threadId)}/turn`
+      const endpoint = `/api/fleetgraph/thread/${encodeURIComponent(threadId)}/turn`
       const response = await apiPost(endpoint, { message })
       if (!response.ok) {
         throw new Error('FleetGraph follow-up failed')
@@ -172,7 +162,6 @@ export function useFleetGraphAnalysis() {
     onSuccess: (data) => {
       setCurrentReview(null)
       setApplyError(null)
-      setLastPendingApproval(data.pendingApproval ?? null)
       setConversation((prev) => [
         ...prev,
         buildAssistantConversationEntry(data),
@@ -184,25 +173,6 @@ export function useFleetGraphAnalysis() {
     mutationFn: async (actionDraft: FleetGraphActionDraft) => {
       if (!threadId) {
         throw new Error('FleetGraph could not find an active analysis thread for this action.')
-      }
-
-      // In chat orchestrator mode, the pending approval already includes
-      // the dialog spec from the chat response -- no separate review call needed.
-      if (!USE_LEGACY_LANGGRAPH_ANALYSIS) {
-        // Use the stored pending approval from the chat response
-        return {
-          actionDraft: lastPendingApproval?.actionDraft ?? actionDraft,
-          dialogSpec: lastPendingApproval?.dialogSpec ?? {
-            kind: 'confirm',
-            title: `Confirm: ${actionDraft.actionType}`,
-            summary: actionDraft.rationale,
-            confirmLabel: 'Apply',
-            cancelLabel: 'Cancel',
-            fields: [],
-            evidence: actionDraft.evidence,
-          } as FleetGraphDialogSpec,
-          threadId,
-        } as FleetGraphThreadActionReviewResponse
       }
 
       const response = await apiPost(
@@ -243,37 +213,6 @@ export function useFleetGraphAnalysis() {
         throw new Error('FleetGraph could not find an active analysis thread for this action.')
       }
 
-      if (!USE_LEGACY_LANGGRAPH_ANALYSIS) {
-        const response = await apiPost(
-          `/api/fleetgraph/chat/${encodeURIComponent(threadId)}/approve`,
-          { values: payload.values }
-        )
-        if (!response.ok) {
-          let message = 'FleetGraph could not apply this action right now.'
-          try {
-            const data = await response.json()
-            if (typeof data?.error === 'string') {
-              message = data.error
-            }
-          } catch {
-            // Keep the default message.
-          }
-          throw new Error(message)
-        }
-        // Map chat response back to the expected apply response shape
-        const chatResponse = await response.json() as FleetGraphThreadResponse
-        return {
-          actionDraft: payload.actionDraft,
-          actionResult: {
-            endpoint: 'chat_orchestrator',
-            executedAt: new Date().toISOString(),
-            statusCode: 200,
-            success: true,
-          },
-          responsePayload: chatResponse.responsePayload,
-          threadId: chatResponse.threadId,
-        } as FleetGraphThreadActionApplyResponse
-      }
 
       const response = await apiPost(
         `/api/fleetgraph/thread/${encodeURIComponent(threadId)}/actions/${encodeURIComponent(payload.actionDraft.actionId)}/apply`,
@@ -382,13 +321,7 @@ export function useFleetGraphAnalysis() {
     reviewActionMutation.reset()
     applyActionMutation.reset()
 
-    // In chat orchestrator mode, notify the backend of the dismissal
-    if (!USE_LEGACY_LANGGRAPH_ANALYSIS && threadId) {
-      apiPost(`/api/fleetgraph/chat/${encodeURIComponent(threadId)}/dismiss`).catch(() => {
-        // Best-effort dismiss notification
-      })
-    }
-  }, [applyActionMutation, reviewActionMutation, threadId])
+  }, [applyActionMutation, reviewActionMutation])
 
   const reset = useCallback(() => {
     setApplyError(null)
@@ -396,7 +329,6 @@ export function useFleetGraphAnalysis() {
     setConversation([])
     setCurrentReview(null)
     setPendingActionId(null)
-    setLastPendingApproval(null)
     setThreadId(null)
   }, [])
 

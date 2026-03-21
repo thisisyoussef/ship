@@ -106,15 +106,10 @@ const ACTION_CONFIGS: Record<FleetGraphActionType, { method: 'POST' | 'PATCH'; p
   approve_project_plan: { method: 'POST', pathTemplate: '/api/projects/{entityId}/approve-plan' },
   assign_owner: { method: 'PATCH', pathTemplate: '/api/documents/{entityId}' },
   assign_issues: { method: 'PATCH', pathTemplate: '/api/documents/{entityId}' },
-  create_issue: { method: 'POST', pathTemplate: '/api/issues' },
   post_comment: { method: 'POST', pathTemplate: '/api/documents/{entityId}/comments' },
   post_standup: { method: 'POST', pathTemplate: '/api/standups' },
   escalate_risk: { method: 'POST', pathTemplate: '/api/documents/{entityId}/comments' },
   rebalance_load: { method: 'PATCH', pathTemplate: '/api/documents/{entityId}' },
-  update_issue: { method: 'PATCH', pathTemplate: '/api/issues/{entityId}' },
-  update_project: { method: 'PATCH', pathTemplate: '/api/projects/{entityId}' },
-  update_sprint: { method: 'PATCH', pathTemplate: '/api/weeks/{entityId}' },
-  update_sprint_plan: { method: 'PATCH', pathTemplate: '/api/weeks/{entityId}/plan' },
 }
 
 const LLM_SYSTEM_INSTRUCTIONS = `You are FleetGraph, a project intelligence agent for Ship.

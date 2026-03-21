@@ -13,10 +13,10 @@ import { documentContextKeys } from './useDocumentContextQuery'
 import { documentKeys } from './useDocumentsQuery'
 import { sprintKeys } from './useWeeksQuery'
 
-const USE_CHAT_ORCHESTRATOR = Boolean(
-  (typeof window !== 'undefined' && (window as unknown as Record<string, unknown>).__FLEETGRAPH_CHAT_ORCHESTRATOR__) ||
-  import.meta.env.VITE_FLEETGRAPH_CHAT_ORCHESTRATOR === 'true'
-)
+// Chat orchestrator is the default on-demand path. The legacy LangGraph
+// on-demand lane can be re-enabled by setting this to 'true'.
+const USE_LEGACY_LANGGRAPH_ANALYSIS =
+  import.meta.env.VITE_FLEETGRAPH_LEGACY_ANALYSIS === 'true'
 
 export interface FleetGraphThreadActionReviewResponse {
   actionDraft: FleetGraphActionDraft
@@ -107,7 +107,7 @@ export function useFleetGraphAnalysis() {
   const [pendingActionId, setPendingActionId] = useState<string | null>(null)
 
   const postAnalyze = useCallback(async (input: AnalysisRequest) => {
-    const endpoint = USE_CHAT_ORCHESTRATOR
+    const endpoint = !USE_LEGACY_LANGGRAPH_ANALYSIS
       ? '/api/fleetgraph/chat/start'
       : '/api/fleetgraph/analyze'
     const response = await apiPost(endpoint, input)
@@ -148,7 +148,7 @@ export function useFleetGraphAnalysis() {
       if (!threadId) {
         throw new Error('No active session')
       }
-      const endpoint = USE_CHAT_ORCHESTRATOR
+      const endpoint = !USE_LEGACY_LANGGRAPH_ANALYSIS
         ? `/api/fleetgraph/chat/${encodeURIComponent(threadId)}/message`
         : `/api/fleetgraph/thread/${encodeURIComponent(threadId)}/turn`
       const response = await apiPost(endpoint, { message })
@@ -185,7 +185,7 @@ export function useFleetGraphAnalysis() {
 
       // In chat orchestrator mode, the pending approval already includes
       // the dialog spec from the chat response -- no separate review call needed.
-      if (USE_CHAT_ORCHESTRATOR) {
+      if (!USE_LEGACY_LANGGRAPH_ANALYSIS) {
         // Find the pending approval from the latest conversation entry
         const lastEntry = conversation[conversation.length - 1]
         const pendingDraft = lastEntry?.actionDrafts?.find(d => d.actionId === actionDraft.actionId)
@@ -234,7 +234,7 @@ export function useFleetGraphAnalysis() {
         throw new Error('FleetGraph could not find an active analysis thread for this action.')
       }
 
-      if (USE_CHAT_ORCHESTRATOR) {
+      if (!USE_LEGACY_LANGGRAPH_ANALYSIS) {
         const response = await apiPost(
           `/api/fleetgraph/chat/${encodeURIComponent(threadId)}/approve`,
           { values: payload.values }
@@ -374,7 +374,7 @@ export function useFleetGraphAnalysis() {
     applyActionMutation.reset()
 
     // In chat orchestrator mode, notify the backend of the dismissal
-    if (USE_CHAT_ORCHESTRATOR && threadId) {
+    if (!USE_LEGACY_LANGGRAPH_ANALYSIS && threadId) {
       apiPost(`/api/fleetgraph/chat/${encodeURIComponent(threadId)}/dismiss`).catch(() => {
         // Best-effort dismiss notification
       })

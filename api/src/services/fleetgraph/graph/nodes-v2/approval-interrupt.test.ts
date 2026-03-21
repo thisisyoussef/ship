@@ -10,7 +10,6 @@ vi.mock('@langchain/langgraph', () => ({
 
 import { approvalInterrupt } from './approval-interrupt.js'
 import { ensureFirstPackActionsRegistered } from '../../actions/definitions/index.js'
-import type { FleetGraphActionDraft } from '../../actions/registry.js'
 import type { FleetGraphStateV2 } from '../state-v2.js'
 
 function makeBaseState(overrides: Partial<FleetGraphStateV2> = {}) {
@@ -92,20 +91,6 @@ function makeBaseState(overrides: Partial<FleetGraphStateV2> = {}) {
   } as unknown as FleetGraphStateV2
 }
 
-function readInterruptPayload() {
-  const calls = interrupt.mock.calls as unknown as Array<unknown[]>
-  const payload = calls[0]?.[0]
-  expect(payload).toBeDefined()
-  if (!payload) {
-    throw new Error('Expected approvalInterrupt to call interrupt().')
-  }
-  return payload as {
-    dialogSpec: {
-      fields: unknown[]
-    }
-  }
-}
-
 describe('approvalInterrupt', () => {
   beforeEach(() => {
     ensureFirstPackActionsRegistered()
@@ -113,7 +98,7 @@ describe('approvalInterrupt', () => {
   })
 
   it('hydrates assign_owner review options from normalized people', () => {
-    const actionDraft: FleetGraphActionDraft = {
+    const actionDraft = {
       actionId: 'assign_owner:week-1',
       actionType: 'assign_owner',
       contextHints: {
@@ -123,7 +108,7 @@ describe('approvalInterrupt', () => {
       rationale: 'Assign an accountable owner before execution.',
       targetId: 'week-1',
       targetType: 'sprint',
-    }
+    } as const
 
     const result = approvalInterrupt(makeBaseState({
       actionDrafts: [actionDraft],
@@ -163,7 +148,7 @@ describe('approvalInterrupt', () => {
       selectedActionId: actionDraft.actionId,
     }))
 
-    const payload = readInterruptPayload()
+    const payload = interrupt.mock.calls[0]?.[0]
 
     expect(payload.dialogSpec.fields).toEqual([
       expect.objectContaining({
@@ -181,7 +166,7 @@ describe('approvalInterrupt', () => {
   })
 
   it('hydrates assign_issues review options from sprint issues and teammates', () => {
-    const actionDraft: FleetGraphActionDraft = {
+    const actionDraft = {
       actionId: 'assign_issues:week-1',
       actionType: 'assign_issues',
       contextHints: {
@@ -191,7 +176,7 @@ describe('approvalInterrupt', () => {
       rationale: 'Assign the work before the sprint slips.',
       targetId: 'week-1',
       targetType: 'sprint',
-    }
+    } as const
 
     approvalInterrupt(makeBaseState({
       actionDrafts: [actionDraft],
@@ -231,7 +216,7 @@ describe('approvalInterrupt', () => {
       selectedActionId: actionDraft.actionId,
     }))
 
-    const payload = readInterruptPayload()
+    const payload = interrupt.mock.calls[0]?.[0]
 
     expect(payload.dialogSpec.fields).toEqual([
       expect.objectContaining({

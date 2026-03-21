@@ -155,7 +155,7 @@ function readAssignedIssueOptions(
 function readStateDialogOptions(
   state: FleetGraphStateV2,
   draft: PendingApproval['actionDraft']
-): Record<string, FleetGraphSelectOption[]> {
+) {
   switch (draft.actionType) {
     case 'assign_owner':
       return {
@@ -179,7 +179,7 @@ function readStateDialogOptions(
 function readDialogOptions(
   state: FleetGraphStateV2,
   draft: PendingApproval['actionDraft']
-): Record<string, FleetGraphSelectOption[]> {
+) {
   return {
     ...readStateDialogOptions(state, draft),
     ...readContextDialogOptions(draft),

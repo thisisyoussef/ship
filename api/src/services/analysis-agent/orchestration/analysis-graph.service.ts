@@ -65,8 +65,16 @@ CRITICAL: When calling tools, output ONLY the tool_call tags. Do NOT narrate wha
 When your analysis reveals actionable opportunities, suggest them using this format:
 <action_suggestion>{"action": "action_type", "target_id": "entity_id", "target_type": "entity_type", "label": "Button label", "rationale": "Why this action makes sense"}</action_suggestion>
 
-Available action types: start_week, approve_week_plan, approve_project_plan, post_standup, post_comment
-Only suggest 1-2 actions when there is a clear, specific reason. The user sees these as interactive buttons.
+Available action types:
+- start_week: Start a sprint that is in planning status
+- approve_week_plan: Approve a submitted sprint plan
+- approve_project_plan: Approve a submitted project plan
+- post_standup: Post a standup update for a sprint
+- post_comment: Post a comment on any entity
+- assign_owner: Assign an owner to a sprint or project (user picks from team list)
+- escalate_risk: Flag a risk on an entity (posts a risk escalation comment)
+
+Only suggest 1-2 actions when there is a clear, specific reason. The user sees these as interactive buttons with dynamic input forms.
 
 ## Follow-up Suggestions
 After answering, suggest 2-3 follow-up questions in this format:

@@ -72,9 +72,7 @@ Only suggest 1-2 actions when there is a clear, specific reason. The user sees t
 After answering, suggest 2-3 follow-up questions in this format:
 <followups>["question 1", "question 2", "question 3"]</followups>`
 
-const TOOL_CALL_REGEX = /<tool_call>(.*?)<\/?tool_call>/gs
 const FOLLOWUPS_REGEX = /<followups>(.*?)<\/followups>/s
-const ACTION_SUGGESTION_REGEX = /<action_suggestion>(.*?)<\/?action_suggestion>/gs
 
 // ── Implementation ───────────────────────────────────────────────
 
@@ -133,15 +131,74 @@ export function createAnalysisGraphService(deps: AnalysisGraphDeps) {
     return parts.join('\n\n')
   }
 
+  function readJsonPayload(candidate: string) {
+    const trimmed = candidate.trim()
+    if (!trimmed.startsWith('{') || !trimmed.endsWith('}')) {
+      return null
+    }
+
+    return trimmed
+  }
+
+  function collectTaggedJsonPayloads(text: string, tagName: string) {
+    const openTag = `<${tagName}>`
+    const closeTag = `</${tagName}>`
+    const payloads: string[] = []
+    let cleanedText = ''
+    let cursor = 0
+
+    while (cursor < text.length) {
+      const openIndex = text.indexOf(openTag, cursor)
+      const closeIndex = text.indexOf(closeTag, cursor)
+
+      if (openIndex === -1 && closeIndex === -1) {
+        cleanedText += text.slice(cursor)
+        break
+      }
+
+      if (openIndex !== -1 && (closeIndex === -1 || openIndex < closeIndex)) {
+        cleanedText += text.slice(cursor, openIndex)
+        if (closeIndex === -1) {
+          const trailingPayload = readJsonPayload(
+            text.slice(openIndex + openTag.length)
+          )
+          if (trailingPayload) {
+            payloads.push(trailingPayload)
+          }
+          break
+        }
+
+        payloads.push(text.slice(openIndex + openTag.length, closeIndex))
+        cursor = closeIndex + closeTag.length
+        continue
+      }
+
+      const candidatePayload = readJsonPayload(text.slice(cursor, closeIndex))
+      if (candidatePayload) {
+        payloads.push(candidatePayload)
+      } else {
+        cleanedText += text.slice(cursor, closeIndex)
+      }
+
+      cursor = closeIndex + closeTag.length
+    }
+
+    cleanedText = cleanedText.replace(
+      new RegExp(`</?${tagName}>`, 'g'),
+      ''
+    )
+
+    return { cleanedText, payloads }
+  }
+
   function parseToolCalls(text: string): Array<{ name: string; args: Record<string, unknown> }> {
     const calls: Array<{ name: string; args: Record<string, unknown> }> = []
-    let match: RegExpExecArray | null
-
-    // Reset regex lastIndex
-    TOOL_CALL_REGEX.lastIndex = 0
-    while ((match = TOOL_CALL_REGEX.exec(text)) !== null) {
+    for (const payload of collectTaggedJsonPayloads(text, 'tool_call').payloads) {
       try {
-        const parsed = JSON.parse(match[1]!) as { name: string; args: Record<string, unknown> }
+        const parsed = JSON.parse(payload) as {
+          name: string
+          args: Record<string, unknown>
+        }
         if (parsed.name && typeof parsed.name === 'string') {
           calls.push({
             name: parsed.name,
@@ -182,11 +239,9 @@ export function createAnalysisGraphService(deps: AnalysisGraphDeps) {
       label: string
       rationale: string
     }> = []
-    ACTION_SUGGESTION_REGEX.lastIndex = 0
-    let match: RegExpExecArray | null
-    while ((match = ACTION_SUGGESTION_REGEX.exec(text)) !== null) {
+    for (const payload of collectTaggedJsonPayloads(text, 'action_suggestion').payloads) {
       try {
-        const parsed = JSON.parse(match[1]!) as {
+        const parsed = JSON.parse(payload) as {
           action: string
           target_id: string
           target_type: string
@@ -204,16 +259,9 @@ export function createAnalysisGraphService(deps: AnalysisGraphDeps) {
   }
 
   function cleanResponse(text: string): string {
-    // Remove tool calls with either proper or malformed closing tags
-    let cleaned = text.replace(/<tool_call>.*?<\/?tool_call>/gs, '')
-    // Remove any orphaned opening tags (no matching close at all)
-    cleaned = cleaned.replace(/<\/?tool_call>/g, '')
-    // Remove action suggestions
-    cleaned = cleaned.replace(/<action_suggestion>.*?<\/?action_suggestion>/gs, '')
-    cleaned = cleaned.replace(/<\/?action_suggestion>/g, '')
-    // Remove followups tags
+    let cleaned = collectTaggedJsonPayloads(text, 'tool_call').cleanedText
+    cleaned = collectTaggedJsonPayloads(cleaned, 'action_suggestion').cleanedText
     cleaned = cleaned.replace(FOLLOWUPS_REGEX, '')
-    // Collapse excessive whitespace
     cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim()
     return cleaned
   }

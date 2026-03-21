@@ -21,8 +21,8 @@ const definition: FleetGraphActionDefinition = {
   executionAdapter: 'multi_request',
 
   label: 'Assign issues',
-  reviewTitle: 'Assign unassigned issues',
-  reviewSummary: 'FleetGraph detected unassigned issues in this week. Select issues and an assignee.',
+  reviewTitle: 'Assign issues before continuing',
+  reviewSummary: 'Select the issues to assign and choose a teammate.',
   confirmLabel: 'Assign selected issues',
 
   endpointPattern: /^\/api\/issues\/[^/]+$/,
@@ -31,8 +31,8 @@ const definition: FleetGraphActionDefinition = {
     // This will be implemented to fetch sprint issues and team people from Ship REST
     // For now, return empty - the caller should inject options
     return {
-      issue_ids: [],
-      person_id: [],
+      assigneeId: [],
+      issueIds: [],
     }
   },
 
@@ -45,20 +45,20 @@ const definition: FleetGraphActionDefinition = {
       fields: [
         {
           type: 'multi_select',
-          name: 'issue_ids',
+          name: 'issueIds',
           label: 'Select issues to assign',
           placeholder: 'Choose issues...',
           required: true,
           minItems: 1,
-          options: options.issue_ids ?? [],
+          options: options.issueIds ?? [],
         },
         {
           type: 'single_select',
-          name: 'person_id',
+          name: 'assigneeId',
           label: 'Assign to',
           placeholder: 'Choose a team member...',
           required: true,
-          options: options.person_id ?? [],
+          options: options.assigneeId ?? [],
         },
       ],
       title: this.reviewTitle,
@@ -73,16 +73,15 @@ const definition: FleetGraphActionDefinition = {
     submission: FleetGraphDialogSubmission,
     dialogSpec: FleetGraphDialogSpec
   ) {
-    // Validate issue_ids
-    const issueIds = submission.values.issue_ids
+    const issueIds = submission.values.issueIds
     if (!Array.isArray(issueIds) || issueIds.length === 0) {
       return { valid: false as const, error: 'Please select at least one issue' }
     }
 
     // Validate each issue ID is in the options
-    const issueField = dialogSpec.fields.find(f => f.name === 'issue_ids')
+    const issueField = dialogSpec.fields.find((field) => field.name === 'issueIds')
     if (issueField?.type === 'multi_select') {
-      const validIssueIds = new Set(issueField.options.map(o => o.value))
+      const validIssueIds = new Set(issueField.options.map((option) => option.value))
       for (const id of issueIds) {
         if (!validIssueIds.has(id)) {
           return { valid: false as const, error: 'Invalid issue selection' }
@@ -90,16 +89,15 @@ const definition: FleetGraphActionDefinition = {
       }
     }
 
-    // Validate person_id
-    const personId = submission.values.person_id
-    if (typeof personId !== 'string' || personId.trim().length === 0) {
+    const assigneeId = submission.values.assigneeId
+    if (typeof assigneeId !== 'string' || assigneeId.trim().length === 0) {
       return { valid: false as const, error: 'Please select an assignee' }
     }
 
     // Verify the selected person exists in the dialog spec
-    const personField = dialogSpec.fields.find(f => f.name === 'person_id')
+    const personField = dialogSpec.fields.find((field) => field.name === 'assigneeId')
     if (personField?.type === 'single_select') {
-      const validOption = personField.options.find(o => o.value === personId)
+      const validOption = personField.options.find((option) => option.value === assigneeId)
       if (!validOption) {
         return { valid: false as const, error: 'Invalid person selection' }
       }
@@ -109,15 +107,15 @@ const definition: FleetGraphActionDefinition = {
   },
 
   buildExecutionPlan(draft: FleetGraphActionDraft, submission: FleetGraphDialogSubmission) {
-    const issueIds = submission.values.issue_ids as string[]
-    const personId = submission.values.person_id as string
+    const issueIds = submission.values.issueIds as string[]
+    const assigneeId = submission.values.assigneeId as string
 
     // Create a PATCH request for each issue
-    const endpoints = issueIds.map(issueId => ({
+    const endpoints = issueIds.map((issueId) => ({
       method: 'PATCH' as const,
       path: `/api/issues/${issueId}`,
       body: {
-        assignee_ids: [personId],
+        assignee_ids: [assigneeId],
       },
     }))
 

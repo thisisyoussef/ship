@@ -4,6 +4,21 @@ import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { useAnalysisChat } from '@/hooks/useAnalysisChat'
 import { apiPost } from '@/lib/api'
 
+const ACTION_INPUT_SPECS: Record<string, Array<{ key: string; label: string; placeholder: string; type: 'text' | 'textarea' }>> = {
+  start_week: [],
+  approve_week_plan: [],
+  approve_project_plan: [],
+  assign_owner: [
+    { key: 'owner_name', label: 'Owner Name', placeholder: 'e.g. Alice Chen', type: 'text' },
+  ],
+  post_comment: [
+    { key: 'content', label: 'Comment', placeholder: 'Write your comment...', type: 'textarea' },
+  ],
+  post_standup: [
+    { key: 'content', label: 'Standup Update', placeholder: 'What did you work on? What are you working on next?', type: 'textarea' },
+  ],
+}
+
 interface AnalysisSectionProps {
   documentId: string
   documentTitle: string
@@ -37,6 +52,7 @@ export function AnalysisSection({
   } | null>(null)
   const [actionStatus, setActionStatus] = useState<'idle' | 'confirming' | 'executing' | 'done' | 'error'>('idle')
   const [actionError, setActionError] = useState<string | null>(null)
+  const [actionInputs, setActionInputs] = useState<Record<string, string>>({})
 
   useEffect(() => {
     if (!hasAnalyzedRef.current && documentId) {
@@ -64,6 +80,7 @@ export function AnalysisSection({
 
   const handleActionClick = (action: typeof pendingAction) => {
     setPendingAction(action)
+    setActionInputs({})
     setActionStatus('confirming')
   }
 
@@ -72,7 +89,6 @@ export function AnalysisSection({
     setActionStatus('executing')
 
     try {
-      // Route to the correct Ship API based on action type
       let response: Response
       const targetId = pendingAction.target_id
 
@@ -86,16 +102,27 @@ export function AnalysisSection({
         case 'approve_project_plan':
           response = await apiPost(`/api/projects/${targetId}/approve-plan`, {})
           break
-        case 'post_standup':
-          response = await apiPost(`/api/weeks/${targetId}/standups`, {
-            content: 'Standup posted via FleetGraph',
+        case 'assign_owner': {
+          const ownerName = actionInputs.owner_name?.trim()
+          if (!ownerName) throw new Error('Please enter an owner name')
+          response = await apiPost(`/api/weeks/${targetId}`, {
+            method: 'PATCH',
+            properties: { owner_id: ownerName },
           })
           break
-        case 'post_comment':
-          response = await apiPost(`/api/documents/${targetId}/comments`, {
-            content: 'Comment posted via FleetGraph',
-          })
+        }
+        case 'post_standup': {
+          const content = actionInputs.content?.trim()
+          if (!content) throw new Error('Please enter standup content')
+          response = await apiPost(`/api/weeks/${targetId}/standups`, { content })
           break
+        }
+        case 'post_comment': {
+          const content = actionInputs.content?.trim()
+          if (!content) throw new Error('Please enter a comment')
+          response = await apiPost(`/api/documents/${targetId}/comments`, { content })
+          break
+        }
         default:
           throw new Error(`Unknown action: ${pendingAction.action}`)
       }
@@ -106,8 +133,10 @@ export function AnalysisSection({
       }
 
       setActionStatus('done')
+      const label = pendingAction.label
       setPendingAction(null)
-      sendMessage(`I just applied "${pendingAction.label}". What's the current status now?`)
+      setActionInputs({})
+      sendMessage(`I just applied "${label}". What's the current status now?`)
       setTimeout(() => setActionStatus('idle'), 1500)
     } catch (err) {
       setActionStatus('error')
@@ -116,6 +145,7 @@ export function AnalysisSection({
         setPendingAction(null)
         setActionStatus('idle')
         setActionError(null)
+        setActionInputs({})
       }, 3000)
     }
   }
@@ -292,7 +322,12 @@ export function AnalysisSection({
         description={pendingAction?.rationale}
         confirmLabel={pendingAction?.label ?? 'Apply'}
         cancelLabel="Cancel"
-        confirmDisabled={actionStatus === 'executing'}
+        confirmDisabled={actionStatus === 'executing' || (
+          (ACTION_INPUT_SPECS[pendingAction?.action ?? ''] ?? []).length > 0 &&
+          (ACTION_INPUT_SPECS[pendingAction?.action ?? ''] ?? []).some(
+            spec => !actionInputs[spec.key]?.trim()
+          )
+        )}
         onConfirm={handleActionConfirm}
         onCancel={handleActionCancel}
       >
@@ -300,6 +335,35 @@ export function AnalysisSection({
           <div className="flex items-center gap-2 py-2 text-sm text-muted">
             <div className="h-3 w-3 animate-spin rounded-full border-2 border-accent/25 border-t-accent" />
             Applying...
+          </div>
+        )}
+        {/* Dynamic input fields */}
+        {pendingAction && (ACTION_INPUT_SPECS[pendingAction.action] ?? []).length > 0 && actionStatus !== 'executing' && (
+          <div className="space-y-3">
+            {(ACTION_INPUT_SPECS[pendingAction.action] ?? []).map(spec => (
+              <div key={spec.key}>
+                <label className="mb-1 block text-xs font-medium text-foreground">
+                  {spec.label}
+                </label>
+                {spec.type === 'textarea' ? (
+                  <textarea
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground shadow-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                    placeholder={spec.placeholder}
+                    rows={3}
+                    value={actionInputs[spec.key] ?? ''}
+                    onChange={e => setActionInputs(prev => ({ ...prev, [spec.key]: e.target.value }))}
+                  />
+                ) : (
+                  <input
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground shadow-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                    placeholder={spec.placeholder}
+                    type="text"
+                    value={actionInputs[spec.key] ?? ''}
+                    onChange={e => setActionInputs(prev => ({ ...prev, [spec.key]: e.target.value }))}
+                  />
+                )}
+              </div>
+            ))}
           </div>
         )}
       </ConfirmDialog>

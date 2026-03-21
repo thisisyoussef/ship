@@ -62,8 +62,17 @@ export class OpenAIToolCallingAdapter implements LLMToolCallingAdapter {
     })
 
     if (!response.ok) {
+      let errorDetail = ''
+      try {
+        const errorBody = await response.json() as { error?: { message?: string } }
+        errorDetail = errorBody?.error?.message
+          ? `: ${errorBody.error.message}`
+          : ''
+      } catch {
+        // Ignore parse errors on error responses
+      }
       throw new Error(
-        `OpenAI Responses request failed with ${response.status}.`
+        `OpenAI Responses request failed with ${response.status}${errorDetail}`
       )
     }
 
@@ -109,8 +118,17 @@ export class OpenAIToolCallingAdapter implements LLMToolCallingAdapter {
     })
 
     if (!response.ok) {
+      let errorDetail = ''
+      try {
+        const errorBody = await response.json() as { error?: { message?: string } }
+        errorDetail = errorBody?.error?.message
+          ? `: ${errorBody.error.message}`
+          : ''
+      } catch {
+        // Ignore parse errors on error responses
+      }
       throw new Error(
-        `OpenAI Responses tool-calling request failed with ${response.status}.`
+        `OpenAI Responses tool-calling request failed with ${response.status}${errorDetail}`
       )
     }
 

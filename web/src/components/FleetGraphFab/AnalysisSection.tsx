@@ -2,20 +2,31 @@ import { useEffect, useRef, useState } from 'react'
 
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { useAnalysisChat } from '@/hooks/useAnalysisChat'
-import { apiPost } from '@/lib/api'
+import { apiGet, apiPatch, apiPost } from '@/lib/api'
 
-const ACTION_INPUT_SPECS: Record<string, Array<{ key: string; label: string; placeholder: string; type: 'text' | 'textarea' }>> = {
+interface ActionInputSpec {
+  key: string
+  label: string
+  placeholder: string
+  type: 'text' | 'textarea' | 'select'
+  fetchOptions?: string  // API endpoint to fetch select options from
+}
+
+const ACTION_INPUT_SPECS: Record<string, ActionInputSpec[]> = {
   start_week: [],
   approve_week_plan: [],
   approve_project_plan: [],
   assign_owner: [
-    { key: 'owner_name', label: 'Owner Name', placeholder: 'e.g. Alice Chen', type: 'text' },
+    { key: 'owner_id', label: 'Assign Owner', placeholder: 'Select a team member', type: 'select', fetchOptions: '/api/team/people' },
   ],
   post_comment: [
     { key: 'content', label: 'Comment', placeholder: 'Write your comment...', type: 'textarea' },
   ],
   post_standup: [
     { key: 'content', label: 'Standup Update', placeholder: 'What did you work on? What are you working on next?', type: 'textarea' },
+  ],
+  escalate_risk: [
+    { key: 'content', label: 'Escalation Note', placeholder: 'Describe the risk and why it needs escalation...', type: 'textarea' },
   ],
 }
 
@@ -52,6 +63,8 @@ export function AnalysisSection({
   } | null>(null)
   const [actionStatus, setActionStatus] = useState<'idle' | 'confirming' | 'executing' | 'done' | 'error'>('idle')
   const [actionError, setActionError] = useState<string | null>(null)
+  const [selectOptions, setSelectOptions] = useState<Record<string, Array<{ id: string; name: string }>>>({})
+  const [loadingOptions, setLoadingOptions] = useState(false)
   const [actionInputs, setActionInputs] = useState<Record<string, string>>({})
 
   useEffect(() => {
@@ -78,10 +91,35 @@ export function AnalysisSection({
     setInput('')
   }
 
-  const handleActionClick = (action: typeof pendingAction) => {
+  const handleActionClick = async (action: typeof pendingAction) => {
+    if (!action) return
     setPendingAction(action)
     setActionInputs({})
     setActionStatus('confirming')
+
+    // Fetch select options for any fields that need them
+    const specs = ACTION_INPUT_SPECS[action.action] ?? []
+    const selectSpecs = specs.filter(s => s.type === 'select' && s.fetchOptions)
+    if (selectSpecs.length > 0) {
+      setLoadingOptions(true)
+      try {
+        for (const spec of selectSpecs) {
+          const res = await apiGet(spec.fetchOptions!)
+          if (res.ok) {
+            const data = await res.json() as Array<{ id: string; title?: string; properties?: { role?: string }; name?: string }>
+            const options = data.map(p => ({
+              id: p.id,
+              name: p.title ?? p.name ?? p.id,
+            }))
+            setSelectOptions(prev => ({ ...prev, [spec.key]: options }))
+          }
+        }
+      } catch {
+        // Silently fail — select will show empty
+      } finally {
+        setLoadingOptions(false)
+      }
+    }
   }
 
   const handleActionConfirm = async () => {
@@ -103,11 +141,22 @@ export function AnalysisSection({
           response = await apiPost(`/api/projects/${targetId}/approve-plan`, {})
           break
         case 'assign_owner': {
-          const ownerName = actionInputs.owner_name?.trim()
-          if (!ownerName) throw new Error('Please enter an owner name')
-          response = await apiPost(`/api/weeks/${targetId}`, {
-            method: 'PATCH',
-            properties: { owner_id: ownerName },
+          const ownerId = actionInputs.owner_id?.trim()
+          if (!ownerId) throw new Error('Please select an owner')
+          // Determine if target is a week or project based on target_type
+          const ownerEndpoint = pendingAction.target_type === 'project'
+            ? `/api/projects/${targetId}`
+            : `/api/weeks/${targetId}`
+          response = await apiPatch(ownerEndpoint, {
+            properties: { owner_id: ownerId },
+          })
+          break
+        }
+        case 'escalate_risk': {
+          const content = actionInputs.content?.trim()
+          if (!content) throw new Error('Please describe the risk')
+          response = await apiPost(`/api/documents/${targetId}/comments`, {
+            content: `⚠️ RISK ESCALATION: ${content}`,
           })
           break
         }
@@ -340,12 +389,29 @@ export function AnalysisSection({
         {/* Dynamic input fields */}
         {pendingAction && (ACTION_INPUT_SPECS[pendingAction.action] ?? []).length > 0 && actionStatus !== 'executing' && (
           <div className="space-y-3">
+            {loadingOptions && (
+              <div className="flex items-center gap-2 text-xs text-muted">
+                <div className="h-3 w-3 animate-spin rounded-full border-2 border-accent/25 border-t-accent" />
+                Loading options...
+              </div>
+            )}
             {(ACTION_INPUT_SPECS[pendingAction.action] ?? []).map(spec => (
               <div key={spec.key}>
                 <label className="mb-1 block text-xs font-medium text-foreground">
                   {spec.label}
                 </label>
-                {spec.type === 'textarea' ? (
+                {spec.type === 'select' ? (
+                  <select
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground shadow-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                    value={actionInputs[spec.key] ?? ''}
+                    onChange={e => setActionInputs(prev => ({ ...prev, [spec.key]: e.target.value }))}
+                  >
+                    <option value="">{spec.placeholder}</option>
+                    {(selectOptions[spec.key] ?? []).map(opt => (
+                      <option key={opt.id} value={opt.id}>{opt.name}</option>
+                    ))}
+                  </select>
+                ) : spec.type === 'textarea' ? (
                   <textarea
                     className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground shadow-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
                     placeholder={spec.placeholder}

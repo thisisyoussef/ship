@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { useAnalysisChat } from '@/hooks/useAnalysisChat'
 import { apiPost } from '@/lib/api'
 
@@ -35,6 +36,7 @@ export function AnalysisSection({
     rationale: string
   } | null>(null)
   const [actionStatus, setActionStatus] = useState<'idle' | 'confirming' | 'executing' | 'done' | 'error'>('idle')
+  const [actionError, setActionError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!hasAnalyzedRef.current && documentId) {
@@ -70,25 +72,51 @@ export function AnalysisSection({
     setActionStatus('executing')
 
     try {
-      const response = await apiPost(`/api/fleetgraph/actions/execute`, {
-        action_type: pendingAction.action,
-        target_id: pendingAction.target_id,
-        target_type: pendingAction.target_type,
-      })
+      // Route to the correct Ship API based on action type
+      let response: Response
+      const targetId = pendingAction.target_id
+
+      switch (pendingAction.action) {
+        case 'start_week':
+          response = await apiPost(`/api/weeks/${targetId}/start`, {})
+          break
+        case 'approve_week_plan':
+          response = await apiPost(`/api/weeks/${targetId}/approve-plan`, {})
+          break
+        case 'approve_project_plan':
+          response = await apiPost(`/api/projects/${targetId}/approve-plan`, {})
+          break
+        case 'post_standup':
+          response = await apiPost(`/api/weeks/${targetId}/standups`, {
+            content: 'Standup posted via FleetGraph',
+          })
+          break
+        case 'post_comment':
+          response = await apiPost(`/api/documents/${targetId}/comments`, {
+            content: 'Comment posted via FleetGraph',
+          })
+          break
+        default:
+          throw new Error(`Unknown action: ${pendingAction.action}`)
+      }
 
       if (!response.ok) {
-        throw new Error('Action failed')
+        const body = await response.text().catch(() => '')
+        throw new Error(body || `Action failed (${response.status})`)
       }
 
       setActionStatus('done')
+      setPendingAction(null)
       sendMessage(`I just applied "${pendingAction.label}". What's the current status now?`)
-    } catch {
+      setTimeout(() => setActionStatus('idle'), 1500)
+    } catch (err) {
       setActionStatus('error')
-    } finally {
+      setActionError(err instanceof Error ? err.message : 'Action failed')
       setTimeout(() => {
         setPendingAction(null)
         setActionStatus('idle')
-      }, 2000)
+        setActionError(null)
+      }, 3000)
     }
   }
 
@@ -98,7 +126,7 @@ export function AnalysisSection({
   }
 
   return (
-    <div className="relative flex h-full flex-col">
+    <div className="flex h-full flex-col">
       {/* Messages */}
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto" ref={scrollRef}>
         {messages.map((msg, i) => (
@@ -257,59 +285,40 @@ export function AnalysisSection({
         </button>
       </div>
 
-      {/* Action confirmation dialog */}
-      {pendingAction && actionStatus === 'confirming' && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-          <div className="mx-4 w-full max-w-sm rounded-2xl border border-border bg-background p-4 shadow-xl">
-            <h3 className="text-sm font-semibold text-foreground">Confirm Action</h3>
-            <p className="mt-1 text-xs text-muted">{pendingAction.rationale}</p>
-            <div className="mt-3 flex gap-2">
-              <button
-                type="button"
-                className="flex-1 rounded-lg bg-accent px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-accent/90"
-                onClick={handleActionConfirm}
-              >
-                {pendingAction.label}
-              </button>
-              <button
-                type="button"
-                className="flex-1 rounded-lg border border-border px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-muted/10"
-                onClick={handleActionCancel}
-              >
-                Cancel
-              </button>
-            </div>
+      {/* Action confirmation — uses Ship's ConfirmDialog (portals to document root) */}
+      <ConfirmDialog
+        open={pendingAction !== null && actionStatus === 'confirming'}
+        title={pendingAction?.label ?? 'Confirm Action'}
+        description={pendingAction?.rationale}
+        confirmLabel={pendingAction?.label ?? 'Apply'}
+        cancelLabel="Cancel"
+        confirmDisabled={actionStatus === 'executing'}
+        onConfirm={handleActionConfirm}
+        onCancel={handleActionCancel}
+      >
+        {actionStatus === 'executing' && (
+          <div className="flex items-center gap-2 py-2 text-sm text-muted">
+            <div className="h-3 w-3 animate-spin rounded-full border-2 border-accent/25 border-t-accent" />
+            Applying...
           </div>
-        </div>
-      )}
+        )}
+      </ConfirmDialog>
 
-      {/* Action executing indicator */}
-      {actionStatus === 'executing' && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-          <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-4 py-3 shadow-xl">
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-accent/25 border-t-accent" />
-            <span className="text-sm text-foreground">Applying action...</span>
-          </div>
-        </div>
-      )}
-
-      {actionStatus === 'done' && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-          <div className="flex items-center gap-2 rounded-xl border border-green-500/30 bg-background px-4 py-3 shadow-xl">
-            <span className="text-green-500">&#10003;</span>
-            <span className="text-sm text-foreground">Action applied successfully</span>
-          </div>
-        </div>
-      )}
-
-      {actionStatus === 'error' && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-          <div className="flex items-center gap-2 rounded-xl border border-red-500/30 bg-background px-4 py-3 shadow-xl">
-            <span className="text-red-500">&#10007;</span>
-            <span className="text-sm text-foreground">Action failed — try again</span>
-          </div>
-        </div>
-      )}
+      {/* Action result — uses Ship's ConfirmDialog for done/error feedback */}
+      <ConfirmDialog
+        open={actionStatus === 'done' || actionStatus === 'error'}
+        title={actionStatus === 'done' ? 'Action Applied' : 'Action Failed'}
+        description={
+          actionStatus === 'done'
+            ? 'The action was applied successfully. The analysis will refresh with updated data.'
+            : actionError ?? 'Something went wrong. Please try again.'
+        }
+        confirmLabel="OK"
+        cancelLabel="Dismiss"
+        variant={actionStatus === 'done' ? 'success' : 'destructive'}
+        onConfirm={() => { setActionStatus('idle'); setActionError(null) }}
+        onCancel={() => { setActionStatus('idle'); setActionError(null) }}
+      />
     </div>
   )
 }

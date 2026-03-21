@@ -1014,11 +1014,13 @@ export function createFleetGraphRouter(
 
     try {
       const chatThreadId = String(req.params.threadId)
+      const requestContext = buildShipRestRequestContext(req)
       const orchestrator = getChatOrchestrator()
       const result = await orchestrator.dismissAction({
         threadId: chatThreadId,
         actorId: auth.userId,
         workspaceId: auth.workspaceId,
+        requestContext,
       })
 
       const session = orchestrator.getSession(chatThreadId)
@@ -1050,7 +1052,7 @@ export function createFleetGraphRouter(
         return
       }
 
-      if (session.workspaceId !== auth.workspaceId) {
+      if (session.workspaceId !== auth.workspaceId || session.actorId !== auth.userId) {
         res.status(403).json({ error: 'Not authorized for this chat session' })
         return
       }

@@ -95,6 +95,7 @@ export interface DismissActionInput {
   threadId: string
   actorId: string
   workspaceId: string
+  requestContext: ShipRestRequestContext
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -335,9 +336,12 @@ export function createChatOrchestrator(deps: ChatOrchestratorDeps) {
   async function startChat(input: StartChatInput): Promise<ChatTurnResult> {
     const threadId = `fleetgraph:chat:${input.workspaceId}:${input.documentId}`
 
-    // Reuse existing session if still valid
+    // Reuse existing session if still valid, otherwise create fresh
     let session = sessionStore.get(threadId)
-    if (!session) {
+    if (session) {
+      // Session exists — just touch it, don't re-add system prompt
+      sessionStore.touch(threadId)
+    } else {
       session = sessionStore.create({
         threadId,
         workspaceId: input.workspaceId,
@@ -345,13 +349,13 @@ export function createChatOrchestrator(deps: ChatOrchestratorDeps) {
         documentId: input.documentId,
         documentType: input.documentType,
       })
-    }
 
-    // Add system message
-    session.messages.push({
-      role: 'system',
-      content: SYSTEM_PROMPT,
-    })
+      // Add system message only on fresh sessions
+      session.messages.push({
+        role: 'system',
+        content: SYSTEM_PROMPT,
+      })
+    }
 
     // Add initial user message
     session.messages.push({
@@ -575,14 +579,7 @@ export function createChatOrchestrator(deps: ChatOrchestratorDeps) {
     session.pendingApproval = null
 
     // Run one more LLM round
-    const ctx: ToolExecutionContext = {
-      workspaceId: input.workspaceId,
-      requestContext: {
-        baseUrl: '',
-        cookieHeader: undefined,
-        csrfToken: undefined,
-      },
-    }
+    const ctx = buildToolContext(input.workspaceId, input.requestContext)
     const loopResult = await runToolCallingLoop(session, ctx)
     return buildTurnResult(loopResult, session)
   }

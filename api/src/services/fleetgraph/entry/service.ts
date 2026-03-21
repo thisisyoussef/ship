@@ -41,6 +41,11 @@ const ACTION_SHAPE_BY_TYPE = {
     path: (targetId: string) => `/api/documents/${targetId}`,
     targetType: 'document',
   },
+  create_issue: {
+    method: 'POST',
+    path: (_targetId: string) => `/api/issues`,
+    targetType: 'document',
+  },
   escalate_risk: {
     method: 'POST',
     path: (targetId: string) => `/api/documents/${targetId}/comments`,
@@ -64,6 +69,26 @@ const ACTION_SHAPE_BY_TYPE = {
   start_week: {
     method: 'POST',
     path: (targetId: string) => `/api/weeks/${targetId}/start`,
+    targetType: 'sprint',
+  },
+  update_issue: {
+    method: 'PATCH',
+    path: (targetId: string) => `/api/issues/${targetId}`,
+    targetType: 'document',
+  },
+  update_project: {
+    method: 'PATCH',
+    path: (targetId: string) => `/api/projects/${targetId}`,
+    targetType: 'project',
+  },
+  update_sprint: {
+    method: 'PATCH',
+    path: (targetId: string) => `/api/weeks/${targetId}`,
+    targetType: 'sprint',
+  },
+  update_sprint_plan: {
+    method: 'PATCH',
+    path: (targetId: string) => `/api/weeks/${targetId}/plan`,
     targetType: 'sprint',
   },
 } as const

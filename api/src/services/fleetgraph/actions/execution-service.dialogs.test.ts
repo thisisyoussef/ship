@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ensureFirstPackActionsRegistered } from './definitions/index.js'
 import { ActionExecutionService } from './execution-service.js'
+import type { FleetGraphActionDraft } from './registry.js'
 
 describe('action execution service dialogs', () => {
   beforeEach(() => {
@@ -25,14 +26,14 @@ describe('action execution service dialogs', () => {
       shipRequest,
     })
 
-    const draft = {
+    const draft: FleetGraphActionDraft = {
       actionId: 'assign_owner:week-1',
       actionType: 'assign_owner',
       evidence: ['Week 1 has no owner assigned.'],
       rationale: 'Assign an accountable owner before execution.',
       targetId: 'week-1',
       targetType: 'sprint',
-    } as const
+    }
 
     const review = await service.review({
       actionId: draft.actionId,
@@ -101,14 +102,14 @@ describe('action execution service dialogs', () => {
       shipRequest,
     })
 
-    const draft = {
+    const draft: FleetGraphActionDraft = {
       actionId: 'assign_issues:week-1',
       actionType: 'assign_issues',
       evidence: ['Two sprint issues are still unassigned.'],
       rationale: 'Assign the work before the sprint slips.',
       targetId: 'week-1',
       targetType: 'sprint',
-    } as const
+    }
 
     const review = await service.review({
       actionId: draft.actionId,

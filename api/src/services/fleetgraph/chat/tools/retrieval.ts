@@ -42,6 +42,34 @@ async function fetchShipApi(
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
+// Write helper for action tools
+// ──────────────────────────────────────────────────────────────────────────────
+
+export async function writeShipApi(
+  path: string,
+  method: 'POST' | 'PATCH',
+  body: Record<string, unknown>,
+  ctx: ToolExecutionContext
+): Promise<unknown> {
+  const baseUrl = ctx.requestContext.baseUrl
+  const headers: Record<string, string> = {
+    accept: 'application/json',
+    'content-type': 'application/json',
+  }
+  if (ctx.requestContext.cookieHeader) headers.cookie = ctx.requestContext.cookieHeader
+  if (ctx.requestContext.csrfToken) headers['x-csrf-token'] = ctx.requestContext.csrfToken
+
+  const fetchFn = ctx.fetchFn ?? fetch
+  const response = await fetchFn(`${baseUrl}${path}`, {
+    headers,
+    method,
+    body: JSON.stringify(body),
+  })
+  if (!response.ok) throw new Error(`Ship API ${method} ${path} failed with ${response.status}`)
+  return response.json()
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
 // 1. fetch_issue
 // ──────────────────────────────────────────────────────────────────────────────
 

@@ -17,11 +17,16 @@ export const FLEETGRAPH_ACTION_TYPES = [
   'approve_week_plan',
   'assign_issues',
   'assign_owner',
+  'create_issue',
   'escalate_risk',
   'post_comment',
   'post_standup',
   'rebalance_load',
   'start_week',
+  'update_issue',
+  'update_project',
+  'update_sprint',
+  'update_sprint_plan',
 ] as const
 
 export const FleetGraphActionTypeSchema = z.enum(FLEETGRAPH_ACTION_TYPES)

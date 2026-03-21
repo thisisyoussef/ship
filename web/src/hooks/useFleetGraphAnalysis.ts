@@ -13,6 +13,11 @@ import { documentContextKeys } from './useDocumentContextQuery'
 import { documentKeys } from './useDocumentsQuery'
 import { sprintKeys } from './useWeeksQuery'
 
+const USE_CHAT_ORCHESTRATOR = Boolean(
+  (typeof window !== 'undefined' && (window as unknown as Record<string, unknown>).__FLEETGRAPH_CHAT_ORCHESTRATOR__) ||
+  import.meta.env.VITE_FLEETGRAPH_CHAT_ORCHESTRATOR === 'true'
+)
+
 export interface FleetGraphThreadActionReviewResponse {
   actionDraft: FleetGraphActionDraft
   dialogSpec: FleetGraphDialogSpec
@@ -102,7 +107,10 @@ export function useFleetGraphAnalysis() {
   const [pendingActionId, setPendingActionId] = useState<string | null>(null)
 
   const postAnalyze = useCallback(async (input: AnalysisRequest) => {
-    const response = await apiPost('/api/fleetgraph/analyze', input)
+    const endpoint = USE_CHAT_ORCHESTRATOR
+      ? '/api/fleetgraph/chat/start'
+      : '/api/fleetgraph/analyze'
+    const response = await apiPost(endpoint, input)
     if (!response.ok) {
       throw new Error('FleetGraph analysis failed')
     }
@@ -140,10 +148,10 @@ export function useFleetGraphAnalysis() {
       if (!threadId) {
         throw new Error('No active session')
       }
-      const response = await apiPost(
-        `/api/fleetgraph/thread/${encodeURIComponent(threadId)}/turn`,
-        { message }
-      )
+      const endpoint = USE_CHAT_ORCHESTRATOR
+        ? `/api/fleetgraph/chat/${encodeURIComponent(threadId)}/message`
+        : `/api/fleetgraph/thread/${encodeURIComponent(threadId)}/turn`
+      const response = await apiPost(endpoint, { message })
       if (!response.ok) {
         throw new Error('FleetGraph follow-up failed')
       }
@@ -173,6 +181,19 @@ export function useFleetGraphAnalysis() {
     mutationFn: async (actionDraft: FleetGraphActionDraft) => {
       if (!threadId) {
         throw new Error('FleetGraph could not find an active analysis thread for this action.')
+      }
+
+      // In chat orchestrator mode, the pending approval already includes
+      // the dialog spec from the chat response -- no separate review call needed.
+      if (USE_CHAT_ORCHESTRATOR) {
+        // Find the pending approval from the latest conversation entry
+        const lastEntry = conversation[conversation.length - 1]
+        const pendingDraft = lastEntry?.actionDrafts?.find(d => d.actionId === actionDraft.actionId)
+        return {
+          actionDraft: pendingDraft ?? actionDraft,
+          dialogSpec: {} as FleetGraphDialogSpec,
+          threadId,
+        } as FleetGraphThreadActionReviewResponse
       }
 
       const response = await apiPost(
@@ -211,6 +232,38 @@ export function useFleetGraphAnalysis() {
     }) => {
       if (!threadId) {
         throw new Error('FleetGraph could not find an active analysis thread for this action.')
+      }
+
+      if (USE_CHAT_ORCHESTRATOR) {
+        const response = await apiPost(
+          `/api/fleetgraph/chat/${encodeURIComponent(threadId)}/approve`,
+          { values: payload.values }
+        )
+        if (!response.ok) {
+          let message = 'FleetGraph could not apply this action right now.'
+          try {
+            const data = await response.json()
+            if (typeof data?.error === 'string') {
+              message = data.error
+            }
+          } catch {
+            // Keep the default message.
+          }
+          throw new Error(message)
+        }
+        // Map chat response back to the expected apply response shape
+        const chatResponse = await response.json() as FleetGraphThreadResponse
+        return {
+          actionDraft: payload.actionDraft,
+          actionResult: {
+            endpoint: 'chat_orchestrator',
+            executedAt: new Date().toISOString(),
+            statusCode: 200,
+            success: true,
+          },
+          responsePayload: chatResponse.responsePayload,
+          threadId: chatResponse.threadId,
+        } as FleetGraphThreadActionApplyResponse
       }
 
       const response = await apiPost(
@@ -319,7 +372,14 @@ export function useFleetGraphAnalysis() {
     setPendingActionId(null)
     reviewActionMutation.reset()
     applyActionMutation.reset()
-  }, [applyActionMutation, reviewActionMutation])
+
+    // In chat orchestrator mode, notify the backend of the dismissal
+    if (USE_CHAT_ORCHESTRATOR && threadId) {
+      apiPost(`/api/fleetgraph/chat/${encodeURIComponent(threadId)}/dismiss`).catch(() => {
+        // Best-effort dismiss notification
+      })
+    }
+  }, [applyActionMutation, reviewActionMutation, threadId])
 
   const reset = useCallback(() => {
     setApplyError(null)

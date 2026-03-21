@@ -65,16 +65,94 @@ CRITICAL: When calling tools, output ONLY the tool_call tags. Do NOT narrate wha
 When your analysis reveals actionable opportunities, suggest them using this format:
 <action_suggestion>{"action": "action_type", "target_id": "entity_id", "target_type": "entity_type", "label": "Button label", "rationale": "Why this action makes sense"}</action_suggestion>
 
-Available action types: start_week, approve_week_plan, approve_project_plan, post_standup, post_comment, assign_owner
+Available action types: start_week, approve_week_plan, approve_project_plan, post_standup, post_comment
 Only suggest 1-2 actions when there is a clear, specific reason. The user sees these as interactive buttons.
 
 ## Follow-up Suggestions
 After answering, suggest 2-3 follow-up questions in this format:
 <followups>["question 1", "question 2", "question 3"]</followups>`
 
-const TOOL_CALL_REGEX = /<tool_call>(.*?)<\/?tool_call>/gs
 const FOLLOWUPS_REGEX = /<followups>(.*?)<\/followups>/s
-const ACTION_SUGGESTION_REGEX = /<action_suggestion>(.*?)<\/?action_suggestion>/gs
+
+/**
+ * Robust tag-content extractor that handles all LLM output variants:
+ * - Proper: <tag>JSON</tag>
+ * - Self-closing style: <tag>JSON<tag>
+ * - Escaped slash: <tag>JSON<\/tag>
+ * - Bare JSON with escaped closer: JSON<\/tag>
+ * - Mixed: any combination
+ */
+function collectTaggedBlocks(text: string, tagName: string): { cleanedText: string; payloads: string[] } {
+  const payloads: string[] = []
+
+  // Normalize escaped-slash closing tags: <\/tag> → </tag>
+  let normalized = text.replace(new RegExp(`<\\\\/\\s*${tagName}\\s*>`, 'g'), `</${tagName}>`)
+
+  const openTag = `<${tagName}>`
+  const closeTag = `</${tagName}>`
+  let cleaned = ''
+  let cursor = 0
+
+  while (cursor < normalized.length) {
+    const openIdx = normalized.indexOf(openTag, cursor)
+
+    if (openIdx === -1) {
+      // No more opening tags — check for bare JSON followed by close tag
+      const closeIdx = normalized.indexOf(closeTag, cursor)
+      if (closeIdx !== -1) {
+        const candidate = normalized.slice(cursor, closeIdx).trim()
+        if (candidate.startsWith('{') && candidate.endsWith('}')) {
+          payloads.push(candidate)
+          cursor = closeIdx + closeTag.length
+          continue
+        }
+      }
+      cleaned += normalized.slice(cursor)
+      break
+    }
+
+    // Add text before the opening tag
+    cleaned += normalized.slice(cursor, openIdx)
+
+    // Find the closing tag after the opener
+    const afterOpen = openIdx + openTag.length
+    const closeIdx = normalized.indexOf(closeTag, afterOpen)
+
+    if (closeIdx === -1) {
+      // No closing tag — check if there's another opening tag used as closer
+      const nextOpenIdx = normalized.indexOf(openTag, afterOpen)
+      if (nextOpenIdx !== -1) {
+        const candidate = normalized.slice(afterOpen, nextOpenIdx).trim()
+        if (candidate.startsWith('{')) {
+          payloads.push(candidate)
+        }
+        cursor = nextOpenIdx // Don't skip — it might be another opener
+        continue
+      }
+      // Trailing content after opener with no closer
+      const trailing = normalized.slice(afterOpen).trim()
+      if (trailing.startsWith('{') && trailing.endsWith('}')) {
+        payloads.push(trailing)
+      }
+      break
+    }
+
+    // Normal case: <tag>JSON</tag>
+    const payload = normalized.slice(afterOpen, closeIdx).trim()
+    if (payload) {
+      payloads.push(payload)
+    }
+    cursor = closeIdx + closeTag.length
+  }
+
+  // Final cleanup: remove any remaining tags
+  cleaned = cleaned.replace(new RegExp(`<\\/?${tagName}>`, 'g'), '')
+  // Remove any leftover escaped-slash tags that weren't normalized
+  cleaned = cleaned.replace(new RegExp(`<\\\\?\\/${tagName}>`, 'g'), '')
+  cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim()
+
+  return { cleanedText: cleaned, payloads }
+}
 
 // ── Implementation ───────────────────────────────────────────────
 
@@ -135,21 +213,14 @@ export function createAnalysisGraphService(deps: AnalysisGraphDeps) {
 
   function parseToolCalls(text: string): Array<{ name: string; args: Record<string, unknown> }> {
     const calls: Array<{ name: string; args: Record<string, unknown> }> = []
-    let match: RegExpExecArray | null
-
-    // Reset regex lastIndex
-    TOOL_CALL_REGEX.lastIndex = 0
-    while ((match = TOOL_CALL_REGEX.exec(text)) !== null) {
+    for (const payload of collectTaggedBlocks(text, 'tool_call').payloads) {
       try {
-        const parsed = JSON.parse(match[1]!) as { name: string; args: Record<string, unknown> }
+        const parsed = JSON.parse(payload) as { name: string; args: Record<string, unknown> }
         if (parsed.name && typeof parsed.name === 'string') {
-          calls.push({
-            name: parsed.name,
-            args: parsed.args ?? {},
-          })
+          calls.push({ name: parsed.name, args: parsed.args ?? {} })
         }
       } catch {
-        // Skip malformed tool calls
+        // Skip malformed
       }
     }
     return calls
@@ -182,11 +253,9 @@ export function createAnalysisGraphService(deps: AnalysisGraphDeps) {
       label: string
       rationale: string
     }> = []
-    ACTION_SUGGESTION_REGEX.lastIndex = 0
-    let match: RegExpExecArray | null
-    while ((match = ACTION_SUGGESTION_REGEX.exec(text)) !== null) {
+    for (const payload of collectTaggedBlocks(text, 'action_suggestion').payloads) {
       try {
-        const parsed = JSON.parse(match[1]!) as {
+        const parsed = JSON.parse(payload) as {
           action: string
           target_id: string
           target_type: string
@@ -204,16 +273,9 @@ export function createAnalysisGraphService(deps: AnalysisGraphDeps) {
   }
 
   function cleanResponse(text: string): string {
-    // Remove tool calls with either proper or malformed closing tags
-    let cleaned = text.replace(/<tool_call>.*?<\/?tool_call>/gs, '')
-    // Remove any orphaned opening tags (no matching close at all)
-    cleaned = cleaned.replace(/<\/?tool_call>/g, '')
-    // Remove action suggestions
-    cleaned = cleaned.replace(/<action_suggestion>.*?<\/?action_suggestion>/gs, '')
-    cleaned = cleaned.replace(/<\/?action_suggestion>/g, '')
-    // Remove followups tags
+    let cleaned = collectTaggedBlocks(text, 'tool_call').cleanedText
+    cleaned = collectTaggedBlocks(cleaned, 'action_suggestion').cleanedText
     cleaned = cleaned.replace(FOLLOWUPS_REGEX, '')
-    // Collapse excessive whitespace
     cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim()
     return cleaned
   }

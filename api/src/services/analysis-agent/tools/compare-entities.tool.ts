@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type { AnalysisTool, ToolContext, ToolResult } from '../types.js'
+import { uuidSchema } from './schemas.js'
 import { fetchShipApi } from './fetch-ship-api.js'
 
 export const compareEntitiesTool: AnalysisTool = {
@@ -7,7 +8,7 @@ export const compareEntitiesTool: AnalysisTool = {
   description:
     'Compare two or more entities side-by-side. Fetches each entity\'s snapshot and returns a structured comparison of their properties, status, and metrics.',
   parameters: z.object({
-    entity_ids: z.array(z.string()).min(2).max(5),
+    entity_ids: z.array(uuidSchema).min(2).max(5),
   }),
 
   async execute(args: unknown, ctx: ToolContext): Promise<ToolResult> {

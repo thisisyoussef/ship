@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type { AnalysisTool, ToolContext, ToolResult } from '../types.js'
+import { uuidSchema } from './schemas.js'
 import { fetchShipApi } from './fetch-ship-api.js'
 
 export const graphNeighborsTool: AnalysisTool = {
@@ -7,7 +8,7 @@ export const graphNeighborsTool: AnalysisTool = {
   description:
     'Fetch related entities — issues in a project or sprint, standups for a sprint, weeks for a project. Use to understand what work is connected to the current entity.',
   parameters: z.object({
-    entity_id: z.string(),
+    entity_id: uuidSchema,
     entity_type: z.string(),
     relation: z
       .enum(['issues', 'weeks', 'standups', 'children'])

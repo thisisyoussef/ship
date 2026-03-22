@@ -342,6 +342,13 @@ export function createAnalysisGraphService(deps: AnalysisGraphDeps) {
           const cacheKey = JSON.stringify({ name: call.name, args: call.args })
           const cached = toolCallCache.get(cacheKey)
           if (cached) {
+            // Record the cached call for audit trail
+            allToolCalls.push({
+              name: call.name,
+              args: call.args,
+              result: cached,
+              duration_ms: 0, // cached, no execution
+            })
             roundResults.push(`Tool result for ${call.name}:\n${cached}`)
             continue
           }

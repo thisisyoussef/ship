@@ -185,8 +185,11 @@ export function AnalysisSection({
       const label = pendingAction.label
       setPendingAction(null)
       setActionInputs({})
-      sendMessage(`I just applied "${label}". What's the current status now?`)
-      setTimeout(() => setActionStatus('idle'), 1500)
+      // Delay sendMessage until after success dialog dismisses
+      setTimeout(() => {
+        setActionStatus('idle')
+        sendMessage(`I just applied "${label}". What's the current status now?`)
+      }, 1500)
     } catch (err) {
       setActionStatus('error')
       setActionError(err instanceof Error ? err.message : 'Action failed')

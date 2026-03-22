@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type { AnalysisTool, ToolContext, ToolResult } from '../types.js'
+import { uuidSchema } from './schemas.js'
 import { fetchShipApi } from './fetch-ship-api.js'
 
 export const evidenceLookupTool: AnalysisTool = {
@@ -7,7 +8,7 @@ export const evidenceLookupTool: AnalysisTool = {
   description:
     'Look up evidence trail — comments, history, and iteration data for a specific entity. Use to find proof for claims and understand decision history.',
   parameters: z.object({
-    entity_id: z.string(),
+    entity_id: uuidSchema,
   }),
 
   async execute(args: unknown, ctx: ToolContext): Promise<ToolResult> {

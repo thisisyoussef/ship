@@ -9,12 +9,20 @@ import {
   type FleetGraphEntryInput,
   type FleetGraphEntryResponse,
 } from '@/lib/fleetgraph-entry'
+import { documentContextKeys } from './useDocumentContextQuery'
 import { documentKeys } from './useDocumentsQuery'
 import { sprintKeys } from './useWeeksQuery'
 
 export function useFleetGraphEntry() {
   const queryClient = useQueryClient()
   const [actionResult, setActionResult] = useState<FleetGraphEntryApplyResponse | null>(null)
+
+  function invalidateDocumentSurface(documentId: string) {
+    queryClient.invalidateQueries({ queryKey: ['document', documentId] })
+    queryClient.invalidateQueries({ queryKey: documentKeys.detail(documentId) })
+    queryClient.invalidateQueries({ queryKey: documentContextKeys.detail(documentId) })
+  }
+
   const mutation = useMutation({
     mutationFn: async (input: {
       entry: FleetGraphEntryInput
@@ -45,6 +53,7 @@ export function useFleetGraphEntry() {
   const applyMutation = useMutation({
     mutationFn: async (input: {
       approval: FleetGraphApprovalEnvelope
+      currentDocumentId: string
       threadId: string
     }) => {
       const response = await apiPost('/api/fleetgraph/entry/apply', {
@@ -64,30 +73,38 @@ export function useFleetGraphEntry() {
       }
       return {
         approval: input.approval,
+        currentDocumentId: input.currentDocumentId,
         result: await response.json() as FleetGraphEntryApplyResponse,
       }
     },
-    onSuccess: ({ approval, result }) => {
+    onSuccess: ({ approval, currentDocumentId, result }) => {
       setActionResult(result)
       mutation.reset()
       // Invalidate relevant queries based on the action type
       if (approval.targetType === 'sprint') {
         queryClient.invalidateQueries({ queryKey: sprintKeys.lists() })
         queryClient.invalidateQueries({ queryKey: sprintKeys.active() })
+        queryClient.invalidateQueries({ queryKey: sprintKeys.detail(approval.targetId) })
       }
       if (approval.targetType === 'project') {
         queryClient.invalidateQueries({ queryKey: documentKeys.lists() })
       }
-      // Always invalidate document details for the target
-      queryClient.invalidateQueries({ queryKey: documentKeys.detail(approval.targetId) })
+      invalidateDocumentSurface(approval.targetId)
+      if (currentDocumentId !== approval.targetId) {
+        invalidateDocumentSurface(currentDocumentId)
+      }
     },
   })
 
   return {
     actionResult,
-    applyApproval(threadId: string, approval: FleetGraphApprovalEnvelope) {
+    applyApproval(
+      threadId: string,
+      approval: FleetGraphApprovalEnvelope,
+      currentDocumentId: string
+    ) {
       setActionResult(null)
-      applyMutation.mutate({ approval, threadId })
+      applyMutation.mutate({ approval, currentDocumentId, threadId })
     },
     checkCurrentContext(entry: FleetGraphEntryInput) {
       setActionResult(null)

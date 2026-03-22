@@ -49,6 +49,19 @@ export function FleetGraphEntryCard({
   const approval = fleetGraph.result?.approval;
   const actionResult = fleetGraph.actionResult;
   const { setEntry } = useFleetGraphDebugSurface();
+  const actionResultTone = actionResult?.actionOutcome.status === 'failed'
+    ? {
+      container: 'border-red-200 bg-red-50',
+      detail: 'text-red-900/85',
+      label: 'text-red-800',
+      title: 'text-red-950',
+    }
+    : {
+      container: 'border-emerald-200 bg-emerald-50',
+      detail: 'text-emerald-900/85',
+      label: 'text-emerald-800',
+      title: 'text-emerald-950',
+    };
 
   const disabled = loading || !entry || !document.workspaceId;
   const helperText =
@@ -126,17 +139,13 @@ export function FleetGraphEntryCard({
 
           {actionResult ? (
             <div
-              className={`space-y-1 rounded-xl border px-3 py-3 ${
-                actionResult.actionOutcome.status === 'failed'
-                  ? 'border-red-200 bg-red-50'
-                  : 'border-emerald-200 bg-emerald-50'
-              }`}
+              className={`space-y-1 rounded-xl border px-3 py-3 ${actionResultTone.container}`}
             >
-              <p className={sectionLabelClassName}>Latest result</p>
-              <p className="text-sm font-semibold text-foreground">
+              <p className={`${sectionLabelClassName} ${actionResultTone.label}`}>Latest result</p>
+              <p className={`text-sm font-semibold ${actionResultTone.title}`}>
                 {actionResult.summary.title}
               </p>
-              <p className="text-sm text-muted">
+              <p className={`text-sm ${actionResultTone.detail}`}>
                 {actionResult.summary.detail}
               </p>
             </div>
@@ -185,7 +194,11 @@ export function FleetGraphEntryCard({
                     key={option.id}
                     onClick={() => {
                       if (option.id === 'apply' && fleetGraph.result) {
-                        fleetGraph.applyApproval(fleetGraph.result.entry.threadId, approval)
+                        fleetGraph.applyApproval(
+                          fleetGraph.result.entry.threadId,
+                          approval,
+                          fleetGraph.result.entry.current.id
+                        )
                       }
                       else if (option.id === 'dismiss') fleetGraph.dismissApproval()
                       else if (option.id === 'snooze') fleetGraph.snoozeApproval()

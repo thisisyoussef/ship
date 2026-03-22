@@ -47,6 +47,8 @@ Use this file as durable working memory for recurring corrections, decisions, an
   Use `FleetGraph Demo Week - Review and Apply` on the Railway demo for fast inspection of the entry-card approval-preview surface.
 - FleetGraph preview-to-apply convergence:
   When an entry-card preview already exists, prefer resuming the existing FleetGraph thread through a small entry action service before widening the general finding/action persistence model.
+- FleetGraph approval preview must read live page state:
+  Do not surface a consequential approval action from page type alone. Check the current approval state first so already-approved pages do not re-offer the same step.
 - FleetGraph story order:
   Finish the already-real on-demand surfaces before paying the shared proactive widening cost.
 

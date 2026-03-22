@@ -81,9 +81,11 @@ Use this guide when verifying FleetGraph behavior on the sanctioned public demo.
 2. Click `Apply`.
 3. Confirm the card shows a `Latest result` panel after the action finishes.
 4. Confirm the result headline is a user-facing outcome such as `FleetGraph completed the action.`
-5. Confirm the result detail explains the visible effect in Ship, such as `Week plan approved in Ship.`
+5. Confirm the result detail explains the visible effect in Ship and points back to the page state, such as `Week plan approved in Ship. This page should now show the week plan as approved.`
 6. Confirm the page data refreshes after apply instead of leaving the stale preview in place.
-7. Failure signal: the browser writes directly to the raw Ship approval endpoint, the card shows no inline result, or the page stays stale after the action completes.
+7. Confirm the page now shows the approved week-plan state in Ship.
+8. Click `Preview approval step` again and confirm FleetGraph does not offer the same week approval a second time.
+9. Failure signal: the browser writes directly to the raw Ship approval endpoint, the card shows no inline result, the page stays stale after the action completes, or the same week-plan approval prompt reappears immediately.
 
 ## Screenshot References
 

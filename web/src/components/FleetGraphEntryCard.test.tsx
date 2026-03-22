@@ -347,7 +347,12 @@ describe('FleetGraphEntryCard', () => {
     })
 
     expect(screen.queryByText(`POST /api/projects/${DOCUMENT_ID}/approve-plan`)).not.toBeInTheDocument()
-    expect(await screen.findByText('FleetGraph completed the action.')).toBeInTheDocument()
-    expect(screen.getByText('Project plan approved in Ship.')).toBeInTheDocument()
+    const title = await screen.findByText('FleetGraph completed the action.')
+    const detail = screen.getByText('Project plan approved in Ship.')
+
+    expect(title).toBeInTheDocument()
+    expect(detail).toBeInTheDocument()
+    expect(title.className).toContain('text-emerald-950')
+    expect(detail.className).toContain('text-emerald-900/85')
   })
 })

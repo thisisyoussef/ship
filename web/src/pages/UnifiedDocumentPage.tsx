@@ -144,6 +144,14 @@ function getDocumentOwner(value: unknown): DocumentOwner | null {
   return { id, name, email };
 }
 
+function getApprovalState(value: unknown): string | null {
+  if (!isRecord(value)) {
+    return null
+  }
+
+  return getStringValue(value.state) ?? null
+}
+
 /**
  * UnifiedDocumentPage - Renders any document type via /documents/:id route
  *
@@ -691,6 +699,7 @@ export function UnifiedDocumentPage() {
                 document={{
                   documentType: document.document_type,
                   id: document.id,
+                  planApprovalState: getApprovalState(document.plan_approval),
                   title: document.title,
                   workspaceId: document.workspace_id,
                 }}

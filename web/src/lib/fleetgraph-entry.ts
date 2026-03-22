@@ -3,6 +3,7 @@ import type { DocumentContext } from '@/hooks/useDocumentContextQuery'
 export interface FleetGraphEntryDocument {
   documentType: string
   id: string
+  planApprovalState?: string | null
   title: string
   workspaceId?: string
 }
@@ -88,11 +89,19 @@ function findRelatedContextTarget(
   return context.belongs_to.find((item) => item.type === type)
 }
 
+function hasApprovedPlan(document: FleetGraphEntryDocument) {
+  return document.planApprovalState === 'approved'
+}
+
 function buildRequestedAction(
   document: FleetGraphEntryDocument,
   context: DocumentContext
 ) {
   if (document.documentType === 'project') {
+    if (hasApprovedPlan(document)) {
+      return undefined
+    }
+
     return {
       endpoint: {
         method: 'POST' as const,
@@ -112,6 +121,10 @@ function buildRequestedAction(
   }
 
   if (document.documentType === 'sprint') {
+    if (hasApprovedPlan(document)) {
+      return undefined
+    }
+
     return {
       endpoint: {
         method: 'POST' as const,
@@ -131,6 +144,10 @@ function buildRequestedAction(
   }
 
   if (document.documentType === 'weekly_plan') {
+    if (hasApprovedPlan(document)) {
+      return undefined
+    }
+
     const relatedSprint = findRelatedContextTarget(context, 'sprint')
 
     if (relatedSprint) {
@@ -181,10 +198,14 @@ export function buildFleetGraphEntryPayload(
     throw new Error('FleetGraph needs a workspace id from the current document.')
   }
 
+  const requestedAction = previewApproval
+    ? buildRequestedAction(input.document, input.context)
+    : undefined
+
   return {
     context: input.context,
-    draft: previewApproval
-      ? { requestedAction: buildRequestedAction(input.document, input.context) }
+    draft: requestedAction
+      ? { requestedAction }
       : undefined,
     route: {
       activeTab: input.activeTab,

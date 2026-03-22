@@ -19,7 +19,9 @@ import { FleetGraphDebugSurfaceProvider } from '@/components/FleetGraphDebugSurf
 import { FleetGraphEntryCard } from '@/components/FleetGraphEntryCard';
 import { FleetGraphFab } from '@/components/FleetGraphFab';
 import { FleetGraphFindingsPanel } from '@/components/FleetGraphFindingsPanel';
+import { FleetGraphPanelShell } from '@/components/FleetGraphPanelShell';
 import { useDocumentContextQuery } from '@/hooks/useDocumentContextQuery';
+import { useFleetGraphFindings } from '@/hooks/useFleetGraphFindings';
 import type { BelongsTo } from '@ship/shared';
 import {
   getTabsForDocument,
@@ -28,6 +30,7 @@ import {
   type DocumentResponse,
   type TabCounts,
 } from '@/lib/document-tabs';
+import { buildFleetGraphFindingDocumentIds } from '@/lib/fleetgraph-findings';
 
 type CurrentDocumentType =
   | 'wiki'
@@ -616,25 +619,14 @@ export function UnifiedDocumentPage() {
     return baseDocument;
   }, [document]);
 
-  const [fleetGraphExpanded, setFleetGraphExpanded] = useState(() => {
-    try {
-      return localStorage.getItem('fleetgraph-panel-expanded') !== 'false';
-    } catch {
-      return true;
+  const fleetGraphDocumentIds = useMemo(() => {
+    if (!document?.id) {
+      return [];
     }
-  });
 
-  const toggleFleetGraph = useCallback(() => {
-    setFleetGraphExpanded((prev) => {
-      const next = !prev;
-      try {
-        localStorage.setItem('fleetgraph-panel-expanded', String(next));
-      } catch {
-        // localStorage unavailable
-      }
-      return next;
-    });
-  }, []);
+    return buildFleetGraphFindingDocumentIds(document.id, documentContextQuery.data);
+  }, [document?.id, documentContextQuery.data]);
+  const fleetGraphFindings = useFleetGraphFindings(fleetGraphDocumentIds);
 
   // Loading state
   if (isLoading) {
@@ -668,49 +660,32 @@ export function UnifiedDocumentPage() {
 
   const fleetGraphCard = (
     <FleetGraphDebugSurfaceProvider>
-      <div className="border-b border-border">
-        <button
-          className="flex w-full items-center justify-between px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted hover:bg-muted/30 transition-colors"
-          onClick={toggleFleetGraph}
-          type="button"
-        >
-          <span>FleetGraph</span>
-          <svg
-            className={`h-4 w-4 transition-transform ${fleetGraphExpanded ? 'rotate-180' : ''}`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path d="M19 9l-7 7-7-7" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} />
-          </svg>
-        </button>
-        {fleetGraphExpanded && (
-          <div className="px-4 pb-3">
-            <div className="space-y-3">
-              <FleetGraphFindingsPanel
-                context={documentContextQuery.data}
-                currentDocumentId={document.id}
-                loading={documentContextQuery.isLoading}
-              />
-              <FleetGraphEntryCard
-                activeTab={activeTab || undefined}
-                context={documentContextQuery.data}
-                contextError={documentContextQuery.error instanceof Error ? documentContextQuery.error.message : undefined}
-                document={{
-                  documentType: document.document_type,
-                  id: document.id,
-                  planApprovalState: getApprovalState(document.plan_approval),
-                  title: document.title,
-                  workspaceId: document.workspace_id,
-                }}
-                loading={documentContextQuery.isLoading}
-                nestedPath={nestedPath}
-                userId={user.id}
-              />
-            </div>
-          </div>
-        )}
-      </div>
+      <FleetGraphPanelShell
+        activeFindingCount={fleetGraphFindings.findings.length}
+        isLoading={fleetGraphFindings.isLoading || documentContextQuery.isLoading}
+        resetKey={document.id}
+      >
+        <FleetGraphFindingsPanel
+          context={documentContextQuery.data}
+          currentDocumentId={document.id}
+          loading={documentContextQuery.isLoading}
+        />
+        <FleetGraphEntryCard
+          activeTab={activeTab || undefined}
+          context={documentContextQuery.data}
+          contextError={documentContextQuery.error instanceof Error ? documentContextQuery.error.message : undefined}
+          document={{
+            documentType: document.document_type,
+            id: document.id,
+            planApprovalState: getApprovalState(document.plan_approval),
+            title: document.title,
+            workspaceId: document.workspace_id,
+          }}
+          loading={documentContextQuery.isLoading}
+          nestedPath={nestedPath}
+          userId={user.id}
+        />
+      </FleetGraphPanelShell>
       <FleetGraphDebugDock />
     </FleetGraphDebugSurfaceProvider>
   );

@@ -14,15 +14,14 @@ FleetGraph is a project-intelligence agent for Ship. Its job is to notice meanin
 ### What it monitors proactively
 
 - Week-start drift when a week is still `planning` or has zero issues after it should be active
-- Missing standups for active weeks during the business day
-- Approval gaps when review or plan state is stuck in `changes_requested` or unapproved for too long
-- Deadline-risk signals when target dates are near and high-priority work is still open or stale
-- Load imbalance when one assignee carries materially more active work than comparable teammates
+- Missing sprint owner when an active or planning week has no owner after its start date
+- Unassigned sprint issues when an active or planning week has a meaningful cluster of issues with no assignee
 
 ### What it reasons about on demand
 
 - The current issue, sprint, project, program, or weekly-doc surface inside Ship
 - Related work, ownership, history, comments, and next actions based on the current page context
+- Approval-preview actions for the current project, sprint, or document when the user wants to review a consequential next step before applying it
 - What changed recently, what is blocked, and what the user should do next without forcing them to manually traverse tabs
 
 ### What it can do autonomously
@@ -43,9 +42,8 @@ FleetGraph is a project-intelligence agent for Ship. Its job is to notice meanin
 
 ### Who it notifies and when
 
-- Engineers for missing standups or issue-level contextual help
-- PMs for week-start drift, approval gaps, and workload imbalance
-- Directors for deadline risk and cross-project escalation signals
+- PMs or week owners for week-start drift, missing sprint owner, and unassigned sprint issues
+- Engineers or PMs for issue-level and page-level contextual help, including approval-preview requests from the current page
 - The person who can actually act on the surfaced problem, rather than broadcasting generic alerts
 
 ### How it derives project membership and role context
@@ -100,6 +98,9 @@ flowchart TD
   - `run_scenario`
 - Current scenario families:
   - `week_start_drift`
+  - `sprint_no_owner`
+  - `unassigned_sprint_issues`
+  - `on_demand_analysis`
   - `entry_context_check`
   - `entry_requested_action`
   - `finding_action_review`
@@ -143,58 +144,53 @@ Minimum: 5.
 
 | # | Role | Trigger | Agent Detects / Produces | Human Decides |
 |---|------|---------|---------------------------|---------------|
-| 1 | Engineer | Business day, active week, no standup posted by noon | Missing standup with issue count and direct link to the correct standup or week surface | Post now, snooze, or ignore |
-| 2 | PM | Week start day passes and the week is still `planning` or has zero issues | Week-start drift summary with owner and missing setup details | Start the week, add scope, or intentionally leave it idle |
-| 3 | PM | Plan or review is `changes_requested`, or remains unapproved for 1 business day after submission | Approval-gap summary with the exact approver and missing follow-up | Approve, request changes, or rework the document |
-| 4 | Director | Project target date is within 7 days and high-priority work is still open or stale | Deadline-risk brief naming the at-risk project, stale issues, and likely impact | Escalate, rescope, or accept the risk |
-| 5 | PM | One project or active week shows clear workload skew | Load-imbalance brief with overloaded assignee, lighter peers, and candidate moves | Reassign, rebalance later, or keep the current distribution |
-| 6 | Engineer or PM | User opens an issue, sprint, or project page and asks a question | Context-aware answer that pulls current document state, related work, history, comments, and next actions into one response | Choose the next step with less digging |
+| 1 | PM | Week start day passes and the week is still `planning` or has zero issues | Week-start drift summary with owner and missing setup details | Start the week, add scope, or intentionally leave it idle |
+| 2 | PM | A planning or active week has reached its start window with no owner assigned | Sprint-owner gap summary naming the week and missing accountability | Assign an owner now, defer intentionally, or leave the week unchanged |
+| 3 | PM | An active or planning week has a meaningful cluster of unassigned issues | Unassigned-issues brief with count, sprint context, and why assignment is needed | Assign work now, rebalance later, or leave the issues unassigned intentionally |
+| 4 | Engineer or PM | User asks FleetGraph to preview a consequential action from the current project, sprint, or document page | Approval-preview summary with the target action, endpoint, rationale, and evidence from the current page context | Apply now, dismiss, or leave it pending |
+| 5 | Engineer or PM | User opens an issue, sprint, or project page and asks for help | Context-aware page analysis that pulls current document state, related work, history, comments, and next actions into one response | Choose the next step with less digging |
 
 ## Trigger Model
 
 FleetGraph should use a hybrid trigger model:
 
-1. Event-driven enqueue from high-signal Ship write routes
-2. A scheduled sweep every 4 minutes for time-based and drift-based conditions
+1. A scheduled sweep every 4 minutes for drift-based and accountability-style conditions
+2. Event-driven enqueue for high-signal write paths where the existing worker queue and dedupe ledger can carry the run safely
 
 ### Latency tradeoffs
 
-- Pure polling is simpler, but it struggles to stay under the required 5-minute detection target once runtime and queueing are included
-- Hybrid gives near-immediate enqueue for hot writes and bounded detection latency for drift conditions
-- Event path target:
-  - enqueue immediately on write
-  - debounce/coalesce for 60 to 90 seconds
-  - reason and deliver within about 30 to 60 seconds
-  - typical total latency around 2 minutes
+- The scheduled sweep provides predictable coverage for the current proactive cases and still fits the required latency target
+- Event-driven enqueue remains useful for hotter signals, but the graph should not depend on browser-only events or any non-durable trigger source
 - Sweep path target:
   - worst-case wait under 4 minutes
-  - plus 30 to 60 seconds for graph execution and delivery
+  - plus about 30 to 60 seconds for graph execution and delivery
   - worst-case total latency about 4.5 to 5 minutes
+- Event path target:
+  - enqueue immediately on a high-signal write
+  - debounce or coalesce short bursts
+  - reason and deliver within about 30 to 60 seconds
+  - typical total latency around 2 minutes
 
 ### Reliability tradeoffs
 
-- Pure webhook/event-driven is not defensible because Ship does not expose a durable backend event bus today
+- Pure webhook/event-driven is still not defensible because Ship does not expose a durable backend event bus today
 - The existing `/events` socket is delivery plumbing for connected browsers, not a replayable worker trigger source
-- Hybrid is more complex than pure polling, but it tolerates both:
-  - hot change detection from route-level enqueue hooks
-  - time-based drift detection from scheduled sweeps
+- The scheduled sweep is the dependable baseline because it does not rely on route coverage or connected clients
+- Event-driven enqueue should ride the same worker queue, dedupe ledger, and checkpoint path instead of inventing a second trigger substrate
 
 ### Cost tradeoffs
 
 - Hybrid keeps clean sweeps mostly deterministic and only invokes the LLM for candidate-producing runs
-- Public-API sweep cost scales with workspace count, so the worker must narrow or debounce work instead of invoking the model on every interval
+- Public-API sweep cost still scales with workspace count, so the worker must narrow work instead of invoking the model on every interval
 - At higher scale, Ship API rate limits become the first real cliff, not raw LLM spend
 
 ### Why this model is defensible for Ship
 
-- It reuses real Ship write touchpoints in:
-  - `api/src/routes/issues.ts`
-  - `api/src/routes/weeks.ts`
-  - `api/src/routes/projects.ts`
-  - `api/src/routes/documents.ts`
+- It keeps the current worker-based proof lane intact while leaving room for hotter write-triggered runs
 - It stays honest to the current architecture by not pretending `/events` is a durable queue
-- It meets the under-5-minute detection target better than pure polling
-- It supports both proactive drift detection and same-origin contextual entry on one shared graph
+- It still meets the under-5-minute detection target with a 4 minute sweep plus bounded execution
+- It still supports both proactive drift detection and same-origin contextual entry on one shared graph
+- It preserves one queue-backed path for both scheduled and event-triggered execution
 
 ## Test Cases
 
@@ -202,11 +198,11 @@ For each use case, record the triggering Ship state, the expected output, and th
 
 | # | Ship State | Expected Output | Trace Link |
 |---|------------|-----------------|------------|
-| 1 | Active week, no standup posted by noon | Missing-standup insight with direct action choices | Deferred beyond Tuesday MVP; no live trace captured yet |
-| 2 | Week is still `planning` or empty after it should be active | Week-start drift insight with week owner and missing setup details | Proactive worker path: [shared trace](https://smith.langchain.com/public/d5f1a274-6f81-4c42-b8be-924791429323/r). Approval-preview/HITL path: [shared trace](https://smith.langchain.com/public/e969f90a-ef5a-45e5-bded-9d6de7233311/r). |
-| 3 | Review or plan is `changes_requested` or unapproved beyond the threshold | Approval-gap summary with approver and next step | Deferred beyond Tuesday MVP; no live trace captured yet |
-| 4 | Target date within 7 days and high-priority work is still open or stale | Deadline-risk brief with named stale work and likely impact | Deferred beyond Tuesday MVP; no live trace captured yet |
-| 5 | Work distribution is materially skewed | Load-imbalance brief with overloaded assignee and candidate rebalance options | Deferred beyond Tuesday MVP; no live trace captured yet |
+| 1 | Week is still `planning` or empty after it should be active | Week-start drift insight with week owner and missing setup details | Proactive worker path: [shared trace](https://smith.langchain.com/public/d5f1a274-6f81-4c42-b8be-924791429323/r). Approval-preview/HITL path: [shared trace](https://smith.langchain.com/public/e969f90a-ef5a-45e5-bded-9d6de7233311/r). |
+| 2 | A planning or active week has crossed its start window with no owner | Sprint-owner gap insight naming the week and the missing accountable owner | No live trace captured yet |
+| 3 | An active or planning week has 3 or more issues with no assignee | Unassigned-issues brief with sprint context and assignment prompt | No live trace captured yet |
+| 4 | User requests approval preview from a project, sprint, or document page | Approval-preview response with action details, endpoint, rationale, and evidence for the current page | Approval-preview/HITL path: [shared trace](https://smith.langchain.com/public/e969f90a-ef5a-45e5-bded-9d6de7233311/r). |
+| 5 | User opens an issue, sprint, or project page and asks for help | Context-aware page analysis with related work, history, and next steps | No shared public trace captured yet |
 
 ## Tuesday MVP Evidence
 

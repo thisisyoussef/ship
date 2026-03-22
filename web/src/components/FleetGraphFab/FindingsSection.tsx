@@ -296,6 +296,14 @@ export function FindingsSection({
     (finding) => !hiddenFindingKeys.includes(finding.findingKey)
   )
 
+  // Debug: log finding counts to console so we can verify the frontend receives all findings
+  useEffect(() => {
+    if (findings.findings.length > 0) {
+      console.log(`[FleetGraph] Received ${findings.findings.length} findings, ${visibleFindings.length} visible:`,
+        findings.findings.map(f => `${f.findingType}:${f.id.substring(0,8)}`))
+    }
+  }, [findings.findings.length, visibleFindings.length])
+
   useEffect(() => () => {
     if (snoozeRefreshTimeoutRef.current !== null) {
       clearTimeout(snoozeRefreshTimeoutRef.current)

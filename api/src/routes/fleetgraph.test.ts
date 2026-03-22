@@ -717,6 +717,43 @@ describe('FleetGraph routes', () => {
     })
   })
 
+  it('passes follow-up user messages into the on-demand graph turn', async () => {
+    runtime.getState.mockResolvedValueOnce({
+      values: {
+        documentId: DOCUMENT_ID,
+        documentTitle: 'Launch planner',
+        documentType: 'project',
+      },
+    })
+
+    const response = await request(app)
+      .post('/api/fleetgraph/thread/fleetgraph%3Athread-1/turn')
+      .set('cookie', 'ship_session=demo')
+      .set('host', 'ship-demo-production.up.railway.app')
+      .set('x-csrf-token', 'csrf-token')
+      .set('x-forwarded-proto', 'https')
+      .send({
+        message: 'What else should I look at?',
+      })
+
+    expect(response.status).toBe(200)
+    expect(runtime.invoke).toHaveBeenCalledWith(expect.objectContaining({
+      contextKind: 'entry',
+      documentId: DOCUMENT_ID,
+      documentTitle: 'Launch planner',
+      documentType: 'project',
+      mode: 'on_demand',
+      threadId: 'fleetgraph:thread-1',
+      userMessage: 'What else should I look at?',
+    }), {
+      fleetgraphReadRequestContext: {
+        baseUrl: 'https://ship-demo-production.up.railway.app',
+        cookieHeader: 'ship_session=demo',
+        csrfToken: 'csrf-token',
+      },
+    })
+  })
+
   it('returns checkpoint history and pending interrupts for requested threads', async () => {
     const debugRuntime = {
       checkpointer: new MemorySaver(),

@@ -507,9 +507,10 @@ export function createFleetGraphRouter(
         documentTitle: (values.documentTitle as string) ?? 'Untitled',
         documentType: (values.documentType as string) ?? 'document',
         mode: 'on_demand' as const,
-        routeSurface: 'document-page',
+        routeSurface: typeof values.routeSurface === 'string' ? values.routeSurface : 'document-page',
         threadId,
         trigger: 'document-context' as const,
+        userMessage: message,
         workspaceId: auth.workspaceId,
       }, {
         fleetgraphReadRequestContext: buildShipRestRequestContext(req),

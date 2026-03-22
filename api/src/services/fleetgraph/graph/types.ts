@@ -113,6 +113,7 @@ export const FleetGraphRuntimeInputSchema = z.object({
   routeSurface: nonEmptyString.optional(),
   threadId: nonEmptyString,
   trigger: z.enum(FLEETGRAPH_TRIGGERS),
+  userMessage: z.string().trim().min(1).optional(),
   workspaceId: nonEmptyString,
 })
 

@@ -212,21 +212,24 @@ describe('createFleetGraphRuntime', () => {
 
   it('uses request-bound Ship reads for on-demand analysis when the route provides them', async () => {
     const shipClient = createShipClientMock()
+    const generate = vi.fn(async ({ input }: { input: string }) => ({
+      model: 'gpt-5-mini',
+      provider: 'openai' as const,
+      text: JSON.stringify({
+        analysisText: input.includes('## User Question')
+          ? 'There is also an unassigned issue to review.'
+          : 'Everything looks healthy.',
+        deeperContextHint: null,
+        findings: [],
+        needsDeeperContext: false,
+      }),
+    }))
     const runtime = createFleetGraphRuntime({
       actionStore: createActionStoreMock(),
       checkpointer: new MemorySaver(),
       findingStore: createFindingStoreMock(),
       llmAdapter: {
-        generate: vi.fn(async () => ({
-          model: 'gpt-5-mini',
-          provider: 'openai' as const,
-          text: JSON.stringify({
-            analysisText: 'Everything looks healthy.',
-            deeperContextHint: null,
-            findings: [],
-            needsDeeperContext: false,
-          }),
-        })),
+        generate,
         model: 'gpt-5-mini',
         provider: 'openai',
       },
@@ -274,5 +277,77 @@ describe('createFleetGraphRuntime', () => {
         csrfToken: 'csrf-token',
       })
     )
+  })
+
+  it('keeps follow-up turns on the same thread and includes the user message in reasoning state', async () => {
+    const generate = vi.fn(async ({ input }: { input: string }) => ({
+      model: 'gpt-5-mini',
+      provider: 'openai' as const,
+      text: JSON.stringify({
+        analysisText: input.includes('## User Question')
+          ? 'There is one more issue worth reviewing.'
+          : 'Everything looks healthy.',
+        deeperContextHint: null,
+        findings: [],
+        needsDeeperContext: false,
+      }),
+    }))
+
+    const runtime = createFleetGraphRuntime({
+      actionStore: createActionStoreMock(),
+      checkpointer: new MemorySaver(),
+      findingStore: createFindingStoreMock(),
+      llmAdapter: {
+        generate,
+        model: 'gpt-5-mini',
+        provider: 'openai',
+      },
+      shipClient: createShipClientMock(),
+      tracingSettings: {
+        enabled: false,
+        flushTimeoutMs: 1000,
+        projectName: 'ship-fleetgraph',
+        sharePublicTraces: false,
+      },
+    })
+
+    await runtime.invoke({
+      contextKind: 'entry',
+      documentId: 'doc-123',
+      documentTitle: 'Launch planner',
+      documentType: 'project',
+      mode: 'on_demand',
+      threadId: 'thread-doc',
+      trigger: 'document-context',
+      workspaceId: 'workspace-123',
+    })
+
+    const followUp = await runtime.invoke({
+      contextKind: 'entry',
+      documentId: 'doc-123',
+      documentTitle: 'Launch planner',
+      documentType: 'project',
+      mode: 'on_demand',
+      threadId: 'thread-doc',
+      trigger: 'document-context',
+      userMessage: 'What else should I look at?',
+      workspaceId: 'workspace-123',
+    })
+
+    expect(followUp.analysisText).toBe('There is one more issue worth reviewing.')
+    expect(followUp.turnCount).toBe(2)
+    expect(followUp.conversationHistory).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        content: 'What else should I look at?',
+        role: 'user',
+      }),
+      expect.objectContaining({
+        content: 'There is one more issue worth reviewing.',
+        role: 'assistant',
+      }),
+    ]))
+    expect(generate).toHaveBeenLastCalledWith(expect.objectContaining({
+      input: expect.stringContaining('## User Question\nWhat else should I look at?'),
+    }))
   })
 })

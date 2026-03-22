@@ -31,6 +31,7 @@ interface ReasonOutput {
   needsDeeperContext: boolean;
   pendingAction?: FleetGraphAnalysisFinding['proposedAction'];
   turnCount: number;
+  userMessage?: string;
 }
 
 interface ReasonDeps {
@@ -78,6 +79,11 @@ Action tiers:
 
 If the data is insufficient to draw conclusions, set needsDeeperContext to true with a specific hint.
 If everything looks healthy, return an empty findings array with a positive analysisText.
+When the user asks a follow-up like "what else," do not simply restate the same point unless nothing new can be said.
+Prefer one of these responses:
+- surface a distinct additional concern from the available context
+- ask for or request deeper context through the structured deeperContextHint
+- say clearly that there is nothing materially new in the current context
 Never fabricate data. Only reference what is present in the fetched data.`;
 
 function buildUserInput(state: ReasonState): string {
@@ -228,6 +234,7 @@ export function createReasonNode(deps: ReasonDeps) {
       needsDeeperContext: allowDeeperContext,
       pendingAction: actionFinding?.proposedAction,
       turnCount: state.turnCount + 1,
+      userMessage: undefined,
     };
   };
 }

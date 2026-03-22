@@ -32,6 +32,82 @@ import type {
 import type { FleetGraphStateV2, FleetGraphStateV2Update } from '../state-v2.js'
 
 // ──────────────────────────────────────────────────────────────────────────────
+// On-demand ownership fetch (lightweight)
+// ──────────────────────────────────────────────────────────────────────────────
+
+interface ActorOwnership {
+  ownedProjects: ShipProject[]
+  ownedWeeks: ShipWeek[]
+}
+
+async function fetchActorOwnership(
+  config: ParallelFetchConfig,
+  actorPersonId: string
+): Promise<ActorOwnership> {
+  try {
+    const baseUrl = config.requestContext?.baseUrl ?? config.baseUrl
+    if (!baseUrl) return { ownedProjects: [], ownedWeeks: [] }
+
+    const headers: Record<string, string> = { accept: 'application/json' }
+    if (config.requestContext?.cookieHeader) {
+      headers.cookie = config.requestContext.cookieHeader
+    }
+    if (config.requestContext?.csrfToken) {
+      headers['x-csrf-token'] = config.requestContext.csrfToken
+    }
+    if (!config.requestContext && config.token) {
+      headers.Authorization = `Bearer ${config.token}`
+    }
+
+    const doFetch = config.fetchFn ?? fetch
+
+    const [projectsRes, weeksRes] = await Promise.all([
+      doFetch(`${baseUrl}/api/documents?document_type=project`, { headers, method: 'GET' })
+        .then(r => r.ok ? r.json() : [])
+        .catch(() => []),
+      doFetch(`${baseUrl}/api/weeks`, { headers, method: 'GET' })
+        .then(r => r.ok ? r.json() : { weeks: [] })
+        .catch(() => ({ weeks: [] })),
+    ])
+
+    const projectDocs = Array.isArray(projectsRes)
+      ? projectsRes
+      : Array.isArray((projectsRes as { documents?: unknown[] }).documents)
+        ? (projectsRes as { documents: unknown[] }).documents
+        : []
+
+    const weekDocs = Array.isArray(weeksRes)
+      ? weeksRes
+      : Array.isArray((weeksRes as { weeks?: unknown[] }).weeks)
+        ? (weeksRes as { weeks: unknown[] }).weeks
+        : []
+
+    const ownedProjects = (projectDocs as Array<{ id?: string; title?: string; properties?: { owner_id?: string; accountable_id?: string; status?: string } }>)
+      .filter(p => p.properties?.owner_id === actorPersonId || p.properties?.accountable_id === actorPersonId)
+      .map(p => ({
+        id: p.id ?? '',
+        title: p.title ?? '',
+        status: p.properties?.status ?? 'unknown',
+        ownerId: p.properties?.owner_id ?? undefined,
+        accountableId: p.properties?.accountable_id ?? undefined,
+      } satisfies ShipProject))
+
+    const ownedWeeks = (weekDocs as Array<{ id?: string; name?: string; status?: string; owner?: { id?: string } | null }>)
+      .filter(w => w.owner?.id === actorPersonId)
+      .map(w => ({
+        id: w.id ?? '',
+        title: w.name ?? '',
+        status: (w.status ?? 'planning') as ShipWeek['status'],
+        ownerId: w.owner?.id ?? undefined,
+      } satisfies ShipWeek))
+
+    return { ownedProjects, ownedWeeks }
+  } catch {
+    return { ownedProjects: [], ownedWeeks: [] }
+  }
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
 // Dependencies
 // ──────────────────────────────────────────────────────────────────────────────
 
@@ -173,15 +249,17 @@ export async function fetchActorAndRolesNode(
       }
     : null
 
-  // Derive role lens
-  // Note: We need projects/weeks for full role derivation, but we may not have them yet
-  // For on-demand, we'll use a simplified derivation and enhance later
+  // Derive role lens — fetch actor's owned projects/weeks for on-demand enrichment
+  const ownership = result.actorPerson
+    ? await fetchActorOwnership(deps.config, result.actorPerson.id)
+    : { ownedProjects: [], ownedWeeks: [] }
+
   const roleResult = deriveRoleLens(
     result.actorPerson,
     result.isAdmin,
     result.people,
-    [], // Projects not fetched yet in on-demand
-    []  // Weeks not fetched yet in on-demand
+    ownership.ownedProjects,
+    ownership.ownedWeeks
   )
 
   return {

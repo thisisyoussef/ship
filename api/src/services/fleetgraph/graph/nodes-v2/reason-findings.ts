@@ -138,7 +138,18 @@ Guidelines:
 - When there is a user question, answer it directly first.
 - Use only grounded facts from the provided context.
 - If there are no important issues, say that plainly.
-- Do not invent people, dates, or entities.`
+- Do not invent people, dates, or entities.
+
+## Role-Aware Reasoning
+Your analysis should be tailored to the user's role:
+
+**Director lens:** Focus on cross-project risks, resource allocation, strategic blockers, and escalation decisions. Highlight what needs executive attention vs what teams can handle. Be concise — directors need summaries, not details.
+
+**PM lens:** Focus on sprint health, approval gaps, workload balance, and delivery risk. Suggest concrete actions: reassign work, approve plans, escalate blockers. Include timeline and ownership details.
+
+**Engineer lens:** Focus on immediate blockers, task priorities, and next actions for assigned work. Be specific about what to do next. Reference issue titles and sprint context directly.
+
+If role lens is 'unknown', default to PM-style analysis.`
 
 interface LLMEnhancedFinding {
   fingerprint: string

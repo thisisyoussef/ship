@@ -42,6 +42,11 @@ This phase will hold FleetGraph product and integration stories as the active pa
 | --- | --- | --- | --- | --- |
 | US-606 | FleetGraph chat follow-up reasoning | `done` | P1 | `US-605` |
 | US-607 | FleetGraph panel visibility polish | `done` | P1 | `US-606` |
+| US-608 | FleetGraph context-aware page analysis completion | `todo` | P0 | `US-605` |
+| US-609 | FleetGraph shared proactive multi-finding plumbing | `todo` | P0 | `US-608` |
+| US-610 | FleetGraph sprint-owner gap | `todo` | P0 | `US-609` |
+| US-611 | FleetGraph unassigned sprint issues | `todo` | P0 | `US-610` |
+| US-612 | FleetGraph assignment evidence refresh | `todo` | P0 | `US-611` |
 
 ### Phase X: Harness and Workflow Evolution
 
@@ -67,9 +72,14 @@ This phase will hold FleetGraph product and integration stories as the active pa
 9. `US-603` closes the FleetGraph approval follow-up by making preview state-aware, refreshing the current page after apply, and darkening the result copy.
 10. `US-604` pivots the visible FleetGraph proof lane to review-tab plan validation so the current-page guided step has explicit, user-visible evidence.
 11. `US-605` adds a dedicated validation-ready demo week so the review-tab proof lane can be retested after prior validations consume the original seeded state.
-12. `US-606` makes FleetGraph chat follow-ups conversational enough to use real user prompts, while documenting the next LLM-layer increment for deeper repivoting.
-13. `US-607` tightens the inline FleetGraph shell so it starts collapsed, stays within the viewport, and signals proactive alerts more clearly.
-14. Active product packs continue to port into `docs/user-stories/` in dependency order.
+12. `US-606` makes FleetGraph chat follow-ups conversational enough to use real user prompts, but it does not replace the original `T602` assignment story.
+13. `US-607` tightens the inline FleetGraph shell so it starts collapsed, stays within the viewport, and signals proactive alerts more clearly, but it is still a sidecar polish story.
+14. `US-608` restores the original assignment-critical `T602` lane by completing the context-aware page-analysis use case as a checked-in story.
+15. `US-609` restores the original assignment-critical `T603` lane by widening FleetGraph’s proactive plumbing beyond `week_start_drift`.
+16. `US-610` restores the original assignment-critical `T604` lane by shipping the sprint-owner gap use case.
+17. `US-611` restores the original assignment-critical `T605` lane by shipping the unassigned sprint issues use case.
+18. `US-612` restores the original assignment-critical `T606` lane by refreshing the workbook, traces, and audit path from shipped behavior.
+19. Active product packs continue to port into `docs/user-stories/` in dependency order.
 
 ## Files
 

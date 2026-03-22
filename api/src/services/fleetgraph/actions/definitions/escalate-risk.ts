@@ -8,6 +8,8 @@
  * to document their risk response decision as a comment on the project.
  */
 
+import crypto from 'crypto'
+
 import {
   registerAction,
   type FleetGraphActionDefinition,
@@ -109,6 +111,7 @@ const definition: FleetGraphActionDefinition = {
           method: 'POST' as const,
           path: `/api/documents/${draft.targetId}/comments`,
           body: {
+            comment_id: crypto.randomUUID(),
             content,
           },
         },

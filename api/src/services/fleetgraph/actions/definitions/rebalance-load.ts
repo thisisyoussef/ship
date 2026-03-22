@@ -28,7 +28,7 @@ const definition: FleetGraphActionDefinition = {
   reviewSummary: 'Select issues to reassign from this overloaded team member to another person.',
   confirmLabel: 'Reassign',
 
-  endpointPattern: /^\/api\/documents\/[^/]+$/,
+  endpointPattern: /^\/api\/issues\/[^/]+$/,
 
   buildDialogSpec(
     draft: FleetGraphActionDraft,

@@ -49,6 +49,11 @@ Load context in this order before making non-trivial changes:
 - Record the environment, command, and proof path when something is deployed.
 - If deployment or finalization fails, use `docs/guides/finalization-recovery.md`.
 
+## Finalization Default
+
+- Once the requested work is complete, default to the full GitHub flow automatically: commit the branch, push it, open a PR, merge it to `master`, sync local `master`, and delete the branch unless the user explicitly asks to pause finalization or use a different merge path.
+- If GitHub tooling or auth is unavailable, report the exact blocker instead of stopping at a vague “ready to merge” handoff.
+
 ## Maintenance Rule
 
 - When the same correction or review note repeats, update `AGENTS.md` or the nearest story/harness doc so the fix persists.

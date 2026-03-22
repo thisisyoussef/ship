@@ -4,7 +4,6 @@ Source PRD: `docs/assignments/fleetgraph/FleetGraph_PRD.pdf`
 
 Supporting repo docs:
 - `docs/assignments/fleetgraph/APPROACH_REFERENCE.md`
-- `.ai/docs/references/fleetgraph-prd.md`
 - `docs/assignments/fleetgraph/PRESEARCH.md`
 - `docs/assignments/fleetgraph/FLEETGRAPH.md`
 - `docs/guides/fleetgraph-deployment-readiness.md`
@@ -15,6 +14,7 @@ Supporting repo docs:
 - `docs/specs/fleetgraph/FLEETGRAPH-FEEDBACK-PHASE/`
 - `docs/specs/fleetgraph/FLEETGRAPH-POLISH-PHASE/`
 - `docs/specs/fleetgraph/FLEETGRAPH-FEEDBACK-ROUND2-PHASE/`
+- `docs/specs/fleetgraph/FLEETGRAPH-ASSIGNMENT-COMPLETION-PHASE/`
 - `docs/specs/fleetgraph/FLEETGRAPH-STUDIO-INTEGRATION-PHASE/`
 
 ## What this assignment is asking for
@@ -106,13 +106,14 @@ All items are required to pass:
 9. Use `docs/specs/fleetgraph/FLEETGRAPH-POLISH-PHASE/` for the remaining human-language, debug-surface, and light visual polish sequence.
 10. Use `docs/specs/fleetgraph/FLEETGRAPH-FEEDBACK-ROUND2-PHASE/` for the remaining scroll, safe-confirmation, and readability follow-on fixes from the next live inspection.
 11. Run `docs/specs/fleetgraph/FLEETGRAPH-FEEDBACK-ROUND2-PHASE/user-audit-checklist.md` for the next full FleetGraph UI inspection path once that pack is complete.
-12. Only then start any new extension planning beyond the current FleetGraph proof lane.
-13. Use `docs/specs/fleetgraph/FLEETGRAPH-STUDIO-INTEGRATION-PHASE/` when you need native LangGraph Studio inspection for the real FleetGraph graph.
+12. Use `docs/specs/fleetgraph/FLEETGRAPH-ASSIGNMENT-COMPLETION-PHASE/` to finish the remaining workbook use cases in strategic order: approval preview, page analysis, shared proactive multi-finding plumbing, sprint-owner gaps, unassigned sprint issues, then evidence refresh.
+13. Only then start any new extension planning beyond the completed FleetGraph assignment use-case pack.
+14. Use `docs/specs/fleetgraph/FLEETGRAPH-STUDIO-INTEGRATION-PHASE/` when you need native LangGraph Studio inspection for the real FleetGraph graph.
 
 ## Post-MVP Backlog
 
 | ID | Title | Priority | Doc |
 |----|-------|----------|-----|
-| T305 | Cross-system finding priority | Post-MVP | `.ai/memory/codex/fleetgraph-t305-cross-system-finding-priority.md` |
+| T305 | Cross-system finding priority | Post-MVP | `docs/specs/fleetgraph/FLEETGRAPH-ASSIGNMENT-COMPLETION-PHASE/technical-plan.md` |
 
 **T305 Summary:** Proactive FAB and on-demand modal show different suggestions without prioritization. Fix by adding cross-system awareness so findings are unified and ranked by severity.

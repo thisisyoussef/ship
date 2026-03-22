@@ -13,6 +13,9 @@ Use this file as durable working memory for recurring corrections, decisions, an
 - Automatic finalization is the default.
   Source: `US-901`, follow-on user direction
   Meaning: once requested work is complete, finish the GitHub flow automatically unless the user explicitly asks to pause or use a different merge path.
+- Story branch lifecycle is mandatory.
+  Source: post-`US-905` user correction
+  Meaning: before editing a story file or implementation, switch to a fresh `codex/` branch for that story; when the story is complete, use the default finalization flow to merge it back to `master` unless the user explicitly pauses or an exact blocker is recorded.
 - Railway demo deploys should follow the real platform path.
   Source: post-`US-602` correction
   Meaning: when the demo already auto-deploys from `master`, do not add a manual Railway deploy attempt to the default closeout flow unless the story is about deployment itself or the user explicitly asks for a manual refresh.

@@ -11,10 +11,12 @@ Work should resume from the repo by reading these files, not by reconstructing p
 1. Start with `AGENTS.md`.
 2. Read `docs/CONTEXT.md`.
 3. Use this file to find the next valid story based on status and dependencies.
-4. Open the story file and use it as the execution contract.
-5. Run the preparation phase before writing code.
-6. Run the story's validation steps.
-7. Record outcome in the relevant checkpoint log.
+4. Create and switch to a fresh `codex/` branch for that story before editing the story file or implementation.
+5. Open the story file and use it as the execution contract.
+6. Run the preparation phase before writing code.
+7. Run the story's validation steps.
+8. Record outcome in the relevant checkpoint log.
+9. Finish the default GitHub flow by merging the story branch to `master` unless the user explicitly pauses or an exact blocker is recorded.
 
 ## Story Index
 
@@ -47,6 +49,7 @@ This phase will hold proof-lane, UX, deployment, and reliability follow-through 
 | US-903 | Workflow memory log | `done` | P1 | `US-901` |
 | US-904 | Autodeploy and test handoff rule | `done` | P1 | `US-901` |
 | US-905 | Post-merge deploy monitoring rule | `done` | P1 | `US-901` |
+| US-906 | Story branch lifecycle rule | `done` | P1 | `US-901` |
 
 ## Execution Order
 
@@ -56,11 +59,12 @@ This phase will hold proof-lane, UX, deployment, and reliability follow-through 
 4. `US-903` adds a durable workflow-memory log for recurring corrections, decisions, and reusable patterns.
 5. `US-904` aligns closeout behavior with Railway autodeploy and requires explicit `What to test` instructions in visible-story handoffs.
 6. `US-905` makes post-merge deployment observation part of deploy-relevant story completion on auto-deployed surfaces.
-7. `US-602` completes `T601A` by routing entry-card apply through the runtime review/execute path.
-8. `US-603` closes the FleetGraph approval follow-up by making preview state-aware, refreshing the current page after apply, and darkening the result copy.
-9. `US-604` pivots the visible FleetGraph proof lane to review-tab plan validation so the current-page guided step has explicit, user-visible evidence.
-10. `US-605` adds a dedicated validation-ready demo week so the review-tab proof lane can be retested after prior validations consume the original seeded state.
-11. Active product packs continue to port into `docs/user-stories/` in dependency order.
+7. `US-906` makes branch-before-start and merge-on-completion explicit for every checked-in story.
+8. `US-602` completes `T601A` by routing entry-card apply through the runtime review/execute path.
+9. `US-603` closes the FleetGraph approval follow-up by making preview state-aware, refreshing the current page after apply, and darkening the result copy.
+10. `US-604` pivots the visible FleetGraph proof lane to review-tab plan validation so the current-page guided step has explicit, user-visible evidence.
+11. `US-605` adds a dedicated validation-ready demo week so the review-tab proof lane can be retested after prior validations consume the original seeded state.
+12. Active product packs continue to port into `docs/user-stories/` in dependency order.
 
 ## Files
 

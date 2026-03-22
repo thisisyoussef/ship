@@ -76,7 +76,11 @@ describe('buildFleetGraphEntryPayload', () => {
       targetType: 'sprint',
       title: 'Approve week plan',
       type: 'approve_week_plan',
+      rationale: 'Approve this week plan when the team is ready to move forward.',
     })
+    expect(payload.draft?.requestedAction?.evidence).toContain(
+      'Approving it signals that the team can move forward with this week.'
+    )
   })
 
   it('falls back to a safe current-document comment action for weekly retro pages', () => {
@@ -100,6 +104,7 @@ describe('buildFleetGraphEntryPayload', () => {
       targetType: 'document',
       title: 'Post comment',
       type: 'post_comment',
+      rationale: 'Review the comment before posting it to the team.',
     })
   })
 })

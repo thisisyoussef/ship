@@ -143,7 +143,7 @@ git diff --check
 - Seeded verification entry or proof lane: `FleetGraph Demo Week - Review and Apply`
 - Route or URL: open the public demo or a local `UnifiedDocumentPage` surface with FleetGraph enabled; the seeded FleetGraph demo week is the fastest proof lane.
 - Interaction: click `Preview approval step`.
-- Expected result: FleetGraph shows a human-readable approval preview with the exact action title/summary plus supporting rationale/evidence, and supported weekly plans resolve to a week approval preview rather than a generic comment fallback.
+- Expected result: FleetGraph shows a human-readable approval preview with the exact action title/summary plus user-relevant rationale/evidence, such as helping the team move forward with the week, and supported weekly plans resolve to a week approval preview rather than a generic comment fallback.
 - Failure signal: weekly plans still preview a generic `Post comment` action, or the approval panel lacks enough detail to understand why FleetGraph is suggesting the action.
 
 ## User Checkpoint Test
@@ -157,6 +157,6 @@ git diff --check
 - Outcome: complete
 - Evidence:
   - `weekly_plan` now previews `approve_week_plan` from its related sprint context.
-  - approval-preview UI now shows rationale and evidence in the main FleetGraph card without surfacing raw endpoint details there.
+  - approval-preview UI now shows rationale and evidence in the main FleetGraph card using user-facing reasons instead of backend-facing implementation details.
   - focused web and API FleetGraph tests passed locally.
 - Residual risk: `weekly_retro` remains on the safer fallback path until `T601A` or a later action-contract story widens review-action support.

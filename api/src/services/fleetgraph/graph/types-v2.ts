@@ -93,6 +93,8 @@ export const FLEETGRAPH_V2_SUSPECT_TYPES = [
   'deadline_risk',
   'workload_imbalance',
   'blocker_aging',
+  'sprint_no_owner',
+  'unassigned_sprint_issues',
 ] as const
 
 export const FLEETGRAPH_V2_DIRTY_WRITE_TYPES = [

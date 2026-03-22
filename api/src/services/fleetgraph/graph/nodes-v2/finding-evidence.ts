@@ -215,6 +215,24 @@ function buildBlockerAgingEvidence(metadata: Record<string, unknown>) {
   return evidence
 }
 
+function buildSprintNoOwnerEvidence(metadata: Record<string, unknown>) {
+  const evidence: string[] = []
+  pushFact(evidence, 'Week', readNonEmptyString(metadata.weekTitle) ?? readNonEmptyString(metadata.entityTitle))
+  pushFact(evidence, 'Status', formatState(metadata.status))
+  pushFact(evidence, 'Scoped issues', formatInteger(metadata.issueCount))
+  evidence.push('No owner is assigned to this week.')
+  return evidence
+}
+
+function buildUnassignedSprintIssuesEvidence(metadata: Record<string, unknown>) {
+  const evidence: string[] = []
+  pushFact(evidence, 'Week', readNonEmptyString(metadata.weekTitle) ?? readNonEmptyString(metadata.entityTitle))
+  pushFact(evidence, 'Unassigned issues', formatInteger(metadata.unassignedCount))
+  pushFact(evidence, 'Total issues', formatInteger(metadata.totalCount))
+  pushFact(evidence, 'Status', formatState(metadata.status))
+  return evidence
+}
+
 function buildGenericEvidence(
   scored: ScoredFinding,
   metadata: Record<string, unknown>
@@ -257,6 +275,10 @@ export function buildFindingEvidence(
       return buildWorkloadImbalanceEvidence(metadata)
     case 'blocker_aging':
       return buildBlockerAgingEvidence(metadata)
+    case 'sprint_no_owner':
+      return buildSprintNoOwnerEvidence(metadata)
+    case 'unassigned_sprint_issues':
+      return buildUnassignedSprintIssuesEvidence(metadata)
     default:
       return buildGenericEvidence(scored, metadata)
   }

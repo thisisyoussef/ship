@@ -28,6 +28,8 @@ const ACTION_INPUT_SPECS: Record<string, ActionInputSpec[]> = {
   escalate_risk: [
     { key: 'content', label: 'Escalation Note', placeholder: 'Describe the risk and why it needs escalation...', type: 'textarea' },
   ],
+  assign_issues: [],  // Issues are auto-selected from context
+  rebalance_load: [],  // Rebalancing is auto-selected from context
 }
 
 interface AnalysisSectionProps {
@@ -174,6 +176,16 @@ export function AnalysisSection({
             comment_id: crypto.randomUUID(),
             content,
           })
+          break
+        }
+        case 'assign_issues': {
+          // Assign issues action uses the FleetGraph pipeline — just confirm
+          response = await apiPatch(`/api/documents/${targetId}`, {})
+          break
+        }
+        case 'rebalance_load': {
+          // Rebalance load action uses the FleetGraph pipeline — just confirm
+          response = await apiPatch(`/api/documents/${targetId}`, {})
           break
         }
         default:

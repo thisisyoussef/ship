@@ -9,6 +9,7 @@ import { loadProductionSecrets } from '../config/ssm.js';
 import { WELCOME_DOCUMENT_TITLE, WELCOME_DOCUMENT_CONTENT } from './welcomeDocument.js';
 import { getDatabaseSslConfig } from './connection.js';
 import { ensureFleetGraphDemoProofLane } from '../services/fleetgraph/demo/fixture.js';
+import { seedFleetGraphDemoData } from '../services/fleetgraph/demo/seed-demo-data.js';
 
 const { Pool } = pg;
 
@@ -937,6 +938,25 @@ export async function seed() {
       }
     } else {
       console.warn('⚠️  Skipping comprehensive demo data (proof lane not available)')
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // FleetGraph demo data with fixed UUIDs — covers all 9 finding types
+    // ──────────────────────────────────────────────────────────────────────────
+    if (demoFixture) {
+      try {
+        await seedFleetGraphDemoData(pool, {
+          currentSprintNumber,
+          ownerUserId: String(demoOwner.id),
+          programId: shipCoreProgram.id,
+          projectId: demoFixture.projectId,
+          workspaceId,
+          workspaceSprintStartDate: new Date(rawSprintStartDate).toISOString().slice(0, 10),
+        })
+        console.log('✅ FleetGraph fixed-UUID demo data seeded (all 9 finding types)')
+      } catch (err) {
+        console.warn('⚠️  FleetGraph fixed-UUID demo data failed (non-fatal):', err instanceof Error ? err.message : err)
+      }
     }
 
     // Create welcome/tutorial wiki document

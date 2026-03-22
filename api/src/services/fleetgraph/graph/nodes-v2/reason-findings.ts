@@ -98,6 +98,36 @@ const FINDING_TEMPLATES: Record<FleetGraphV2SuspectType, {
       return `This blocker has gone ${days} business day(s) without a meaningful update, so the issue may need escalation or reassignment.`
     },
   },
+  sprint_no_owner: {
+    title: (m) => `Week "${m.weekTitle ?? 'Untitled'}" has no owner`,
+    explanation: () =>
+      'This week has no owner assigned, so nobody is accountable for driving execution and daily standups.',
+    action: {
+      actionType: 'assign_owner',
+      label: 'Assign an owner',
+      method: 'PATCH',
+      pathTemplate: '/api/documents/{entityId}',
+      requiresApproval: true,
+    },
+  },
+  unassigned_sprint_issues: {
+    title: (m) => {
+      const count = Math.round((m.unassignedCount as number) ?? 0)
+      return `${count} unassigned issues in "${m.weekTitle ?? 'Untitled'}"`
+    },
+    explanation: (m) => {
+      const count = Math.round((m.unassignedCount as number) ?? 0)
+      const total = Math.round((m.totalCount as number) ?? 0)
+      return `${count} of ${total} issues in this week have no assignee. Assigning issues helps the team stay focused and accountable.`
+    },
+    action: {
+      actionType: 'assign_issues',
+      label: 'Assign issues',
+      method: 'PATCH',
+      pathTemplate: '/api/documents/{entityId}',
+      requiresApproval: true,
+    },
+  },
 }
 
 const ACTION_CONFIGS: Record<FleetGraphActionType, { method: 'POST' | 'PATCH'; pathTemplate: string }> = {

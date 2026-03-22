@@ -1,4 +1,5 @@
 import type {
+  FleetGraphV2SuspectType,
   ShipIssue,
   ShipPerson,
   ShipProject,
@@ -500,6 +501,61 @@ function checkApprovalGap(
   return suspects
 }
 
+function checkSprintNoOwner(
+  weeks: DetectSuspectEntitiesInput['weeks']
+): SuspectEntity[] {
+  return weeks
+    .filter((week) => {
+      if (week.status !== 'active' && week.status !== 'planning') return false
+      if (week.ownerId) return false
+      const props = week.properties ?? {}
+      const assigneeIds = Array.isArray(props.assignee_ids)
+        ? props.assignee_ids.filter((v): v is string => typeof v === 'string')
+        : []
+      return assigneeIds.length === 0
+    })
+    .map((week) => ({
+      entityId: week.id,
+      entityType: 'sprint',
+      type: 'sprint_no_owner' as FleetGraphV2SuspectType,
+      metadata: {
+        weekTitle: week.title,
+        status: week.status,
+        issueCount: 0,
+      },
+    }))
+}
+
+function checkUnassignedSprintIssues(
+  weeks: DetectSuspectEntitiesInput['weeks'],
+  issues: DetectSuspectEntitiesInput['issues']
+): SuspectEntity[] {
+  const suspects: SuspectEntity[] = []
+
+  for (const week of weeks) {
+    if (week.status !== 'active' && week.status !== 'planning') continue
+
+    const weekIssues = issues.filter((issue) => issue.sprintId === week.id)
+    const unassigned = weekIssues.filter((issue) => !issue.assigneeId)
+
+    if (unassigned.length >= 3) {
+      suspects.push({
+        entityId: week.id,
+        entityType: 'sprint',
+        type: 'unassigned_sprint_issues' as FleetGraphV2SuspectType,
+        metadata: {
+          weekTitle: week.title,
+          totalCount: weekIssues.length,
+          unassignedCount: unassigned.length,
+          status: week.status,
+        },
+      })
+    }
+  }
+
+  return suspects
+}
+
 export function detectSuspectEntities(
   input: DetectSuspectEntitiesInput
 ): SuspectEntity[] {
@@ -512,6 +568,8 @@ export function detectSuspectEntities(
     ...checkDeadlineRisk(input.projects, input.issues),
     ...checkWorkloadImbalance(input.issues, input.people),
     ...checkBlockerAging(input.issues),
+    ...checkSprintNoOwner(input.weeks),
+    ...checkUnassignedSprintIssues(input.weeks, input.issues),
   )
 
   if (input.todayStandups) {

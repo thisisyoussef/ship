@@ -54,6 +54,8 @@ const COOLDOWN_HOURS: Record<FleetGraphV2SuspectType, number> = {
   deadline_risk: 24,
   workload_imbalance: 48,
   blocker_aging: 24,
+  sprint_no_owner: 12,
+  unassigned_sprint_issues: 24,
 }
 
 // ──────────────────────────────────────────────────────────────────────────────

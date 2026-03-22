@@ -16,6 +16,9 @@ Use this file as durable working memory for recurring corrections, decisions, an
 - Railway demo deploys should follow the real platform path.
   Source: post-`US-602` correction
   Meaning: when the demo already auto-deploys from `master`, do not add a manual Railway deploy attempt to the default closeout flow unless the story is about deployment itself or the user explicitly asks for a manual refresh.
+- Post-merge deploy observation is part of deploy-relevant story completion.
+  Source: post-`US-602` deployment follow-up
+  Meaning: after merging deploy-relevant work to `master`, monitor the auto-deployed surface until it succeeds; if it fails, keep ownership and ship the fix instead of treating the original story as done.
 - Check in on non-obvious architectural trade-offs.
   Source: FleetGraph follow-on after `US-601`
   Meaning: if there is a materially higher-cost or broader path, pause and confirm before taking it.

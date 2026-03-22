@@ -43,6 +43,7 @@ This phase will hold proof-lane, UX, deployment, and reliability follow-through 
 | US-902 | Seeded verification entry rule | `done` | P1 | `US-901` |
 | US-903 | Workflow memory log | `done` | P1 | `US-901` |
 | US-904 | Autodeploy and test handoff rule | `done` | P1 | `US-901` |
+| US-905 | Post-merge deploy monitoring rule | `done` | P1 | `US-901` |
 
 ## Execution Order
 
@@ -51,8 +52,9 @@ This phase will hold proof-lane, UX, deployment, and reliability follow-through 
 3. `US-902` makes repeatable seeded verification entries part of the checked-in workflow for visible stories.
 4. `US-903` adds a durable workflow-memory log for recurring corrections, decisions, and reusable patterns.
 5. `US-904` aligns closeout behavior with Railway autodeploy and requires explicit `What to test` instructions in visible-story handoffs.
-6. `US-602` completes `T601A` by routing entry-card apply through the runtime review/execute path.
-7. Active product packs continue to port into `docs/user-stories/` in dependency order.
+6. `US-905` makes post-merge deployment observation part of deploy-relevant story completion on auto-deployed surfaces.
+7. `US-602` completes `T601A` by routing entry-card apply through the runtime review/execute path.
+8. Active product packs continue to port into `docs/user-stories/` in dependency order.
 
 ## Files
 

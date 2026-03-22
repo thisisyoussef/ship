@@ -117,7 +117,8 @@ Run these before handoff:
 
 1. Record deployment status.
 2. Record environment and command evidence if deployed.
-3. Record the runtime proof path if blocked or not deployed.
+3. For deploy-relevant stories on auto-deployed surfaces, record how the post-merge deployment will be monitored and what counts as success or failure.
+4. Record the runtime proof path if blocked or not deployed.
 
 ## How To Verify
 

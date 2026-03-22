@@ -117,7 +117,7 @@ const definition: FleetGraphActionDefinition = {
       method: 'PATCH' as const,
       path: `/api/issues/${issueId}`,
       body: {
-        assignee_ids: [personId],
+        assignee_id: personId,
       },
     }))
 

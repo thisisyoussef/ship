@@ -86,7 +86,7 @@ const definition: FleetGraphActionDefinition = {
       adapter: 'multi_request' as const,
       endpoints: issueIds.map((issueId) => ({
         method: 'PATCH' as const,
-        path: `/api/documents/${issueId}`,
+        path: `/api/issues/${issueId}`,
         body: {
           assignee_id: newAssigneeId,
         } as Record<string, unknown>,

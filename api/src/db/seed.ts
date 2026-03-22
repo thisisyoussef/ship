@@ -1471,15 +1471,18 @@ async function seedFleetGraphComprehensiveDemo(
   }
 
   // Helper: idempotent comment creation
+  // Schema: comments(id, document_id, comment_id, parent_id, author_id, workspace_id, content, ...)
   async function ensureDemoComment(documentId: string, userId: string, text: string) {
     const existing = await pool.query(
-      `SELECT id FROM comments WHERE document_id = $1 AND user_id = $2 AND content = $3`,
+      `SELECT id FROM comments WHERE document_id = $1 AND author_id = $2 AND content = $3`,
       [documentId, userId, text]
     ) as { rows: Array<{ id: string }> }
     if (existing.rows[0]) return
+    const commentId = crypto.randomUUID()
     await pool.query(
-      `INSERT INTO comments (document_id, user_id, content) VALUES ($1, $2, $3)`,
-      [documentId, userId, text]
+      `INSERT INTO comments (document_id, comment_id, author_id, workspace_id, content)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [documentId, commentId, userId, workspaceId, text]
     )
   }
 

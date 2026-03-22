@@ -257,6 +257,19 @@ export function createAnalysisGraphService(deps: AnalysisGraphDeps) {
     return []
   }
 
+  // Only these action types have working handlers in the frontend
+  const VALID_ACTION_TYPES = new Set([
+    'start_week',
+    'approve_week_plan',
+    'approve_project_plan',
+    'post_standup',
+    'post_comment',
+    'assign_owner',
+    'escalate_risk',
+    'assign_issues',
+    'rebalance_load',
+  ])
+
   function parseActionSuggestions(text: string): Array<{
     action: string
     target_id: string
@@ -280,7 +293,8 @@ export function createAnalysisGraphService(deps: AnalysisGraphDeps) {
           label: string
           rationale: string
         }
-        if (parsed.action && parsed.label) {
+        // Only allow known action types — LLMs sometimes hallucinate variants
+        if (parsed.action && parsed.label && VALID_ACTION_TYPES.has(parsed.action)) {
           suggestions.push(parsed)
         }
       } catch {

@@ -311,11 +311,11 @@ export function AnalysisSection({
                   </div>
                 )}
 
-                {/* Action suggestions */}
-                {msg.actionSuggestions && msg.actionSuggestions.length > 0 && (
+                {/* Action suggestions — only show actions with known handlers */}
+                {msg.actionSuggestions && msg.actionSuggestions.filter(a => a.action in ACTION_INPUT_SPECS).length > 0 && (
                   <div className="space-y-1.5 rounded-xl border border-accent/20 bg-accent/5 p-2.5">
                     <div className="text-[11px] font-medium text-accent">Suggested Actions</div>
-                    {msg.actionSuggestions.map((action, k) => (
+                    {msg.actionSuggestions.filter(a => a.action in ACTION_INPUT_SPECS).map((action, k) => (
                       <div key={`action-${k}`} className="flex items-start gap-2">
                         <button
                           type="button"

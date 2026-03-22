@@ -1,5 +1,9 @@
 import type { FleetGraphFinding } from './fleetgraph-findings';
 
+export function canReviewFindingActionInFleetGraph(finding: FleetGraphFinding) {
+  return finding.recommendedAction?.type === 'start_week';
+}
+
 export function formatFleetGraphTimestamp(value?: string) {
   if (!value) {
     return null;

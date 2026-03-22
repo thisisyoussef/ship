@@ -18,6 +18,7 @@
   - leave the assignment docs and proof artifacts fully aligned with what shipped
 - Planned stories in this pack:
   - `T601` current-page approval preview completion
+  - `T601A` current-page approval apply-through-runtime convergence
   - `T602` context-aware page analysis completion
   - `T603` shared proactive multi-finding plumbing
   - `T604` sprint-owner gap
@@ -25,16 +26,18 @@
   - `T606` completion evidence refresh
 - Coverage check:
   - Objective 1 -> `T601`, `T602`, `T604`, `T605`
-  - Objective 2 -> `T601`, `T602`, `T603`
-  - Objective 3 -> `T603`, `T604`, `T605`
-  - Objective 4 -> `T606`
+  - Objective 2 -> `T601A`
+  - Objective 3 -> `T603`
+  - Objective 4 -> `T604`, `T605`
+  - Objective 5 -> `T606`
 
 ## Tasks
 
 | Task ID | Description | Dependency | Parallelizable | Validation |
 |---|---|---|---|---|
 | T601 | Complete and evidence the current-page approval preview path on the FleetGraph entry surface, including correct approval-required state, visible controls, and a refreshed trace/evidence path. | must-have | no | Entry/API/web tests prove approval preview works on supported page contexts and the visible Ship surface matches the workbook use case |
-| T602 | Complete the context-aware page-analysis use case by wiring the follow-up turn message into the graph, preserving thread continuity, and tightening the chosen visible analysis surface. | blocked-by:T601 | no | Analyze + follow-up tests pass and the chosen FleetGraph analysis surface can answer an initial page question and a real follow-up |
+| T601A | Route the final current-page approval `Apply` action through the FleetGraph graph runtime so entry preview and approval execution share the same review/apply model. | blocked-by:T601 | no | Entry/API/web tests prove the final apply step uses a runtime-backed FleetGraph path rather than a direct UI-to-Ship write |
+| T602 | Complete the context-aware page-analysis use case by wiring the follow-up turn message into the graph, preserving thread continuity, and tightening the chosen visible analysis surface. | blocked-by:T601A | no | Analyze + follow-up tests pass and the chosen FleetGraph analysis surface can answer an initial page question and a real follow-up |
 | T603 | Generalize proactive finding persistence and UI from `week_start_drift` only to shared multi-finding support. | blocked-by:T602 | no | DB/store/route/web contracts accept and render multiple proactive finding types without week-start-only assumptions |
 | T604 | Ship `sprint_no_owner` end to end on the widened proactive surface with evidence, dismiss/snooze lifecycle, and trace capture. | blocked-by:T603 | no | Runtime/store/web tests prove sprint-owner gaps surface as real proactive findings and can be inspected in Ship |
 | T605 | Ship `unassigned_sprint_issues` end to end on the widened proactive surface with evidence, dismiss/snooze lifecycle, and trace capture. | blocked-by:T604 | no | Runtime/store/web tests prove unassigned sprint-issue clusters surface as real proactive findings and can be inspected in Ship |
@@ -46,6 +49,10 @@
   - [ ] test_entry_preview_returns_approval_required_for_supported_current_page_actions
   - [ ] test_entry_card_renders_current_page_approval_preview_controls
   - [ ] test_approval_preview_trace_or_debug_path_is_recorded_for_assignment_evidence
+- T601A tests:
+  - [ ] test_entry_apply_uses_fleetgraph_runtime_review_path
+  - [ ] test_entry_apply_does_not_call_ship_endpoint_directly_from_the_ui
+  - [ ] test_entry_apply_records_the_same_review_or_execution_state_model_as_other_fleetgraph_approval_paths
 - T602 tests:
   - [ ] test_thread_turn_passes_user_message_into_runtime
   - [ ] test_follow_up_turn_updates_analysis_text_in_same_thread

@@ -26,6 +26,10 @@ This phase will hold core product and platform stories as they are ported into t
 
 This phase will hold FleetGraph product and integration stories as the active packs are ported into story files.
 
+| ID | Title | Status | Priority | Depends On |
+| --- | --- | --- | --- | --- |
+| US-601 | Current-page approval preview | `done` | P0 | `US-901` |
+
 ### Phase 3: Reliability and Productization
 
 This phase will hold proof-lane, UX, deployment, and reliability follow-through stories.
@@ -39,7 +43,9 @@ This phase will hold proof-lane, UX, deployment, and reliability follow-through 
 ## Execution Order
 
 1. `US-901` completes the control-plane reset from the old `.ai` workspace to the checked-in docs model.
-2. Active product packs are then ported into `docs/user-stories/` in dependency order.
+2. `US-601` completes the first FleetGraph completion-pack story by finishing the current-page approval preview use case on the smallest safe path.
+3. The next FleetGraph implementation story should pick up the `T601A` runtime-apply convergence work.
+4. Active product packs continue to port into `docs/user-stories/` in dependency order.
 
 ## Files
 

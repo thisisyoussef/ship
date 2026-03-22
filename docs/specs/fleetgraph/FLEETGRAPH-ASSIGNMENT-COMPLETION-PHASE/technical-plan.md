@@ -30,6 +30,7 @@
   - `FleetGraphFindingActionReview`: existing human-review contract retained for consequential actions
 - Data flow summary:
   - Close the already-near-complete on-demand cases first because they do not depend on widening proactive finding storage.
+  - Insert one small convergence story after approval-preview UI completion so the final `Apply` step reuses the FleetGraph graph runtime instead of bypassing it.
   - Widen proactive finding persistence, route serialization, and frontend rendering once so the remaining proactive cases can share the same surface.
   - Ship `sprint_no_owner` next because its runtime path is already narrower and better defined than the unassigned-issues path.
   - Ship `unassigned_sprint_issues` after the shared proactive surface is proven with a second finding type.
@@ -42,10 +43,11 @@
   - converge the assignment docs and visible proof surfaces around what the repo actually ships
 - Story ordering rationale:
   - `T601` first because approval preview is already real in `web/src/lib/fleetgraph-entry.ts`, `api/src/services/fleetgraph/entry/`, and `FleetGraphEntryCard`; this is the cheapest remaining use case to harden and evidence.
-  - `T602` second because the page-analysis graph, reason node, and FAB already exist; the main missing gap is carrying user follow-up messages through `/thread/:threadId/turn` and tightening the canonical surface.
-  - `T603` third because the remaining proactive use cases cannot ship cleanly until finding storage, serialization, and UI stop assuming `week_start_drift` only.
-  - `T604` fourth because `sprint_no_owner` already has a dedicated runtime runner and a narrower candidate rule than unassigned-issue clustering.
-  - `T605` fifth because `unassigned_sprint_issues` depends on the widened proactive surface and has more thresholding/data-shape risk than sprint-owner gaps.
+  - `T601A` second because once the approval-preview surface is solid, the next clean step is to route `Apply` through the graph runtime so entry preview and finding review stop diverging.
+  - `T602` third because the page-analysis graph, reason node, and FAB already exist; the main missing gap is carrying user follow-up messages through `/thread/:threadId/turn` and tightening the canonical surface.
+  - `T603` fourth because the remaining proactive use cases cannot ship cleanly until finding storage, serialization, and UI stop assuming `week_start_drift` only.
+  - `T604` fifth because `sprint_no_owner` already has a dedicated runtime runner and a narrower candidate rule than unassigned-issue clustering.
+  - `T605` sixth because `unassigned_sprint_issues` depends on the widened proactive surface and has more thresholding/data-shape risk than sprint-owner gaps.
   - `T606` last because traces, workbook wording, and the pack-level audit checklist should be updated only after the actual remaining use cases are complete.
 - Whole-pack success signal:
   - A reviewer can open the workbook, the FleetGraph entry surface, the FleetGraph analysis surface, and the proactive findings surface and see truthful, implemented support for all five workbook use cases.
@@ -54,6 +56,10 @@
 - Decision: Finish the current-page approval preview before changing proactive persistence.
   - Alternatives considered: widen proactive finding storage first because it blocks two workbook cases.
   - Rationale: approval preview is already close and independent, so shipping it first reduces assignment risk with minimal cross-cutting change.
+
+- Decision: Add a dedicated follow-on story to route current-page approval `Apply` through the FleetGraph runtime.
+  - Alternatives considered: leave entry-preview apply as a direct Ship call; expand `T601` itself to cover both preview and runtime convergence at once.
+  - Rationale: a separate `T601A` keeps `T601` small while still making the convergence explicit and sequenced immediately after the preview surface is hardened.
 
 - Decision: Treat page-analysis follow-up continuity as part of completing the workbook use case.
   - Alternatives considered: call single-turn page analysis “done” and defer follow-ups.
@@ -80,6 +86,7 @@
 - On-demand completion should include:
   - passing `userMessage` into the runtime on `/api/fleetgraph/thread/:threadId/turn`
   - keeping thread reuse on the same page/document context
+  - routing current-page approval preview `Apply` through a FleetGraph runtime-backed review/apply path
   - deciding whether `FleetGraphEntryCard` or `FleetGraphFab` is the canonical surface for each remaining on-demand use case, then documenting that choice
 
 ## Dependency Plan

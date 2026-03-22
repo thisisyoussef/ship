@@ -103,6 +103,62 @@ function createEntryPayload() {
   }
 }
 
+function createWeeklyPlanEntryPayload() {
+  return {
+    context: {
+      ancestors: [],
+      belongs_to: [
+        {
+          document_type: 'project',
+          id: PROJECT_ID,
+          title: 'North Star',
+          type: 'project',
+        },
+        {
+          document_type: 'sprint',
+          id: SPRINT_ID,
+          title: 'Sprint 8',
+          type: 'sprint',
+        },
+      ],
+      breadcrumbs: [
+        {
+          id: PROJECT_ID,
+          title: 'North Star',
+          type: 'project',
+        },
+        {
+          id: SPRINT_ID,
+          title: 'Sprint 8',
+          type: 'sprint',
+        },
+        {
+          id: DOCUMENT_ID,
+          title: 'Alice plan',
+          type: 'weekly_plan',
+        },
+      ],
+      children: [],
+      current: {
+        document_type: 'weekly_plan',
+        id: DOCUMENT_ID,
+        title: 'Alice plan',
+      },
+    },
+    route: {
+      activeTab: 'details',
+      nestedPath: [],
+      surface: 'document-page',
+    },
+    trigger: {
+      documentId: DOCUMENT_ID,
+      documentType: 'weekly_plan',
+      mode: 'on_demand',
+      trigger: 'document-context',
+    },
+  }
+}
+
 function createEntryPayloadWithNullableTicketNumbers() {
   const payload = createEntryPayload()
   return {
@@ -292,6 +348,41 @@ describe('FleetGraph routes', () => {
     })
     expect(response.body.approval.options.map((option: { id: string }) => option.id))
       .toEqual(['apply', 'dismiss', 'snooze'])
+  })
+
+  it('accepts weekly-plan approval preview payloads that target the related sprint', async () => {
+    const response = await request(app)
+      .post('/api/fleetgraph/entry')
+      .send({
+        ...createWeeklyPlanEntryPayload(),
+        draft: {
+          requestedAction: {
+            endpoint: {
+              method: 'POST',
+              path: `/api/weeks/${SPRINT_ID}/approve-plan`,
+            },
+            evidence: [
+              'This weekly plan belongs to the current sprint context.',
+              'Approving the week plan changes persistent sprint approval state.',
+            ],
+            rationale: 'Approving the current week plan is a consequential Ship write.',
+            summary: 'Approve the current week plan.',
+            targetId: SPRINT_ID,
+            targetType: 'sprint',
+            title: 'Approve week plan',
+            type: 'approve_week_plan',
+          },
+        },
+      })
+
+    expect(response.status).toBe(200)
+    expect(response.body.run.outcome).toBe('approval_required')
+    expect(response.body.approval).toMatchObject({
+      targetId: SPRINT_ID,
+      targetType: 'sprint',
+      title: 'Approve week plan',
+      type: 'approve_week_plan',
+    })
   })
 
   it('accepts nullable ticket numbers from the live document context payload', async () => {

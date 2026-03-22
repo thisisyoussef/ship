@@ -154,11 +154,16 @@ describe('FleetGraphEntryCard', () => {
             method: 'POST',
             path: `/api/projects/${DOCUMENT_ID}/approve-plan`,
           },
+          evidence: [
+            'Project plan approval changes persistent project state.',
+            'Project context is available on the current Ship page.',
+          ],
           options: [
             { id: 'apply', label: 'Apply' },
             { id: 'dismiss', label: 'Dismiss' },
             { id: 'snooze', label: 'Snooze' },
           ],
+          rationale: 'Approving a project plan is a consequential Ship write.',
           state: 'pending_confirmation',
           summary: 'Approve the current project plan.',
           targetId: DOCUMENT_ID,
@@ -213,6 +218,15 @@ describe('FleetGraphEntryCard', () => {
 
     expect(await screen.findByText('Approve project plan')).toBeInTheDocument()
     expect(screen.getByText('Approve the current project plan.')).toBeInTheDocument()
+    expect(
+      screen.getByText('Approving a project plan is a consequential Ship write.')
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText('Project plan approval changes persistent project state.')
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText('Project context is available on the current Ship page.')
+    ).toBeInTheDocument()
     expect(
       screen.getByText('Review the suggested next step for Launch planner.')
     ).toBeInTheDocument()

@@ -75,6 +75,16 @@ Use this guide when verifying FleetGraph behavior on the sanctioned public demo.
 7. Confirm the visible options focus on user choice first, while diagnostics remain secondary under `Open FleetGraph debug`.
 8. Confirm the debug dock surfaces the entry thread and its latest checkpoint summary.
 
+## Expected Entry-Card Apply Flow
+
+1. On `FleetGraph Demo Week - Review and Apply`, click `Preview approval step`.
+2. Click `Apply`.
+3. Confirm the card shows a `Latest result` panel after the action finishes.
+4. Confirm the result headline is a user-facing outcome such as `FleetGraph completed the action.`
+5. Confirm the result detail explains the visible effect in Ship, such as `Week plan approved in Ship.`
+6. Confirm the page data refreshes after apply instead of leaving the stale preview in place.
+7. Failure signal: the browser writes directly to the raw Ship approval endpoint, the card shows no inline result, or the page stays stale after the action completes.
+
 ## Screenshot References
 
 - Review/apply page:

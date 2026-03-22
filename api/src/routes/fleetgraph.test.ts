@@ -246,6 +246,7 @@ describe('FleetGraph routes', () => {
   }
   const originalEnv = { ...process.env }
   const applyStartWeekFinding = vi.fn()
+  const applyEntry = vi.fn()
   const reviewStartWeekFinding = vi.fn()
   const attachExecutions = vi.fn(async (findings: FleetGraphFindingRecord[]) => findings)
   const dismissFinding = vi.fn<FleetGraphFindingStore['dismissFinding']>()
@@ -272,6 +273,7 @@ describe('FleetGraph routes', () => {
     process.env = { ...originalEnv }
     ;[
       applyStartWeekFinding,
+      applyEntry,
       reviewStartWeekFinding,
       attachExecutions,
       dismissFinding,
@@ -294,6 +296,9 @@ describe('FleetGraph routes', () => {
         attachExecutions,
         reviewStartWeekFinding,
       },
+      entryActionService: {
+        applyEntry,
+      } as never,
       findingStore,
       runtime: runtime as never,
     }))
@@ -382,6 +387,53 @@ describe('FleetGraph routes', () => {
       targetType: 'sprint',
       title: 'Approve week plan',
       type: 'approve_week_plan',
+    })
+  })
+
+  it('routes entry apply through the FleetGraph runtime-backed service', async () => {
+    applyEntry.mockResolvedValue({
+      actionOutcome: {
+        message: 'Project plan approved in Ship.',
+        resultStatusCode: 200,
+        status: 'applied',
+      },
+      run: {
+        branch: 'approval_required',
+        outcome: 'approval_required',
+        path: [
+          'resolve_trigger_context',
+          'select_scenarios',
+          'approval_interrupt',
+          'execute_action',
+          'persist_action_outcome',
+        ],
+        routeSurface: 'document-page',
+        threadId: 'fleetgraph:workspace-1:entry-thread',
+      },
+      summary: {
+        detail: 'Project plan approved in Ship.',
+        surfaceLabel: 'document-page',
+        title: 'FleetGraph completed the action.',
+      },
+    })
+
+    const response = await request(app)
+      .post('/api/fleetgraph/entry/apply')
+      .send({ threadId: 'fleetgraph:workspace-1:entry-thread' })
+
+    expect(response.status).toBe(200)
+    expect(applyEntry).toHaveBeenCalledWith(
+      { threadId: 'fleetgraph:workspace-1:entry-thread' },
+      expect.objectContaining({
+        workspaceId: '22222222-2222-4222-8222-222222222222',
+        request: expect.objectContaining({
+          protocol: 'http',
+        }),
+      })
+    )
+    expect(response.body.actionOutcome).toMatchObject({
+      message: 'Project plan approved in Ship.',
+      status: 'applied',
     })
   })
 

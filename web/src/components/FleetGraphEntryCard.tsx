@@ -47,6 +47,7 @@ export function FleetGraphEntryCard({
   }, [activeTab, context, document, nestedPath, userId]);
   const fleetGraph = useFleetGraphEntry();
   const approval = fleetGraph.result?.approval;
+  const actionResult = fleetGraph.actionResult;
   const { setEntry } = useFleetGraphDebugSurface();
 
   const disabled = loading || !entry || !document.workspaceId;
@@ -113,13 +114,33 @@ export function FleetGraphEntryCard({
         </p>
       ) : null}
 
-      {fleetGraph.result ? (
+      {fleetGraph.result || actionResult ? (
         <div className="mt-4 space-y-3 rounded-xl border border-border bg-muted/20 px-3 py-3">
-          <div className="space-y-1">
-            <p className={sectionLabelClassName}>Current guidance</p>
-            <p className="text-sm font-semibold text-foreground">{fleetGraph.result.summary.title}</p>
-            <p className="text-sm text-muted">{fleetGraph.result.summary.detail}</p>
-          </div>
+          {fleetGraph.result ? (
+            <div className="space-y-1">
+              <p className={sectionLabelClassName}>Current guidance</p>
+              <p className="text-sm font-semibold text-foreground">{fleetGraph.result.summary.title}</p>
+              <p className="text-sm text-muted">{fleetGraph.result.summary.detail}</p>
+            </div>
+          ) : null}
+
+          {actionResult ? (
+            <div
+              className={`space-y-1 rounded-xl border px-3 py-3 ${
+                actionResult.actionOutcome.status === 'failed'
+                  ? 'border-red-200 bg-red-50'
+                  : 'border-emerald-200 bg-emerald-50'
+              }`}
+            >
+              <p className={sectionLabelClassName}>Latest result</p>
+              <p className="text-sm font-semibold text-foreground">
+                {actionResult.summary.title}
+              </p>
+              <p className="text-sm text-muted">
+                {actionResult.summary.detail}
+              </p>
+            </div>
+          ) : null}
 
           {approval ? (
             <div className="space-y-3 rounded-xl border border-amber-300 bg-amber-50 px-3 py-3">
@@ -163,7 +184,9 @@ export function FleetGraphEntryCard({
                     disabled={fleetGraph.isApplying}
                     key={option.id}
                     onClick={() => {
-                      if (option.id === 'apply') fleetGraph.applyApproval(approval)
+                      if (option.id === 'apply' && fleetGraph.result) {
+                        fleetGraph.applyApproval(fleetGraph.result.entry.threadId, approval)
+                      }
                       else if (option.id === 'dismiss') fleetGraph.dismissApproval()
                       else if (option.id === 'snooze') fleetGraph.snoozeApproval()
                     }}

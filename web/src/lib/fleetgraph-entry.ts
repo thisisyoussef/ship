@@ -36,6 +36,12 @@ export interface FleetGraphApprovalEnvelope {
   type: 'approve_project_plan' | 'approve_week_plan' | 'post_comment' | 'start_week'
 }
 
+export interface FleetGraphEntryActionOutcome {
+  message: string
+  resultStatusCode?: number
+  status: 'already_applied' | 'applied' | 'dismissed' | 'failed' | 'pending'
+}
+
 export interface FleetGraphEntryResponse {
   approval?: FleetGraphApprovalEnvelope
   entry: {
@@ -63,6 +69,12 @@ export interface FleetGraphEntryResponse {
     surfaceLabel: string
     title: string
   }
+}
+
+export interface FleetGraphEntryApplyResponse {
+  actionOutcome: FleetGraphEntryActionOutcome
+  run: FleetGraphEntryResponse['run']
+  summary: FleetGraphEntryResponse['summary']
 }
 
 function splitNestedPath(value?: string) {

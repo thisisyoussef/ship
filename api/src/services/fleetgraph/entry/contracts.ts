@@ -5,6 +5,7 @@ import {
   FleetGraphRequestedActionSchema,
 } from '../contracts/actions.js'
 import {
+  FleetGraphActionOutcomeSchema,
   FLEETGRAPH_BRANCHES,
   FLEETGRAPH_OUTCOMES,
 } from '../graph/index.js'
@@ -40,6 +41,10 @@ export const FleetGraphEntryRequestSchema = z.object({
   draft: FleetGraphEntryDraftSchema.optional(),
   route: RouteSurfaceSchema,
   trigger: FleetGraphEntryTriggerSchema,
+}).strict()
+
+export const FleetGraphEntryApplyRequestSchema = z.object({
+  threadId: nonEmptyString,
 }).strict()
 
 const FleetGraphEntryCurrentSchema = z.object({
@@ -97,6 +102,12 @@ export const FleetGraphEntryResponseSchema = z.object({
   summary: FleetGraphEntrySummarySchema,
 }).strict()
 
+export const FleetGraphEntryApplyResponseSchema = z.object({
+  actionOutcome: FleetGraphActionOutcomeSchema,
+  run: FleetGraphEntryRunSchema,
+  summary: FleetGraphEntrySummarySchema,
+}).strict()
+
 export type FleetGraphEntryRequest =
   z.infer<typeof FleetGraphEntryRequestSchema>
 
@@ -105,3 +116,9 @@ export type FleetGraphRequestedAction =
 
 export type FleetGraphEntryResponse =
   z.infer<typeof FleetGraphEntryResponseSchema>
+
+export type FleetGraphEntryApplyRequest =
+  z.infer<typeof FleetGraphEntryApplyRequestSchema>
+
+export type FleetGraphEntryApplyResponse =
+  z.infer<typeof FleetGraphEntryApplyResponseSchema>

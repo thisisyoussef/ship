@@ -15,6 +15,7 @@ REQUIRED_FILES = [
     ".cursorrules",
     "docs/README.md",
     "docs/CONTEXT.md",
+    "docs/WORKFLOW_MEMORY.md",
     "docs/IMPLEMENTATION_STRATEGY.md",
     "docs/DEFINITION_OF_DONE.md",
     "docs/guides/finalization-recovery.md",

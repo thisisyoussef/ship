@@ -11,6 +11,7 @@ The checked-in harness is split across a small set of durable documents:
 
 - `AGENTS.md`: primary rulebook
 - `docs/CONTEXT.md`: live environment truth
+- `docs/WORKFLOW_MEMORY.md`: recurring corrections, durable decisions, and reusable patterns
 - `docs/user-stories/README.md`: master queue and dependency graph
 - active story files in `docs/user-stories/`: executable task contracts
 - `docs/DEFINITION_OF_DONE.md`: completion gate

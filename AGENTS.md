@@ -9,12 +9,13 @@ Load context in this order before making non-trivial changes:
 
 1. `AGENTS.md`
 2. `docs/CONTEXT.md`
-3. `docs/IMPLEMENTATION_STRATEGY.md`
-4. `docs/user-stories/README.md`
-5. The active story file in `docs/user-stories/`
-6. `docs/DEFINITION_OF_DONE.md`
-7. `docs/assignments/fleetgraph/README.md`, `docs/assignments/fleetgraph/PRESEARCH.md`, and `docs/assignments/fleetgraph/FLEETGRAPH.md` when the task touches FleetGraph
-8. `.claude/CLAUDE.md` as a secondary Ship appendix for commands, architecture notes, and deployment details
+3. `docs/WORKFLOW_MEMORY.md`
+4. `docs/IMPLEMENTATION_STRATEGY.md`
+5. `docs/user-stories/README.md`
+6. The active story file in `docs/user-stories/`
+7. `docs/DEFINITION_OF_DONE.md`
+8. `docs/assignments/fleetgraph/README.md`, `docs/assignments/fleetgraph/PRESEARCH.md`, and `docs/assignments/fleetgraph/FLEETGRAPH.md` when the task touches FleetGraph
+9. `.claude/CLAUDE.md` as a secondary Ship appendix for commands, architecture notes, and deployment details
 
 ## Working Model
 
@@ -22,6 +23,7 @@ Load context in this order before making non-trivial changes:
 - Treat `docs/user-stories/README.md` as the master queue and dependency graph.
 - Use the active story file as the execution contract for scope, prep, tests, validation, deploy, and proof.
 - Keep `docs/CONTEXT.md` current when live environment truth changes.
+- Keep `docs/WORKFLOW_MEMORY.md` current when recurring corrections, decisions, or reusable patterns should persist across stories.
 - Keep `docs/IMPLEMENTATION_STRATEGY.md` current when the broad roadmap or phase order changes.
 - Use `docs/plans/` for design and implementation thinking.
 - Use `docs/submissions/` for assembled review, demo, and submission bundles.

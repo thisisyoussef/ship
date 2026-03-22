@@ -1,0 +1,49 @@
+# Workflow Memory
+
+Use this file as durable working memory for recurring corrections, decisions, and patterns that future stories should keep in mind.
+
+## How To Use It
+
+1. Read this after `docs/CONTEXT.md` and before planning or implementation.
+2. Add a note when the user makes a recurring correction, when a workflow decision should persist, or when a pattern proves useful across stories.
+3. If a note becomes a hard rule, promote it into `AGENTS.md` or the nearest stronger contract as well.
+
+## Durable Workflow Decisions
+
+- Automatic finalization is the default.
+  Source: `US-901`, follow-on user direction
+  Meaning: once requested work is complete, finish the GitHub flow automatically unless the user explicitly asks to pause or use a different merge path.
+- Check in on non-obvious architectural trade-offs.
+  Source: FleetGraph follow-on after `US-601`
+  Meaning: if there is a materially higher-cost or broader path, pause and confirm before taking it.
+- Keep one concern per branch.
+  Source: `AGENTS.md` plus recent workflow cleanup
+  Meaning: separate harness/workflow changes from product-feature changes unless they are truly the same story.
+- Visible stories should leave behind a repeatable proof lane when the product supports one.
+  Source: `US-902`
+  Meaning: create or refresh a named seeded verification entry and record it in the story, audit checklist, and relevant guide.
+
+## Recurring Corrections
+
+- Approval-preview copy should explain why the action matters to the user, not backend mechanics.
+  Source: post-`US-601` correction
+  Apply this by preferring language like “the team can move forward with this week” over language like “changes persistent sprint approval state.”
+- Notes, tests, and evidence helpers should be updated together when visible copy changes.
+  Source: post-`US-601` correction
+  Apply this by checking UI payload builders, regression tests, inspection guides, and any capture scripts in the same pass.
+
+## Reusable Product Patterns
+
+- FleetGraph current-page approval-preview proof lane:
+  Use `FleetGraph Demo Week - Review and Apply` on the Railway demo for fast inspection of the entry-card approval-preview surface.
+- FleetGraph story order:
+  Finish the already-real on-demand surfaces before paying the shared proactive widening cost.
+
+## Update Triggers
+
+Add or refresh a note here when:
+
+- a correction repeats more than once
+- a decision changes how future stories should be executed
+- a product proof lane becomes the standard inspection target
+- a useful implementation pattern keeps coming up across stories

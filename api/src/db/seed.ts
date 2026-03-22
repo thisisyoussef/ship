@@ -941,7 +941,7 @@ export async function seed() {
     }
 
     // ──────────────────────────────────────────────────────────────────────────
-    // FleetGraph demo data with fixed UUIDs — covers all 9 finding types
+    // FleetGraph demo sprints — 3 sprints with state that triggers proactive findings naturally
     // ──────────────────────────────────────────────────────────────────────────
     if (demoFixture) {
       try {
@@ -953,7 +953,7 @@ export async function seed() {
           workspaceId,
           workspaceSprintStartDate: new Date(rawSprintStartDate).toISOString().slice(0, 10),
         })
-        console.log('✅ FleetGraph fixed-UUID demo data seeded (all 9 finding types)')
+        console.log('✅ FleetGraph demo sprints seeded (3 sprints for proactive pipeline)')
       } catch (err) {
         console.warn('⚠️  FleetGraph fixed-UUID demo data failed (non-fatal):', err instanceof Error ? err.message : err)
       }

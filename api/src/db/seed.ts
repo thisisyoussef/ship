@@ -1525,7 +1525,7 @@ async function seedFleetGraphComprehensiveDemo(
   const activeSprint = await ensureDemoSprint(
     'FleetGraph Demo Week - Active with Issues',
     {
-      sprint_number: currentSprintNumber + 1,
+      sprint_number: currentSprintNumber,
       owner_id: demoOwner.id,
       project_id: projectId,
       plan: 'Deliver FleetGraph analysis features: tool-calling agent, proactive findings, action suggestions with HITL confirmation.',
@@ -1590,7 +1590,7 @@ async function seedFleetGraphComprehensiveDemo(
   const unassignedSprint = await ensureDemoSprint(
     'FleetGraph Demo Week - Unassigned Issues',
     {
-      sprint_number: currentSprintNumber + 2,
+      sprint_number: currentSprintNumber,
       owner_id: demoOwner.id,
       project_id: projectId,
       plan: 'Sprint with intentionally unassigned issues to demonstrate FleetGraph proactive detection.',
@@ -1624,7 +1624,7 @@ async function seedFleetGraphComprehensiveDemo(
   await ensureDemoSprint(
     'FleetGraph Demo Week - No Owner',
     {
-      sprint_number: currentSprintNumber + 3,
+      sprint_number: currentSprintNumber,
       owner_id: null,  // Intentionally no owner
       project_id: projectId,
       plan: 'Sprint with no owner to demonstrate FleetGraph proactive detection and assign_owner action.',
@@ -1638,7 +1638,7 @@ async function seedFleetGraphComprehensiveDemo(
   await ensureDemoSprint(
     'FleetGraph Demo Week - Plan Needs Approval',
     {
-      sprint_number: currentSprintNumber + 4,
+      sprint_number: currentSprintNumber,
       owner_id: frankId ?? demoOwner.id,
       project_id: projectId,
       plan: 'Implement data export pipeline with CSV and PDF support. Integrate with existing reporting module.',

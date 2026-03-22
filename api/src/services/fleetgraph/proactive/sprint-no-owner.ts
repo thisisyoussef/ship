@@ -93,7 +93,7 @@ function buildSprintNoOwnerEvidence(candidate: SprintNoOwnerCandidate): string[]
   return [
     'This sprint has no owner assigned.',
     `Sprint ${candidate.week.sprint_number} started on ${candidate.startDate.toISOString().slice(0, 10)}.`,
-    'No week owner is set — someone should be accountable for this sprint.',
+    `Current status: ${candidate.week.status || 'unknown'}.`,
   ]
 }
 
@@ -107,7 +107,7 @@ function buildSprintNoOwnerRecommendedAction(
       path: `/api/documents/${candidate.week.id}`,
     },
     evidence,
-    rationale: 'Starting the week is a consequential Ship mutation and should stay behind human confirmation.',
+    rationale: 'Assigning an owner is a consequential team workflow change and should stay behind human confirmation.',
     summary: 'Assign an owner to this sprint so someone is accountable.',
     targetId: candidate.week.id,
     targetType: 'sprint',

@@ -112,23 +112,23 @@ export function FleetGraphFab({
             ))}
           </div>
 
-          {/* Content */}
+          {/* Content — both tabs always mounted to preserve state across switches */}
           <div className="flex-1 overflow-y-auto p-4 min-h-0" style={{ maxHeight: 'calc(75vh - 120px)' }}>
-            {activeTab === 'findings' && (
+            <div style={{ display: activeTab === 'findings' ? 'block' : 'none' }}>
               <FindingsSection
                 context={context}
                 currentDocumentId={documentId}
                 loading={findings.isLoading}
                 onOpenAnalyze={() => setActiveTab('analyze')}
               />
-            )}
-            {activeTab === 'analyze' && (
+            </div>
+            <div style={{ display: activeTab === 'analyze' ? 'block' : 'none' }}>
               <AnalysisSection
                 documentId={documentId}
                 documentTitle={documentTitle}
                 documentType={documentType}
               />
-            )}
+            </div>
           </div>
         </div>
       )}

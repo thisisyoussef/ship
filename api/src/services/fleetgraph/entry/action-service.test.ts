@@ -12,6 +12,7 @@ function makePendingEntryState() {
     candidateCount: 1,
     checkpointNamespace: 'fleetgraph' as const,
     contextKind: 'entry' as const,
+    hasError: false,
     mode: 'on_demand' as const,
     outcome: 'approval_required' as const,
     path: [

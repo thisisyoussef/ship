@@ -335,8 +335,9 @@ export function FindingsSection({
         message: buildDismissNotice(),
         tone: 'info',
       })
-    } catch (error) {
-      console.error('FleetGraph dismiss failed:', error)
+    } catch (err) {
+      console.error('FleetGraph dismiss failed:', err)
+      setLocalNotice({ message: err instanceof Error ? err.message : 'Failed to dismiss finding. Please try again.', tone: 'error' })
     }
   }
 
@@ -361,8 +362,9 @@ export function FindingsSection({
         tone: 'info',
       })
       scheduleSnoozeRefresh(response.finding.snoozedUntil)
-    } catch (error) {
-      console.error('FleetGraph snooze failed:', error)
+    } catch (err) {
+      console.error('FleetGraph snooze failed:', err)
+      setLocalNotice({ message: err instanceof Error ? err.message : 'Failed to snooze finding. Please try again.', tone: 'error' })
     }
   }
 

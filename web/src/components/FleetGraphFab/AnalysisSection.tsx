@@ -1,34 +1,16 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 
 import { ConfirmDialog } from '@/components/ConfirmDialog'
-import { useAnalysisChat } from '@/hooks/useAnalysisChat'
-import { apiGet, apiPatch, apiPost } from '@/lib/api'
-
-interface ActionInputSpec {
-  key: string
-  label: string
-  placeholder: string
-  type: 'text' | 'textarea' | 'select'
-  fetchOptions?: string  // API endpoint to fetch select options from
-}
-
-const ACTION_INPUT_SPECS: Record<string, ActionInputSpec[]> = {
-  start_week: [],
-  approve_week_plan: [],
-  approve_project_plan: [],
-  assign_owner: [
-    { key: 'owner_id', label: 'Assign Owner', placeholder: 'Select a team member', type: 'select', fetchOptions: '/api/team/people' },
-  ],
-  post_comment: [
-    { key: 'content', label: 'Comment', placeholder: 'Write your comment...', type: 'textarea' },
-  ],
-  post_standup: [
-    { key: 'content', label: 'Standup Update', placeholder: 'What did you work on? What are you working on next?', type: 'textarea' },
-  ],
-  escalate_risk: [
-    { key: 'content', label: 'Escalation Note', placeholder: 'Describe the risk and why it needs escalation...', type: 'textarea' },
-  ],
-}
+import {
+  useFleetGraphAnalysis,
+  type ConversationEntry,
+} from '@/hooks/useFleetGraphAnalysis'
+import type {
+  FleetGraphActionDraft,
+  FleetGraphDialogField,
+  FleetGraphReasonedFinding,
+} from '@/lib/fleetgraph-entry'
+import { partitionFleetGraphReviewEvidence } from '@/lib/fleetgraph-review-presenter'
 
 interface AnalysisSectionProps {
   documentId: string
@@ -36,36 +18,299 @@ interface AnalysisSectionProps {
   documentType: string
 }
 
+function actionLabel(actionDraft: FleetGraphActionDraft) {
+  switch (actionDraft.actionType) {
+    case 'start_week':
+      return 'Review week start'
+    case 'approve_project_plan':
+      return 'Review project approval'
+    case 'approve_week_plan':
+      return 'Review week approval'
+    case 'assign_owner':
+      return 'Assign owner'
+    case 'assign_issues':
+      return 'Assign issues'
+    case 'post_comment':
+      return 'Post comment'
+    case 'post_standup':
+      return 'Post standup'
+    case 'escalate_risk':
+      return 'Respond to risk'
+    case 'rebalance_load':
+      return 'Rebalance workload'
+    default:
+      return 'Review action'
+  }
+}
+
+function buildInitialDialogValues(fields: FleetGraphDialogField[]) {
+  return fields.reduce<Record<string, string | string[] | null>>(
+    (values, field) => {
+      if (field.type === 'hidden') {
+        values[field.name] = field.value
+        return values
+      }
+
+      values[field.name] = field.type === 'multi_select' ? [] : ''
+      return values
+    },
+    {}
+  )
+}
+
+function readFindingActionDraft(
+  entry: ConversationEntry,
+  finding: FleetGraphReasonedFinding
+) {
+  return entry.actionDrafts?.find(
+    (draft) =>
+      typeof draft.contextHints?.findingFingerprint === 'string'
+      && draft.contextHints.findingFingerprint === finding.fingerprint
+  )
+}
+
+function FindingBadge({
+  severity,
+}: {
+  severity: FleetGraphReasonedFinding['severity']
+}) {
+  const colors = {
+    critical: 'border-red-200 bg-red-50 text-red-700',
+    info: 'border-sky-200 bg-sky-50 text-sky-700',
+    warning: 'border-amber-200 bg-amber-50 text-amber-700',
+  }
+
+  return (
+    <span
+      className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${colors[severity]}`}
+    >
+      {severity}
+    </span>
+  )
+}
+
+function renderDialogField(
+  field: FleetGraphDialogField,
+  value: string | string[] | null,
+  onChange: (name: string, nextValue: string | string[] | null) => void
+) {
+  if (field.type === 'hidden') {
+    return null
+  }
+
+  if (field.type === 'single_select') {
+    return (
+      <label className="block text-sm text-foreground" key={field.name}>
+        <span className="mb-1.5 block font-medium">{field.label}</span>
+        <select
+          className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm shadow-sm transition-colors focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+          onChange={(event) => onChange(field.name, event.target.value)}
+          value={typeof value === 'string' ? value : ''}
+        >
+          <option value="">{field.placeholder ?? 'Select an option'}</option>
+          {field.options.map((option) => (
+            <option
+              disabled={option.disabled}
+              key={option.value}
+              value={option.value}
+            >
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </label>
+    )
+  }
+
+  if (field.type === 'multi_select') {
+    const selectedValues = Array.isArray(value) ? value : []
+    return (
+      <fieldset className="space-y-2" key={field.name}>
+        <legend className="text-sm font-medium text-foreground">
+          {field.label}
+        </legend>
+        {field.options.map((option) => (
+          <label
+            className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
+            key={option.value}
+          >
+            <input
+              checked={selectedValues.includes(option.value)}
+              disabled={option.disabled}
+              onChange={(event) => {
+                const nextValues = event.target.checked
+                  ? [...selectedValues, option.value]
+                  : selectedValues.filter((entry) => entry !== option.value)
+                onChange(field.name, nextValues)
+              }}
+              type="checkbox"
+            />
+            <span>{option.label}</span>
+          </label>
+        ))}
+      </fieldset>
+    )
+  }
+
+  if (field.type === 'textarea') {
+    return (
+      <label className="block text-sm text-foreground" key={field.name}>
+        <span className="mb-1.5 block font-medium">{field.label}</span>
+        <textarea
+          className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm shadow-sm transition-colors focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+          onChange={(event) => onChange(field.name, event.target.value)}
+          placeholder={field.placeholder}
+          rows={field.rows ?? 4}
+          value={typeof value === 'string' ? value : ''}
+        />
+      </label>
+    )
+  }
+
+  return (
+    <label className="block text-sm text-foreground" key={field.name}>
+      <span className="mb-1.5 block font-medium">{field.label}</span>
+      <input
+        className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm shadow-sm transition-colors focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+        onChange={(event) => onChange(field.name, event.target.value)}
+        placeholder={field.placeholder}
+        type="text"
+        value={typeof value === 'string' ? value : ''}
+      />
+    </label>
+  )
+}
+
+interface FindingCardProps {
+  actionDraft?: FleetGraphActionDraft
+  finding: FleetGraphReasonedFinding
+  isReviewingThis: boolean
+  onReviewAction: (actionDraft: FleetGraphActionDraft) => void
+}
+
+function FindingCard({
+  actionDraft,
+  finding,
+  isReviewingThis,
+  onReviewAction,
+}: FindingCardProps) {
+  return (
+    <div className="space-y-2 rounded-2xl border border-border bg-background p-3 shadow-sm">
+      <div className="flex items-start gap-2">
+        <FindingBadge severity={finding.severity} />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-foreground">
+            {finding.title}
+          </p>
+          <p className="mt-1 text-xs leading-5 text-muted">
+            {finding.explanation}
+          </p>
+        </div>
+      </div>
+
+      {finding.evidence.length > 0 && (
+        <ul className="list-disc space-y-1 pl-4 text-[11px] leading-5 text-muted">
+          {finding.evidence.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+      )}
+
+      {actionDraft && (
+        <div className="pt-1">
+          <button
+            className="rounded-xl bg-accent px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={isReviewingThis}
+            onClick={() => onReviewAction(actionDraft)}
+            type="button"
+          >
+            {isReviewingThis ? 'Preparing review...' : actionLabel(actionDraft)}
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+interface ConversationMessageProps {
+  entry: ConversationEntry
+  isReviewing: boolean
+  onReviewAction: (actionDraft: FleetGraphActionDraft) => void
+  pendingActionId: string | null
+}
+
+function ConversationMessage({
+  entry,
+  isReviewing,
+  onReviewAction,
+  pendingActionId,
+}: ConversationMessageProps) {
+  const isUser = entry.role === 'user'
+
+  return (
+    <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}>
+      <div
+        className={`max-w-[88%] rounded-2xl px-3 py-2 text-sm leading-6 ${
+          isUser
+            ? 'bg-accent text-white'
+            : 'border border-border bg-background text-foreground shadow-sm'
+        }`}
+      >
+        {entry.content}
+      </div>
+
+      {entry.findings && entry.findings.length > 0 && (
+        <div className="mt-2 w-full space-y-2">
+          {entry.findings.map((finding) => {
+            const actionDraft = readFindingActionDraft(entry, finding)
+            return (
+              <FindingCard
+                actionDraft={actionDraft}
+                finding={finding}
+                isReviewingThis={
+                  Boolean(actionDraft)
+                  && isReviewing
+                  && pendingActionId === actionDraft?.actionId
+                }
+                key={finding.fingerprint}
+                onReviewAction={onReviewAction}
+              />
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function AnalysisSection({
   documentId,
   documentTitle,
   documentType,
 }: AnalysisSectionProps) {
-  const {
-    messages,
-    isLoading,
-    error,
-    analyze,
-    sendMessage,
-    askFollowup,
-  } = useAnalysisChat()
-
   const [input, setInput] = useState('')
+  const [reviewValues, setReviewValues] = useState<
+    Record<string, string | string[] | null>
+  >({})
   const hasAnalyzedRef = useRef(false)
   const scrollRef = useRef<HTMLDivElement>(null)
-  const [expandedTool, setExpandedTool] = useState<string | null>(null)
-  const [pendingAction, setPendingAction] = useState<{
-    action: string
-    target_id: string
-    target_type: string
-    label: string
-    rationale: string
-  } | null>(null)
-  const [actionStatus, setActionStatus] = useState<'idle' | 'confirming' | 'executing' | 'done' | 'error'>('idle')
-  const [actionError, setActionError] = useState<string | null>(null)
-  const [selectOptions, setSelectOptions] = useState<Record<string, Array<{ id: string; name: string }>>>({})
-  const [loadingOptions, setLoadingOptions] = useState(false)
-  const [actionInputs, setActionInputs] = useState<Record<string, string>>({})
+
+  const {
+    analyze,
+    applyError,
+    applyReviewedAction,
+    conversation,
+    currentReview,
+    dismissActionReview,
+    isAnalyzing,
+    isApplying,
+    isContinuing,
+    isResponding,
+    isReviewing,
+    pendingActionId,
+    requestActionReview,
+    sendMessage,
+  } = useFleetGraphAnalysis()
 
   useEffect(() => {
     if (!hasAnalyzedRef.current && documentId) {
@@ -75,383 +320,183 @@ export function AnalysisSection({
   }, [analyze, documentId, documentTitle, documentType])
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      scrollRef.current?.scrollTo({
-        behavior: 'smooth',
-        top: scrollRef.current.scrollHeight,
-      })
-    }, 100)
-    return () => clearTimeout(timer)
-  }, [messages.length, isLoading])
+    scrollRef.current?.scrollTo({
+      behavior: 'smooth',
+      top: scrollRef.current.scrollHeight,
+    })
+  }, [conversation.length, currentReview])
 
-  const handleSend = () => {
+  useEffect(() => {
+    if (!currentReview) {
+      setReviewValues({})
+      return
+    }
+
+    setReviewValues(buildInitialDialogValues(currentReview.dialogSpec.fields))
+  }, [currentReview])
+
+  const reviewFields = useMemo(
+    () => currentReview?.dialogSpec.fields ?? [],
+    [currentReview]
+  )
+
+  const reviewEvidence = useMemo(
+    () =>
+      partitionFleetGraphReviewEvidence(currentReview?.dialogSpec.evidence ?? []),
+    [currentReview]
+  )
+
+  const isBusy = isApplying || isReviewing || isContinuing
+
+  const handleSubmit = (event: FormEvent) => {
+    event.preventDefault()
     const message = input.trim()
-    if (!message || isLoading) return
+    if (!message || isResponding || isContinuing) {
+      return
+    }
     sendMessage(message)
     setInput('')
   }
 
-  const handleActionClick = async (action: typeof pendingAction) => {
-    if (!action) return
-    setPendingAction(action)
-    setActionInputs({})
-    setActionStatus('confirming')
-
-    // Fetch select options for any fields that need them
-    const specs = ACTION_INPUT_SPECS[action.action] ?? []
-    const selectSpecs = specs.filter(s => s.type === 'select' && s.fetchOptions)
-    if (selectSpecs.length > 0) {
-      setLoadingOptions(true)
-      try {
-        for (const spec of selectSpecs) {
-          const res = await apiGet(spec.fetchOptions!)
-          if (res.ok) {
-            const data = await res.json() as Array<{ id: string; title?: string; properties?: { role?: string }; name?: string }>
-            const options = data.map(p => ({
-              id: p.id,
-              name: p.title ?? p.name ?? p.id,
-            }))
-            setSelectOptions(prev => ({ ...prev, [spec.key]: options }))
-          }
-        }
-      } catch {
-        // Silently fail — select will show empty
-      } finally {
-        setLoadingOptions(false)
-      }
-    }
-  }
-
-  const handleActionConfirm = async () => {
-    if (!pendingAction) return
-    setActionStatus('executing')
-
-    try {
-      let response: Response
-      const targetId = pendingAction.target_id
-
-      switch (pendingAction.action) {
-        case 'start_week':
-          response = await apiPost(`/api/weeks/${targetId}/start`, {})
-          break
-        case 'approve_week_plan':
-          response = await apiPost(`/api/weeks/${targetId}/approve-plan`, {})
-          break
-        case 'approve_project_plan':
-          response = await apiPost(`/api/projects/${targetId}/approve-plan`, {})
-          break
-        case 'assign_owner': {
-          const ownerId = actionInputs.owner_id?.trim()
-          if (!ownerId) throw new Error('Please select an owner')
-          // Determine if target is a week or project based on target_type
-          const ownerEndpoint = pendingAction.target_type === 'project'
-            ? `/api/projects/${targetId}`
-            : `/api/weeks/${targetId}`
-          response = await apiPatch(ownerEndpoint, {
-            properties: { owner_id: ownerId },
-          })
-          break
-        }
-        case 'escalate_risk': {
-          const content = actionInputs.content?.trim()
-          if (!content) throw new Error('Please describe the risk')
-          response = await apiPost(`/api/documents/${targetId}/comments`, {
-            content: `⚠️ RISK ESCALATION: ${content}`,
-          })
-          break
-        }
-        case 'post_standup': {
-          const content = actionInputs.content?.trim()
-          if (!content) throw new Error('Please enter standup content')
-          response = await apiPost(`/api/weeks/${targetId}/standups`, { content })
-          break
-        }
-        case 'post_comment': {
-          const content = actionInputs.content?.trim()
-          if (!content) throw new Error('Please enter a comment')
-          response = await apiPost(`/api/documents/${targetId}/comments`, { content })
-          break
-        }
-        default:
-          throw new Error(`Unknown action: ${pendingAction.action}`)
-      }
-
-      if (!response.ok) {
-        const body = await response.text().catch(() => '')
-        throw new Error(body || `Action failed (${response.status})`)
-      }
-
-      setActionStatus('done')
-      const label = pendingAction.label
-      setPendingAction(null)
-      setActionInputs({})
-      // Delay sendMessage until after success dialog dismisses
-      setTimeout(() => {
-        setActionStatus('idle')
-        sendMessage(`I just applied "${label}". What's the current status now?`)
-      }, 1500)
-    } catch (err) {
-      setActionStatus('error')
-      setActionError(err instanceof Error ? err.message : 'Action failed')
-      setTimeout(() => {
-        setPendingAction(null)
-        setActionStatus('idle')
-        setActionError(null)
-        setActionInputs({})
-      }, 3000)
-    }
-  }
-
-  const handleActionCancel = () => {
-    setPendingAction(null)
-    setActionStatus('idle')
-  }
-
   return (
-    <div className="flex h-full flex-col">
-      {/* Messages */}
-      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto" ref={scrollRef}>
-        {messages.map((msg, i) => (
-          <div
-            className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
-            key={`${msg.role}-${msg.timestamp}-${i}`}
-          >
-            {msg.role === 'user' ? (
-              <div className="max-w-[85%] rounded-2xl bg-accent px-3 py-2 text-sm leading-6 text-white">
-                {msg.content}
-              </div>
-            ) : (
-              <div className="w-full space-y-2">
-                <div className="rounded-2xl border border-border bg-background px-3 py-2 text-sm leading-6 text-foreground shadow-sm">
-                  {msg.content}
-                </div>
+    <>
+      <div className="flex h-full flex-col">
+        <div className="min-h-0 flex-1 space-y-2 overflow-y-auto" ref={scrollRef}>
+          {isAnalyzing && conversation.length === 0 && (
+            <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-xs text-muted">
+              <div className="h-3 w-3 animate-spin rounded-full border-2 border-accent/25 border-t-accent" />
+              Analyzing {documentType}...
+            </div>
+          )}
 
-                {/* Tool calls */}
-                {msg.toolCalls && msg.toolCalls.length > 0 && (
-                  <div className="space-y-1">
-                    <div className="flex flex-wrap gap-1">
-                      {msg.toolCalls.map((tc, j) => {
-                        const chipKey = `${i}-${tc.name}-${j}`
-                        const isExpanded = expandedTool === chipKey
-                        return (
-                          <button
-                            key={chipKey}
-                            type="button"
-                            className={`inline-flex items-center rounded-lg border px-2 py-0.5 text-[11px] transition-colors ${
-                              isExpanded
-                                ? 'border-accent/30 bg-accent/5 text-accent'
-                                : 'border-border bg-background text-muted hover:border-accent/20 hover:text-foreground'
-                            }`}
-                            onClick={() => setExpandedTool(isExpanded ? null : chipKey)}
-                          >
-                            {tc.name} ({tc.duration_ms}ms)
-                          </button>
-                        )
-                      })}
-                    </div>
-                    {/* Expanded tool detail */}
-                    {msg.toolCalls.map((tc, j) => {
-                      const chipKey = `${i}-${tc.name}-${j}`
-                      if (expandedTool !== chipKey) return null
-                      return (
-                        <div key={`detail-${chipKey}`} className="rounded-lg border border-border bg-background/50 p-2 text-[11px]">
-                          <div className="mb-1 font-medium text-foreground">Args:</div>
-                          <pre className="mb-2 overflow-x-auto whitespace-pre-wrap text-muted">
-                            {JSON.stringify(tc.args, null, 2)}
-                          </pre>
-                          <div className="mb-1 font-medium text-foreground">Result:</div>
-                          <pre className="max-h-32 overflow-y-auto whitespace-pre-wrap text-muted">
-                            {(() => {
-                              try { return JSON.stringify(JSON.parse(tc.result), null, 2) }
-                              catch { return tc.result }
-                            })()}
-                          </pre>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
+          {conversation.map((entry, index) => (
+            <ConversationMessage
+              entry={entry}
+              isReviewing={isBusy}
+              key={`${entry.role}-${entry.timestamp}-${index}`}
+              onReviewAction={requestActionReview}
+              pendingActionId={pendingActionId}
+            />
+          ))}
 
-                {/* Verification */}
-                {msg.verification && (
-                  <div className="flex items-center gap-1 text-[11px] text-muted">
-                    <span
-                      className={
-                        msg.verification.claims_grounded
-                          ? 'font-medium text-green-600'
-                          : 'font-medium text-amber-600'
-                      }
-                    >
-                      {msg.verification.claims_grounded
-                        ? 'Grounded'
-                        : 'Unverified'}
-                    </span>
-                    {msg.verification.evidence_sources.length > 0 && (
-                      <span>
-                        &middot; {msg.verification.evidence_sources.length}{' '}
-                        sources
-                      </span>
-                    )}
-                  </div>
-                )}
+          {(isResponding || isContinuing) && (
+            <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-xs text-muted">
+              <div className="h-3 w-3 animate-spin rounded-full border-2 border-accent/25 border-t-accent" />
+              {isContinuing ? 'Checking what should happen next...' : 'Thinking...'}
+            </div>
+          )}
+        </div>
 
-                {/* Action suggestions */}
-                {msg.actionSuggestions && msg.actionSuggestions.length > 0 && (
-                  <div className="space-y-1.5 rounded-xl border border-accent/20 bg-accent/5 p-2.5">
-                    <div className="text-[11px] font-medium text-accent">Suggested Actions</div>
-                    {msg.actionSuggestions.map((action, k) => (
-                      <div key={`action-${k}`} className="flex items-start gap-2">
-                        <button
-                          type="button"
-                          className="shrink-0 rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-white shadow-sm transition-colors hover:bg-accent/90"
-                          onClick={() => handleActionClick(action)}
-                        >
-                          {action.label}
-                        </button>
-                        <span className="pt-0.5 text-[11px] text-muted">{action.rationale}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
+        {applyError && <p className="py-2 text-xs text-red-600">{applyError}</p>}
 
-                {/* Suggested followups (only on last message) */}
-                {i === messages.length - 1 &&
-                  msg.suggestedFollowups &&
-                  msg.suggestedFollowups.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      {msg.suggestedFollowups.map((fu, k) => (
-                        <button
-                          className="rounded-full border border-accent/20 px-2.5 py-1 text-[11px] text-accent transition-colors hover:bg-accent/5"
-                          key={`followup-${k}`}
-                          onClick={() => askFollowup(fu)}
-                          type="button"
-                        >
-                          {fu}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-              </div>
-            )}
+        <form className="mt-3 border-t border-border pt-3" onSubmit={handleSubmit}>
+          <div className="flex gap-2">
+            <input
+              className="flex-1 rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground shadow-sm transition-colors focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+              disabled={isAnalyzing || isResponding || isContinuing}
+              onChange={(event) => setInput(event.target.value)}
+              placeholder="Ask a follow-up..."
+              type="text"
+              value={input}
+            />
+            <button
+              className="rounded-xl bg-accent px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={!input.trim() || isAnalyzing || isResponding || isContinuing}
+              type="submit"
+            >
+              Send
+            </button>
           </div>
-        ))}
-
-        {isLoading && (
-          <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-xs text-muted">
-            <div className="h-3 w-3 animate-spin rounded-full border-2 border-accent/25 border-t-accent" />
-            Analyzing...
-          </div>
-        )}
+        </form>
       </div>
 
-      {error && <p className="py-2 text-xs text-red-600">{error}</p>}
-
-      {/* Input */}
-      <div className="mt-3 flex gap-2 border-t border-border pt-3">
-        <input
-          className="flex-1 rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground shadow-sm transition-colors focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
-          disabled={isLoading}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
-          placeholder="Ask a follow-up..."
-          type="text"
-          value={input}
-        />
-        <button
-          className="rounded-xl bg-accent px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={isLoading || !input.trim()}
-          onClick={handleSend}
-          type="button"
+      {currentReview && (
+        <ConfirmDialog
+          cancelDisabled={isApplying}
+          cancelLabel={currentReview.dialogSpec.cancelLabel}
+          confirmDisabled={isApplying}
+          confirmLabel={isApplying ? 'Applying...' : currentReview.dialogSpec.confirmLabel}
+          description="You'll review the details first. Ship won't change until you confirm."
+          onCancel={dismissActionReview}
+          onConfirm={() => applyReviewedAction(reviewValues)}
+          open={Boolean(currentReview)}
+          title={currentReview.dialogSpec.title}
+          variant="success"
         >
-          Send
-        </button>
-      </div>
-
-      {/* Action confirmation — uses Ship's ConfirmDialog (portals to document root) */}
-      <ConfirmDialog
-        open={pendingAction !== null && actionStatus === 'confirming'}
-        title={pendingAction?.label ?? 'Confirm Action'}
-        description={pendingAction?.rationale}
-        confirmLabel={pendingAction?.label ?? 'Apply'}
-        cancelLabel="Cancel"
-        confirmDisabled={actionStatus === 'executing' || (
-          (ACTION_INPUT_SPECS[pendingAction?.action ?? ''] ?? []).length > 0 &&
-          (ACTION_INPUT_SPECS[pendingAction?.action ?? ''] ?? []).some(
-            spec => !actionInputs[spec.key]?.trim()
-          )
-        )}
-        onConfirm={handleActionConfirm}
-        onCancel={handleActionCancel}
-      >
-        {actionStatus === 'executing' && (
-          <div className="flex items-center gap-2 py-2 text-sm text-muted">
-            <div className="h-3 w-3 animate-spin rounded-full border-2 border-accent/25 border-t-accent" />
-            Applying...
-          </div>
-        )}
-        {/* Dynamic input fields */}
-        {pendingAction && (ACTION_INPUT_SPECS[pendingAction.action] ?? []).length > 0 && actionStatus !== 'executing' && (
-          <div className="space-y-3">
-            {loadingOptions && (
-              <div className="flex items-center gap-2 text-xs text-muted">
-                <div className="h-3 w-3 animate-spin rounded-full border-2 border-accent/25 border-t-accent" />
-                Loading options...
+          <div className="space-y-4">
+            {currentReview.validationError && (
+              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {currentReview.validationError}
               </div>
             )}
-            {(ACTION_INPUT_SPECS[pendingAction.action] ?? []).map(spec => (
-              <div key={spec.key}>
-                <label className="mb-1 block text-xs font-medium text-foreground">
-                  {spec.label}
-                </label>
-                {spec.type === 'select' ? (
-                  <select
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground shadow-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
-                    value={actionInputs[spec.key] ?? ''}
-                    onChange={e => setActionInputs(prev => ({ ...prev, [spec.key]: e.target.value }))}
-                  >
-                    <option value="">{spec.placeholder}</option>
-                    {(selectOptions[spec.key] ?? []).map(opt => (
-                      <option key={opt.id} value={opt.id}>{opt.name}</option>
-                    ))}
-                  </select>
-                ) : spec.type === 'textarea' ? (
-                  <textarea
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground shadow-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
-                    placeholder={spec.placeholder}
-                    rows={3}
-                    value={actionInputs[spec.key] ?? ''}
-                    onChange={e => setActionInputs(prev => ({ ...prev, [spec.key]: e.target.value }))}
-                  />
-                ) : (
-                  <input
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground shadow-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
-                    placeholder={spec.placeholder}
-                    type="text"
-                    value={actionInputs[spec.key] ?? ''}
-                    onChange={e => setActionInputs(prev => ({ ...prev, [spec.key]: e.target.value }))}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </ConfirmDialog>
 
-      {/* Action result — uses Ship's ConfirmDialog for done/error feedback */}
-      <ConfirmDialog
-        open={actionStatus === 'done' || actionStatus === 'error'}
-        title={actionStatus === 'done' ? 'Action Applied' : 'Action Failed'}
-        description={
-          actionStatus === 'done'
-            ? 'The action was applied successfully. The analysis will refresh with updated data.'
-            : actionError ?? 'Something went wrong. Please try again.'
-        }
-        confirmLabel="OK"
-        cancelLabel="Dismiss"
-        variant={actionStatus === 'done' ? 'success' : 'destructive'}
-        onConfirm={() => { setActionStatus('idle'); setActionError(null) }}
-        onCancel={() => { setActionStatus('idle'); setActionError(null) }}
-      />
-    </div>
+            <section className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-600">
+                What you're approving
+              </p>
+              <p className="mt-2 text-sm leading-6 text-slate-900">
+                {currentReview.dialogSpec.summary}
+              </p>
+              <p className="mt-2 text-xs leading-5 text-slate-600">
+                Ship will only be updated after you press {currentReview.dialogSpec.confirmLabel}.
+              </p>
+            </section>
+
+            {reviewFields.length > 0 && (
+              <section className="space-y-3">
+                {reviewFields.map((field) =>
+                  renderDialogField(
+                    field,
+                    reviewValues[field.name] ?? null,
+                    (name, value) => {
+                      setReviewValues((prev) => ({
+                        ...prev,
+                        [name]: value,
+                      }))
+                    }
+                  )
+                )}
+              </section>
+            )}
+
+            {reviewEvidence.facts.length > 0 && (
+              <section className="space-y-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">
+                  Check these details
+                </p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {reviewEvidence.facts.map((fact) => (
+                    <div
+                      className="rounded-2xl border border-border bg-background px-3 py-3 shadow-sm"
+                      key={`${fact.label}:${fact.value}`}
+                    >
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">
+                        {fact.label}
+                      </p>
+                      <p className="mt-1 text-sm font-medium text-foreground">
+                        {fact.value}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {reviewEvidence.notes.length > 0 && (
+              <section className="space-y-2">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">
+                  Why FleetGraph suggested this
+                </p>
+                <ul className="list-disc space-y-1 pl-5 text-sm leading-6 text-foreground">
+                  {reviewEvidence.notes.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </section>
+            )}
+          </div>
+        </ConfirmDialog>
+      )}
+    </>
   )
 }

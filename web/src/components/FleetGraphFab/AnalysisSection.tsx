@@ -1,36 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
 
-import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { useAnalysisChat } from '@/hooks/useAnalysisChat'
-import { apiGet, apiPatch, apiPost } from '@/lib/api'
 
-interface ActionInputSpec {
-  key: string
-  label: string
-  placeholder: string
-  type: 'text' | 'textarea' | 'select'
-  fetchOptions?: string  // API endpoint to fetch select options from
-}
-
-const ACTION_INPUT_SPECS: Record<string, ActionInputSpec[]> = {
-  start_week: [],
-  approve_week_plan: [],
-  approve_project_plan: [],
-  assign_owner: [
-    { key: 'owner_id', label: 'Assign Owner', placeholder: 'Select a team member', type: 'select', fetchOptions: '/api/team/people' },
-  ],
-  post_comment: [
-    { key: 'content', label: 'Comment', placeholder: 'Write your comment...', type: 'textarea' },
-  ],
-  post_standup: [
-    { key: 'content', label: 'Standup Update', placeholder: 'What did you work on? What are you working on next?', type: 'textarea' },
-  ],
-  escalate_risk: [
-    { key: 'content', label: 'Escalation Note', placeholder: 'Describe the risk and why it needs escalation...', type: 'textarea' },
-  ],
-  assign_issues: [],  // Issues are auto-selected from context
-  rebalance_load: [],  // Rebalancing is auto-selected from context
-}
+// Analysis suggestions are notice-only — they inform but don't execute.
+// Real actions live in the Findings tab (proactive pipeline with pre-validation).
+const KNOWN_SUGGESTION_TYPES = new Set([
+  'start_week',
+  'approve_week_plan',
+  'approve_project_plan',
+  'assign_owner',
+  'assign_issues',
+  'post_comment',
+  'post_standup',
+  'escalate_risk',
+  'rebalance_load',
+])
 
 interface AnalysisSectionProps {
   documentId: string
@@ -56,18 +40,6 @@ export function AnalysisSection({
   const hasAnalyzedRef = useRef(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const [expandedTool, setExpandedTool] = useState<string | null>(null)
-  const [pendingAction, setPendingAction] = useState<{
-    action: string
-    target_id: string
-    target_type: string
-    label: string
-    rationale: string
-  } | null>(null)
-  const [actionStatus, setActionStatus] = useState<'idle' | 'confirming' | 'executing' | 'done' | 'error'>('idle')
-  const [actionError, setActionError] = useState<string | null>(null)
-  const [selectOptions, setSelectOptions] = useState<Record<string, Array<{ id: string; name: string }>>>({})
-  const [loadingOptions, setLoadingOptions] = useState(false)
-  const [actionInputs, setActionInputs] = useState<Record<string, string>>({})
 
   useEffect(() => {
     if (!hasAnalyzedRef.current && documentId) {
@@ -93,135 +65,7 @@ export function AnalysisSection({
     setInput('')
   }
 
-  const handleActionClick = async (action: typeof pendingAction) => {
-    if (!action) return
-    setPendingAction(action)
-    setActionInputs({})
-    setActionStatus('confirming')
-
-    // Fetch select options for any fields that need them
-    const specs = ACTION_INPUT_SPECS[action.action] ?? []
-    const selectSpecs = specs.filter(s => s.type === 'select' && s.fetchOptions)
-    if (selectSpecs.length > 0) {
-      setLoadingOptions(true)
-      try {
-        for (const spec of selectSpecs) {
-          const res = await apiGet(spec.fetchOptions!)
-          if (res.ok) {
-            const data = await res.json() as Array<{ id: string; title?: string; properties?: { role?: string }; name?: string }>
-            const options = data.map(p => ({
-              id: p.id,
-              name: p.title ?? p.name ?? p.id,
-            }))
-            setSelectOptions(prev => ({ ...prev, [spec.key]: options }))
-          }
-        }
-      } catch {
-        // Silently fail — select will show empty
-      } finally {
-        setLoadingOptions(false)
-      }
-    }
-  }
-
-  const handleActionConfirm = async () => {
-    if (!pendingAction) return
-    setActionStatus('executing')
-
-    try {
-      let response: Response
-      const targetId = pendingAction.target_id
-
-      switch (pendingAction.action) {
-        case 'start_week':
-          response = await apiPost(`/api/weeks/${targetId}/start`, {})
-          break
-        case 'approve_week_plan':
-          response = await apiPost(`/api/weeks/${targetId}/approve-plan`, {})
-          break
-        case 'approve_project_plan':
-          response = await apiPost(`/api/projects/${targetId}/approve-plan`, {})
-          break
-        case 'assign_owner': {
-          const ownerId = actionInputs.owner_id?.trim()
-          if (!ownerId) throw new Error('Please select an owner')
-          // Use /api/documents/:id with owner_id at top level (not nested in properties)
-          // The documents PATCH handler extracts owner_id and merges it into properties,
-          // and for sprints also stores it in assignee_ids[0] for consistency
-          response = await apiPatch(`/api/documents/${targetId}`, {
-            owner_id: ownerId,
-          })
-          break
-        }
-        case 'escalate_risk': {
-          const content = actionInputs.content?.trim()
-          if (!content) throw new Error('Please describe the risk')
-          response = await apiPost(`/api/documents/${targetId}/comments`, {
-            comment_id: crypto.randomUUID(),
-            content: `⚠️ RISK ESCALATION: ${content}`,
-          })
-          break
-        }
-        case 'post_standup': {
-          // Use the standalone /api/standups endpoint which is idempotent
-          // and only requires a date (creates the standup doc for today)
-          const today = new Date().toISOString().slice(0, 10)
-          response = await apiPost('/api/standups', { date: today })
-          break
-        }
-        case 'post_comment': {
-          const content = actionInputs.content?.trim()
-          if (!content) throw new Error('Please enter a comment')
-          response = await apiPost(`/api/documents/${targetId}/comments`, {
-            comment_id: crypto.randomUUID(),
-            content,
-          })
-          break
-        }
-        case 'assign_issues': {
-          // Assign issues action uses the FleetGraph pipeline — just confirm
-          response = await apiPatch(`/api/documents/${targetId}`, {})
-          break
-        }
-        case 'rebalance_load': {
-          // Rebalance load action uses the FleetGraph pipeline — just confirm
-          response = await apiPatch(`/api/documents/${targetId}`, {})
-          break
-        }
-        default:
-          throw new Error(`Unknown action: ${pendingAction.action}`)
-      }
-
-      if (!response.ok) {
-        const body = await response.text().catch(() => '')
-        throw new Error(body || `Action failed (${response.status})`)
-      }
-
-      setActionStatus('done')
-      const label = pendingAction.label
-      setPendingAction(null)
-      setActionInputs({})
-      // Delay sendMessage until after success dialog dismisses
-      setTimeout(() => {
-        setActionStatus('idle')
-        sendMessage(`I just applied "${label}". What's the current status now?`)
-      }, 1500)
-    } catch (err) {
-      setActionStatus('error')
-      setActionError(err instanceof Error ? err.message : 'Action failed')
-      setTimeout(() => {
-        setPendingAction(null)
-        setActionStatus('idle')
-        setActionError(null)
-        setActionInputs({})
-      }, 3000)
-    }
-  }
-
-  const handleActionCancel = () => {
-    setPendingAction(null)
-    setActionStatus('idle')
-  }
+  // Analysis suggestions are notice-only — no action execution handlers needed
 
   return (
     <div className="flex h-full flex-col">
@@ -311,20 +155,17 @@ export function AnalysisSection({
                   </div>
                 )}
 
-                {/* Action suggestions — only show actions with known handlers */}
-                {msg.actionSuggestions && msg.actionSuggestions.filter(a => a.action in ACTION_INPUT_SPECS).length > 0 && (
-                  <div className="space-y-1.5 rounded-xl border border-accent/20 bg-accent/5 p-2.5">
-                    <div className="text-[11px] font-medium text-accent">Suggested Actions</div>
-                    {msg.actionSuggestions.filter(a => a.action in ACTION_INPUT_SPECS).map((action, k) => (
-                      <div key={`action-${k}`} className="flex items-start gap-2">
-                        <button
-                          type="button"
-                          className="shrink-0 rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-white shadow-sm transition-colors hover:bg-accent/90"
-                          onClick={() => handleActionClick(action)}
-                        >
-                          {action.label}
-                        </button>
-                        <span className="pt-0.5 text-[11px] text-muted">{action.rationale}</span>
+                {/* Suggestions — notice-only cards, no executable actions */}
+                {msg.actionSuggestions && msg.actionSuggestions.filter(a => KNOWN_SUGGESTION_TYPES.has(a.action)).length > 0 && (
+                  <div className="space-y-1.5 rounded-xl border border-amber-500/20 bg-amber-500/5 p-2.5">
+                    <div className="text-[11px] font-medium text-amber-700 dark:text-amber-400">💡 Suggestions</div>
+                    {msg.actionSuggestions.filter(a => KNOWN_SUGGESTION_TYPES.has(a.action)).map((suggestion, k) => (
+                      <div key={`suggestion-${k}`} className="flex items-start gap-2 py-0.5">
+                        <span className="shrink-0 mt-0.5 text-amber-600 dark:text-amber-400">→</span>
+                        <div className="text-[12px] text-foreground/80">
+                          <span className="font-medium">{suggestion.label}:</span>{' '}
+                          <span className="text-muted">{suggestion.rationale}</span>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -383,91 +224,7 @@ export function AnalysisSection({
         </button>
       </div>
 
-      {/* Action confirmation — uses Ship's ConfirmDialog (portals to document root) */}
-      <ConfirmDialog
-        open={pendingAction !== null && actionStatus === 'confirming'}
-        title={pendingAction?.label ?? 'Confirm Action'}
-        description={pendingAction?.rationale}
-        confirmLabel={pendingAction?.label ?? 'Apply'}
-        cancelLabel="Cancel"
-        confirmDisabled={actionStatus === 'executing' || (
-          (ACTION_INPUT_SPECS[pendingAction?.action ?? ''] ?? []).length > 0 &&
-          (ACTION_INPUT_SPECS[pendingAction?.action ?? ''] ?? []).some(
-            spec => !actionInputs[spec.key]?.trim()
-          )
-        )}
-        onConfirm={handleActionConfirm}
-        onCancel={handleActionCancel}
-      >
-        {actionStatus === 'executing' && (
-          <div className="flex items-center gap-2 py-2 text-sm text-muted">
-            <div className="h-3 w-3 animate-spin rounded-full border-2 border-accent/25 border-t-accent" />
-            Applying...
-          </div>
-        )}
-        {/* Dynamic input fields */}
-        {pendingAction && (ACTION_INPUT_SPECS[pendingAction.action] ?? []).length > 0 && actionStatus !== 'executing' && (
-          <div className="space-y-3">
-            {loadingOptions && (
-              <div className="flex items-center gap-2 text-xs text-muted">
-                <div className="h-3 w-3 animate-spin rounded-full border-2 border-accent/25 border-t-accent" />
-                Loading options...
-              </div>
-            )}
-            {(ACTION_INPUT_SPECS[pendingAction.action] ?? []).map(spec => (
-              <div key={spec.key}>
-                <label className="mb-1 block text-xs font-medium text-foreground">
-                  {spec.label}
-                </label>
-                {spec.type === 'select' ? (
-                  <select
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground shadow-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
-                    value={actionInputs[spec.key] ?? ''}
-                    onChange={e => setActionInputs(prev => ({ ...prev, [spec.key]: e.target.value }))}
-                  >
-                    <option value="">{spec.placeholder}</option>
-                    {(selectOptions[spec.key] ?? []).map(opt => (
-                      <option key={opt.id} value={opt.id}>{opt.name}</option>
-                    ))}
-                  </select>
-                ) : spec.type === 'textarea' ? (
-                  <textarea
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground shadow-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
-                    placeholder={spec.placeholder}
-                    rows={3}
-                    value={actionInputs[spec.key] ?? ''}
-                    onChange={e => setActionInputs(prev => ({ ...prev, [spec.key]: e.target.value }))}
-                  />
-                ) : (
-                  <input
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground shadow-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
-                    placeholder={spec.placeholder}
-                    type="text"
-                    value={actionInputs[spec.key] ?? ''}
-                    onChange={e => setActionInputs(prev => ({ ...prev, [spec.key]: e.target.value }))}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </ConfirmDialog>
-
-      {/* Action result — uses Ship's ConfirmDialog for done/error feedback */}
-      <ConfirmDialog
-        open={actionStatus === 'done' || actionStatus === 'error'}
-        title={actionStatus === 'done' ? 'Action Applied' : 'Action Failed'}
-        description={
-          actionStatus === 'done'
-            ? 'The action was applied successfully. The analysis will refresh with updated data.'
-            : actionError ?? 'Something went wrong. Please try again.'
-        }
-        confirmLabel="OK"
-        cancelLabel="Dismiss"
-        variant={actionStatus === 'done' ? 'success' : 'destructive'}
-        onConfirm={() => { setActionStatus('idle'); setActionError(null) }}
-        onCancel={() => { setActionStatus('idle'); setActionError(null) }}
-      />
+      {/* Analysis tab is notice-only — real actions live in the Findings tab */}
     </div>
   )
 }

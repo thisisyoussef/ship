@@ -63,16 +63,34 @@ const definition: FleetGraphActionDefinition = {
 
   validateSubmission(
     submission: FleetGraphDialogSubmission,
-    _dialogSpec: FleetGraphDialogSpec
+    dialogSpec: FleetGraphDialogSpec
   ) {
     const issueIds = submission.values.issue_ids
     if (!Array.isArray(issueIds) || issueIds.length === 0) {
       return { valid: false as const, error: 'Please select at least one issue to reassign' }
     }
 
+    const issueField = dialogSpec.fields.find(f => f.name === 'issue_ids')
+    if (issueField?.type === 'multi_select') {
+      const validIssueIds = new Set(issueField.options.map(o => o.value))
+      for (const issueId of issueIds) {
+        if (!validIssueIds.has(issueId)) {
+          return { valid: false as const, error: 'Invalid issue selection' }
+        }
+      }
+    }
+
     const newAssigneeId = submission.values.new_assignee_id
     if (typeof newAssigneeId !== 'string' || newAssigneeId.length === 0) {
       return { valid: false as const, error: 'Please select a new assignee' }
+    }
+
+    const assigneeField = dialogSpec.fields.find(f => f.name === 'new_assignee_id')
+    if (assigneeField?.type === 'single_select') {
+      const validAssignee = assigneeField.options.find(o => o.value === newAssigneeId)
+      if (!validAssignee) {
+        return { valid: false as const, error: 'Invalid person selection' }
+      }
     }
 
     return { valid: true as const }

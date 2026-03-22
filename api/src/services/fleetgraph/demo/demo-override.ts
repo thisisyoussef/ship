@@ -1,9 +1,12 @@
 /**
  * FleetGraph Demo Override
  *
- * When a document has a fixed demo UUID, this module returns a hardcoded
+ * When a document has a fixed demo UUID, this module returns hardcoded
  * FleetGraph state so the entry service can short-circuit the normal runtime.
  * This keeps the demo deterministic without touching production code paths.
+ *
+ * The 3 demo sprints produce multiple findings simultaneously to showcase
+ * the proactive pipeline's ability to surface several issues at once.
  */
 
 import { DEMO_IDS, ALL_DEMO_DOC_IDS } from './constants.js'
@@ -35,167 +38,103 @@ export interface DemoOverrideResult {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Scenario Builders
+// Reusable finding builders
 // ──────────────────────────────────────────────────────────────────────────────
 
-function buildWeekStartDriftDemo(): DemoOverrideResult {
+function weekStartDriftFinding(): DemoScenarioResult {
   return {
-    state: {
-      branch: 'reasoned',
-      outcome: 'advisory',
-      path: ['demo_override', 'week_start_drift'],
-      routeSurface: 'document-detail',
-      threadId: '',
-    },
-    scenarioResults: [{
-      branch: 'reasoned',
-      evidence: [
-        'Sprint status is "planning" but the start date has passed.',
-        'The sprint started approximately 48 hours ago.',
-        'Starting the week would unblock issue tracking and standups.',
-      ],
-      findingType: 'week_start_drift',
-      summary: 'FleetGraph detected: This week is still in planning even though its start window has passed. Starting it would unblock issue tracking and standup submission. Suggested action: Start this week.',
-      title: 'Week start drift detected',
-    }],
+    branch: 'reasoned',
+    evidence: [
+      'Sprint status is "planning" but the start date has passed.',
+      'The sprint started approximately 48 hours ago.',
+      'Starting the week would unblock issue tracking and standups.',
+    ],
+    findingType: 'week_start_drift',
+    summary: 'This week is still in planning even though its start window has passed. Starting it would unblock issue tracking and standup submission.',
+    title: 'Week is still in planning',
   }
 }
 
-function buildEmptyActiveWeekDemo(): DemoOverrideResult {
+function sprintNoOwnerFinding(): DemoScenarioResult {
   return {
-    state: {
-      branch: 'reasoned',
-      outcome: 'advisory',
-      path: ['demo_override', 'empty_active_week'],
-      routeSurface: 'document-detail',
-      threadId: '',
-    },
-    scenarioResults: [{
-      branch: 'reasoned',
-      evidence: [
-        'Sprint status is "active" but issue count is 0.',
-        'An active week with no issues gives the team nothing concrete to execute against.',
-        'Consider scoping issues before the end of the week.',
-      ],
-      findingType: 'empty_active_week',
-      summary: 'FleetGraph detected: This active week has no scoped issues. The team may not have a concrete plan to execute against.',
-      title: 'Active week has no issues',
-    }],
+    branch: 'approval_required',
+    evidence: [
+      'Sprint has no owner_id assigned.',
+      'Without an owner, nobody is accountable for driving execution.',
+      'Assigning an owner ensures daily standups and progress tracking.',
+    ],
+    findingType: 'sprint_no_owner',
+    summary: 'This week has no owner assigned, so nobody is accountable for driving execution and daily standups.',
+    title: 'Week has no owner',
   }
 }
 
-function buildSprintNoOwnerDemo(): DemoOverrideResult {
+function approvalGapFinding(): DemoScenarioResult {
+  return {
+    branch: 'approval_required',
+    evidence: [
+      'Week plan was submitted 3 business days ago.',
+      'The owner may be blocked waiting for approval.',
+      'Reviewing and approving unblocks the next planning cycle.',
+    ],
+    findingType: 'approval_gap',
+    summary: 'This week plan has been waiting 3 business days for approval, so the owner may be blocked on the next step.',
+    title: 'Week plan needs review',
+  }
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Scenario Builders (one per demo sprint)
+// ──────────────────────────────────────────────────────────────────────────────
+
+/** Sprint 1: all three findings at once */
+function buildAllThreeDemo(): DemoOverrideResult {
   return {
     state: {
       branch: 'reasoned',
       outcome: 'approval_required',
-      path: ['demo_override', 'sprint_no_owner'],
+      path: ['demo_override', 'all_three'],
       routeSurface: 'document-detail',
       threadId: '',
     },
-    scenarioResults: [{
-      branch: 'approval_required',
-      evidence: [
-        'Sprint has no owner_id assigned.',
-        'Without an owner, nobody is accountable for driving execution.',
-        'Assigning an owner ensures daily standups and progress tracking.',
-      ],
-      findingType: 'sprint_no_owner',
-      summary: 'FleetGraph detected: This week has no owner assigned, so nobody is accountable for driving execution and daily standups. Suggested action: Assign an owner.',
-      title: 'Week has no owner',
-    }],
+    scenarioResults: [
+      weekStartDriftFinding(),
+      sprintNoOwnerFinding(),
+      approvalGapFinding(),
+    ],
   }
 }
 
-function buildUnassignedIssuesDemo(): DemoOverrideResult {
+/** Sprint 2: week start drift + no owner */
+function buildDriftNoOwnerDemo(): DemoOverrideResult {
   return {
     state: {
       branch: 'reasoned',
       outcome: 'approval_required',
-      path: ['demo_override', 'unassigned_sprint_issues'],
+      path: ['demo_override', 'drift_no_owner'],
       routeSurface: 'document-detail',
       threadId: '',
     },
-    scenarioResults: [{
-      branch: 'approval_required',
-      evidence: [
-        '4 of 4 issues in this week have no assignee.',
-        'Sprint is active, so unassigned work may slip.',
-        'Assigning issues helps the team stay focused and accountable.',
-      ],
-      findingType: 'unassigned_sprint_issues',
-      summary: 'FleetGraph detected: 4 unassigned issues in this active week. Assigning issues helps the team stay focused and accountable. Suggested action: Assign issues.',
-      title: '4 unassigned issues in active week',
-    }],
+    scenarioResults: [
+      weekStartDriftFinding(),
+      sprintNoOwnerFinding(),
+    ],
   }
 }
 
-function buildApprovalGapDemo(): DemoOverrideResult {
+/** Sprint 3: approval gap only */
+function buildApprovalOnlyDemo(): DemoOverrideResult {
   return {
     state: {
       branch: 'reasoned',
       outcome: 'approval_required',
-      path: ['demo_override', 'approval_gap'],
+      path: ['demo_override', 'approval_only'],
       routeSurface: 'document-detail',
       threadId: '',
     },
-    scenarioResults: [{
-      branch: 'approval_required',
-      evidence: [
-        'Week plan was submitted 2+ business days ago.',
-        'The owner may be blocked waiting for approval.',
-        'Reviewing and approving unblocks the next planning cycle.',
-      ],
-      findingType: 'approval_gap',
-      summary: 'FleetGraph detected: This week plan has been waiting 2+ business days for approval, so the owner may be blocked on the next step. Suggested action: Review and approve.',
-      title: 'Week plan needs review',
-    }],
-  }
-}
-
-function buildDeadlineRiskDemo(): DemoOverrideResult {
-  return {
-    state: {
-      branch: 'reasoned',
-      outcome: 'advisory',
-      path: ['demo_override', 'deadline_risk'],
-      routeSurface: 'document-detail',
-      threadId: '',
-    },
-    scenarioResults: [{
-      branch: 'reasoned',
-      evidence: [
-        'Project target date is 3 days away.',
-        'There are still open issues that need resolution.',
-        'At least one high-priority issue has not been updated recently.',
-      ],
-      findingType: 'deadline_risk',
-      summary: 'FleetGraph detected: Project deadline is at risk. The target date is 3 days away with open issues remaining. Suggested action: Escalate risk.',
-      title: 'Project deadline at risk',
-    }],
-  }
-}
-
-function buildBlockerAgingDemo(): DemoOverrideResult {
-  return {
-    state: {
-      branch: 'reasoned',
-      outcome: 'advisory',
-      path: ['demo_override', 'blocker_aging'],
-      routeSurface: 'document-detail',
-      threadId: '',
-    },
-    scenarioResults: [{
-      branch: 'reasoned',
-      evidence: [
-        'Issue has been in "blocked" state for 5+ days.',
-        'No meaningful update has been posted during that period.',
-        'The issue may need escalation or reassignment.',
-      ],
-      findingType: 'blocker_aging',
-      summary: 'FleetGraph detected: This issue has an aging blocker. The blocker has gone 5 business days without a meaningful update. Suggested action: Post a comment to escalate.',
-      title: 'Issue has an aging blocker',
-    }],
+    scenarioResults: [
+      approvalGapFinding(),
+    ],
   }
 }
 
@@ -218,26 +157,14 @@ export function getDemoOverrideResponse(
   let result: DemoOverrideResult | null = null
 
   switch (documentId) {
-    case DEMO_IDS.WEEK_START_DRIFT:
-      result = buildWeekStartDriftDemo()
+    case DEMO_IDS.SPRINT_ALL_THREE:
+      result = buildAllThreeDemo()
       break
-    case DEMO_IDS.EMPTY_ACTIVE_WEEK:
-      result = buildEmptyActiveWeekDemo()
+    case DEMO_IDS.SPRINT_DRIFT_NO_OWNER:
+      result = buildDriftNoOwnerDemo()
       break
-    case DEMO_IDS.SPRINT_NO_OWNER:
-      result = buildSprintNoOwnerDemo()
-      break
-    case DEMO_IDS.UNASSIGNED_ISSUES:
-      result = buildUnassignedIssuesDemo()
-      break
-    case DEMO_IDS.APPROVAL_GAP:
-      result = buildApprovalGapDemo()
-      break
-    case DEMO_IDS.DEADLINE_RISK_PROJECT:
-      result = buildDeadlineRiskDemo()
-      break
-    case DEMO_IDS.BLOCKER_AGING_ISSUE:
-      result = buildBlockerAgingDemo()
+    case DEMO_IDS.SPRINT_APPROVAL_ONLY:
+      result = buildApprovalOnlyDemo()
       break
     default:
       return null

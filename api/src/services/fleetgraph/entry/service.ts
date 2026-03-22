@@ -2,7 +2,6 @@ import { z } from 'zod'
 
 import type { AuthContext } from '../../../routes/route-helpers.js'
 import type { FleetGraphState } from '../graph/index.js'
-import { getDemoOverrideResponse } from '../demo/demo-override.js'
 import { createShipContextEnvelope } from '../normalize/index.js'
 import {
   FleetGraphApprovalEnvelopeSchema,
@@ -207,64 +206,6 @@ export function createFleetGraphEntryService(
         route: parsed.route,
         trigger,
       })
-
-      // Demo override: short-circuit runtime for known demo document UUIDs
-      const demoOverride = getDemoOverrideResponse(
-        trigger.documentId,
-        trigger.documentType,
-        trigger.threadId
-      )
-      if (demoOverride) {
-        const demoState = {
-          branch: demoOverride.state.branch,
-          outcome: demoOverride.state.outcome,
-          path: demoOverride.state.path,
-          routeSurface: demoOverride.state.routeSurface,
-          threadId: demoOverride.state.threadId,
-          scenarioResults: demoOverride.scenarioResults,
-        } as unknown as FleetGraphState
-
-        const response = FleetGraphEntryResponseSchema.parse({
-          approval: parsed.draft?.requestedAction
-            ? buildApproval(parsed.draft.requestedAction)
-            : undefined,
-          entry: {
-            current: {
-              documentType: entry.current.documentType,
-              id: entry.current.id,
-              title: entry.current.title,
-            },
-            route: {
-              activeTab: entry.route.activeTab,
-              nestedPath: entry.route.nestedPath,
-              surface: entry.route.surface,
-            },
-            threadId: entry.trigger.threadId,
-          },
-          run: {
-            branch: demoState.branch,
-            outcome: demoState.outcome,
-            path: demoState.path,
-            routeSurface: demoState.routeSurface,
-            threadId: demoState.threadId,
-          },
-          summary: buildSummary(parsed, {
-            current: {
-              documentType: entry.current.documentType,
-              id: entry.current.id,
-              title: entry.current.title,
-            },
-            route: {
-              activeTab: entry.route.activeTab,
-              nestedPath: entry.route.nestedPath,
-              surface: entry.route.surface,
-            },
-            threadId: entry.trigger.threadId,
-          }, demoState),
-        })
-
-        return response
-      }
 
       const state = await deps.runtime.invoke({
         contextKind: 'entry',

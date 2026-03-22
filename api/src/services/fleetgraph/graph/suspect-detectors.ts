@@ -175,7 +175,7 @@ function checkDeadlineRisk(
       continue
     }
 
-    const state = issue.state.toLowerCase()
+    const state = (issue.state ?? '').toLowerCase()
     if (state === 'done' || state === 'closed' || state === 'cancelled') {
       continue
     }
@@ -232,7 +232,7 @@ function checkWorkloadImbalance(
       continue
     }
 
-    const state = issue.state.toLowerCase()
+    const state = (issue.state ?? '').toLowerCase()
     if (state === 'done' || state === 'closed' || state === 'cancelled') {
       continue
     }
@@ -335,7 +335,7 @@ function checkMissingStandup(
       continue
     }
 
-    const state = issue.state.toLowerCase()
+    const state = (issue.state ?? '').toLowerCase()
     if (state === 'done' || state === 'closed' || state === 'cancelled') {
       continue
     }

@@ -340,6 +340,7 @@ export interface DedupeHit {
   entityId: string
   lastNotifiedAt: string
   cooldownUntil: string
+  evidenceHash?: string
   snoozedUntil?: string
   dismissedUntil?: string
 }

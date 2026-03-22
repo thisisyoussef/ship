@@ -82,7 +82,8 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
               JOIN document_associations da ON da.document_id = s.id AND da.related_id = d.id AND da.relationship_type = 'program'
               WHERE s.document_type = 'sprint') as sprint_count
       FROM documents d
-      LEFT JOIN users u ON u.id = COALESCE((d.properties->>'owner_id')::uuid, d.created_by)
+      LEFT JOIN documents owner_person ON owner_person.id = (d.properties->>'owner_id')::uuid AND owner_person.document_type = 'person'
+      LEFT JOIN users u ON u.id = COALESCE((owner_person.properties->>'user_id')::uuid, d.created_by)
       WHERE d.workspace_id = $1 AND d.document_type = 'program'
         AND ${VISIBILITY_FILTER_SQL('d', '$2', '$3')}
     `;
@@ -124,7 +125,8 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
                JOIN document_associations da ON da.document_id = s.id AND da.related_id = d.id AND da.relationship_type = 'program'
                WHERE s.document_type = 'sprint') as sprint_count
        FROM documents d
-       LEFT JOIN users u ON u.id = COALESCE((d.properties->>'owner_id')::uuid, d.created_by)
+       LEFT JOIN documents owner_person ON owner_person.id = (d.properties->>'owner_id')::uuid AND owner_person.document_type = 'person'
+       LEFT JOIN users u ON u.id = COALESCE((owner_person.properties->>'user_id')::uuid, d.created_by)
        WHERE d.id = $1 AND d.workspace_id = $2 AND d.document_type = 'program'
          AND ${VISIBILITY_FILTER_SQL('d', '$3', '$4')}`,
       [id, workspaceId, userId, isAdmin]
@@ -301,7 +303,8 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
               COALESCE((d.properties->>'owner_id')::uuid, d.created_by) as owner_id,
               u.name as owner_name, u.email as owner_email
        FROM documents d
-       LEFT JOIN users u ON u.id = COALESCE((d.properties->>'owner_id')::uuid, d.created_by)
+       LEFT JOIN documents owner_person ON owner_person.id = (d.properties->>'owner_id')::uuid AND owner_person.document_type = 'person'
+       LEFT JOIN users u ON u.id = COALESCE((owner_person.properties->>'user_id')::uuid, d.created_by)
        WHERE d.id = $1 AND d.document_type = 'program'`,
       [id]
     );
@@ -388,10 +391,10 @@ router.get('/:id/issues', authMiddleware, async (req: Request, res: Response) =>
        FROM documents d
        JOIN document_associations da ON da.document_id = d.id AND da.related_id = $1 AND da.relationship_type = 'program'
        LEFT JOIN document_associations sprint_da ON sprint_da.document_id = d.id AND sprint_da.relationship_type = 'sprint'
-       LEFT JOIN users u ON (d.properties->>'assignee_id')::uuid = u.id
-       LEFT JOIN documents person_doc ON person_doc.workspace_id = d.workspace_id
+       LEFT JOIN documents assignee_person ON assignee_person.id = (d.properties->>'assignee_id')::uuid AND assignee_person.document_type = 'person'
+       LEFT JOIN users u ON (assignee_person.properties->>'user_id')::uuid = u.id
+       LEFT JOIN documents person_doc ON person_doc.id = (d.properties->>'assignee_id')::uuid
          AND person_doc.document_type = 'person'
-         AND person_doc.properties->>'user_id' = d.properties->>'assignee_id'
        WHERE d.document_type = 'issue'
          AND ${VISIBILITY_FILTER_SQL('d', '$2', '$3')}
        ORDER BY
@@ -470,7 +473,8 @@ router.get('/:id/projects', authMiddleware, async (req: Request, res: Response) 
                WHERE i.document_type = 'issue') as issue_count
        FROM documents d
        JOIN document_associations da ON da.document_id = d.id AND da.related_id = $1 AND da.relationship_type = 'program'
-       LEFT JOIN users u ON u.id = (d.properties->>'owner_id')::uuid
+       LEFT JOIN documents owner_person ON owner_person.id = (d.properties->>'owner_id')::uuid AND owner_person.document_type = 'person'
+       LEFT JOIN users u ON (owner_person.properties->>'user_id')::uuid = u.id
        WHERE d.document_type = 'project'
          AND ${VISIBILITY_FILTER_SQL('d', '$2', '$3')}
          AND d.archived_at IS NULL
@@ -567,7 +571,8 @@ router.get('/:id/sprints', authMiddleware, async (req: Request, res: Response) =
               (SELECT created_at FROM documents r WHERE r.parent_id = d.id AND r.document_type = 'weekly_retro' LIMIT 1) as retro_created_at
        FROM documents d
        JOIN document_associations da ON da.document_id = d.id AND da.related_id = $1 AND da.relationship_type = 'program'
-       LEFT JOIN users u ON (d.properties->>'owner_id')::uuid = u.id
+       LEFT JOIN documents owner_person ON owner_person.id = (d.properties->>'owner_id')::uuid AND owner_person.document_type = 'person'
+       LEFT JOIN users u ON (owner_person.properties->>'user_id')::uuid = u.id
        WHERE d.document_type = 'sprint'
          AND ${VISIBILITY_FILTER_SQL('d', '$2', '$3')}
        ORDER BY (d.properties->>'sprint_number')::int ASC`,
@@ -877,7 +882,8 @@ router.post('/:id/merge', authMiddleware, async (req: Request, res: Response) =>
                JOIN document_associations da ON da.document_id = s.id AND da.related_id = d.id AND da.relationship_type = 'program'
                WHERE s.document_type = 'sprint') as sprint_count
        FROM documents d
-       LEFT JOIN users u ON u.id = COALESCE((d.properties->>'owner_id')::uuid, d.created_by)
+       LEFT JOIN documents owner_person ON owner_person.id = (d.properties->>'owner_id')::uuid AND owner_person.document_type = 'person'
+       LEFT JOIN users u ON u.id = COALESCE((owner_person.properties->>'user_id')::uuid, d.created_by)
        WHERE d.id = $1 AND d.document_type = 'program'`,
       [targetId]
     );

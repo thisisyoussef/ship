@@ -79,3 +79,4 @@ For the named UI proof target and demo-user flow, use `docs/guides/fleetgraph-de
 - The deploy proof lane should allow demo login plus `GET /api/fleetgraph/findings` returning both:
   - the seeded HITL lane `Week start drift: FleetGraph Demo Week - Review and Apply`
   - the live worker-generated lane `Week start drift: FleetGraph Demo Week - Worker Generated`
+- The named review-tab validation proof lane should also be present in `Documents` as `FleetGraph Demo Week - Validation Ready`.

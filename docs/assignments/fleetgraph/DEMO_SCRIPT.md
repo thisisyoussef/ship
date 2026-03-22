@@ -87,4 +87,5 @@
 - **Demo Project:** FleetGraph Demo Project
 - **Demo Weeks:**
   - FleetGraph Demo Week - Review and Apply
+  - FleetGraph Demo Week - Validation Ready
   - FleetGraph Demo Week - Worker Generated

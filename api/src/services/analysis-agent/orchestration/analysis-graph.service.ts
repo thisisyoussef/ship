@@ -297,6 +297,7 @@ export function createAnalysisGraphService(deps: AnalysisGraphDeps) {
       toolContext: ToolContext
     }): Promise<AnalysisGraphResult> {
       const allToolCalls: ToolCallRecord[] = []
+      const toolCallCache = new Map<string, string>()
       const toolDescriptions = buildToolDescriptions()
       let accumulatedToolResults = ''
 
@@ -335,9 +336,16 @@ export function createAnalysisGraphService(deps: AnalysisGraphDeps) {
           }
         }
 
-        // Execute each tool call
+        // Execute each tool call (deduplicate within this run)
         const roundResults: string[] = []
         for (const call of requestedCalls) {
+          const cacheKey = JSON.stringify({ name: call.name, args: call.args })
+          const cached = toolCallCache.get(cacheKey)
+          if (cached) {
+            roundResults.push(`Tool result for ${call.name}:\n${cached}`)
+            continue
+          }
+
           const startMs = Date.now()
           const result = await executeAnalysisTool(call.name, call.args, input.toolContext)
           const durationMs = Date.now() - startMs
@@ -349,6 +357,7 @@ export function createAnalysisGraphService(deps: AnalysisGraphDeps) {
             duration_ms: durationMs,
           }
           allToolCalls.push(record)
+          toolCallCache.set(cacheKey, record.result)
 
           roundResults.push(
             `Tool result for ${call.name}:\n${record.result}`,

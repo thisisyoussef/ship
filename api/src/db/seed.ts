@@ -1389,29 +1389,30 @@ async function seedFleetGraphComprehensiveDemo(
 
   // Helper: idempotent week creation with associations
   async function ensureDemoSprint(title: string, properties: Record<string, unknown>): Promise<string> {
+    // Look up by title alone first (avoids creating duplicates when association is missing)
     const existing = await pool.query(
       `SELECT d.id FROM documents d
-       JOIN document_associations da ON da.document_id = d.id
-         AND da.related_id = $3 AND da.relationship_type = 'project'
        WHERE d.workspace_id = $1 AND d.document_type = 'sprint' AND d.title = $2`,
-      [workspaceId, title, projectId]
+      [workspaceId, title]
     ) as { rows: Array<{ id: string }> }
 
+    let id: string
     if (existing.rows[0]?.id) {
+      id = existing.rows[0].id
       await pool.query(
         `UPDATE documents SET properties = $3::jsonb WHERE id = $1 AND workspace_id = $2`,
-        [existing.rows[0].id, workspaceId, JSON.stringify(properties)]
+        [id, workspaceId, JSON.stringify(properties)]
       )
-      return existing.rows[0].id
+    } else {
+      const inserted = await pool.query(
+        `INSERT INTO documents (workspace_id, document_type, title, properties)
+         VALUES ($1, 'sprint', $2, $3::jsonb) RETURNING id`,
+        [workspaceId, title, JSON.stringify(properties)]
+      ) as { rows: Array<{ id: string }> }
+      id = inserted.rows[0]!.id
     }
 
-    const inserted = await pool.query(
-      `INSERT INTO documents (workspace_id, document_type, title, properties)
-       VALUES ($1, 'sprint', $2, $3::jsonb) RETURNING id`,
-      [workspaceId, title, JSON.stringify(properties)]
-    ) as { rows: Array<{ id: string }> }
-
-    const id = inserted.rows[0]!.id
+    // Always ensure associations exist (idempotent via ON CONFLICT)
     await pool.query(
       `INSERT INTO document_associations (document_id, related_id, relationship_type, metadata)
        VALUES ($1, $2, 'project', '{"created_via":"fleetgraph_demo"}'::jsonb)

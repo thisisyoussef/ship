@@ -69,7 +69,17 @@ function splitNestedPath(value?: string) {
   return value ? value.split('/').filter(Boolean) : []
 }
 
-function buildRequestedAction(document: FleetGraphEntryDocument) {
+function findRelatedContextTarget(
+  context: DocumentContext,
+  type: 'project' | 'sprint'
+) {
+  return context.belongs_to.find((item) => item.type === type)
+}
+
+function buildRequestedAction(
+  document: FleetGraphEntryDocument,
+  context: DocumentContext
+) {
   if (document.documentType === 'project') {
     return {
       endpoint: {
@@ -108,6 +118,31 @@ function buildRequestedAction(document: FleetGraphEntryDocument) {
     }
   }
 
+  if (document.documentType === 'weekly_plan') {
+    const relatedSprint = findRelatedContextTarget(context, 'sprint')
+
+    if (relatedSprint) {
+      return {
+        endpoint: {
+          method: 'POST' as const,
+          path: `/api/weeks/${relatedSprint.id}/approve-plan`,
+        },
+        evidence: [
+          relatedSprint.title
+            ? `This weekly plan belongs to ${relatedSprint.title}.`
+            : 'This weekly plan belongs to the current sprint context.',
+          'Week plan approval changes persistent sprint approval state.',
+        ],
+        rationale: 'Approving the current week plan is a consequential Ship write.',
+        summary: 'Approve the current week plan.',
+        targetId: relatedSprint.id,
+        targetType: 'sprint' as const,
+        title: 'Approve week plan',
+        type: 'approve_week_plan' as const,
+      }
+    }
+  }
+
   return {
     endpoint: {
       method: 'POST' as const,
@@ -137,7 +172,7 @@ export function buildFleetGraphEntryPayload(
   return {
     context: input.context,
     draft: previewApproval
-      ? { requestedAction: buildRequestedAction(input.document) }
+      ? { requestedAction: buildRequestedAction(input.document, input.context) }
       : undefined,
     route: {
       activeTab: input.activeTab,

@@ -12,9 +12,10 @@ FleetGraph already clears the narrow Tuesday proof lane, but the workbook still 
 
 ## Story Pack Objectives
 - Objective 1: Finish the two remaining on-demand workbook cases on the surfaces that already exist in the repo.
-- Objective 2: Generalize FleetGraph from a single proactive finding type to a small shared proactive findings surface that can support the remaining proactive workbook cases.
-- Objective 3: Ship `sprint_no_owner` and `unassigned_sprint_issues` end to end on the same visible FleetGraph surfaces as the current proof lane.
-- Objective 4: Refresh the assignment docs, traces, and audit path so the workbook tells the truth about what is actually complete.
+- Objective 2: Converge current-page approval preview onto the same graph-mediated apply path as the broader FleetGraph approval model.
+- Objective 3: Generalize FleetGraph from a single proactive finding type to a small shared proactive findings surface that can support the remaining proactive workbook cases.
+- Objective 4: Ship `sprint_no_owner` and `unassigned_sprint_issues` end to end on the same visible FleetGraph surfaces as the current proof lane.
+- Objective 5: Refresh the assignment docs, traces, and audit path so the workbook tells the truth about what is actually complete.
 - How this pack contributes to the overall objective set: it closes the remaining workbook use cases with the lowest-rework sequence available in the current codebase instead of reopening broader product ideas.
 
 ## User Stories
@@ -26,16 +27,18 @@ FleetGraph already clears the narrow Tuesday proof lane, but the workbook still 
 
 ## Acceptance Criteria
 - [ ] AC-1: Current-page approval preview is complete on the supported FleetGraph entry surface, with a typed approval envelope, visible confirmation state, and a traceable approval-required path.
-- [ ] AC-2: Context-aware page analysis produces a meaningful current-page analysis and uses the user’s follow-up message on subsequent turns instead of replaying a generic first-turn analysis.
-- [ ] AC-3: Shared proactive finding storage, route serialization, frontend types, and proactive UI are generalized beyond `week_start_drift` so additional finding types can surface without one-off hacks.
-- [ ] AC-4: `sprint_no_owner` is shipped end to end as a proactive FleetGraph finding with evidence, summary, trace linkage, dismiss/snooze lifecycle, and visible Ship UI proof.
-- [ ] AC-5: `unassigned_sprint_issues` is shipped end to end as a proactive FleetGraph finding with evidence, summary, trace linkage, dismiss/snooze lifecycle, and visible Ship UI proof.
-- [ ] AC-6: `docs/assignments/fleetgraph/FLEETGRAPH.md`, `docs/assignments/fleetgraph/README.md`, and the pack-level audit path reflect the completed remaining use cases accurately.
+- [ ] AC-2: The final `Apply` step for current-page approval preview is routed through the FleetGraph graph runtime rather than bypassing it with a direct UI call.
+- [ ] AC-3: Context-aware page analysis produces a meaningful current-page analysis and uses the user’s follow-up message on subsequent turns instead of replaying a generic first-turn analysis.
+- [ ] AC-4: Shared proactive finding storage, route serialization, frontend types, and proactive UI are generalized beyond `week_start_drift` so additional finding types can surface without one-off hacks.
+- [ ] AC-5: `sprint_no_owner` is shipped end to end as a proactive FleetGraph finding with evidence, summary, trace linkage, dismiss/snooze lifecycle, and visible Ship UI proof.
+- [ ] AC-6: `unassigned_sprint_issues` is shipped end to end as a proactive FleetGraph finding with evidence, summary, trace linkage, dismiss/snooze lifecycle, and visible Ship UI proof.
+- [ ] AC-7: `docs/assignments/fleetgraph/FLEETGRAPH.md`, `docs/assignments/fleetgraph/README.md`, and the pack-level audit path reflect the completed remaining use cases accurately.
 
 ## Workbook Mapping
 - [ ] Use case 2 `Sprint-owner gap`: `T604`
 - [ ] Use case 3 `Unassigned sprint issues`: `T605`
 - [ ] Use case 4 `Approval preview from current page`: `T601`
+- [ ] Approval-preview runtime convergence: `T601A`
 - [ ] Use case 5 `Context-aware page analysis`: `T602`
 - [ ] Final workbook / trace / audit sync: `T606`
 

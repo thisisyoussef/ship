@@ -34,6 +34,7 @@ Load context in this order before making non-trivial changes:
 - Use TDD for behavior changes: red, green, refactor.
 - Record validation, deployment status, and checkpoint evidence in the story and checkpoint logs.
 - Narrow user corrections should stay narrow; do not quietly expand them into a new plan.
+- When a change involves a non-obvious architectural trade-off, pause and check in with the user before committing to the higher-cost path.
 
 ## Validation Rules
 

@@ -138,6 +138,24 @@ export function FleetGraphEntryCard({
                   You stay in control. FleetGraph only acts after you confirm.
                 </p>
               </div>
+              <div className="space-y-2 rounded-lg border border-amber-200/80 bg-white/55 px-3 py-3">
+                <p className={sectionLabelClassName}>Why FleetGraph surfaced this</p>
+                <p className="text-sm text-amber-950">
+                  {approval.rationale}
+                </p>
+                {approval.evidence.length > 0 ? (
+                  <ul className="space-y-1 text-sm text-amber-900/85">
+                    {approval.evidence.map((item) => (
+                      <li key={item} className="flex gap-2">
+                        <span aria-hidden="true" className="mt-[2px] text-amber-700">
+                          -
+                        </span>
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
               <div className="flex flex-wrap gap-2">
                 {approval.options.map((option) => (
                   <button

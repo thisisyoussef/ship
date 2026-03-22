@@ -3,7 +3,6 @@ import { interrupt } from '@langchain/langgraph'
 import { buildEmptyDialogSubmission } from '../../actions/drafts.js'
 import {
   getActionDefinition,
-  type FleetGraphSelectOption,
 } from '../../actions/registry.js'
 import type { FleetGraphStateV2, FleetGraphStateV2Update } from '../state-v2.js'
 import type {
@@ -13,14 +12,7 @@ import type {
   TraceMetadata,
 } from '../types-v2.js'
 import { parseFleetGraphV2ResumeInput } from '../types-v2.js'
-
-function readDialogOptions(draft: PendingApproval['actionDraft']) {
-  const rawOptions = draft.contextHints?.dialogOptions
-  if (!rawOptions || typeof rawOptions !== 'object') {
-    return {}
-  }
-  return rawOptions as Record<string, FleetGraphSelectOption[]>
-}
+import { resolveDialogOptions } from './dialog-options.js'
 
 function buildPendingApproval(state: FleetGraphStateV2): PendingApproval | null {
   const actionDraft = state.selectedActionId
@@ -55,7 +47,10 @@ function buildPendingApproval(state: FleetGraphStateV2): PendingApproval | null 
   return {
     actionDraft,
     createdAt: new Date().toISOString(),
-    dialogSpec: definition.buildDialogSpec(actionDraft, readDialogOptions(actionDraft)),
+    dialogSpec: definition.buildDialogSpec(
+      actionDraft,
+      resolveDialogOptions(state, actionDraft)
+    ),
     id: `approval:${reasonedFinding.fingerprint}:${actionDraft.actionId}`,
     proposedAction,
     reasonedFinding,

@@ -327,15 +327,35 @@ export function createAnalysisGraphService(deps: AnalysisGraphDeps) {
         const llmText = response.text
         const requestedCalls = parseToolCalls(llmText)
 
-        // No tool calls → final answer
+        // No tool calls → check if we should force more tool usage or return final answer
         if (requestedCalls.length === 0) {
           const cleaned = cleanResponse(llmText)
-          // If the response is just narration with no substance (e.g., "Let me check..."),
-          // and we have tool results from prior rounds, force a summary round
-          if (cleaned.length < 50 && allToolCalls.length > 0 && round < MAX_ROUNDS - 1) {
-            // LLM gave an empty/narration-only response — push it to try again
+
+          // Anti-narration guard: if we're early in the loop and the model is just
+          // narrating ("Let me check...", "I'll pull...") without calling data tools,
+          // force it to actually call tools. This catches the common pattern where the
+          // LLM calls analysis_context_get (free) then narrates instead of fetching data.
+          const onlyCalledContextTool = allToolCalls.length > 0 &&
+            allToolCalls.every(tc => tc.name === 'analysis_context_get')
+          const isNarrationOnly = cleaned.length < 500 && (
+            cleaned.includes('I will') || cleaned.includes("I'll") ||
+            cleaned.includes('Let me') || cleaned.includes('Next Steps') ||
+            cleaned.includes('retrieve') || cleaned.includes('pull') ||
+            cleaned.includes('gather') || cleaned.includes('check the')
+          )
+
+          if (round < MAX_ROUNDS - 1 && (onlyCalledContextTool || (isNarrationOnly && allToolCalls.length === 0))) {
+            // Force the model to call entity_snapshot_get by injecting a nudge
+            accumulatedToolResults += (accumulatedToolResults ? '\n\n' : '') +
+              'SYSTEM: You narrated your intent but did not call tools. Call entity_snapshot_get now with the entity_id from the context. Do not narrate — just output the <tool_call> tag.'
             continue
           }
+
+          // Short response after tool calls — retry
+          if (cleaned.length < 50 && allToolCalls.length > 0 && round < MAX_ROUNDS - 1) {
+            continue
+          }
+
           return {
             response: cleaned,
             toolCalls: allToolCalls,

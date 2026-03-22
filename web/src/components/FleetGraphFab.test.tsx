@@ -82,4 +82,46 @@ describe('FleetGraphFab', () => {
 
     expect(screen.getByPlaceholderText('Ask a follow-up...')).toHaveClass('text-black')
   })
+
+  it('opens and starts analysis when the page requests a handoff run', () => {
+    const analyze = vi.fn()
+    const reset = vi.fn()
+    vi.mocked(useFleetGraphAnalysis).mockReturnValue({
+      analyze,
+      applyError: null,
+      applyFindingAction: vi.fn(),
+      conversation: [],
+      isAnalyzing: false,
+      isApplying: false,
+      isResponding: false,
+      pendingActionFindingId: null,
+      reset,
+      sendMessage: vi.fn(),
+      threadId: null,
+    })
+
+    const { rerender } = render(
+      <FleetGraphFab
+        documentId="doc-123"
+        documentTitle="Sprint 8"
+        documentType="sprint"
+        launchRequestKey={0}
+      />
+    )
+
+    expect(screen.queryByPlaceholderText('Ask a follow-up...')).not.toBeInTheDocument()
+
+    rerender(
+      <FleetGraphFab
+        documentId="doc-123"
+        documentTitle="Sprint 8"
+        documentType="sprint"
+        launchRequestKey={1}
+      />
+    )
+
+    expect(reset).toHaveBeenCalled()
+    expect(analyze).toHaveBeenCalledWith('doc-123', 'sprint', 'Sprint 8')
+    expect(screen.getByPlaceholderText('Ask a follow-up...')).toBeInTheDocument()
+  })
 })

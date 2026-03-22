@@ -17,6 +17,7 @@ import { useCurrentDocument } from '@/contexts/CurrentDocumentContext';
 import { FleetGraphDebugDock } from '@/components/FleetGraphDebugDock';
 import { FleetGraphDebugSurfaceProvider } from '@/components/FleetGraphDebugSurface';
 import { FleetGraphEntryCard } from '@/components/FleetGraphEntryCard';
+import { FleetGraphFab } from '@/components/FleetGraphFab';
 import { FleetGraphFindingsPanel } from '@/components/FleetGraphFindingsPanel';
 import { FleetGraphPanelShell } from '@/components/FleetGraphPanelShell';
 import { useDocumentContextQuery } from '@/hooks/useDocumentContextQuery';
@@ -175,6 +176,7 @@ export function UnifiedDocumentPage() {
   const { showToast } = useToast();
   const { setCurrentDocument, clearCurrentDocument } = useCurrentDocument();
   const documentContextQuery = useDocumentContextQuery(id);
+  const [fleetGraphFabLaunchKey, setFleetGraphFabLaunchKey] = useState(0);
 
   // Fetch the document by ID
   const { data: document, isLoading, error } = useQuery<DocumentResponse>({
@@ -626,6 +628,9 @@ export function UnifiedDocumentPage() {
     return buildFleetGraphFindingDocumentIds(document.id, documentContextQuery.data);
   }, [document?.id, documentContextQuery.data]);
   const fleetGraphFindings = useFleetGraphFindings(fleetGraphDocumentIds);
+  const handleFleetGraphCheckCurrentContext = useCallback(() => {
+    setFleetGraphFabLaunchKey((current) => current + 1);
+  }, []);
 
   // Loading state
   if (isLoading) {
@@ -682,9 +687,16 @@ export function UnifiedDocumentPage() {
           }}
           loading={documentContextQuery.isLoading}
           nestedPath={nestedPath}
+          onCheckCurrentContext={handleFleetGraphCheckCurrentContext}
           userId={user.id}
         />
       </FleetGraphPanelShell>
+      <FleetGraphFab
+        documentId={document.id}
+        documentTitle={document.title}
+        documentType={document.document_type}
+        launchRequestKey={fleetGraphFabLaunchKey}
+      />
       <FleetGraphDebugDock />
     </FleetGraphDebugSurfaceProvider>
   );

@@ -13,6 +13,7 @@ interface FleetGraphFabProps {
   documentId: string
   documentTitle: string
   documentType: string
+  launchRequestKey?: number
 }
 
 /* ------------------------------------------------------------------ */
@@ -101,6 +102,7 @@ export function FleetGraphFab({
   documentId,
   documentTitle,
   documentType,
+  launchRequestKey,
 }: FleetGraphFabProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [input, setInput] = useState('')
@@ -111,11 +113,13 @@ export function FleetGraphFab({
     conversation,
     isAnalyzing,
     isResponding,
+    reset,
     sendMessage,
   } = useFleetGraphAnalysis()
 
   // Auto-analyze when opening on a new document
   const lastAnalyzedRef = useRef<string | null>(null)
+  const lastLaunchRequestKeyRef = useRef<number>(0)
 
   useEffect(() => {
     if (isOpen && documentId && lastAnalyzedRef.current !== documentId) {
@@ -123,6 +127,18 @@ export function FleetGraphFab({
       analyze(documentId, documentType, documentTitle)
     }
   }, [isOpen, documentId, documentType, documentTitle, analyze])
+
+  useEffect(() => {
+    if (!launchRequestKey || launchRequestKey === lastLaunchRequestKeyRef.current) {
+      return
+    }
+
+    lastLaunchRequestKeyRef.current = launchRequestKey
+    lastAnalyzedRef.current = documentId
+    setIsOpen(true)
+    reset()
+    analyze(documentId, documentType, documentTitle)
+  }, [analyze, documentId, documentTitle, documentType, launchRequestKey, reset])
 
   // Auto-scroll on new messages
   useEffect(() => {

@@ -44,7 +44,7 @@ This phase will hold FleetGraph product and integration stories as the active pa
 | US-607 | FleetGraph panel visibility polish | `done` | P1 | `US-606` |
 | US-608 | FleetGraph context-aware page analysis completion | `done` | P0 | `US-605` |
 | US-609 | FleetGraph shared proactive multi-finding plumbing | `done` | P0 | `US-608` |
-| US-609.5 | FleetGraph FAB analysis handoff | `todo` | P1 | `US-609` |
+| US-609.5 | FleetGraph FAB analysis handoff | `done` | P1 | `US-609` |
 | US-610 | FleetGraph sprint-owner gap | `todo` | P0 | `US-609.5` |
 | US-611 | FleetGraph unassigned sprint issues | `todo` | P0 | `US-610` |
 | US-612 | FleetGraph assignment evidence refresh | `todo` | P0 | `US-611` |
@@ -78,7 +78,7 @@ This phase will hold FleetGraph product and integration stories as the active pa
 13. `US-607` tightens the inline FleetGraph shell so it starts collapsed, stays within the viewport, and signals proactive alerts more clearly, but it is still a sidecar polish story.
 14. `US-608` restores the original assignment-critical `T602` lane by completing the context-aware page-analysis use case as a checked-in story.
 15. `US-609` restores the original assignment-critical `T603` lane by widening FleetGraph’s proactive plumbing beyond `week_start_drift`.
-16. `US-609.5` adds the midpoint UX convergence you requested: `Check this page` should hand off into the FAB analysis chat, while guided-step preview stays on the embedded entry card.
+16. `US-609.5` restores the lighter FleetGraph analysis flow by handing `Check this page` into the FAB chat while leaving guided-step preview on the embedded entry card.
 17. `US-610` restores the original assignment-critical `T604` lane by shipping the sprint-owner gap use case.
 18. `US-611` restores the original assignment-critical `T605` lane by shipping the unassigned sprint issues use case.
 19. `US-612` restores the original assignment-critical `T606` lane by refreshing the workbook, traces, and audit path from shipped behavior.

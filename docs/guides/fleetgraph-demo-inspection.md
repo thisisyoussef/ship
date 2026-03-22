@@ -33,8 +33,8 @@ Use this guide when verifying FleetGraph behavior on the sanctioned public demo.
 10. Return to `Documents`.
 11. Open `FleetGraph Demo Week - Validation Ready`.
 12. Open the `Review` tab for `FleetGraph Demo Week - Validation Ready`.
-13. Click `Check this page` in the entry card and inspect the page-analysis response.
-14. Ask a follow-up such as `What else should I look at?`
+13. Click `Check this page` in the entry card and inspect the FAB handoff.
+14. Ask a follow-up such as `What else should I look at?` in the FAB.
 15. Click `Preview next step` in the entry card and inspect the guided-step preview state.
 16. Open `FleetGraph debug`.
 17. Inspect the secondary debug dock for thread history and pending interrupts.
@@ -57,7 +57,7 @@ Use this guide when verifying FleetGraph behavior on the sanctioned public demo.
 - On `FleetGraph Demo Week - Validation Ready`, the `Review` tab is available immediately and `Plan Validation` starts unset so FleetGraph can validate it.
 - Lifecycle controls such as `Dismiss` and `Snooze 4h` remain available in the `Quick actions` block for finding-state checks.
 - The entry card should also show a `Quick actions` section instead of an unlabeled button row.
-- The entry card is the canonical current-page analysis surface for the assignment proof lane.
+- The entry card starts current-page analysis, but the FAB is the canonical analysis/chat surface once `Check this page` is used.
 - The main card copy should read in user terms first, with diagnostics moved behind `Open FleetGraph debug`.
 - The debug dock should show secondary details such as:
   - FleetGraph thread ids
@@ -74,18 +74,19 @@ Use this guide when verifying FleetGraph behavior on the sanctioned public demo.
 6. Open `FleetGraph debug` and confirm the review thread appears as a secondary diagnostic detail, not primary product copy.
 7. Apply only when you want to test the real HITL path.
 
-## Expected Entry-Card Page-Analysis Flow
+## Expected FAB Page-Analysis Flow
 
 1. On `FleetGraph Demo Week - Validation Ready`, open the `Review` tab and find the `FleetGraph entry` card.
 2. Confirm the card shows a `Quick actions` section with `Check this page` and `Preview next step`.
 3. Click `Check this page`.
-4. Confirm the result area shows `Current guidance`.
-5. Confirm the analysis explains what matters on the current page in user terms instead of generic placeholder copy.
-6. Confirm the card shows a follow-up composer with `Ask a follow-up...`.
-7. Ask `What else should I look at?`
-8. Confirm the answer continues on the same page-analysis thread instead of resetting to a generic first response.
-9. Confirm diagnostics remain secondary under `Open FleetGraph debug`.
-10. Failure signal: the card only shows a generic “FleetGraph reviewed this page” stub, there is no follow-up composer, or the second answer repeats the first without advancing.
+4. Confirm the floating FleetGraph FAB opens immediately.
+5. Confirm the FAB begins the page analysis instead of leaving the entry card to render an inline chat transcript.
+6. Confirm the analysis explains what matters on the current page in user terms instead of generic placeholder copy.
+7. Confirm the FAB shows a follow-up composer with `Ask a follow-up...`.
+8. Ask `What else should I look at?`
+9. Confirm the answer continues on the same FAB thread instead of resetting to a generic first response.
+10. Confirm diagnostics remain secondary under `Open FleetGraph debug`.
+11. Failure signal: the FAB does not open, no analysis appears there, the entry card still renders competing inline chat, or the second answer repeats the first without advancing.
 
 ## Expected Entry-Card Preview Flow
 

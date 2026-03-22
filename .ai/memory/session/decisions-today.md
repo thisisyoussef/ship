@@ -91,7 +91,7 @@
 - Added a deterministic FleetGraph demo proof lane seeded through `api/src/db/seed.ts`, with exact inspection targets `FleetGraph Demo Project` and `FleetGraph Demo Week - Review and Apply`.
 - Added a resettable seeded proactive finding titled `Week start drift: FleetGraph Demo Week - Review and Apply` so future UI audits can immediately exercise the visible `Review and apply` lane.
 - Added a repo-owned Railway deploy script at `scripts/deploy-railway-demo.sh` that verifies the public demo through demo login plus the seeded FleetGraph findings surface instead of relying on `/health` alone.
-- Added a master-triggered GitHub Actions workflow for Railway production auto-deploy and taught the Railway demo deploy script to skip interactive auth when `RAILWAY_TOKEN` or `RAILWAY_API_TOKEN` is set so CI can deploy non-interactively without touching staging.
+- Added a master-triggered GitHub Actions workflow for Railway production auto-deploy, plus a production-named wrapper over the Railway deploy script so CI can deploy non-interactively to the production service without touching staging.
 - Added `docs/guides/fleetgraph-demo-inspection.md` so future handoffs can point to one exact Ship page and one exact finding title for UI inspection.
 - Started `T104B` on `codex/fleetgraph-t104b-railway-worker` to deploy the dedicated Railway worker lane required for end-to-end proactive proof on the public demo.
 - Decided the shared Railway image should boot through `SHIP_RUNTIME_ROLE=api|worker` so the Ship API and FleetGraph worker stay on one repo-owned deploy path.
@@ -133,6 +133,7 @@
 Record session-level technical decisions.
 
 ## Decision Template
+
 - **Decision ID**:
 - **Context**:
 - **Decision**:

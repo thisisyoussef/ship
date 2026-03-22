@@ -3,6 +3,7 @@
 Record durable architecture decisions.
 
 ## Template
+
 - **ADR-ID**:
 - **Date**:
 - **Context**:
@@ -11,6 +12,7 @@ Record durable architecture decisions.
 - **Consequences**:
 
 ## Seeded Decisions
+
 - **ADR-ID**: ADR-0001
 - **Date**: YYYY-MM-DD
 - **Context**: AI behavior changes are nondeterministic and are poorly protected by traditional unit and integration checks alone.
@@ -241,3 +243,10 @@ Record durable architecture decisions.
 - **Decision**: Let `UnifiedDocumentPage` own the vertical scroll for FleetGraph week pages, remove the tab-content overflow trap, suppress the duplicated default suggested-step badge, and add a distinct confirmation contract to the proactive card: stronger review-state emphasis, `Cancel` before the Ship mutation button, and a short gesture guard so the same click that opens review cannot also trigger apply.
 - **Alternatives Considered**: Keep relying on nested editor scrolling and add more spacing only; move the confirm action to a modal dialog; leave the immediate button swap in place and trust button labels alone.
 - **Consequences**: FleetGraph week pages become more naturally inspectable on the public demo and the review/apply path becomes safer without a heavier UI pattern, but future page-shell changes need to preserve that outer scroll ownership and avoid reintroducing same-location confirm swaps.
+
+- **ADR-ID**: ADR-0035
+- **Date**: 2026-03-22
+- **Context**: The Railway-hosted Ship surface was still branded like a staging/demo lane even after `master` needed to drive the production environment directly. That made the repo contract ambiguous even though the workflow was already selecting the production service and environment.
+- **Decision**: Add a production-named Railway wrapper script and workflow that map `RAILWAY_PRODUCTION_*` secrets into the shared deploy logic, and prefix Railway deploy messages with `production` so the dashboard, CI logs, and repo docs all describe the same production-targeted lane.
+- **Alternatives Considered**: Keep the existing demo-branded deploy script and rely on environment variables alone; duplicate the Railway deploy logic into a second script with no shared core; leave the messaging alone and only rename the workflow file.
+- **Consequences**: The Railway path now reads as production end-to-end while still reusing the proven smoke checks, but the deploy script needs to preserve the production label override whenever the repo runs the shared demo bootstrap.

@@ -15,6 +15,7 @@ EXPECTED_FINDING_TITLE="${FLEETGRAPH_DEMO_EXPECTED_FINDING_TITLE:-Week start dri
 EXPECTED_WORKER_FINDING_TITLE="${FLEETGRAPH_DEMO_EXPECTED_WORKER_FINDING_TITLE:-Week start drift: FleetGraph Demo Week - Worker Generated}"
 REQUIRE_FULL_READY="${FLEETGRAPH_DEMO_REQUIRE_FULL_READY:-false}"
 WORKER_FINDING_TIMEOUT_SECONDS="${FLEETGRAPH_DEMO_WORKER_FINDING_TIMEOUT_SECONDS:-180}"
+DEPLOY_LABEL_PREFIX="${RAILWAY_DEPLOY_LABEL_PREFIX:-demo}"
 TARGET_REF="${1:-HEAD}"
 
 for command in git curl jq pnpm npx; do
@@ -60,7 +61,7 @@ deploy_service() {
     --no-gitignore
     --project "$PROJECT_ID"
     --service "$service_name"
-    --message "ship demo $label $SHORT_SHA"
+    --message "ship $DEPLOY_LABEL_PREFIX $label $SHORT_SHA"
   )
 
   if [ -n "$ENVIRONMENT_NAME" ]; then

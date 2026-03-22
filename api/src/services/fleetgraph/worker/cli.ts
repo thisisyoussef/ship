@@ -50,11 +50,34 @@ async function main() {
   console.log('FleetGraph worker starting with native V2 runtime')
 
   const settings = resolveFleetGraphWorkerSettings()
+  const store = createFleetGraphWorkerStore()
   const worker = createFleetGraphWorkerRuntime({
     runtime: createV2Runtime(),
     settings,
-    store: createFleetGraphWorkerStore(),
+    store,
   })
+
+  // On boot: register all active workspaces for sweeping so findings
+  // are generated immediately after deployment, not only after events.
+  try {
+    const { pool } = await import('../../../db/client.js')
+    const result = await pool.query(
+      'SELECT id FROM workspaces WHERE deleted_at IS NULL'
+    )
+    const now = new Date()
+    let registered = 0
+    for (const row of result.rows as Array<{ id: string }>) {
+      try {
+        await store.registerWorkspaceSweep(row.id, now)
+        registered++
+      } catch {
+        // Already registered or table missing
+      }
+    }
+    console.log(`FleetGraph worker boot: registered ${registered} workspace(s) for immediate sweep`)
+  } catch (err) {
+    console.warn('FleetGraph worker boot sweep registration skipped:', (err as Error).message)
+  }
 
   while (true) {
     const result = await worker.pollOnce()

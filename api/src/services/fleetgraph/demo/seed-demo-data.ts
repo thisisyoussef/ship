@@ -145,19 +145,37 @@ export async function seedFleetGraphDemoData(
   })
   await associateToProjectAndProgram(DEMO_IDS.SPRINT_APPROVAL_ONLY)
 
+  // ── Clean up old-format findings from previous seed runs ────────────────
+  // Previous seeds used keys like `week-start-drift:${workspaceId}:${id}`.
+  // The pipeline uses `week_start_drift:${id}`. Delete old-format duplicates.
+  const demoDocIds = [DEMO_IDS.SPRINT_ALL_THREE, DEMO_IDS.SPRINT_DRIFT_NO_OWNER, DEMO_IDS.SPRINT_APPROVAL_ONLY]
+  for (const docId of demoDocIds) {
+    await pool.query(
+      `DELETE FROM fleetgraph_proactive_findings
+       WHERE document_id = $1 AND finding_key LIKE '%' || $2 || '%' || $1
+       AND finding_key LIKE '%-%'`,
+      [docId, workspaceId]
+    )
+  }
+
   // ── Seed findings directly so they appear immediately ──────────────────
   // The proactive worker would detect these naturally, but in dev mode
   // (no separate worker process), we insert findings at seed time.
 
   const findingStore = (await import('../findings/store.js')).createFleetGraphFindingStore(pool)
 
+  // Use the EXACT same fingerprint format as the V2 pipeline (check-dedupe-cooldown.ts:
+  // computeFingerprint returns `${suspect.type}:${suspect.entityId}`)
+  // This ensures seeded findings and worker-detected findings are the SAME row.
+  const fp = (type: string, entityId: string) => `${type}:${entityId}`
+
   // Sprint 1: 3 findings
   await findingStore.upsertFinding({
-    dedupeKey: `demo:week-start-drift:${DEMO_IDS.SPRINT_ALL_THREE}`,
+    dedupeKey: fp('week_start_drift', DEMO_IDS.SPRINT_ALL_THREE),
     documentId: DEMO_IDS.SPRINT_ALL_THREE,
     documentType: 'sprint',
     evidence: ['Sprint status is "planning" but the start date has passed.', 'Starting the week would unblock issue tracking and standups.'],
-    findingKey: `week-start-drift:${workspaceId}:${DEMO_IDS.SPRINT_ALL_THREE}`,
+    findingKey: fp('week_start_drift', DEMO_IDS.SPRINT_ALL_THREE),
     findingType: 'week_start_drift',
     metadata: { demoFixture: true },
     recommendedAction: {
@@ -177,11 +195,11 @@ export async function seedFleetGraphDemoData(
   }, now)
 
   await findingStore.upsertFinding({
-    dedupeKey: `demo:sprint-no-owner:${DEMO_IDS.SPRINT_ALL_THREE}`,
+    dedupeKey: fp('sprint_no_owner', DEMO_IDS.SPRINT_ALL_THREE),
     documentId: DEMO_IDS.SPRINT_ALL_THREE,
     documentType: 'sprint',
     evidence: ['Sprint has no owner assigned.', 'Without an owner, nobody is accountable for execution.'],
-    findingKey: `sprint-no-owner:${workspaceId}:${DEMO_IDS.SPRINT_ALL_THREE}`,
+    findingKey: fp('sprint_no_owner', DEMO_IDS.SPRINT_ALL_THREE),
     findingType: 'sprint_no_owner',
     metadata: { demoFixture: true },
     recommendedAction: {
@@ -201,11 +219,11 @@ export async function seedFleetGraphDemoData(
   }, now)
 
   await findingStore.upsertFinding({
-    dedupeKey: `demo:approval-gap:${DEMO_IDS.SPRINT_ALL_THREE}`,
+    dedupeKey: fp('approval_gap', DEMO_IDS.SPRINT_ALL_THREE),
     documentId: DEMO_IDS.SPRINT_ALL_THREE,
     documentType: 'sprint',
     evidence: ['Week plan was submitted 3 business days ago.', 'The owner may be blocked waiting for approval.'],
-    findingKey: `approval-gap:${workspaceId}:${DEMO_IDS.SPRINT_ALL_THREE}`,
+    findingKey: fp('approval_gap', DEMO_IDS.SPRINT_ALL_THREE),
     findingType: 'approval_gap',
     metadata: { demoFixture: true },
     recommendedAction: {
@@ -226,11 +244,11 @@ export async function seedFleetGraphDemoData(
 
   // Sprint 2: 2 findings
   await findingStore.upsertFinding({
-    dedupeKey: `demo:week-start-drift:${DEMO_IDS.SPRINT_DRIFT_NO_OWNER}`,
+    dedupeKey: fp('week_start_drift', DEMO_IDS.SPRINT_DRIFT_NO_OWNER),
     documentId: DEMO_IDS.SPRINT_DRIFT_NO_OWNER,
     documentType: 'sprint',
     evidence: ['Sprint status is "planning" but the start date has passed.'],
-    findingKey: `week-start-drift:${workspaceId}:${DEMO_IDS.SPRINT_DRIFT_NO_OWNER}`,
+    findingKey: fp('week_start_drift', DEMO_IDS.SPRINT_DRIFT_NO_OWNER),
     findingType: 'week_start_drift',
     metadata: { demoFixture: true },
     recommendedAction: {
@@ -250,11 +268,11 @@ export async function seedFleetGraphDemoData(
   }, now)
 
   await findingStore.upsertFinding({
-    dedupeKey: `demo:sprint-no-owner:${DEMO_IDS.SPRINT_DRIFT_NO_OWNER}`,
+    dedupeKey: fp('sprint_no_owner', DEMO_IDS.SPRINT_DRIFT_NO_OWNER),
     documentId: DEMO_IDS.SPRINT_DRIFT_NO_OWNER,
     documentType: 'sprint',
     evidence: ['Sprint has no owner assigned.'],
-    findingKey: `sprint-no-owner:${workspaceId}:${DEMO_IDS.SPRINT_DRIFT_NO_OWNER}`,
+    findingKey: fp('sprint_no_owner', DEMO_IDS.SPRINT_DRIFT_NO_OWNER),
     findingType: 'sprint_no_owner',
     metadata: { demoFixture: true },
     recommendedAction: {
@@ -275,11 +293,11 @@ export async function seedFleetGraphDemoData(
 
   // Sprint 3: 1 finding
   await findingStore.upsertFinding({
-    dedupeKey: `demo:approval-gap:${DEMO_IDS.SPRINT_APPROVAL_ONLY}`,
+    dedupeKey: fp('approval_gap', DEMO_IDS.SPRINT_APPROVAL_ONLY),
     documentId: DEMO_IDS.SPRINT_APPROVAL_ONLY,
     documentType: 'sprint',
     evidence: ['Week plan was submitted 3 business days ago.', 'Reviewing and approving unblocks the next cycle.'],
-    findingKey: `approval-gap:${workspaceId}:${DEMO_IDS.SPRINT_APPROVAL_ONLY}`,
+    findingKey: fp('approval_gap', DEMO_IDS.SPRINT_APPROVAL_ONLY),
     findingType: 'approval_gap',
     metadata: { demoFixture: true },
     recommendedAction: {

@@ -44,6 +44,7 @@ Load context in this order before making non-trivial changes:
 - Run `git diff --check` before handoff.
 - If the change touches the agent harness contract, run `bash scripts/check_ai_wiring.sh`.
 - If the story changes visible behavior, include a user-facing verification checklist with exact routes and expected results.
+- Final user-facing handoffs for visible behavior must include an explicit `What to test` section with the exact route, interaction, and expected visible result. Do not make the user infer the test from a linked doc alone.
 - If the story changes visible behavior and the product supports a repeatable proof lane, create or refresh a named seeded verification entry and record its exact title and route in the story, audit checklist, and any relevant inspection guide.
 - Do not call a story complete until `docs/DEFINITION_OF_DONE.md` is satisfied.
 
@@ -51,6 +52,8 @@ Load context in this order before making non-trivial changes:
 
 - Deployment status must always be explicit: `deployed`, `not deployed`, or `blocked`.
 - Record the environment, command, and proof path when something is deployed.
+- The Railway public demo auto-deploys from `master`. Do not treat a manual post-merge Railway deploy as the default flow when the runtime change is already covered by that auto-deploy path.
+- Only run a manual Railway demo deploy when the story explicitly changes deployment plumbing, the auto-deploy path is known broken, or the user asks for a manual refresh.
 - If deployment or finalization fails, use `docs/guides/finalization-recovery.md`.
 
 ## Finalization Default

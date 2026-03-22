@@ -133,6 +133,13 @@ Run these before handoff:
 2.
 3.
 
+## What To Test
+
+- Route or URL:
+- Interaction:
+- Expected visible result:
+- Failure signal:
+
 ## Checkpoint Result
 
 - Outcome:

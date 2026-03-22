@@ -9,6 +9,7 @@ This folder holds stories that change the execution harness itself.
 | US-901 | AGENTS-first harness reset | `done` | P0 | — |
 | US-902 | Seeded verification entry rule | `done` | P1 | `US-901` |
 | US-903 | Workflow memory log | `done` | P1 | `US-901` |
+| US-904 | Autodeploy and test handoff rule | `done` | P1 | `US-901` |
 
 ## Execution Notes
 

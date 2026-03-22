@@ -1,25 +1,35 @@
 # Docs Map
 
-Use this file as the quick index for the repo's documentation layout.
+Use this file as the quick index for the repo's active documentation surfaces.
 
 ## Start Here
 
-- `docs/core/`: living product, architecture, and philosophy references
-- `docs/guides/`: workflow, operational, and role-based how-to guides
-- `docs/assignments/`: assignment packs and their working deliverables
-- `docs/reference/`: deeper agent/reference material for the codebase
+- `AGENTS.md`: primary repo rulebook and execution contract
+- `docs/CONTEXT.md`: live environment truth, current URLs, and what is true right now
+- `docs/IMPLEMENTATION_STRATEGY.md`: broad roadmap and execution model
+- `docs/user-stories/README.md`: master story queue, dependency graph, and execution order
+- `docs/DEFINITION_OF_DONE.md`: hard gate for completion
+
+## Active Documentation Areas
+
+- `docs/core/`: living product and architecture references
+- `docs/guides/`: workflow, operational, and recovery guides
+- `docs/user-stories/`: executable story contracts, phase partitions, and checkpoint logs
+- `docs/plans/`: design notes, implementation plans, and technical specs
+- `docs/submissions/`: assembled output bundles for review, demo, and submission
+- `docs/assignments/`: assignment packs and working deliverables
+- `docs/reference/`: deeper reference material for the codebase
 - `docs/research/`: exploratory notes and external analysis
 - `docs/solutions/`: solved implementation problems and reusable patterns
 - `docs/evidence/`: screenshots and PR/review artifacts
-- `docs/archive/`: historical submissions and grading material
+- `docs/archive/`: historical material
 
 ## Most Common Entry Points
 
 - `docs/core/application-architecture.md`: monorepo architecture and deployment shape
 - `docs/core/unified-document-model.md`: core Ship data model
 - `docs/core/document-model-conventions.md`: editor and document-type conventions
-- `docs/guides/developer-workflow-guide.md`: day-to-day development guidance
-- `.claude/CLAUDE.md`: repo-specific commands, patterns, and deployment/testing notes
+- `.claude/CLAUDE.md`: Ship-specific command appendix and operational notes
 
 ## FleetGraph Assignment
 
@@ -28,21 +38,9 @@ Use this file as the quick index for the repo's documentation layout.
 - `docs/assignments/fleetgraph/PRESEARCH.md`: pre-search working document
 - `docs/assignments/fleetgraph/FLEETGRAPH.md`: submission/workbook document
 
-## Archive vs Evidence
+## Rules of Thumb
 
-- `docs/archive/gfa-week-4/`: original Week 4 assignment source material and notes
-- `docs/archive/g4/`: final audit submission artifacts
-- `docs/evidence/screenshots/`: UI screenshots and capture assets
-- `docs/evidence/pr-evidence/`: PR review evidence and supporting files
-
-Rule of thumb:
-- `core`, `guides`, `assignments`, `reference`, `research`, and `solutions` are active reading surfaces
-- `evidence` supports reviews and demos
-- `archive` is historical context, not the main source of truth
-
-## Agent and AI Workspace Docs
-
-- `AGENTS.md`: root agent contract for Codex-style tools
-- `CLAUDE.md`: root entrypoint for Claude-style tools
-- `.ai/`: live AI workspace, workflows, skills, templates, and memory
-- `ai-workspace-template/`: historical template only
+- Use `docs/user-stories/` to decide what to build next.
+- Use `docs/plans/` to understand how something should be built.
+- Use `docs/submissions/` only for final packaging and review bundles.
+- Use `docs/archive/` for historical context, not current operating truth.

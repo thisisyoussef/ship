@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 export SHIP_ROOT="${ROOT_DIR}"
 
-python - "$@" <<'PY'
+python3 - "$@" <<'PY'
 from __future__ import annotations
 
 import argparse

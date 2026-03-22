@@ -10,6 +10,43 @@ const __dirname = dirname(__filename);
 config({ path: join(__dirname, '../.env.local') });
 config({ path: join(__dirname, '../.env') });
 
+async function registerFleetGraphSweepsOnBoot() {
+  try {
+    const { pool } = await import('./db/client.js');
+    const { createFleetGraphWorkerStore } = await import(
+      './services/fleetgraph/worker/store.js'
+    );
+    const workerStore = createFleetGraphWorkerStore(pool);
+
+    // Find all active workspaces
+    const result = await pool.query(
+      'SELECT id FROM workspaces WHERE deleted_at IS NULL'
+    );
+    const workspaceIds = result.rows.map((row: { id: string }) => row.id);
+
+    if (workspaceIds.length === 0) {
+      console.log('FleetGraph boot: no workspaces found, skipping sweep registration');
+      return;
+    }
+
+    const now = new Date();
+    let registered = 0;
+    for (const workspaceId of workspaceIds) {
+      try {
+        await workerStore.registerWorkspaceSweep(workspaceId, now);
+        registered++;
+      } catch {
+        // Non-fatal — workspace may already have a schedule
+      }
+    }
+
+    console.log(`FleetGraph boot: registered ${registered}/${workspaceIds.length} workspace(s) for sweeping`);
+  } catch (err) {
+    // Non-fatal — FleetGraph tables may not exist yet (pre-migration)
+    console.warn('FleetGraph boot sweep registration skipped:', (err as Error).message);
+  }
+}
+
 async function main() {
   // Load secrets from SSM in production (before importing app)
   if (process.env.NODE_ENV === 'production') {
@@ -45,6 +82,13 @@ async function main() {
   server.listen(PORT, () => {
     console.log(`API server running on http://localhost:${PORT}`);
     console.log(`CORS origin: ${CORS_ORIGIN}`);
+
+    // Register all active workspaces for FleetGraph sweeping on boot.
+    // This ensures the worker always has sweep schedules to process after
+    // a deployment or restart, even if the sweep_schedules table was empty.
+    registerFleetGraphSweepsOnBoot().catch((err) => {
+      console.error('FleetGraph boot sweep registration failed (non-fatal):', err);
+    });
   });
 }
 

@@ -61,22 +61,27 @@ CRITICAL: When calling tools, output ONLY the tool_call tags. Do NOT narrate wha
 - When the user says they applied an action, call tools to get the UPDATED state, then provide a concise summary of what changed. Do not narrate your process — just call the tools and answer.
 - NEVER output a response that only describes what you're about to do. Either call tools OR give a final answer — never just announce your intentions.
 
-## Suggesting Actions
-When your analysis reveals actionable opportunities, suggest them using this format:
-<action_suggestion>{"action": "action_type", "target_id": "entity_id", "target_type": "entity_type", "label": "Button label", "rationale": "Why this action makes sense"}</action_suggestion>
+## Suggestions & Advice
+When your analysis reveals opportunities, suggest them using this format:
+<action_suggestion>{"action": "category", "target_id": "entity_id", "target_type": "entity_type", "label": "Short label", "rationale": "Why this matters"}</action_suggestion>
 
-Available action types:
+Categories (use the closest match, or invent your own):
 - start_week: Start a sprint that is in planning status
 - approve_week_plan: Approve a submitted sprint plan
 - approve_project_plan: Approve a submitted project plan
-- post_standup: Post a standup update for a sprint
+- assign_owner: Assign an owner to a sprint or project
+- assign_issues: Assign unassigned sprint issues to team members
 - post_comment: Post a comment on any entity
-- assign_owner: Assign an owner to a sprint or project (user picks from team list)
-- escalate_risk: Flag a risk on an entity (posts a risk escalation comment)
-- assign_issues: Suggest assigning unassigned sprint issues to team members
-- rebalance_load: Suggest redistributing work from overloaded team members
+- post_standup: Post a standup update for a sprint
+- escalate_risk: Flag a risk on an entity
+- rebalance_load: Redistribute work from overloaded team members
+- scope_concern: Sprint scope seems too large or too small
+- team_health: A team member may need support, recognition, or a 1:1
+- process_improvement: A workflow or habit could be improved
+- planning_advice: Planning gap, scheduling concern, or missing context
+- general_insight: Any other observation worth surfacing
 
-Only suggest 1-2 actions when there is a clear, specific reason. The user sees these as interactive buttons with dynamic input forms.
+You are not limited to Ship mutations. Advisory suggestions that help the user think are just as valuable. Suggest 1-3 items when there is a clear reason. The user sees these as informational notices.
 
 ## Role Context
 Adapt your analysis style based on the entity being viewed:
@@ -257,19 +262,6 @@ export function createAnalysisGraphService(deps: AnalysisGraphDeps) {
     return []
   }
 
-  // Only these action types have working handlers in the frontend
-  const VALID_ACTION_TYPES = new Set([
-    'start_week',
-    'approve_week_plan',
-    'approve_project_plan',
-    'post_standup',
-    'post_comment',
-    'assign_owner',
-    'escalate_risk',
-    'assign_issues',
-    'rebalance_load',
-  ])
-
   function parseActionSuggestions(text: string): Array<{
     action: string
     target_id: string
@@ -293,8 +285,8 @@ export function createAnalysisGraphService(deps: AnalysisGraphDeps) {
           label: string
           rationale: string
         }
-        // Only allow known action types — LLMs sometimes hallucinate variants
-        if (parsed.action && parsed.label && VALID_ACTION_TYPES.has(parsed.action)) {
+        // Accept any category — the analysis tab renders all suggestions as notices
+        if (parsed.action && parsed.label) {
           suggestions.push(parsed)
         }
       } catch {

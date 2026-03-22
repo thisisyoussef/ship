@@ -4,17 +4,7 @@ import { useAnalysisChat } from '@/hooks/useAnalysisChat'
 
 // Analysis suggestions are notice-only — they inform but don't execute.
 // Real actions live in the Findings tab (proactive pipeline with pre-validation).
-const KNOWN_SUGGESTION_TYPES = new Set([
-  'start_week',
-  'approve_week_plan',
-  'approve_project_plan',
-  'assign_owner',
-  'assign_issues',
-  'post_comment',
-  'post_standup',
-  'escalate_risk',
-  'rebalance_load',
-])
+// The LLM can suggest any category (Ship actions, process advice, team health, etc.)
 
 interface AnalysisSectionProps {
   documentId: string
@@ -156,10 +146,10 @@ export function AnalysisSection({
                 )}
 
                 {/* Suggestions — notice-only cards, no executable actions */}
-                {msg.actionSuggestions && msg.actionSuggestions.filter(a => KNOWN_SUGGESTION_TYPES.has(a.action)).length > 0 && (
+                {msg.actionSuggestions && msg.actionSuggestions.filter(a => a.action && a.label).length > 0 && (
                   <div className="space-y-1.5 rounded-xl border border-amber-500/20 bg-amber-500/5 p-2.5">
                     <div className="text-[11px] font-medium text-amber-700 dark:text-amber-400">💡 Suggestions</div>
-                    {msg.actionSuggestions.filter(a => KNOWN_SUGGESTION_TYPES.has(a.action)).map((suggestion, k) => (
+                    {msg.actionSuggestions.filter(a => a.action && a.label).map((suggestion, k) => (
                       <div key={`suggestion-${k}`} className="flex items-start gap-2 py-0.5">
                         <span className="shrink-0 mt-0.5 text-amber-600 dark:text-amber-400">→</span>
                         <div className="text-[12px] text-foreground/80">

@@ -38,7 +38,10 @@ This phase will hold FleetGraph product and integration stories as the active pa
 
 ### Phase 3: Reliability and Productization
 
-This phase will hold proof-lane, UX, deployment, and reliability follow-through stories.
+| ID | Title | Status | Priority | Depends On |
+| --- | --- | --- | --- | --- |
+| US-606 | FleetGraph chat follow-up reasoning | `done` | P1 | `US-605` |
+| US-607 | FleetGraph panel visibility polish | `done` | P1 | `US-606` |
 
 ### Phase X: Harness and Workflow Evolution
 
@@ -64,7 +67,9 @@ This phase will hold proof-lane, UX, deployment, and reliability follow-through 
 9. `US-603` closes the FleetGraph approval follow-up by making preview state-aware, refreshing the current page after apply, and darkening the result copy.
 10. `US-604` pivots the visible FleetGraph proof lane to review-tab plan validation so the current-page guided step has explicit, user-visible evidence.
 11. `US-605` adds a dedicated validation-ready demo week so the review-tab proof lane can be retested after prior validations consume the original seeded state.
-12. Active product packs continue to port into `docs/user-stories/` in dependency order.
+12. `US-606` makes FleetGraph chat follow-ups conversational enough to use real user prompts, while documenting the next LLM-layer increment for deeper repivoting.
+13. `US-607` tightens the inline FleetGraph shell so it starts collapsed, stays within the viewport, and signals proactive alerts more clearly.
+14. Active product packs continue to port into `docs/user-stories/` in dependency order.
 
 ## Files
 

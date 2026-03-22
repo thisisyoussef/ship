@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -71,6 +71,13 @@ vi.mock('@/hooks/useDocumentContextQuery', () => ({
   useDocumentContextQuery: () => ({
     data: undefined,
     error: undefined,
+    isLoading: false,
+  }),
+}));
+
+vi.mock('@/hooks/useFleetGraphFindings', () => ({
+  useFleetGraphFindings: () => ({
+    findings: [],
     isLoading: false,
   }),
 }));
@@ -152,7 +159,12 @@ describe('UnifiedDocumentPage', () => {
     } as Response);
 
     expect(await screen.findByTestId('fleetgraph-document-page-shell')).toBeInTheDocument();
-    expect(screen.getByText('FleetGraph entry')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /open fleetgraph panel/i })).toBeInTheDocument();
+    expect(screen.queryByText('FleetGraph entry')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /open fleetgraph panel/i }));
+
+    expect(await screen.findByText('FleetGraph entry')).toBeInTheDocument();
   });
 
   it('keeps the FleetGraph week route in a page-level scroll shell', async () => {

@@ -12,6 +12,7 @@ Use this guide when verifying FleetGraph behavior on the sanctioned public demo.
 
 - Project title: `FleetGraph Demo Project`
 - Seeded HITL week title: `FleetGraph Demo Week - Review and Apply`
+- Current-page approval-preview proof lane: `FleetGraph Demo Week - Review and Apply`
 - Seeded HITL finding title: `Week start drift: FleetGraph Demo Week - Review and Apply`
 - Worker-generated week title: `FleetGraph Demo Week - Worker Generated`
 - Worker-generated finding title: `Week start drift: FleetGraph Demo Week - Worker Generated`
@@ -70,8 +71,9 @@ Use this guide when verifying FleetGraph behavior on the sanctioned public demo.
 3. Click `Preview approval step`.
 4. Confirm the card shows `FleetGraph paused for human approval.`
 5. Confirm the result area shows `Current guidance` and `Approval step`.
-6. Confirm the visible options focus on user choice first, while diagnostics remain secondary under `Open FleetGraph debug`.
-7. Confirm the debug dock surfaces the entry thread and its latest checkpoint summary.
+6. Confirm the preview explains why FleetGraph is suggesting the action and includes supporting evidence in the main card.
+7. Confirm the visible options focus on user choice first, while diagnostics remain secondary under `Open FleetGraph debug`.
+8. Confirm the debug dock surfaces the entry thread and its latest checkpoint summary.
 
 ## Screenshot References
 

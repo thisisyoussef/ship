@@ -60,11 +60,60 @@ vi.mock('@/contexts/CurrentDocumentContext', () => ({
 }));
 
 vi.mock('@/components/FleetGraphEntryCard', () => ({
-  FleetGraphEntryCard: () => <div>FleetGraph entry</div>,
+  FleetGraphEntryCard: ({
+    document,
+    onCheckCurrentContext,
+  }: {
+    document: { documentType: string; id: string; title: string; workspaceId: string }
+    onCheckCurrentContext?: (entry: unknown) => void
+  }) => (
+    <div>
+      <div>FleetGraph entry</div>
+      <button
+        onClick={() => onCheckCurrentContext?.({
+          activeTab: 'overview',
+          context: {
+            ancestors: [],
+            belongs_to: [],
+            breadcrumbs: [
+              {
+                id: document.id,
+                title: document.title,
+                type: document.documentType,
+              },
+            ],
+            children: [],
+            current: {
+              document_type: document.documentType,
+              id: document.id,
+              title: document.title,
+            },
+          },
+          document,
+          userId: 'user-1',
+        })}
+        type="button"
+      >
+        Check this page
+      </button>
+    </div>
+  ),
 }));
 
 vi.mock('@/components/FleetGraphFindingsPanel', () => ({
   FleetGraphFindingsPanel: () => <div>FleetGraph proactive</div>,
+}));
+
+vi.mock('@/components/FleetGraphFab', () => ({
+  FleetGraphFab: ({
+    documentId,
+    launchRequestKey,
+  }: {
+    documentId: string
+    launchRequestKey?: number
+  }) => (
+    <div>{`FleetGraph FAB ${documentId} launch ${launchRequestKey ?? 0}`}</div>
+  ),
 }));
 
 vi.mock('@/hooks/useDocumentContextQuery', () => ({
@@ -191,5 +240,33 @@ describe('UnifiedDocumentPage', () => {
 
     expect(pageShell).toHaveClass('overflow-y-auto');
     expect(tabContent).not.toHaveClass('overflow-hidden');
+  });
+
+  it('routes Check this page through the FAB handoff on document pages', async () => {
+    vi.mocked(apiGet).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        created_at: '2026-03-17T00:00:00.000Z',
+        created_by: 'user-1',
+        document_type: 'sprint',
+        id: 'sprint-1',
+        properties: { status: 'planning' },
+        title: 'FleetGraph Demo Week - Review and Apply',
+        updated_at: '2026-03-17T00:00:00.000Z',
+        workspace_id: 'workspace-1',
+      }),
+    } as Response);
+
+    render(<UnifiedDocumentPage />, {
+      wrapper: createWrapper('/documents/sprint-1'),
+    });
+
+    fireEvent.click(await screen.findByRole('button', { name: /open fleetgraph panel/i }));
+    expect(await screen.findByText('FleetGraph entry')).toBeInTheDocument();
+    expect(screen.getByText('FleetGraph FAB sprint-1 launch 0')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Check this page' }));
+
+    expect(await screen.findByText('FleetGraph FAB sprint-1 launch 1')).toBeInTheDocument();
   });
 });

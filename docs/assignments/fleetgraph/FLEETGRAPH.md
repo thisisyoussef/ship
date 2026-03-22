@@ -206,7 +206,7 @@ For each use case, record the triggering Ship state, the expected output, and th
 | 2 | Planning or active week has no owner assigned near its start window | Sprint-owner gap summary with week identity and accountability context | Planned next case; no live trace captured yet |
 | 3 | Planning or active week contains a meaningful cluster of unassigned issues | Unassigned-issues summary with count, sprint context, and assignment need | Planned next case; no live trace captured yet |
 | 4 | User opens a current page guided step from FleetGraph entry | Current-page action preview naming the target action, visible proof surface, and confirmation path | Current-page guided-step path shares the on-demand trace family; proof lane captured in the Tuesday MVP evidence bundle |
-| 5 | User asks for help from an issue, sprint, project, program, or weekly-doc page | Context-aware page analysis with current state, related work, and next actions | Current-page analysis now runs through the FleetGraph entry card on the public demo proof lane; it shares the on-demand trace family, with visible verification in `docs/guides/fleetgraph-demo-inspection.md` |
+| 5 | User asks for help from an issue, sprint, project, program, or weekly-doc page | Context-aware page analysis with current state, related work, and next actions | Current-page analysis now starts from FleetGraph entry and hands off into the FAB chat on the public demo proof lane; it shares the on-demand trace family, with visible verification in `docs/guides/fleetgraph-demo-inspection.md` |
 
 ## Tuesday MVP Evidence
 

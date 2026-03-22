@@ -10,7 +10,10 @@ import type { DocumentContext } from '@/hooks/useDocumentContextQuery';
 import { useFleetGraphEntry } from '@/hooks/useFleetGraphEntry';
 import { apiGet } from '@/lib/api';
 import { buildEntryDebugSnapshot } from '@/lib/fleetgraph-debug';
-import type { FleetGraphEntryDocument } from '@/lib/fleetgraph-entry';
+import type {
+  FleetGraphEntryDocument,
+  FleetGraphEntryInput,
+} from '@/lib/fleetgraph-entry';
 
 const buttonClassName =
   'rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50';
@@ -26,6 +29,7 @@ interface FleetGraphEntryCardProps {
   document: FleetGraphEntryDocument;
   loading?: boolean;
   nestedPath?: string;
+  onCheckCurrentContext?: (entry: FleetGraphEntryInput) => void;
   userId: string;
 }
 
@@ -36,6 +40,7 @@ export function FleetGraphEntryCard({
   document,
   loading = false,
   nestedPath,
+  onCheckCurrentContext,
   userId,
 }: FleetGraphEntryCardProps) {
   const needsWeekReviewState = document.documentType === 'sprint' && activeTab === 'review';
@@ -141,7 +146,16 @@ export function FleetGraphEntryCard({
             <button
               className={buttonClassName}
               disabled={disabled || fleetGraph.isLoading}
-              onClick={() => entry && fleetGraph.checkCurrentContext(entry)}
+              onClick={() => {
+                if (!entry) {
+                  return
+                }
+                if (onCheckCurrentContext) {
+                  onCheckCurrentContext(entry)
+                  return
+                }
+                fleetGraph.checkCurrentContext(entry)
+              }}
               type="button"
             >
               Check this page

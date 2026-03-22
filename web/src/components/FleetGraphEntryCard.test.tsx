@@ -167,6 +167,48 @@ describe('FleetGraphEntryCard', () => {
     expect(screen.queryByText('document-page / details')).not.toBeInTheDocument()
   })
 
+  it('hands off Check this page to the page-level FAB launcher when provided', async () => {
+    const onCheckCurrentContext = vi.fn()
+
+    render(
+      <FleetGraphEntryCard
+        activeTab="details"
+        context={createContext()}
+        document={{
+          documentType: 'project',
+          id: DOCUMENT_ID,
+          title: 'Launch planner',
+          workspaceId: '22222222-2222-4222-8222-222222222222',
+        }}
+        nestedPath="milestones"
+        onCheckCurrentContext={onCheckCurrentContext}
+        userId="11111111-1111-4111-8111-111111111111"
+      />,
+      { wrapper: createWrapper() }
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: /check this page/i }))
+
+    expect(onCheckCurrentContext).toHaveBeenCalledWith(
+      expect.objectContaining({
+        activeTab: 'details',
+        context: expect.objectContaining({
+          current: expect.objectContaining({
+            document_type: 'project',
+            id: DOCUMENT_ID,
+          }),
+        }),
+        document: expect.objectContaining({
+          documentType: 'project',
+          id: DOCUMENT_ID,
+          title: 'Launch planner',
+        }),
+      })
+    )
+    expect(apiPost).not.toHaveBeenCalled()
+    expect(screen.queryByPlaceholderText('Ask a follow-up...')).not.toBeInTheDocument()
+  })
+
   it('keeps page-analysis follow-up turns on the same FleetGraph entry thread', async () => {
     vi.mocked(apiGet).mockResolvedValue({
       ok: true,

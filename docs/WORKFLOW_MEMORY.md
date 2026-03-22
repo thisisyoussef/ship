@@ -51,6 +51,8 @@ Use this file as durable working memory for recurring corrections, decisions, an
   Do not surface a consequential approval action from page type alone. Check the current approval state first so already-approved pages do not re-offer the same step.
 - FleetGraph story order:
   Finish the already-real on-demand surfaces before paying the shared proactive widening cost.
+- Page-local FleetGraph state must stay above loading and error returns:
+  When adding hooks to `UnifiedDocumentPage`, keep them before any early return branches so the document page does not crash between loading and loaded renders.
 
 ## Update Triggers
 

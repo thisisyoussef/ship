@@ -616,6 +616,26 @@ export function UnifiedDocumentPage() {
     return baseDocument;
   }, [document]);
 
+  const [fleetGraphExpanded, setFleetGraphExpanded] = useState(() => {
+    try {
+      return localStorage.getItem('fleetgraph-panel-expanded') !== 'false';
+    } catch {
+      return true;
+    }
+  });
+
+  const toggleFleetGraph = useCallback(() => {
+    setFleetGraphExpanded((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('fleetgraph-panel-expanded', String(next));
+      } catch {
+        // localStorage unavailable
+      }
+      return next;
+    });
+  }, []);
+
   // Loading state
   if (isLoading) {
     return (
@@ -641,26 +661,6 @@ export function UnifiedDocumentPage() {
       </div>
     );
   }
-
-  const [fleetGraphExpanded, setFleetGraphExpanded] = useState(() => {
-    try {
-      return localStorage.getItem('fleetgraph-panel-expanded') !== 'false';
-    } catch {
-      return true;
-    }
-  });
-
-  const toggleFleetGraph = useCallback(() => {
-    setFleetGraphExpanded((prev) => {
-      const next = !prev;
-      try {
-        localStorage.setItem('fleetgraph-panel-expanded', String(next));
-      } catch {
-        // localStorage unavailable
-      }
-      return next;
-    });
-  }, []);
 
   if (!user || !unifiedDocument) {
     return null;

@@ -40,6 +40,9 @@ Use this file as durable working memory for recurring corrections, decisions, an
 - Notes, tests, and evidence helpers should be updated together when visible copy changes.
   Source: post-`US-601` correction
   Apply this by checking UI payload builders, regression tests, inspection guides, and any capture scripts in the same pass.
+- Visible FleetGraph proof should use surfaced Ship state, not hidden internal state.
+  Source: post-`US-603` review-tab pivot
+  Apply this by preferring actions whose success is immediately visible on the current page, such as review-tab `Plan Validation`, instead of asking users to infer success from state that is absent or inconsistently rendered.
 
 ## Reusable Product Patterns
 

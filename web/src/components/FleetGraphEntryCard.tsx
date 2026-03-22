@@ -1,8 +1,10 @@
 import { useEffect, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 
 import { useFleetGraphDebugSurface } from '@/components/FleetGraphDebugSurface';
 import type { DocumentContext } from '@/hooks/useDocumentContextQuery';
 import { useFleetGraphEntry } from '@/hooks/useFleetGraphEntry';
+import { apiGet } from '@/lib/api';
 import { buildEntryDebugSnapshot } from '@/lib/fleetgraph-debug';
 import type { FleetGraphEntryDocument } from '@/lib/fleetgraph-entry';
 
@@ -32,6 +34,36 @@ export function FleetGraphEntryCard({
   nestedPath,
   userId,
 }: FleetGraphEntryCardProps) {
+  const needsWeekReviewState = document.documentType === 'sprint' && activeTab === 'review';
+  const reviewStateQuery = useQuery({
+    queryKey: ['fleetgraphEntryReviewState', document.id],
+    queryFn: async () => {
+      const response = await apiGet(`/api/weeks/${document.id}/review`);
+      if (!response.ok) {
+        throw new Error('FleetGraph could not load the current week review state.')
+      }
+      const data = await response.json() as {
+        content?: Record<string, unknown>
+        is_draft: boolean
+        plan_validated?: boolean | null
+        title?: string | null
+      }
+      return {
+        content: data.content,
+        isDraft: data.is_draft,
+        planValidated: data.plan_validated ?? null,
+        title: data.title ?? null,
+      }
+    },
+    enabled: needsWeekReviewState && Boolean(document.workspaceId),
+    staleTime: 15_000,
+  });
+  const effectiveDocument = useMemo(() => ({
+    ...document,
+    reviewState: needsWeekReviewState
+      ? (reviewStateQuery.data ?? null)
+      : document.reviewState,
+  }), [document, needsWeekReviewState, reviewStateQuery.data]);
   const entry = useMemo(() => {
     if (!context) {
       return null;
@@ -40,11 +72,11 @@ export function FleetGraphEntryCard({
     return {
       activeTab,
       context,
-      document,
+      document: effectiveDocument,
       nestedPath,
       userId,
     };
-  }, [activeTab, context, document, nestedPath, userId]);
+  }, [activeTab, context, effectiveDocument, nestedPath, userId]);
   const fleetGraph = useFleetGraphEntry();
   const approval = fleetGraph.result?.approval;
   const actionResult = fleetGraph.actionResult;
@@ -63,11 +95,15 @@ export function FleetGraphEntryCard({
       title: 'text-emerald-950',
     };
 
-  const disabled = loading || !entry || !document.workspaceId;
+  const disabled = loading || reviewStateQuery.isLoading || !entry || !document.workspaceId;
   const helperText =
-    contextError
+    reviewStateQuery.error instanceof Error
+      ? reviewStateQuery.error.message
+      : contextError
     ?? (loading
       ? 'Loading the current Ship context for FleetGraph.'
+      : reviewStateQuery.isLoading
+        ? 'Loading the current week review state for FleetGraph.'
       : document.workspaceId
         ? 'FleetGraph can review the page you are on and suggest the next step.'
         : 'This page is missing workspace details, so FleetGraph is unavailable here.');
@@ -93,7 +129,7 @@ export function FleetGraphEntryCard({
           <div className="space-y-1">
             <p className={sectionLabelClassName}>Quick actions</p>
             <p className="text-sm text-muted">
-              Ask FleetGraph to review this page or show the approval path first.
+              Ask FleetGraph to review this page or preview the next guided step first.
             </p>
           </div>
           <div className="flex flex-col gap-2">
@@ -111,7 +147,7 @@ export function FleetGraphEntryCard({
               onClick={() => entry && fleetGraph.previewApproval(entry)}
               type="button"
             >
-              Preview approval step
+              Preview next step
             </button>
           </div>
         </div>
@@ -153,9 +189,9 @@ export function FleetGraphEntryCard({
 
           {approval ? (
             <div className="space-y-3 rounded-xl border border-amber-300 bg-amber-50 px-3 py-3">
-              <p className={sectionLabelClassName}>Approval step</p>
+              <p className={sectionLabelClassName}>Review step</p>
               <span className="inline-flex rounded-full border border-amber-200 bg-white/70 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-900">
-                Needs your approval
+                Needs your confirmation
               </span>
               <div className="space-y-1">
                 <p className="text-sm font-semibold text-amber-950">
@@ -212,7 +248,7 @@ export function FleetGraphEntryCard({
             </div>
           ) : (
             <p className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-muted">
-              No approval step is needed for this page right now.
+              No guided step is needed for this page right now.
             </p>
           )}
         </div>

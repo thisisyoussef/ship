@@ -86,6 +86,44 @@ function makeWeekEntryState() {
   }
 }
 
+function makeValidationEntryState() {
+  return {
+    ...makePendingEntryState(),
+    requestedAction: {
+      body: {
+        plan_validated: true,
+      },
+      endpoint: {
+        method: 'PATCH' as const,
+        path: '/api/weeks/week-1/review',
+      },
+      evidence: ['Marking the plan as validated updates Plan Validation to show Validated.'],
+      rationale: 'Validate the week plan when the review shows the plan held up in practice.',
+      summary: 'Mark the current week plan as validated in the review.',
+      targetId: 'week-1',
+      targetType: 'sprint' as const,
+      title: 'Validate week plan',
+      type: 'validate_week_plan' as const,
+    },
+    selectedAction: {
+      body: {
+        plan_validated: true,
+      },
+      endpoint: {
+        method: 'PATCH' as const,
+        path: '/api/weeks/week-1/review',
+      },
+      evidence: ['Marking the plan as validated updates Plan Validation to show Validated.'],
+      rationale: 'Validate the week plan when the review shows the plan held up in practice.',
+      summary: 'Mark the current week plan as validated in the review.',
+      targetId: 'week-1',
+      targetType: 'sprint' as const,
+      title: 'Validate week plan',
+      type: 'validate_week_plan' as const,
+    },
+  }
+}
+
 describe('FleetGraph entry action service', () => {
   it('resumes a pending entry approval with the current request context', async () => {
     const runtime = {
@@ -187,6 +225,48 @@ describe('FleetGraph entry action service', () => {
     expect(response.summary.title).toBe('Week plan approved.')
     expect(response.summary.detail).toBe(
       'Week plan approved in Ship. Look for Plan Approval showing Approved on this page.'
+    )
+  })
+
+  it('returns a specific validation summary for week review actions', async () => {
+    const runtime = {
+      getPendingInterrupts: vi.fn(async () => [{ taskName: 'approval_interrupt' }]),
+      getState: vi.fn(async () => ({
+        values: makeValidationEntryState(),
+      })),
+      resume: vi.fn(async () => ({
+        ...makeValidationEntryState(),
+        actionOutcome: {
+          message: 'Week plan marked as validated in Ship. Look for Plan Validation showing Validated on this page.',
+          resultStatusCode: 200,
+          status: 'applied' as const,
+        },
+      })),
+    }
+
+    const service = createFleetGraphEntryActionService({
+      runtime,
+    })
+
+    const response = await service.applyEntry(
+      { threadId: 'fleetgraph:workspace-1:entry-thread' },
+      {
+        request: {
+          get() {
+            return 'localhost:3000'
+          },
+          header() {
+            return undefined
+          },
+          protocol: 'http',
+        } as never,
+        workspaceId: 'workspace-1',
+      }
+    )
+
+    expect(response.summary.title).toBe('Week plan validated.')
+    expect(response.summary.detail).toBe(
+      'Week plan marked as validated in Ship. Look for Plan Validation showing Validated on this page.'
     )
   })
 

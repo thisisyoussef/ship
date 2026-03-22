@@ -22,33 +22,38 @@ interface FleetGraphEntryServiceDeps {
 
 const ACTION_SHAPE_BY_TYPE = {
   approve_project_plan: {
-    method: 'POST',
+    methods: ['POST'],
     path: (targetId: string) => `/api/projects/${targetId}/approve-plan`,
     targetType: 'project',
   },
   approve_week_plan: {
-    method: 'POST',
+    methods: ['POST'],
     path: (targetId: string) => `/api/weeks/${targetId}/approve-plan`,
     targetType: 'sprint',
   },
   assign_issues: {
-    method: 'PATCH',
+    methods: ['PATCH'],
     path: (targetId: string) => `/api/documents/${targetId}`,
     targetType: 'sprint',
   },
   assign_owner: {
-    method: 'PATCH',
+    methods: ['PATCH'],
     path: (targetId: string) => `/api/documents/${targetId}`,
     targetType: 'sprint',
   },
   post_comment: {
-    method: 'POST',
+    methods: ['POST'],
     path: (targetId: string) => `/api/documents/${targetId}/comments`,
     targetType: 'document',
   },
   start_week: {
-    method: 'POST',
+    methods: ['POST'],
     path: (targetId: string) => `/api/weeks/${targetId}/start`,
+    targetType: 'sprint',
+  },
+  validate_week_plan: {
+    methods: ['PATCH', 'POST'],
+    path: (targetId: string) => `/api/weeks/${targetId}/review`,
     targetType: 'sprint',
   },
 } as const
@@ -106,7 +111,7 @@ function ensureAllowedAction(action: FleetGraphRequestedAction) {
     throw new FleetGraphEntryError(400, 'Unsupported FleetGraph action type')
   }
 
-  if (action.endpoint.method !== expected.method) {
+  if (!(expected.methods as readonly string[]).includes(action.endpoint.method)) {
     throw new FleetGraphEntryError(400, 'Approval endpoint method does not match the action type')
   }
 
@@ -116,6 +121,13 @@ function ensureAllowedAction(action: FleetGraphRequestedAction) {
 
   if (action.targetType !== expected.targetType) {
     throw new FleetGraphEntryError(400, 'Approval target type does not match the action type')
+  }
+
+  if (
+    action.type === 'validate_week_plan'
+    && action.body?.plan_validated !== true
+  ) {
+    throw new FleetGraphEntryError(400, 'Week plan validation actions must set plan_validated to true')
   }
 }
 
@@ -133,17 +145,17 @@ function buildSummary(
   state: FleetGraphState
 ) {
   const title = state.outcome === 'approval_required'
-    ? 'FleetGraph paused for human approval.'
+    ? 'FleetGraph paused for your confirmation.'
     : state.outcome === 'quiet'
-      ? `FleetGraph has no action for this ${response.current.documentType} right now.`
-    : `FleetGraph is ready in this ${response.current.documentType} context.`
+      ? `FleetGraph has no guided step for this ${response.current.documentType} right now.`
+      : `FleetGraph is ready in this ${response.current.documentType} context.`
 
   return {
     detail: state.outcome === 'approval_required'
       ? `Review the suggested next step for ${response.current.title}.`
       : state.outcome === 'quiet'
-        ? `FleetGraph checked ${response.current.title} and did not find anything that needs action yet.`
-      : `FleetGraph reviewed ${response.current.title} and can help from this page.`,
+        ? `FleetGraph checked ${response.current.title} and did not find a guided next step yet.`
+        : `FleetGraph reviewed ${response.current.title} and can help from this page.`,
     surfaceLabel: buildSurfaceLabel(input),
     title,
   }

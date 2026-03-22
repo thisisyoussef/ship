@@ -54,6 +54,53 @@ function createContext(currentDocumentType: string): DocumentContext {
 }
 
 describe('buildFleetGraphEntryPayload', () => {
+  it('maps sprint review pages to the week-validation action', () => {
+    const payload = buildFleetGraphEntryPayload({
+      activeTab: 'review',
+      context: createContext('sprint'),
+      document: {
+        documentType: 'sprint',
+        id: DOCUMENT_ID,
+        reviewState: {
+          content: {
+            content: [{ type: 'paragraph' }],
+            type: 'doc',
+          },
+          isDraft: true,
+          planValidated: null,
+          title: 'Week 8 Review',
+        },
+        title: 'Sprint 8',
+        workspaceId: WORKSPACE_ID,
+      },
+      userId: USER_ID,
+    }, true)
+
+    expect(payload.draft?.requestedAction).toMatchObject({
+      body: {
+        content: {
+          content: [{ type: 'paragraph' }],
+          type: 'doc',
+        },
+        plan_validated: true,
+        title: 'Week 8 Review',
+      },
+      endpoint: {
+        method: 'POST',
+        path: `/api/weeks/${DOCUMENT_ID}/review`,
+      },
+      summary: 'Mark the current week plan as validated in the review.',
+      targetId: DOCUMENT_ID,
+      targetType: 'sprint',
+      title: 'Validate week plan',
+      type: 'validate_week_plan',
+      rationale: 'Validate the week plan when the review shows the plan held up in practice.',
+    })
+    expect(payload.draft?.requestedAction?.evidence).toContain(
+      'Marking the plan as validated updates Plan Validation to show Validated.'
+    )
+  })
+
   it('maps weekly plan pages to the related week approval action', () => {
     const payload = buildFleetGraphEntryPayload({
       context: createContext('weekly_plan'),
@@ -83,13 +130,33 @@ describe('buildFleetGraphEntryPayload', () => {
     )
   })
 
-  it('does not create a week approval action when the page is already approved', () => {
+  it('does not create a validation action when the sprint review already shows the plan as validated', () => {
     const payload = buildFleetGraphEntryPayload({
+      activeTab: 'review',
       context: createContext('sprint'),
       document: {
         documentType: 'sprint',
         id: DOCUMENT_ID,
-        planApprovalState: 'approved',
+        reviewState: {
+          isDraft: false,
+          planValidated: true,
+        },
+        title: 'Sprint 8',
+        workspaceId: WORKSPACE_ID,
+      },
+      userId: USER_ID,
+    }, true)
+
+    expect(payload.draft).toBeUndefined()
+  })
+
+  it('does not create a guided action from the sprint overview tab alone', () => {
+    const payload = buildFleetGraphEntryPayload({
+      activeTab: 'overview',
+      context: createContext('sprint'),
+      document: {
+        documentType: 'sprint',
+        id: DOCUMENT_ID,
         title: 'Sprint 8',
         workspaceId: WORKSPACE_ID,
       },

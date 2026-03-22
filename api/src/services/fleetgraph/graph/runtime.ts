@@ -175,6 +175,8 @@ function buildGenericActionSuccessMessage(
       return 'Week plan approved in Ship. Look for Plan Approval showing Approved on this page.'
     case 'post_comment':
       return 'Comment posted in Ship.'
+    case 'validate_week_plan':
+      return 'Week plan marked as validated in Ship. Look for Plan Validation showing Validated on this page.'
     case 'assign_owner':
       return 'Owner updated in Ship.'
     case 'assign_issues':
@@ -194,6 +196,8 @@ function buildGenericActionFailureFallback(
       return 'Ship could not approve the week plan.'
     case 'post_comment':
       return 'Ship could not post the comment.'
+    case 'validate_week_plan':
+      return 'Ship could not mark the week plan as validated.'
     case 'assign_owner':
       return 'Ship could not update the owner.'
     case 'assign_issues':
@@ -321,8 +325,18 @@ function createFleetGraphRuntimeInternals(
   )
   const executeShipRestActionTask = task(
     'fleetgraph.action.execute_ship_rest',
-    async (input: { method: string; path: string; requestContext: ShipRestRequestContext }) =>
-      (deps.executeShipRestAction ?? defaultShipRestExecutor)(input.path, input.requestContext, input.method)
+    async (input: {
+      body?: Record<string, unknown>
+      method: string
+      path: string
+      requestContext: ShipRestRequestContext
+    }) =>
+      (deps.executeShipRestAction ?? defaultShipRestExecutor)(
+        input.path,
+        input.requestContext,
+        input.method,
+        input.body
+      )
   )
 
   const graph = new StateGraph(FleetGraphStateAnnotation)
@@ -475,6 +489,7 @@ function createFleetGraphRuntimeInternals(
 
       if (!state.selectedFindingId) {
         const result = await executeShipRestActionTask({
+          body: state.selectedAction.body,
           method: actionMethod,
           path: endpoint.path,
           requestContext,
@@ -517,6 +532,7 @@ function createFleetGraphRuntimeInternals(
       }
 
       const result = await executeShipRestActionTask({
+        body: state.selectedAction.body,
         method: actionMethod,
         path: endpoint.path,
         requestContext,

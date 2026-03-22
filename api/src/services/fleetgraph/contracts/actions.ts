@@ -9,6 +9,7 @@ export const FLEETGRAPH_ACTION_TYPES = [
   'assign_owner',
   'post_comment',
   'start_week',
+  'validate_week_plan',
 ] as const
 
 export const FLEETGRAPH_ACTION_TARGET_TYPES = [
@@ -29,6 +30,7 @@ export const FleetGraphActionEndpointSchema = z.object({
 }).strict()
 
 export const FleetGraphRequestedActionSchema = z.object({
+  body: z.record(z.unknown()).optional(),
   endpoint: FleetGraphActionEndpointSchema,
   evidence: z.array(nonEmptyString).min(1),
   rationale: nonEmptyString,

@@ -12,7 +12,7 @@ Use this guide when verifying FleetGraph behavior on the sanctioned public demo.
 
 - Project title: `FleetGraph Demo Project`
 - Seeded HITL week title: `FleetGraph Demo Week - Review and Apply`
-- Current-page approval-preview proof lane: `FleetGraph Demo Week - Review and Apply`
+- Current-page guided-step proof lane: `FleetGraph Demo Week - Review and Apply` on the `Review` tab
 - Seeded HITL finding title: `Week start drift: FleetGraph Demo Week - Review and Apply`
 - Worker-generated week title: `FleetGraph Demo Week - Worker Generated`
 - Worker-generated finding title: `Week start drift: FleetGraph Demo Week - Worker Generated`
@@ -28,11 +28,12 @@ Use this guide when verifying FleetGraph behavior on the sanctioned public demo.
 7. Click `Review and apply`, then inspect the inline review state.
 8. Pause for a beat and confirm nothing in Ship has changed yet.
 9. Click `Cancel`.
-10. Click `Preview approval step` in the entry card and inspect the approval-preview state.
-11. Open `FleetGraph debug`.
-12. Inspect the secondary debug dock for thread history and pending interrupts.
-13. Return to `Documents`.
-14. Open `FleetGraph Demo Week - Worker Generated`.
+10. Open the `Review` tab for `FleetGraph Demo Week - Review and Apply`.
+11. Click `Preview next step` in the entry card and inspect the guided-step preview state.
+12. Open `FleetGraph debug`.
+13. Inspect the secondary debug dock for thread history and pending interrupts.
+14. Return to `Documents`.
+15. Open `FleetGraph Demo Week - Worker Generated`.
 
 ## Expected FleetGraph Surface
 
@@ -66,26 +67,27 @@ Use this guide when verifying FleetGraph behavior on the sanctioned public demo.
 
 ## Expected Entry-Card Preview Flow
 
-1. On `FleetGraph Demo Week - Review and Apply`, find the `FleetGraph entry` card.
-2. Confirm the card shows a `Quick actions` section with `Check this page` and `Preview approval step`.
-3. Click `Preview approval step`.
-4. Confirm the card shows `FleetGraph paused for human approval.`
-5. Confirm the result area shows `Current guidance` and `Approval step`.
-6. Confirm the preview explains why the approval matters in user terms, such as helping the team move forward with the week, and includes supporting evidence in the main card.
-7. Confirm the visible options focus on user choice first, while diagnostics remain secondary under `Open FleetGraph debug`.
-8. Confirm the debug dock surfaces the entry thread and its latest checkpoint summary.
+1. On `FleetGraph Demo Week - Review and Apply`, open the `Review` tab and find the `FleetGraph entry` card.
+2. Confirm the card shows a `Quick actions` section with `Check this page` and `Preview next step`.
+3. Click `Preview next step`.
+4. Confirm the card shows `FleetGraph paused for your confirmation.`
+5. Confirm the result area shows `Current guidance` and `Review step`.
+6. Confirm the guided step is `Validate week plan`.
+7. Confirm the preview explains that the validation result is visible on this page and includes evidence about `Plan Validation` showing `Validated`.
+8. Confirm the visible options focus on user choice first, while diagnostics remain secondary under `Open FleetGraph debug`.
+9. Confirm the debug dock surfaces the entry thread and its latest checkpoint summary.
 
 ## Expected Entry-Card Apply Flow
 
-1. On `FleetGraph Demo Week - Review and Apply`, click `Preview approval step`.
+1. On `FleetGraph Demo Week - Review and Apply`, open the `Review` tab and click `Preview next step`.
 2. Click `Apply`.
 3. Confirm the card shows a `Latest result` panel after the action finishes.
-4. Confirm the result headline is a user-facing outcome such as `FleetGraph completed the action.`
-5. Confirm the result detail explains the visible effect in Ship and points back to the page state, such as `Week plan approved in Ship. This page should now show the week plan as approved.`
+4. Confirm the result headline is `Week plan validated.`
+5. Confirm the result detail explains the visible effect in Ship and points back to the page state: `Week plan marked as validated in Ship. Look for Plan Validation showing Validated on this page.`
 6. Confirm the page data refreshes after apply instead of leaving the stale preview in place.
-7. Confirm the page now shows the approved week-plan state in Ship.
-8. Click `Preview approval step` again and confirm FleetGraph does not offer the same week approval a second time.
-9. Failure signal: the browser writes directly to the raw Ship approval endpoint, the card shows no inline result, the page stays stale after the action completes, or the same week-plan approval prompt reappears immediately.
+7. Confirm the `Plan Validation` control now shows `Validated` on the review page.
+8. Click `Preview next step` again and confirm FleetGraph does not offer the same validation step a second time.
+9. Failure signal: the card shows no inline result, the review page stays stale after the action completes, or the same validation prompt reappears immediately.
 
 ## Screenshot References
 
@@ -93,7 +95,7 @@ Use this guide when verifying FleetGraph behavior on the sanctioned public demo.
   [fleetgraph-polish-review-page-live.png](/Users/youss/Development/gauntlet/ship/docs/evidence/screenshots/fleetgraph-polish-review-page-live.png)
 - Inline review state:
   [fleetgraph-polish-review-inline-live.png](/Users/youss/Development/gauntlet/ship/docs/evidence/screenshots/fleetgraph-polish-review-inline-live.png)
-- Approval preview:
+- Guided-step preview:
   [fleetgraph-polish-approval-preview-live.png](/Users/youss/Development/gauntlet/ship/docs/evidence/screenshots/fleetgraph-polish-approval-preview-live.png)
 - Worker-generated page:
   [fleetgraph-polish-worker-page-live.png](/Users/youss/Development/gauntlet/ship/docs/evidence/screenshots/fleetgraph-polish-worker-page-live.png)

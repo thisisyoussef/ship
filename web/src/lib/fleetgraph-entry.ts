@@ -4,6 +4,12 @@ export interface FleetGraphEntryDocument {
   documentType: string
   id: string
   planApprovalState?: string | null
+  reviewState?: {
+    content?: Record<string, unknown>
+    isDraft: boolean
+    planValidated?: boolean | null
+    title?: string | null
+  } | null
   title: string
   workspaceId?: string
 }
@@ -22,6 +28,7 @@ export interface FleetGraphApprovalOption {
 }
 
 export interface FleetGraphApprovalEnvelope {
+  body?: Record<string, unknown>
   endpoint: {
     method: 'DELETE' | 'PATCH' | 'POST'
     path: string
@@ -34,7 +41,7 @@ export interface FleetGraphApprovalEnvelope {
   targetId: string
   targetType: 'document' | 'project' | 'sprint'
   title: string
-  type: 'approve_project_plan' | 'approve_week_plan' | 'post_comment' | 'start_week'
+  type: 'approve_project_plan' | 'approve_week_plan' | 'post_comment' | 'start_week' | 'validate_week_plan'
 }
 
 export interface FleetGraphEntryActionOutcome {
@@ -93,9 +100,14 @@ function hasApprovedPlan(document: FleetGraphEntryDocument) {
   return document.planApprovalState === 'approved'
 }
 
+function hasValidatedPlan(document: FleetGraphEntryDocument) {
+  return document.reviewState?.planValidated === true
+}
+
 function buildRequestedAction(
   document: FleetGraphEntryDocument,
-  context: DocumentContext
+  context: DocumentContext,
+  activeTab?: string
 ) {
   if (document.documentType === 'project') {
     if (hasApprovedPlan(document)) {
@@ -121,26 +133,42 @@ function buildRequestedAction(
   }
 
   if (document.documentType === 'sprint') {
+    if (activeTab === 'review') {
+      if (!document.reviewState || hasValidatedPlan(document)) {
+        return undefined
+      }
+
+      return {
+        body: document.reviewState.isDraft
+          ? {
+            content: document.reviewState.content,
+            plan_validated: true,
+            title: document.reviewState.title ?? undefined,
+          }
+          : {
+            plan_validated: true,
+          },
+        endpoint: {
+          method: document.reviewState.isDraft ? 'POST' as const : 'PATCH' as const,
+          path: `/api/weeks/${document.id}/review`,
+        },
+        evidence: [
+          'You are already on the week review, so the validation result is visible on this page.',
+          'Marking the plan as validated updates Plan Validation to show Validated.',
+        ],
+        rationale: 'Validate the week plan when the review shows the plan held up in practice.',
+        summary: 'Mark the current week plan as validated in the review.',
+        targetId: document.id,
+        targetType: 'sprint' as const,
+        title: 'Validate week plan',
+        type: 'validate_week_plan' as const,
+      }
+    }
+
     if (hasApprovedPlan(document)) {
       return undefined
     }
-
-    return {
-      endpoint: {
-        method: 'POST' as const,
-        path: `/api/weeks/${document.id}/approve-plan`,
-      },
-      evidence: [
-        'You are looking at the current week, so this is the right place to confirm the plan.',
-        'Approving it signals that the team can move forward with this week.',
-      ],
-      rationale: 'Approve this week plan when the team is ready to move forward.',
-      summary: 'Approve the current week plan.',
-      targetId: document.id,
-      targetType: 'sprint' as const,
-      title: 'Approve week plan',
-      type: 'approve_week_plan' as const,
-    }
+    return undefined
   }
 
   if (document.documentType === 'weekly_plan') {
@@ -199,7 +227,7 @@ export function buildFleetGraphEntryPayload(
   }
 
   const requestedAction = previewApproval
-    ? buildRequestedAction(input.document, input.context)
+    ? buildRequestedAction(input.document, input.context, input.activeTab)
     : undefined
 
   return {

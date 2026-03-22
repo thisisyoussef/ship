@@ -25,7 +25,8 @@ export function buildShipRestRequestContext(
 export type ShipRestExecutor = (
   path: string,
   requestContext: ShipRestRequestContext,
-  method?: string
+  method?: string,
+  body?: Record<string, unknown>
 ) => Promise<ShipRestActionResult>
 
 export function isJsonObject(value: unknown): value is Record<string, unknown> {
@@ -64,14 +65,16 @@ export function resolveShipRestBaseUrl(
 export async function defaultShipRestExecutor(
   path: string,
   requestContext: ShipRestRequestContext,
-  method = 'POST'
+  method = 'POST',
+  requestBody?: Record<string, unknown>
 ): Promise<ShipRestActionResult> {
   const response = await fetch(`${requestContext.baseUrl}${path}`, {
+    body: requestBody ? JSON.stringify(requestBody) : undefined,
     headers: {
       ...(requestContext.cookieHeader ? { cookie: requestContext.cookieHeader } : {}),
       ...(requestContext.csrfToken
         ? { 'x-csrf-token': requestContext.csrfToken }
-        : {}),
+          : {}),
       accept: 'application/json',
       'content-type': 'application/json',
     },
@@ -79,12 +82,12 @@ export async function defaultShipRestExecutor(
   })
 
   const contentType = response.headers.get('content-type') ?? ''
-  const body = contentType.includes('application/json')
+  const responseBody = contentType.includes('application/json')
     ? await response.json() as Record<string, unknown>
     : undefined
 
   return {
-    body,
+    body: responseBody,
     ok: response.ok,
     status: response.status,
   }

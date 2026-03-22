@@ -65,6 +65,25 @@ export function WeekReview({ sprintId }: WeekReviewProps) {
     }
   }, [fetchReview, editor]);
 
+  useEffect(() => {
+    function handleFleetGraphAction(event: Event) {
+      const detail = (event as CustomEvent<{
+        actionType?: string
+        targetId?: string
+      }>).detail
+
+      if (
+        detail?.actionType === 'validate_week_plan'
+        && detail.targetId === sprintId
+      ) {
+        void fetchReview()
+      }
+    }
+
+    window.addEventListener('fleetgraph:entry-action-applied', handleFleetGraphAction)
+    return () => window.removeEventListener('fleetgraph:entry-action-applied', handleFleetGraphAction)
+  }, [fetchReview, sprintId]);
+
   const handleSave = async () => {
     if (!editor) return;
 

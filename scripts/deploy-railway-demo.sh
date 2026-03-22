@@ -40,7 +40,9 @@ if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   exit 1
 fi
 
-if ! npx -y @railway/cli whoami >/dev/null 2>&1; then
+if [ -n "${RAILWAY_TOKEN:-}" ] || [ -n "${RAILWAY_API_TOKEN:-}" ]; then
+  echo "Railway token detected; skipping interactive auth check."
+elif ! npx -y @railway/cli whoami >/dev/null 2>&1; then
   echo "ERROR: Railway CLI is not authenticated."
   exit 1
 fi
@@ -54,6 +56,7 @@ deploy_service() {
   local deploy_cmd=(
     npx -y @railway/cli up
     --ci
+    --yes
     --no-gitignore
     --project "$PROJECT_ID"
     --service "$service_name"

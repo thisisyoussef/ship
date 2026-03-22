@@ -5,9 +5,11 @@ Complete reference for all pnpm scripts and shell scripts in the Ship codebase.
 ## Development Commands
 
 ### `pnpm dev`
+
 Runs both API and Web servers in parallel with automatic port selection.
 
 **What it does:**
+
 1. Creates `api/.env.local` with DATABASE_URL if missing
 2. Creates database (e.g., `ship_auth_jan_6`) if it doesn't exist
 3. Runs migrations and seeds on fresh databases
@@ -18,21 +20,29 @@ Runs both API and Web servers in parallel with automatic port selection.
 **Requires:** PostgreSQL running locally
 
 ### `pnpm dev:api`
+
 Runs only the Express API server (via `tsx watch`).
+
 - Default port: 3000
 - Hot-reloading enabled
 
 ### `pnpm dev:web`
+
 Runs only the Vite dev server for the React frontend.
+
 - Default port: 5173
 - Hot-reloading enabled
 
 ### `pnpm dev:shared`
+
 Runs TypeScript compiler in watch mode for the shared package.
+
 - Use when actively modifying shared types
 
 ### `pnpm dev:raw`
+
 Runs all packages in parallel without the port-finding logic.
+
 - Use only if `pnpm dev` has issues
 
 ---
@@ -40,20 +50,27 @@ Runs all packages in parallel without the port-finding logic.
 ## Build Commands
 
 ### `pnpm build`
+
 Builds all packages recursively (shared, api, web).
 
 ### `pnpm build:shared`
+
 Builds only the shared types package.
+
 - **Must run first** before api or web builds
 - Output: `shared/dist/`
 
 ### `pnpm build:api`
+
 Builds shared types, then builds the API.
+
 - Copies `schema.sql` and migrations to `api/dist/db/`
 - Output: `api/dist/`
 
 ### `pnpm build:web`
+
 Builds shared types, then builds the frontend.
+
 - Sets `VITE_API_URL=` (empty for relative paths in production)
 - Output: `web/dist/`
 
@@ -62,13 +79,17 @@ Builds shared types, then builds the frontend.
 ## Database Commands
 
 ### `pnpm db:migrate`
+
 Runs database migrations.
+
 - Applies `api/src/db/schema.sql` on fresh databases
 - Runs numbered migrations from `api/src/db/migrations/`
 - Tracks applied migrations in `schema_migrations` table
 
 ### `pnpm db:seed`
+
 Seeds the database with test data.
+
 - Idempotent: safe to run multiple times
 - Script: `api/src/db/seed.ts`
 
@@ -77,22 +98,28 @@ Seeds the database with test data.
 ## Test Commands
 
 ### `pnpm test`
+
 Runs API unit tests via Vitest.
+
 - **Requires:** PostgreSQL running locally
 - Uses testcontainers for isolated database
 
 ### `/e2e-test-runner` (REQUIRED for E2E)
+
 **ALWAYS use this skill for E2E tests.** Never run `pnpm test:e2e` directly.
 
 Why: Direct execution causes output explosion (600+ tests crash Claude Code). The skill handles:
+
 - Background execution
 - Progress polling via `test-results/summary.json`
 - `--last-failed` flag for iterative fixing
 
 ### `pnpm test:e2e` (DO NOT USE DIRECTLY)
+
 Runs Playwright E2E tests. Use `/e2e-test-runner` instead.
 
 ### `pnpm test:e2e:ui`
+
 Opens Playwright UI for interactive test debugging.
 
 ---
@@ -100,11 +127,14 @@ Opens Playwright UI for interactive test debugging.
 ## Type Checking
 
 ### `pnpm type-check`
+
 Runs TypeScript type checking across all packages.
+
 - Does not emit files (`--noEmit`)
 - Use to verify types before commits
 
 ### `pnpm lint`
+
 Runs linting across all packages.
 
 ---
@@ -112,9 +142,11 @@ Runs linting across all packages.
 ## Deployment Commands
 
 ### `./scripts/deploy.sh <dev|shadow|prod>`
+
 Deploys the API to Elastic Beanstalk.
 
 **Steps performed:**
+
 1. Syncs Terraform config from SSM
 2. Builds shared and api packages
 3. Verifies SQL files are present
@@ -123,6 +155,7 @@ Deploys the API to Elastic Beanstalk.
 6. Uploads to S3 and deploys to EB
 
 **Usage:**
+
 ```bash
 ./scripts/deploy.sh dev     # Deploy to dev environment
 ./scripts/deploy.sh shadow  # Deploy to shadow (UAT)
@@ -130,9 +163,11 @@ Deploys the API to Elastic Beanstalk.
 ```
 
 ### `./scripts/deploy-web.sh <dev|shadow|prod>`
+
 Deploys the frontend to S3 + CloudFront.
 
 **Steps performed:**
+
 1. Syncs Terraform config from SSM
 2. Builds the frontend
 3. Syncs to S3 bucket
@@ -140,14 +175,25 @@ Deploys the frontend to S3 + CloudFront.
 5. Waits for invalidation to complete
 
 **Usage:**
+
 ```bash
 ./scripts/deploy-web.sh dev     # Deploy frontend to dev
 ./scripts/deploy-web.sh shadow  # Deploy frontend to shadow
 ./scripts/deploy-web.sh prod    # Deploy frontend to production
 ```
 
+### Railway production auto-deploy
+
+Pushes to `master` automatically deploy the Railway production service through `.github/workflows/railway-production-deploy.yml`.
+
+- Uses `./scripts/deploy-railway-demo.sh` under GitHub Actions
+- Requires repository secrets for the Railway production project, service, URL, token, and demo credentials used by the smoke check
+- Optional: set `RAILWAY_PRODUCTION_WORKER_SERVICE` if the production environment includes a separate worker service
+
 ### `./scripts/deploy-infrastructure.sh`
+
 Deploys Terraform infrastructure (interactive).
+
 - Requires manual confirmation before applying
 - Creates VPC, Aurora, S3, CloudFront, Elastic Beanstalk resources
 
@@ -156,9 +202,11 @@ Deploys Terraform infrastructure (interactive).
 ## Worktree Commands
 
 ### `pnpm worktree:init`
+
 Initializes a git worktree for parallel development.
 
 **What it does:**
+
 1. Generates unique port offsets based on worktree path hash
 2. Creates `api/.env.local` and `web/.env.local`
 3. Creates worktree-specific database
@@ -171,14 +219,18 @@ Initializes a git worktree for parallel development.
 ## Database Management Scripts
 
 ### `./scripts/init-database.sh`
+
 Initializes remote database (fetches credentials from SSM).
+
 - Applies schema to AWS Aurora database
 - Optionally seeds with test data
 
 ### `./scripts/copy-db-to-shadow.sh`
+
 Copies dev database to shadow environment for UAT testing.
 
 **Options:**
+
 ```bash
 --skip-dump        # Skip dumping dev database
 --skip-restore     # Skip restore step
@@ -188,6 +240,7 @@ Copies dev database to shadow environment for UAT testing.
 ```
 
 ### `./scripts/copy-db-via-ssm.sh`
+
 Copies database between environments via SSM Session Manager.
 
 ---
@@ -195,12 +248,15 @@ Copies database between environments via SSM Session Manager.
 ## Infrastructure Scripts
 
 ### `./scripts/terraform.sh`
+
 Wrapper for Terraform operations with environment selection.
 
 ### `./scripts/sync-terraform-config.sh`
+
 Syncs Terraform configuration from SSM Parameter Store (source of truth).
 
 ### `./scripts/configure-caia.sh`
+
 Configures CAIA OAuth credentials in AWS Secrets Manager.
 
 ---
@@ -208,14 +264,18 @@ Configures CAIA OAuth credentials in AWS Secrets Manager.
 ## Utility Scripts
 
 ### `./scripts/check-empty-tests.sh`
+
 Pre-commit hook that catches tests with only TODO comments.
+
 - Tests with only comments pass silently (footgun)
 - Use `test.fixme()` for unimplemented tests
 
 ### `./scripts/check-api-coverage.sh`
+
 Checks API test coverage.
 
 ### `./scripts/watch-tests.sh`
+
 Runs tests in watch mode.
 
 ---
@@ -223,21 +283,22 @@ Runs tests in watch mode.
 ## Clean Commands
 
 ### `pnpm clean`
+
 Removes all build artifacts and node_modules across all packages.
 
 ---
 
 ## Quick Reference
 
-| Task | Command |
-|------|---------|
-| Start development | `pnpm dev` |
-| Run unit tests | `pnpm test` |
-| Run E2E tests | Use `/e2e-test-runner` skill |
-| Type check all | `pnpm type-check` |
-| Build everything | `pnpm build` |
-| Deploy API | `./scripts/deploy.sh <env>` |
-| Deploy Frontend | `./scripts/deploy-web.sh <env>` |
-| Seed database | `pnpm db:seed` |
-| Run migrations | `pnpm db:migrate` |
-| Init worktree | `pnpm worktree:init` |
+| Task              | Command                         |
+| ----------------- | ------------------------------- |
+| Start development | `pnpm dev`                      |
+| Run unit tests    | `pnpm test`                     |
+| Run E2E tests     | Use `/e2e-test-runner` skill    |
+| Type check all    | `pnpm type-check`               |
+| Build everything  | `pnpm build`                    |
+| Deploy API        | `./scripts/deploy.sh <env>`     |
+| Deploy Frontend   | `./scripts/deploy-web.sh <env>` |
+| Seed database     | `pnpm db:seed`                  |
+| Run migrations    | `pnpm db:migrate`               |
+| Init worktree     | `pnpm worktree:init`            |

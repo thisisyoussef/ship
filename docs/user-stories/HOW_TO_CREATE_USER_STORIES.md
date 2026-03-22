@@ -9,24 +9,26 @@ Write stories that are executable, testable, and resumable from the repo alone.
 
 ## Rules
 
-1. One story should produce one coherent outcome.
-2. Keep scope small enough to prepare, implement, validate, and hand off in one cycle.
-3. Always include a Preparation Phase before coding.
-4. Always include validation, deployment status, and user-facing verification steps.
-5. Use `docs/DEFINITION_OF_DONE.md` as the hard completion gate.
+1. Start the story on its own fresh `codex/` branch before editing the story file or implementation.
+2. One story should produce one coherent outcome.
+3. Keep scope small enough to prepare, implement, validate, and hand off in one cycle.
+4. Always include a Preparation Phase before coding.
+5. Always include validation, deployment status, and user-facing verification steps.
+6. Use `docs/DEFINITION_OF_DONE.md` as the hard completion gate.
 
 ## Process
 
-1. Copy `TEMPLATE.md` into the right phase folder.
-2. Fill status, ownership, dependencies, and target environment first.
-3. Define persona, user story, goal, and scope.
-4. List the local files and contracts to audit before coding.
-5. Complete the Preparation Phase notes before implementation.
-6. Write the TDD or validation plan before production edits.
-7. Add acceptance criteria and concrete local validation commands.
-8. Add deployment and user verification steps.
-9. For visible stories, create or refresh a named seeded verification entry or proof lane when the product supports one, and record it explicitly in `How To Verify`.
-10. Update the relevant checkpoint log when the story advances or closes.
+1. Create and switch to a fresh `codex/` branch for the story before editing the story file or implementation.
+2. Copy `TEMPLATE.md` into the right phase folder.
+3. Fill status, ownership, dependencies, and target environment first.
+4. Define persona, user story, goal, and scope.
+5. List the local files and contracts to audit before coding.
+6. Complete the Preparation Phase notes before implementation.
+7. Write the TDD or validation plan before production edits.
+8. Add acceptance criteria and concrete local validation commands.
+9. Add deployment and user verification steps.
+10. For visible stories, create or refresh a named seeded verification entry or proof lane when the product supports one, and record it explicitly in `How To Verify`.
+11. Update the relevant checkpoint log when the story advances or closes.
 
 ## Phase Folders
 

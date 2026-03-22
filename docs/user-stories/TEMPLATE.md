@@ -81,6 +81,7 @@ Error path:
 
 ## Preconditions
 
+- [ ] Fresh story branch is checked out before edits begin
 - [ ] Services/accounts exist
 - [ ] Secrets/config are present
 - [ ] Dependencies are healthy

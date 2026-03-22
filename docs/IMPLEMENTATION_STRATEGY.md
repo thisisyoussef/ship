@@ -38,12 +38,14 @@ Improve the repo's execution harness itself when repeated friction or drift show
 
 1. Start from `AGENTS.md`.
 2. Check `docs/user-stories/README.md` for the next valid story based on status and dependencies.
-3. Open the active story file and use it as the execution contract.
-4. Do the preparation phase before implementation.
-5. Write or update tests before production changes when behavior changes.
-6. Run the story's validation commands.
-7. Record deployment status, proof, and checkpoint evidence.
-8. Roll evidence upward into `docs/plans/` or `docs/submissions/` only when packaging or reviewing.
+3. Create and switch to a fresh `codex/` branch for that story before editing the story file or implementation.
+4. Open the active story file and use it as the execution contract.
+5. Do the preparation phase before implementation.
+6. Write or update tests before production changes when behavior changes.
+7. Run the story's validation commands.
+8. Record deployment status, proof, and checkpoint evidence.
+9. Finish the default GitHub flow by merging the story branch back to `master` unless the user explicitly pauses finalization or an exact blocker is recorded.
+10. Roll evidence upward into `docs/plans/` or `docs/submissions/` only when packaging or reviewing.
 
 ## Planning vs Packaging
 

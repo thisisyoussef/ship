@@ -30,7 +30,7 @@ Load context in this order before making non-trivial changes:
 
 ## Story Rules
 
-- Every new implementation story starts on a fresh `codex/` branch.
+- Every new user story starts by checking out a fresh `codex/` branch before editing the story file or implementation.
 - Keep one concern per branch.
 - Do a preparation pass before edits: inspect the relevant code, contracts, and local docs first.
 - Use TDD for behavior changes: red, green, refactor.
@@ -61,6 +61,7 @@ Load context in this order before making non-trivial changes:
 ## Finalization Default
 
 - Once the requested work is complete, default to the full GitHub flow automatically: commit the branch, push it, open a PR, merge it to `master`, sync local `master`, and delete the branch unless the user explicitly asks to pause finalization or use a different merge path.
+- Treat merge-to-`master` as the default end of the story branch lifecycle; if that merge does not happen, record the exact blocker instead of silently leaving the story branch open.
 - If GitHub tooling or auth is unavailable, report the exact blocker instead of stopping at a vague “ready to merge” handoff.
 
 ## Maintenance Rule

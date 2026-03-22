@@ -61,19 +61,42 @@ function parseApplyRequest(input: unknown) {
   }
 }
 
-function buildSummary(state: FleetGraphState): FleetGraphEntryApplyResponse['summary'] {
+function buildActionTitle(state: FleetGraphState) {
   const status = state.actionOutcome?.status
-  const title = status === 'failed'
-    ? 'FleetGraph could not complete the action.'
-    : status === 'already_applied'
-      ? 'FleetGraph found this step was already complete.'
-      : 'FleetGraph completed the action.'
 
+  if (status === 'failed') {
+    return 'FleetGraph could not complete the action.'
+  }
+
+  if (state.selectedAction?.type === 'approve_project_plan') {
+    return status === 'already_applied'
+      ? 'Project plan was already approved.'
+      : 'Project plan approved.'
+  }
+
+  if (state.selectedAction?.type === 'approve_week_plan') {
+    return status === 'already_applied'
+      ? 'Week plan was already approved.'
+      : 'Week plan approved.'
+  }
+
+  if (state.selectedAction?.type === 'post_comment') {
+    return status === 'already_applied'
+      ? 'Comment was already posted.'
+      : 'Comment posted.'
+  }
+
+  return status === 'already_applied'
+    ? 'FleetGraph found this step was already complete.'
+    : 'FleetGraph completed the action.'
+}
+
+function buildSummary(state: FleetGraphState): FleetGraphEntryApplyResponse['summary'] {
   return {
     detail: state.actionOutcome?.message
       ?? 'FleetGraph finished processing this approval step.',
     surfaceLabel: state.routeSurface,
-    title,
+    title: buildActionTitle(state),
   }
 }
 

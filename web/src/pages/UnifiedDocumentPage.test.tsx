@@ -90,6 +90,16 @@ vi.mock('@/components/document-tabs/WeekOverviewTab', () => ({
 import { apiGet } from '@/lib/api';
 import { UnifiedDocumentPage } from './UnifiedDocumentPage';
 
+function createDeferredDocument() {
+  let resolve!: (value: Response) => void;
+
+  const promise = new Promise<Response>((res) => {
+    resolve = res;
+  });
+
+  return { promise, resolve };
+}
+
 function createWrapper(initialEntry: string) {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -114,6 +124,35 @@ function createWrapper(initialEntry: string) {
 describe('UnifiedDocumentPage', () => {
   beforeEach(() => {
     vi.mocked(apiGet).mockReset();
+  });
+
+  it('keeps FleetGraph hooks stable when the document page loads', async () => {
+    const deferred = createDeferredDocument();
+    vi.mocked(apiGet).mockReturnValue(deferred.promise);
+
+    render(<UnifiedDocumentPage />, {
+      wrapper: createWrapper('/documents/sprint-1'),
+    });
+
+    expect(await screen.findByText('Loading...')).toBeInTheDocument();
+
+    deferred.resolve({
+      ok: true,
+      json: async () => ({
+        created_at: '2026-03-17T00:00:00.000Z',
+        created_by: 'user-1',
+        document_type: 'sprint',
+        id: 'sprint-1',
+        plan_approval: { state: 'planning' },
+        properties: { status: 'planning' },
+        title: 'FleetGraph Demo Week - Review and Apply',
+        updated_at: '2026-03-17T00:00:00.000Z',
+        workspace_id: 'workspace-1',
+      }),
+    } as Response);
+
+    expect(await screen.findByTestId('fleetgraph-document-page-shell')).toBeInTheDocument();
+    expect(screen.getByText('FleetGraph entry')).toBeInTheDocument();
   });
 
   it('keeps the FleetGraph week route in a page-level scroll shell', async () => {

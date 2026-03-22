@@ -54,6 +54,38 @@ function makePendingEntryState() {
   }
 }
 
+function makeWeekEntryState() {
+  return {
+    ...makePendingEntryState(),
+    requestedAction: {
+      endpoint: {
+        method: 'POST' as const,
+        path: '/api/weeks/week-1/approve-plan',
+      },
+      evidence: ['This weekly plan is ready for the team to follow.'],
+      rationale: 'Approve this week plan when the team is ready to move forward.',
+      summary: 'Approve the current week plan.',
+      targetId: 'week-1',
+      targetType: 'sprint' as const,
+      title: 'Approve week plan',
+      type: 'approve_week_plan' as const,
+    },
+    selectedAction: {
+      endpoint: {
+        method: 'POST' as const,
+        path: '/api/weeks/week-1/approve-plan',
+      },
+      evidence: ['This weekly plan is ready for the team to follow.'],
+      rationale: 'Approve this week plan when the team is ready to move forward.',
+      summary: 'Approve the current week plan.',
+      targetId: 'week-1',
+      targetType: 'sprint' as const,
+      title: 'Approve week plan',
+      type: 'approve_week_plan' as const,
+    },
+  }
+}
+
 describe('FleetGraph entry action service', () => {
   it('resumes a pending entry approval with the current request context', async () => {
     const runtime = {
@@ -113,7 +145,49 @@ describe('FleetGraph entry action service', () => {
       message: 'Project plan approved in Ship.',
       status: 'applied',
     })
-    expect(response.summary.title).toBe('FleetGraph completed the action.')
+    expect(response.summary.title).toBe('Project plan approved.')
+  })
+
+  it('returns a specific week approval summary for entry apply', async () => {
+    const runtime = {
+      getPendingInterrupts: vi.fn(async () => [{ taskName: 'approval_interrupt' }]),
+      getState: vi.fn(async () => ({
+        values: makeWeekEntryState(),
+      })),
+      resume: vi.fn(async () => ({
+        ...makeWeekEntryState(),
+        actionOutcome: {
+          message: 'Week plan approved in Ship. Look for Plan Approval showing Approved on this page.',
+          resultStatusCode: 200,
+          status: 'applied' as const,
+        },
+      })),
+    }
+
+    const service = createFleetGraphEntryActionService({
+      runtime,
+    })
+
+    const response = await service.applyEntry(
+      { threadId: 'fleetgraph:workspace-1:entry-thread' },
+      {
+        request: {
+          get() {
+            return 'localhost:3000'
+          },
+          header() {
+            return undefined
+          },
+          protocol: 'http',
+        } as never,
+        workspaceId: 'workspace-1',
+      }
+    )
+
+    expect(response.summary.title).toBe('Week plan approved.')
+    expect(response.summary.detail).toBe(
+      'Week plan approved in Ship. Look for Plan Approval showing Approved on this page.'
+    )
   })
 
   it('rejects entry apply when no approval interrupt is pending', async () => {

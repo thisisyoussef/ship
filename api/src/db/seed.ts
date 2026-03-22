@@ -905,16 +905,20 @@ export async function seed() {
     // Comprehensive FleetGraph demo data — covers all finding types, analysis
     // agent tools, and action suggestion scenarios
     // ──────────────────────────────────────────────────────────────────────────
-    await seedFleetGraphComprehensiveDemo(pool, {
-      currentSprintNumber,
-      demoOwner: { id: String(demoOwner.id), email: String(demoOwner.email), name: String(demoOwner.name) },
-      emailToUserId,
-      programId: shipCoreProgram.id,
-      projectId: demoFixture.projectId,
-      workspaceId,
-      workspaceSprintStartDate: new Date(rawSprintStartDate).toISOString().slice(0, 10),
-    })
-    console.log('✅ FleetGraph comprehensive demo data seeded')
+    try {
+      await seedFleetGraphComprehensiveDemo(pool, {
+        currentSprintNumber,
+        demoOwner: { id: String(demoOwner.id), email: String(demoOwner.email), name: String(demoOwner.name) },
+        emailToUserId,
+        programId: shipCoreProgram.id,
+        projectId: demoFixture.projectId,
+        workspaceId,
+        workspaceSprintStartDate: new Date(rawSprintStartDate).toISOString().slice(0, 10),
+      })
+      console.log('✅ FleetGraph comprehensive demo data seeded')
+    } catch (err) {
+      console.warn('⚠️  FleetGraph comprehensive demo data failed (non-fatal):', err instanceof Error ? err.message : err)
+    }
 
     // Create welcome/tutorial wiki document
     const existingTutorial = await pool.query(

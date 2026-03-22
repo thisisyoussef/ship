@@ -52,9 +52,7 @@ export function normalizeShipDocument(input: unknown): NormalizedShipDocument {
   const assigneeId =
     getStringValue(parsed.assignee_id) || getStringValue(props.assignee_id)
   const ownerId =
-    getStringValue(parsed.owner_id)
-    || getStringValue(props.owner_id)
-    || legacyAssigneeIds[0]
+    getStringValue(parsed.owner_id) || getStringValue(props.owner_id)
   const accountableId =
     getStringValue(parsed.accountable_id) ||
     getStringValue(props.accountable_id)
@@ -94,3 +92,4 @@ export function normalizeShipDocument(input: unknown): NormalizedShipDocument {
     workspaceId: getStringValue(parsed.workspace_id),
   }
 }
+

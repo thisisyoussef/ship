@@ -889,35 +889,54 @@ export async function seed() {
       console.log('ℹ️  All issues already exist');
     }
 
-    const demoFixture = await ensureFleetGraphDemoProofLane(pool, {
-      currentSprintNumber,
-      ownerEmail: String(demoOwner.email),
-      ownerName: String(demoOwner.name),
-      ownerUserId: String(demoOwner.id),
-      programId: shipCoreProgram.id,
-      programName: shipCoreProgram.name,
-      workspaceId,
-      workspaceSprintStartDate: new Date(rawSprintStartDate).toISOString().slice(0, 10),
-    })
-    console.log(`✅ FleetGraph demo proof lane ready: ${demoFixture.weekTitle}`)
+    // Clean up FleetGraph tables to reclaim disk space (prevents "No space left on device" on Railway)
+    try {
+      await pool.query('DELETE FROM fleetgraph_queue_jobs WHERE created_at < NOW() - INTERVAL \'7 days\'')
+      await pool.query('DELETE FROM fleetgraph_dedupe_ledger WHERE created_at < NOW() - INTERVAL \'7 days\'')
+      await pool.query('DELETE FROM fleetgraph_finding_action_runs WHERE executed_at < NOW() - INTERVAL \'7 days\'')
+      await pool.query('VACUUM (VERBOSE, ANALYZE) fleetgraph_queue_jobs, fleetgraph_dedupe_ledger, fleetgraph_proactive_findings, fleetgraph_finding_action_runs')
+    } catch {
+      // VACUUM may not be allowed on Railway — that's OK
+    }
+
+    let demoFixture: Awaited<ReturnType<typeof ensureFleetGraphDemoProofLane>> | null = null
+    try {
+      demoFixture = await ensureFleetGraphDemoProofLane(pool, {
+        currentSprintNumber,
+        ownerEmail: String(demoOwner.email),
+        ownerName: String(demoOwner.name),
+        ownerUserId: String(demoOwner.id),
+        programId: shipCoreProgram.id,
+        programName: shipCoreProgram.name,
+        workspaceId,
+        workspaceSprintStartDate: new Date(rawSprintStartDate).toISOString().slice(0, 10),
+      })
+      console.log(`✅ FleetGraph demo proof lane ready: ${demoFixture.weekTitle}`)
+    } catch (err) {
+      console.warn('⚠️  FleetGraph demo proof lane failed (non-fatal):', err instanceof Error ? err.message : err)
+    }
 
     // ──────────────────────────────────────────────────────────────────────────
     // Comprehensive FleetGraph demo data — covers all finding types, analysis
     // agent tools, and action suggestion scenarios
     // ──────────────────────────────────────────────────────────────────────────
-    try {
-      await seedFleetGraphComprehensiveDemo(pool, {
-        currentSprintNumber,
-        demoOwner: { id: String(demoOwner.id), email: String(demoOwner.email), name: String(demoOwner.name) },
-        emailToUserId,
-        programId: shipCoreProgram.id,
-        projectId: demoFixture.projectId,
-        workspaceId,
-        workspaceSprintStartDate: new Date(rawSprintStartDate).toISOString().slice(0, 10),
-      })
-      console.log('✅ FleetGraph comprehensive demo data seeded')
-    } catch (err) {
-      console.warn('⚠️  FleetGraph comprehensive demo data failed (non-fatal):', err instanceof Error ? err.message : err)
+    if (demoFixture) {
+      try {
+        await seedFleetGraphComprehensiveDemo(pool, {
+          currentSprintNumber,
+          demoOwner: { id: String(demoOwner.id), email: String(demoOwner.email), name: String(demoOwner.name) },
+          emailToUserId,
+          programId: shipCoreProgram.id,
+          projectId: demoFixture.projectId,
+          workspaceId,
+          workspaceSprintStartDate: new Date(rawSprintStartDate).toISOString().slice(0, 10),
+        })
+        console.log('✅ FleetGraph comprehensive demo data seeded')
+      } catch (err) {
+        console.warn('⚠️  FleetGraph comprehensive demo data failed (non-fatal):', err instanceof Error ? err.message : err)
+      }
+    } else {
+      console.warn('⚠️  Skipping comprehensive demo data (proof lane not available)')
     }
 
     // Create welcome/tutorial wiki document

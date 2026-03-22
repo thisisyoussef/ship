@@ -6,7 +6,7 @@
  * - Analyze tab: Chat-based document analysis
  */
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import type { DocumentContext } from '@/hooks/useDocumentContextQuery'
 import { useFleetGraphFindings } from '@/hooks/useFleetGraphFindings'
@@ -32,6 +32,12 @@ export function FleetGraphFab({
 }: FleetGraphFabProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<TabId>('findings')
+
+  // Collapse and reset FAB when navigating to a different document
+  useEffect(() => {
+    setIsOpen(false)
+    setActiveTab('findings')
+  }, [documentId])
 
   // Get finding count for badge
   const documentIds = buildFleetGraphFindingDocumentIds(documentId, context)

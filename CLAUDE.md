@@ -1,13 +1,17 @@
 # CLAUDE.md
 
-This top-level file exists so tools that look for `CLAUDE.md` at the repo root land in the right place.
+This file is a compatibility entrypoint for tools that look for `CLAUDE.md`.
 
 Read in this order:
-1. `.claude/CLAUDE.md` for Ship-specific commands, architecture, testing, and deployment conventions.
-2. `.ai/docs/SINGLE_SOURCE_OF_TRUTH.md` for current assignment state and AI-workspace routing.
-3. `.ai/agents/claude.md` for orchestration rules.
-4. `docs/assignments/fleetgraph/README.md` when working on the FleetGraph assignment.
 
-Live AI workspace: `.ai/`
+1. `AGENTS.md`
+2. `docs/CONTEXT.md`
+3. `docs/IMPLEMENTATION_STRATEGY.md`
+4. `docs/user-stories/README.md`
+5. `.claude/CLAUDE.md` for Ship-specific commands and architecture notes
 
-Archive only: `ai-workspace-template/`
+For FleetGraph work, also read:
+
+- `docs/assignments/fleetgraph/README.md`
+- `docs/assignments/fleetgraph/PRESEARCH.md`
+- `docs/assignments/fleetgraph/FLEETGRAPH.md`

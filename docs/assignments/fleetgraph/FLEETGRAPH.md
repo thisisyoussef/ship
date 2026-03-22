@@ -14,15 +14,14 @@ FleetGraph is a project-intelligence agent for Ship. Its job is to notice meanin
 ### What it monitors proactively
 
 - Week-start drift when a week is still `planning` or has zero issues after it should be active
-- Missing standups for active weeks during the business day
-- Approval gaps when review or plan state is stuck in `changes_requested` or unapproved for too long
-- Deadline-risk signals when target dates are near and high-priority work is still open or stale
-- Load imbalance when one assignee carries materially more active work than comparable teammates
+- Sprint-owner gaps when a planning or active week has no owner assigned
+- Unassigned sprint-issue clusters when a planning or active week has too many issues without clear ownership
 
 ### What it reasons about on demand
 
 - The current issue, sprint, project, program, or weekly-doc surface inside Ship
 - Related work, ownership, history, comments, and next actions based on the current page context
+- Approval-preview actions available from the current page before anything consequential is executed
 - What changed recently, what is blocked, and what the user should do next without forcing them to manually traverse tabs
 
 ### What it can do autonomously
@@ -43,9 +42,9 @@ FleetGraph is a project-intelligence agent for Ship. Its job is to notice meanin
 
 ### Who it notifies and when
 
-- Engineers for missing standups or issue-level contextual help
-- PMs for week-start drift, approval gaps, and workload imbalance
-- Directors for deadline risk and cross-project escalation signals
+- Engineers and PMs for issue-level contextual help
+- PMs for week-start drift, sprint-owner gaps, and unassigned sprint issues
+- The current-page viewer for approval previews and page analysis
 - The person who can actually act on the surfaced problem, rather than broadcasting generic alerts
 
 ### How it derives project membership and role context
@@ -100,6 +99,8 @@ flowchart TD
   - `run_scenario`
 - Current scenario families:
   - `week_start_drift`
+  - `sprint_no_owner`
+  - `unassigned_sprint_issues`
   - `entry_context_check`
   - `entry_requested_action`
   - `finding_action_review`
@@ -143,12 +144,11 @@ Minimum: 5.
 
 | # | Role | Trigger | Agent Detects / Produces | Human Decides |
 |---|------|---------|---------------------------|---------------|
-| 1 | Engineer | Business day, active week, no standup posted by noon | Missing standup with issue count and direct link to the correct standup or week surface | Post now, snooze, or ignore |
-| 2 | PM | Week start day passes and the week is still `planning` or has zero issues | Week-start drift summary with owner and missing setup details | Start the week, add scope, or intentionally leave it idle |
-| 3 | PM | Plan or review is `changes_requested`, or remains unapproved for 1 business day after submission | Approval-gap summary with the exact approver and missing follow-up | Approve, request changes, or rework the document |
-| 4 | Director | Project target date is within 7 days and high-priority work is still open or stale | Deadline-risk brief naming the at-risk project, stale issues, and likely impact | Escalate, rescope, or accept the risk |
-| 5 | PM | One project or active week shows clear workload skew | Load-imbalance brief with overloaded assignee, lighter peers, and candidate moves | Reassign, rebalance later, or keep the current distribution |
-| 6 | Engineer or PM | User opens an issue, sprint, or project page and asks a question | Context-aware answer that pulls current document state, related work, history, comments, and next actions into one response | Choose the next step with less digging |
+| 1 | PM | Week start day passes and the week is still `planning` or has zero issues | Week-start drift summary with owner and missing setup details | Start the week, add scope, or intentionally leave it idle |
+| 2 | PM | A planning or active week has reached its start window with no owner assigned | Sprint-owner gap summary naming the week and missing accountability | Assign an owner now, defer intentionally, or leave the week unchanged |
+| 3 | PM | An active or planning week has a meaningful cluster of unassigned issues | Unassigned-issues brief with count, sprint context, and why assignment is needed | Assign work now, rebalance later, or leave the issues unassigned intentionally |
+| 4 | Engineer or PM | User is on an issue, sprint, project, program, or weekly-doc page and wants to preview a consequential action | Approval preview from the current page, including the action target and exact next step | Confirm, cancel, or refine the action before anything is executed |
+| 5 | Engineer or PM | User opens an issue, sprint, project, program, or weekly-doc page and asks for help | Context-aware page analysis that pulls current document state, related work, history, comments, and next actions into one response | Choose the next step with less digging |
 
 ## Trigger Model
 
@@ -202,11 +202,11 @@ For each use case, record the triggering Ship state, the expected output, and th
 
 | # | Ship State | Expected Output | Trace Link |
 |---|------------|-----------------|------------|
-| 1 | Active week, no standup posted by noon | Missing-standup insight with direct action choices | Deferred beyond Tuesday MVP; no live trace captured yet |
-| 2 | Week is still `planning` or empty after it should be active | Week-start drift insight with week owner and missing setup details | Proactive worker path: [shared trace](https://smith.langchain.com/public/d5f1a274-6f81-4c42-b8be-924791429323/r). Approval-preview/HITL path: [shared trace](https://smith.langchain.com/public/e969f90a-ef5a-45e5-bded-9d6de7233311/r). |
-| 3 | Review or plan is `changes_requested` or unapproved beyond the threshold | Approval-gap summary with approver and next step | Deferred beyond Tuesday MVP; no live trace captured yet |
-| 4 | Target date within 7 days and high-priority work is still open or stale | Deadline-risk brief with named stale work and likely impact | Deferred beyond Tuesday MVP; no live trace captured yet |
-| 5 | Work distribution is materially skewed | Load-imbalance brief with overloaded assignee and candidate rebalance options | Deferred beyond Tuesday MVP; no live trace captured yet |
+| 1 | Week is still `planning` or empty after it should be active | Week-start drift insight with week owner and missing setup details | Proactive worker path: [shared trace](https://smith.langchain.com/public/d5f1a274-6f81-4c42-b8be-924791429323/r). Approval-preview/HITL path: [shared trace](https://smith.langchain.com/public/e969f90a-ef5a-45e5-bded-9d6de7233311/r). |
+| 2 | Planning or active week has no owner assigned near its start window | Sprint-owner gap summary with week identity and accountability context | Planned next case; no live trace captured yet |
+| 3 | Planning or active week contains a meaningful cluster of unassigned issues | Unassigned-issues summary with count, sprint context, and assignment need | Planned next case; no live trace captured yet |
+| 4 | User opens a current page action preview from FleetGraph entry | Approval preview naming the target action and confirmation path | Current-page approval preview path shares the on-demand trace family; proof lane captured in the Tuesday MVP evidence bundle |
+| 5 | User asks for help from an issue, sprint, project, program, or weekly-doc page | Context-aware page analysis with current state, related work, and next actions | On-demand page-analysis wiring is in progress; no standalone live trace captured yet |
 
 ## Tuesday MVP Evidence
 

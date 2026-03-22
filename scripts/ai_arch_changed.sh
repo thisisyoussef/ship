@@ -9,8 +9,17 @@ usage() {
   exit 2
 }
 
+# AI-architecture changes include:
+# - AGENTS.md and CLAUDE.md entrypoints
+# - docs/CONTEXT.md
+# - docs/IMPLEMENTATION_STRATEGY.md
+# - docs/DEFINITION_OF_DONE.md
+# - docs/user-stories/
+# - docs/guides/finalization-recovery.md
+# - supporting harness scripts and IDE mirrors
+
 match_ai_arch() {
-  grep -E '^(AGENTS\.md|\.clauderc|\.cursorrules|\.ai/|\.husky/|scripts/(check_ai_wiring|flight_slot|git_finalize_guard|ai_arch_changed|triage_counter)\.sh|scripts/verify_agent_contract\.py)$' || true
+  grep -E '^(AGENTS\.md|CLAUDE\.md|\.clauderc|\.cursorrules|\.claude/CLAUDE\.md|docs/(README\.md|CONTEXT\.md|IMPLEMENTATION_STRATEGY\.md|DEFINITION_OF_DONE\.md|guides/finalization-recovery\.md|submissions/.*|user-stories/.*)|\.husky/pre-commit|scripts/(check_ai_wiring|flight_slot|git_finalize_guard|ai_arch_changed|triage_counter|tdd_handoff)\.sh|scripts/verify_agent_contract\.py)$' || true
 }
 
 if [[ $# -lt 1 ]]; then

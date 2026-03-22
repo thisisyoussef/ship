@@ -3,89 +3,28 @@
     "root": ".",
     "sourceDir": ".",
     "testDir": "e2e",
-    "docsDir": ".ai/docs"
+    "docsDir": "docs"
   },
   "rules": {
     "alwaysReadFirst": [
-      ".ai/docs/SINGLE_SOURCE_OF_TRUTH.md",
-      ".ai/codex.md",
-      ".ai/agents/claude.md"
+      "AGENTS.md",
+      "docs/CONTEXT.md",
+      "docs/IMPLEMENTATION_STRATEGY.md",
+      "docs/user-stories/README.md"
     ],
     "beforeCoding": [
-      "If project setup is incomplete, choose the stack based on product needs before implementation",
-      "Record the chosen language, framework, package manager, source directories, test directories, deployment target, and validation commands during setup",
-      "Read .ai/docs/AGENTIC_ENGINEERING_PRINCIPLES.md",
-      "Check .ai/memory/project/patterns.md for prior solutions",
-      "Check .ai/memory/project/anti-patterns.md for mistakes to avoid",
-      "Search .ai/docs/references/ for relevant documentation",
-      "Run .ai/workflows/story-lookup.md, then .ai/workflows/story-sizing.md, before implementation planning",
-      "For feature stories, run .ai/workflows/spec-driven-delivery.md, review .ai/docs/research/spec-driven-tdd-playbook.md and .ai/docs/design/DESIGN_PHILOSOPHY_AND_LANGUAGE.md (for UI scope), and use .ai/templates/spec/ artifacts before writing tests/code",
-      "If UI is in scope, apply .ai/skills/frontend-design.md and translate visual intent into concrete typography, spacing, color, depth, and motion constraints",
-      "If UI direction is strategic, reusable, or multi-step, create a .ai/templates/spec/UI_PROMPT_BRIEF_TEMPLATE.md artifact using WIRE or WIRE+FRAME structure before implementation",
-      "Use the trivial lane only when the story-sizing workflow says the change is one-file, non-API, and non-AI; otherwise stay on the standard lane",
-      "Run .ai/workflows/parallel-flight.md and claim the single writer lock only for standard-lane implementation edits",
-      "If the user provides a narrow corrective note or clarification, run .ai/workflows/user-correction-triage.md and classify blast radius before expanding scope",
-      "If the story changes prompts, retrieval, tools, routing, graders, or other AI behavior, run .ai/workflows/eval-driven-development.md and define objective, dataset, metrics, thresholds, and regression plan before implementation",
-      "If the story changes tests plus production code, run .ai/workflows/tdd-pipeline.md and use scripts/tdd_handoff.sh for the isolated three-agent TDD handoff",
-      "If the story changes visible UI behavior, run .ai/workflows/ui-qa-critic.md after validation and check for human-centered copy, truthful action feedback, and progressive disclosure for diagnostics",
-      "Use explicit completion criteria and avoid ending early when checks are unresolved",
-      "For discovery/review tasks, avoid outcome-biased phrasing; request evidence and severity/risk first"
+      "Use AGENTS.md as the primary rulebook.",
+      "Use docs/user-stories/README.md as the master queue and open the active story file before edits.",
+      "Do a preparation pass before implementation: read relevant code, contracts, and local docs first.",
+      "Use docs/plans/ for design and technical planning, and docs/submissions/ for final bundles only.",
+      "Use TDD for behavior changes and record validation, deployment status, and checkpoint evidence in the active story.",
+      "Run bash scripts/check_ai_wiring.sh when the harness contract changes.",
+      "Keep docs/CONTEXT.md current when live environment truth changes.",
+      "Use .claude/CLAUDE.md only as a secondary appendix for Ship commands and architecture notes."
     ],
     "beforeHandoff": [
-      "Run .ai/workflows/story-handoff.md as the combined completion gate; after user approval, run .ai/workflows/git-finalization.md and ensure scripts/git_finalize_guard.sh passes"
-    ],
-    "tdd": {
-      "required": true,
-      "testFirst": true,
-      "coverageTarget": 90
-    },
-    "codeStandards": {
-      "maxFileLines": 250,
-      "targetFileLines": 150,
-      "maxFunctionLines": 30,
-      "targetFunctionLines": 15,
-      "requireTypeHints": true,
-      "requireDocstrings": true
-    },
-    "security": {
-      "noHardcodedSecrets": true,
-      "validateAllInput": true,
-      "checkBeforeCommit": true
-    }
-  },
-  "agents": {
-    "tdd": ".ai/agents/tdd-agent.md",
-    "tddSpecInterpreter": ".ai/agents/tdd-spec-interpreter.md",
-    "tddImplementer": ".ai/agents/tdd-implementer.md",
-    "tddReviewer": ".ai/agents/tdd-reviewer.md",
-    "architect": ".ai/agents/architect-agent.md",
-    "security": ".ai/agents/security-agent.md",
-    "deployment": ".ai/agents/deployment-agent.md"
-  },
-  "workflows": {
-    "feature": ".ai/workflows/feature-development.md",
-    "bugfix": ".ai/workflows/bug-fixing.md",
-    "performance": ".ai/workflows/performance-optimization.md",
-    "security": ".ai/workflows/security-review.md",
-    "deployment": ".ai/workflows/deployment-setup.md",
-    "tddPipeline": ".ai/workflows/tdd-pipeline.md",
-    "specDriven": ".ai/workflows/spec-driven-delivery.md",
-    "uiQaCritic": ".ai/workflows/ui-qa-critic.md",
-    "gitFinalization": ".ai/workflows/git-finalization.md",
-    "parallelFlight": ".ai/workflows/parallel-flight.md",
-    "storySizing": ".ai/workflows/story-sizing.md",
-    "userCorrectionTriage": ".ai/workflows/user-correction-triage.md",
-    "evalDriven": ".ai/workflows/eval-driven-development.md",
-    "aiArchitecture": ".ai/workflows/ai-architecture-change.md",
-    "lookup": ".ai/workflows/story-lookup.md",
-    "finalizationRecovery": ".ai/workflows/finalization-recovery.md"
-  },
-  "skills": {
-    "frontendDesign": ".ai/skills/frontend-design.md"
-  },
-  "memory": {
-    "session": ".ai/memory/session/",
-    "project": ".ai/memory/project/",
-    "codex": ".ai/memory/codex/"
+      "Verify the active story satisfies docs/DEFINITION_OF_DONE.md.",
+      "Include exact user-facing verification steps and explicit deployment status in the handoff."
+    ]
   }
 }

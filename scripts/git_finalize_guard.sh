@@ -10,7 +10,7 @@ cd "${ROOT_DIR}"
 
 fail() {
   echo "ERROR: $1" >&2
-  echo "Recovery: see .ai/workflows/finalization-recovery.md" >&2
+  echo "Recovery: see docs/guides/finalization-recovery.md" >&2
   exit 1
 }
 

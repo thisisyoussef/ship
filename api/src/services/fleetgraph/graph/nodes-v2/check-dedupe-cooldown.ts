@@ -166,11 +166,12 @@ export async function checkDedupeCooldown(
         }
       }
 
-      // Check cooldown (only if evidence unchanged)
+      // Check cooldown (only suppress if evidence is unchanged)
       if (!suppressed) {
         const cooldownUntil = new Date(existing.cooldownUntil)
-        if (cooldownUntil > now) {
-          // Evidence unchanged, within cooldown
+        const evidenceChanged = existing.evidenceHash !== undefined
+          && existing.evidenceHash !== evidenceHash
+        if (cooldownUntil > now && !evidenceChanged) {
           suppressed = true
           suppressReason = `Cooldown active until ${existing.cooldownUntil}`
         }
@@ -185,6 +186,7 @@ export async function checkDedupeCooldown(
         entityId: suspect.entityId,
         lastNotifiedAt: existing?.lastNotifiedAt ?? now.toISOString(),
         cooldownUntil: existing?.cooldownUntil ?? now.toISOString(),
+        evidenceHash,
         snoozedUntil: existing?.snoozedUntil,
         dismissedUntil: existing?.dismissedUntil,
       })

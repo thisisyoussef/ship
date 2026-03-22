@@ -602,7 +602,8 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
               WHERE i.document_type = 'issue') as issue_count,
              (${inferredStatusSubquery}) as inferred_status
       FROM documents d
-      LEFT JOIN users u ON u.id = (d.properties->>'owner_id')::uuid
+      LEFT JOIN documents owner_person ON owner_person.id = (d.properties->>'owner_id')::uuid AND owner_person.document_type = 'person'
+      LEFT JOIN users u ON (owner_person.properties->>'user_id')::uuid = u.id
       LEFT JOIN document_associations prog_da ON prog_da.document_id = d.id AND prog_da.relationship_type = 'program'
       WHERE d.workspace_id = $1 AND d.document_type = 'project'
         AND ${VISIBILITY_FILTER_SQL('d', '$2', '$3')}
@@ -689,7 +690,8 @@ router.get('/:id', authMiddleware, async (req: Request<IdParams>, res: Response)
                WHERE i.document_type = 'issue') as issue_count,
               (${inferredStatusSubquery}) as inferred_status
        FROM documents d
-       LEFT JOIN users u ON u.id = (d.properties->>'owner_id')::uuid
+       LEFT JOIN documents owner_person ON owner_person.id = (d.properties->>'owner_id')::uuid AND owner_person.document_type = 'person'
+       LEFT JOIN users u ON (owner_person.properties->>'user_id')::uuid = u.id
        LEFT JOIN document_associations prog_da ON prog_da.document_id = d.id AND prog_da.relationship_type = 'program'
        WHERE d.id = $1 AND d.workspace_id = $2 AND d.document_type = 'project'
          AND ${VISIBILITY_FILTER_SQL('d', '$3', '$4')}`,
@@ -1096,7 +1098,8 @@ router.patch('/:id', authMiddleware, async (req: Request<IdParams>, res: Respons
                WHERE i.document_type = 'issue') as issue_count,
               (${updateInferredStatusSubquery}) as inferred_status
        FROM documents d
-       LEFT JOIN users u ON u.id = (d.properties->>'owner_id')::uuid
+       LEFT JOIN documents owner_person ON owner_person.id = (d.properties->>'owner_id')::uuid AND owner_person.document_type = 'person'
+       LEFT JOIN users u ON (owner_person.properties->>'user_id')::uuid = u.id
        LEFT JOIN document_associations prog_da ON prog_da.document_id = d.id AND prog_da.relationship_type = 'program'
        WHERE d.id = $1 AND d.document_type = 'project'`,
       [id]
@@ -1471,7 +1474,8 @@ router.get('/:id/issues', authMiddleware, async (req: Request<IdParams>, res: Re
        FROM documents d
        JOIN document_associations da ON da.document_id = d.id
          AND da.related_id = $1 AND da.relationship_type = 'project'
-       LEFT JOIN users u ON (d.properties->>'assignee_id')::uuid = u.id
+       LEFT JOIN documents assignee_person ON assignee_person.id = (d.properties->>'assignee_id')::uuid AND assignee_person.document_type = 'person'
+       LEFT JOIN users u ON (assignee_person.properties->>'user_id')::uuid = u.id
        WHERE d.workspace_id = $2 AND d.document_type = 'issue'
          AND d.archived_at IS NULL AND d.deleted_at IS NULL
          AND ${VISIBILITY_FILTER_SQL('d', '$3', '$4')}
@@ -1567,7 +1571,8 @@ router.get('/:id/weeks', authMiddleware, async (req: Request<IdParams>, res: Res
        LEFT JOIN documents p ON prog_da.related_id = p.id
        LEFT JOIN documents proj ON proj.id = $1
        JOIN workspaces w ON d.workspace_id = w.id
-       LEFT JOIN users u ON (d.properties->>'owner_id')::uuid = u.id
+       LEFT JOIN documents owner_person ON owner_person.id = (d.properties->>'owner_id')::uuid AND owner_person.document_type = 'person'
+       LEFT JOIN users u ON (owner_person.properties->>'user_id')::uuid = u.id
        WHERE d.workspace_id = $2 AND d.document_type = 'sprint'
          AND ${VISIBILITY_FILTER_SQL('d', '$3', '$4')}
        ORDER BY (d.properties->>'sprint_number')::int DESC`,
@@ -1634,7 +1639,8 @@ router.get('/:id/sprints', authMiddleware, async (req: Request<IdParams>, res: R
        LEFT JOIN documents p ON prog_da.related_id = p.id
        LEFT JOIN documents proj ON proj.id = $1
        JOIN workspaces w ON d.workspace_id = w.id
-       LEFT JOIN users u ON (d.properties->>'owner_id')::uuid = u.id
+       LEFT JOIN documents owner_person ON owner_person.id = (d.properties->>'owner_id')::uuid AND owner_person.document_type = 'person'
+       LEFT JOIN users u ON (owner_person.properties->>'user_id')::uuid = u.id
        WHERE d.workspace_id = $2 AND d.document_type = 'sprint'
          AND ${VISIBILITY_FILTER_SQL('d', '$3', '$4')}
        ORDER BY (d.properties->>'sprint_number')::int DESC`,

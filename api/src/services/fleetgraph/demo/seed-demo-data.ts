@@ -144,4 +144,157 @@ export async function seedFleetGraphDemoData(
     success_criteria: 'Only the approval gap finding appears.',
   })
   await associateToProjectAndProgram(DEMO_IDS.SPRINT_APPROVAL_ONLY)
+
+  // ── Seed findings directly so they appear immediately ──────────────────
+  // The proactive worker would detect these naturally, but in dev mode
+  // (no separate worker process), we insert findings at seed time.
+
+  const findingStore = (await import('../findings/store.js')).createFleetGraphFindingStore(pool)
+
+  // Sprint 1: 3 findings
+  await findingStore.upsertFinding({
+    dedupeKey: `demo:week-start-drift:${DEMO_IDS.SPRINT_ALL_THREE}`,
+    documentId: DEMO_IDS.SPRINT_ALL_THREE,
+    documentType: 'sprint',
+    evidence: ['Sprint status is "planning" but the start date has passed.', 'Starting the week would unblock issue tracking and standups.'],
+    findingKey: `week-start-drift:${workspaceId}:${DEMO_IDS.SPRINT_ALL_THREE}`,
+    findingType: 'week_start_drift',
+    metadata: { demoFixture: true },
+    recommendedAction: {
+      endpoint: { method: 'POST', path: `/api/weeks/${DEMO_IDS.SPRINT_ALL_THREE}/start` },
+      evidence: ['Sprint is still in planning after start date.'],
+      rationale: 'Starting the week unblocks issue tracking.',
+      summary: 'Start this week to unblock the team.',
+      targetId: DEMO_IDS.SPRINT_ALL_THREE,
+      targetType: 'sprint',
+      title: 'Start this week',
+      type: 'start_week',
+    },
+    summary: 'This week is still in planning even though its start window has passed.',
+    threadId: `demo:${DEMO_IDS.SPRINT_ALL_THREE}:drift`,
+    title: 'Week is still in planning',
+    workspaceId,
+  }, now)
+
+  await findingStore.upsertFinding({
+    dedupeKey: `demo:sprint-no-owner:${DEMO_IDS.SPRINT_ALL_THREE}`,
+    documentId: DEMO_IDS.SPRINT_ALL_THREE,
+    documentType: 'sprint',
+    evidence: ['Sprint has no owner assigned.', 'Without an owner, nobody is accountable for execution.'],
+    findingKey: `sprint-no-owner:${workspaceId}:${DEMO_IDS.SPRINT_ALL_THREE}`,
+    findingType: 'sprint_no_owner',
+    metadata: { demoFixture: true },
+    recommendedAction: {
+      endpoint: { method: 'PATCH', path: `/api/documents/${DEMO_IDS.SPRINT_ALL_THREE}` },
+      evidence: ['No owner_id assigned.'],
+      rationale: 'Assigning an owner ensures accountability.',
+      summary: 'Assign an owner to this week.',
+      targetId: DEMO_IDS.SPRINT_ALL_THREE,
+      targetType: 'sprint',
+      title: 'Assign an owner',
+      type: 'assign_owner',
+    },
+    summary: 'This week has no owner assigned.',
+    threadId: `demo:${DEMO_IDS.SPRINT_ALL_THREE}:no-owner`,
+    title: 'Week has no owner',
+    workspaceId,
+  }, now)
+
+  await findingStore.upsertFinding({
+    dedupeKey: `demo:approval-gap:${DEMO_IDS.SPRINT_ALL_THREE}`,
+    documentId: DEMO_IDS.SPRINT_ALL_THREE,
+    documentType: 'sprint',
+    evidence: ['Week plan was submitted 3 business days ago.', 'The owner may be blocked waiting for approval.'],
+    findingKey: `approval-gap:${workspaceId}:${DEMO_IDS.SPRINT_ALL_THREE}`,
+    findingType: 'approval_gap',
+    metadata: { demoFixture: true },
+    recommendedAction: {
+      endpoint: { method: 'POST', path: `/api/weeks/${DEMO_IDS.SPRINT_ALL_THREE}/approve-plan` },
+      evidence: ['Plan submitted 3 days ago.'],
+      rationale: 'Reviewing and approving unblocks the next planning cycle.',
+      summary: 'Approve this week plan.',
+      targetId: DEMO_IDS.SPRINT_ALL_THREE,
+      targetType: 'sprint',
+      title: 'Approve week plan',
+      type: 'approve_week_plan',
+    },
+    summary: 'This week plan has been waiting 3 business days for approval.',
+    threadId: `demo:${DEMO_IDS.SPRINT_ALL_THREE}:approval`,
+    title: 'Week plan needs review',
+    workspaceId,
+  }, now)
+
+  // Sprint 2: 2 findings
+  await findingStore.upsertFinding({
+    dedupeKey: `demo:week-start-drift:${DEMO_IDS.SPRINT_DRIFT_NO_OWNER}`,
+    documentId: DEMO_IDS.SPRINT_DRIFT_NO_OWNER,
+    documentType: 'sprint',
+    evidence: ['Sprint status is "planning" but the start date has passed.'],
+    findingKey: `week-start-drift:${workspaceId}:${DEMO_IDS.SPRINT_DRIFT_NO_OWNER}`,
+    findingType: 'week_start_drift',
+    metadata: { demoFixture: true },
+    recommendedAction: {
+      endpoint: { method: 'POST', path: `/api/weeks/${DEMO_IDS.SPRINT_DRIFT_NO_OWNER}/start` },
+      evidence: ['Sprint is still in planning after start date.'],
+      rationale: 'Starting the week unblocks issue tracking.',
+      summary: 'Start this week.',
+      targetId: DEMO_IDS.SPRINT_DRIFT_NO_OWNER,
+      targetType: 'sprint',
+      title: 'Start this week',
+      type: 'start_week',
+    },
+    summary: 'This week is still in planning.',
+    threadId: `demo:${DEMO_IDS.SPRINT_DRIFT_NO_OWNER}:drift`,
+    title: 'Week is still in planning',
+    workspaceId,
+  }, now)
+
+  await findingStore.upsertFinding({
+    dedupeKey: `demo:sprint-no-owner:${DEMO_IDS.SPRINT_DRIFT_NO_OWNER}`,
+    documentId: DEMO_IDS.SPRINT_DRIFT_NO_OWNER,
+    documentType: 'sprint',
+    evidence: ['Sprint has no owner assigned.'],
+    findingKey: `sprint-no-owner:${workspaceId}:${DEMO_IDS.SPRINT_DRIFT_NO_OWNER}`,
+    findingType: 'sprint_no_owner',
+    metadata: { demoFixture: true },
+    recommendedAction: {
+      endpoint: { method: 'PATCH', path: `/api/documents/${DEMO_IDS.SPRINT_DRIFT_NO_OWNER}` },
+      evidence: ['No owner assigned.'],
+      rationale: 'Assigning an owner ensures accountability.',
+      summary: 'Assign an owner.',
+      targetId: DEMO_IDS.SPRINT_DRIFT_NO_OWNER,
+      targetType: 'sprint',
+      title: 'Assign an owner',
+      type: 'assign_owner',
+    },
+    summary: 'This week has no owner.',
+    threadId: `demo:${DEMO_IDS.SPRINT_DRIFT_NO_OWNER}:no-owner`,
+    title: 'Week has no owner',
+    workspaceId,
+  }, now)
+
+  // Sprint 3: 1 finding
+  await findingStore.upsertFinding({
+    dedupeKey: `demo:approval-gap:${DEMO_IDS.SPRINT_APPROVAL_ONLY}`,
+    documentId: DEMO_IDS.SPRINT_APPROVAL_ONLY,
+    documentType: 'sprint',
+    evidence: ['Week plan was submitted 3 business days ago.', 'Reviewing and approving unblocks the next cycle.'],
+    findingKey: `approval-gap:${workspaceId}:${DEMO_IDS.SPRINT_APPROVAL_ONLY}`,
+    findingType: 'approval_gap',
+    metadata: { demoFixture: true },
+    recommendedAction: {
+      endpoint: { method: 'POST', path: `/api/weeks/${DEMO_IDS.SPRINT_APPROVAL_ONLY}/approve-plan` },
+      evidence: ['Plan submitted 3 days ago.'],
+      rationale: 'Approving unblocks the owner.',
+      summary: 'Approve this week plan.',
+      targetId: DEMO_IDS.SPRINT_APPROVAL_ONLY,
+      targetType: 'sprint',
+      title: 'Approve week plan',
+      type: 'approve_week_plan',
+    },
+    summary: 'This week plan has been waiting for approval.',
+    threadId: `demo:${DEMO_IDS.SPRINT_APPROVAL_ONLY}:approval`,
+    title: 'Week plan needs review',
+    workspaceId,
+  }, now)
 }

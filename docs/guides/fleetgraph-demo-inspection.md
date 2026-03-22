@@ -71,7 +71,7 @@ Use this guide when verifying FleetGraph behavior on the sanctioned public demo.
 3. Click `Preview approval step`.
 4. Confirm the card shows `FleetGraph paused for human approval.`
 5. Confirm the result area shows `Current guidance` and `Approval step`.
-6. Confirm the preview explains why FleetGraph is suggesting the action and includes supporting evidence in the main card.
+6. Confirm the preview explains why the approval matters in user terms, such as helping the team move forward with the week, and includes supporting evidence in the main card.
 7. Confirm the visible options focus on user choice first, while diagnostics remain secondary under `Open FleetGraph debug`.
 8. Confirm the debug dock surfaces the entry thread and its latest checkpoint summary.
 

@@ -200,10 +200,10 @@ jq -n \
           path: ("/api/weeks/" + $documentId + "/approve-plan")
         },
         evidence: [
-          "Week plan approval changes persistent sprint approval state.",
-          "FleetGraph is operating from the current week context."
+          "You are looking at the current week, so this is the right place to confirm the plan.",
+          "Approving it signals that the team can move forward with this week."
         ],
-        rationale: "Week approval is a consequential Ship write.",
+        rationale: "Approve this week plan when the team is ready to move forward.",
         summary: "Approve the current week plan.",
         targetId: $documentId,
         targetType: "sprint",

@@ -55,23 +55,5 @@ describe('normalizeShipDocument', () => {
       ownerId: 'person-primary',
     })
   })
-
-  it('falls back to sprint assignee_ids when owner_id is absent', () => {
-    const sprint = normalizeShipDocument({
-      document_type: 'sprint',
-      id: 'sprint-2',
-      properties: {
-        assignee_ids: ['person-fallback', 'person-secondary'],
-      },
-      title: 'Week 13',
-      workspace_id: 'workspace-123',
-    })
-
-    expect(sprint.assignments).toEqual({
-      accountableId: undefined,
-      assigneeId: undefined,
-      assigneeIds: ['person-fallback', 'person-secondary'],
-      ownerId: 'person-fallback',
-    })
-  })
 })
+

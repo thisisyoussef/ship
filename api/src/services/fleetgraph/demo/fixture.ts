@@ -271,6 +271,16 @@ export async function ensureFleetGraphDemoProofLane(
   await resetFindingByKey(queryable, findingStore, workerFindingKey)
   await resetWorkerDemoProofLane(queryable, input.workspaceId)
 
+  const demoMeta = {
+    demoFixture: true,
+    inspectionProjectTitle: FLEETGRAPH_DEMO_PROJECT_TITLE,
+    inspectionWeekTitle: FLEETGRAPH_DEMO_WEEK_TITLE,
+    preserveDemoLane: true,
+    proofLane: 'seeded-hitl',
+  }
+  const demoThreadPrefix = `${FLEETGRAPH_DEMO_THREAD_PREFIX}:${input.workspaceId}:${weekId}`
+
+  // Finding 1: week_start_drift (existing)
   await findingStore.upsertFinding({
     dedupeKey: `demo:${draft.findingKey}`,
     documentId: weekId,
@@ -278,18 +288,73 @@ export async function ensureFleetGraphDemoProofLane(
     evidence: draft.evidence,
     findingKey: draft.findingKey,
     findingType: 'week_start_drift',
-    metadata: {
-      ...draft.metadata,
-      demoFixture: true,
-      inspectionProjectTitle: FLEETGRAPH_DEMO_PROJECT_TITLE,
-      inspectionWeekTitle: FLEETGRAPH_DEMO_WEEK_TITLE,
-      preserveDemoLane: true,
-      proofLane: 'seeded-hitl',
-    },
+    metadata: { ...draft.metadata, ...demoMeta },
     recommendedAction: draft.recommendedAction,
     summary: draft.summary,
-    threadId: `${FLEETGRAPH_DEMO_THREAD_PREFIX}:${input.workspaceId}:${weekId}`,
+    threadId: demoThreadPrefix,
     title: draft.title,
+    workspaceId: input.workspaceId,
+  }, now)
+
+  // Finding 2: sprint_no_owner — same demo week has no owner
+  const noOwnerFindingKey = `sprint-no-owner:${input.workspaceId}:${weekId}`
+  await resetFindingByKey(queryable, findingStore, noOwnerFindingKey)
+  await findingStore.upsertFinding({
+    dedupeKey: `demo:${noOwnerFindingKey}`,
+    documentId: weekId,
+    documentType: 'sprint',
+    evidence: [
+      'This week has no owner assigned.',
+      `${FLEETGRAPH_DEMO_WEEK_TITLE} needs someone accountable for execution.`,
+      'Assigning an owner ensures daily standups and progress tracking.',
+    ],
+    findingKey: noOwnerFindingKey,
+    findingType: 'sprint_no_owner',
+    metadata: { ...demoMeta, statusReason: 'no_owner' },
+    recommendedAction: {
+      endpoint: { method: 'PATCH', path: `/api/documents/${weekId}` },
+      evidence: ['No owner_id assigned to this sprint.'],
+      rationale: 'Assigning an owner is a consequential team workflow change and should stay behind human confirmation.',
+      summary: 'Assign an owner to this week so someone is accountable.',
+      targetId: weekId,
+      targetType: 'sprint',
+      title: 'Assign sprint owner',
+      type: 'assign_owner',
+    },
+    summary: 'This week has no owner assigned, so nobody is accountable for driving execution.',
+    threadId: `${demoThreadPrefix}:no-owner`,
+    title: `No owner: ${FLEETGRAPH_DEMO_WEEK_TITLE}`,
+    workspaceId: input.workspaceId,
+  }, now)
+
+  // Finding 3: approval_gap — same demo week plan needs approval
+  const approvalFindingKey = `approval-gap:${input.workspaceId}:${weekId}`
+  await resetFindingByKey(queryable, findingStore, approvalFindingKey)
+  await findingStore.upsertFinding({
+    dedupeKey: `demo:${approvalFindingKey}`,
+    documentId: weekId,
+    documentType: 'sprint',
+    evidence: [
+      'Week plan was submitted but has not been approved.',
+      `${FLEETGRAPH_DEMO_WEEK_TITLE} is waiting for plan approval.`,
+      'Approving unblocks the team to start execution.',
+    ],
+    findingKey: approvalFindingKey,
+    findingType: 'approval_gap',
+    metadata: { ...demoMeta, statusReason: 'approval_pending' },
+    recommendedAction: {
+      endpoint: { method: 'POST', path: `/api/weeks/${weekId}/approve-plan` },
+      evidence: ['Plan submitted but not yet approved.'],
+      rationale: 'Approving a week plan is a consequential action and should stay behind human confirmation.',
+      summary: 'Approve this week plan to unblock the team.',
+      targetId: weekId,
+      targetType: 'sprint',
+      title: 'Approve week plan',
+      type: 'approve_week_plan',
+    },
+    summary: 'This week plan is waiting for approval, which may be blocking the team.',
+    threadId: `${demoThreadPrefix}:approval`,
+    title: `Plan needs approval: ${FLEETGRAPH_DEMO_WEEK_TITLE}`,
     workspaceId: input.workspaceId,
   }, now)
   await workerStore.enqueue(

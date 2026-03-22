@@ -616,18 +616,40 @@ describe('FleetGraph routes', () => {
   })
 
   it('lists active findings for the current document context', async () => {
-    listActiveFindings.mockResolvedValue([makeFinding()])
+    listActiveFindings.mockResolvedValue([
+      makeFinding(),
+      makeFinding({
+        dedupeKey: 'dedupe-2',
+        documentId: SPRINT_ID,
+        evidence: ['Sprint 8 is active but has no owner assigned.'],
+        findingKey: `sprint-no-owner:workspace:${SPRINT_ID}`,
+        findingType: 'sprint_no_owner',
+        id: 'finding-2',
+        summary: 'Sprint 8 needs a named owner.',
+        title: 'Sprint owner gap: Sprint 8',
+      }),
+    ])
 
     const response = await request(app)
       .get(`/api/fleetgraph/findings?documentIds=${DOCUMENT_ID},${SPRINT_ID}`)
 
     expect(response.status).toBe(200)
-    expect(response.body.findings).toHaveLength(1)
-    expect(response.body.findings[0]).toMatchObject({
-      documentId: DOCUMENT_ID,
-      findingType: 'week_start_drift',
-      status: 'active',
-    })
+    expect(response.body.findings).toHaveLength(2)
+    expect(response.body.findings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          documentId: DOCUMENT_ID,
+          findingType: 'week_start_drift',
+          status: 'active',
+        }),
+        expect.objectContaining({
+          documentId: SPRINT_ID,
+          findingType: 'sprint_no_owner',
+          status: 'active',
+          title: 'Sprint owner gap: Sprint 8',
+        }),
+      ])
+    )
     expect(listActiveFindings).toHaveBeenCalledWith({
       documentIds: [DOCUMENT_ID, SPRINT_ID],
       workspaceId: '22222222-2222-4222-8222-222222222222',

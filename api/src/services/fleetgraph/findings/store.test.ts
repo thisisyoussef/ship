@@ -100,6 +100,44 @@ describe('FleetGraph finding store', () => {
     expect(listed[0]?.documentId).toBe('sprint-2')
   })
 
+  it('persists multiple proactive finding types on the shared store', async () => {
+    const store = createFleetGraphFindingStore(testDb.pool)
+
+    await store.upsertFinding({
+      dedupeKey: 'dedupe:workspace-1:sprint-owners',
+      documentId: 'sprint-owners',
+      documentType: 'sprint',
+      evidence: ['Sprint 8 is active but still has no owner assigned.'],
+      findingKey: 'sprint-no-owner:workspace-1:sprint-owners',
+      findingType: 'sprint_no_owner',
+      summary: 'Sprint 8 needs an owner.',
+      threadId: 'fleetgraph:workspace-1:scheduled-sweep:sprint-owners',
+      title: 'Sprint owner gap: Sprint 8',
+      workspaceId: 'workspace-1',
+    })
+
+    await store.upsertFinding({
+      dedupeKey: 'dedupe:workspace-1:sprint-unassigned',
+      documentId: 'sprint-unassigned',
+      documentType: 'sprint',
+      evidence: ['Sprint 9 has several issues that are still unassigned.'],
+      findingKey: 'unassigned-sprint-issues:workspace-1:sprint-unassigned',
+      findingType: 'unassigned_sprint_issues',
+      summary: 'Sprint 9 still has unassigned issues.',
+      threadId: 'fleetgraph:workspace-1:scheduled-sweep:sprint-unassigned',
+      title: 'Unassigned sprint issues: Sprint 9',
+      workspaceId: 'workspace-1',
+    })
+
+    const listed = await store.listActiveFindings({ workspaceId: 'workspace-1' })
+
+    expect(listed).toHaveLength(2)
+    expect(listed.map((finding) => finding.findingType).sort()).toEqual([
+      'sprint_no_owner',
+      'unassigned_sprint_issues',
+    ])
+  })
+
   it('keeps dismissed findings suppressed on later upserts', async () => {
     const store = createFleetGraphFindingStore(testDb.pool)
     const created = await store.upsertFinding({

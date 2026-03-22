@@ -196,7 +196,7 @@ export function FleetGraphFindingsPanel({
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
             FleetGraph proactive
           </p>
-          <h2 className="text-sm font-semibold text-foreground">Week-start drift findings</h2>
+          <h2 className="text-sm font-semibold text-foreground">Proactive findings</h2>
           <p className="text-sm text-muted">{helperText}</p>
         </div>
       </div>

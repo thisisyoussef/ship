@@ -204,6 +204,66 @@ describe('FleetGraphFindingsPanel', () => {
     expect(screen.getByRole('button', { name: 'Snooze 4h' })).toBeInTheDocument();
   });
 
+  it('uses shared proactive copy when mixed finding types appear together', async () => {
+    vi.mocked(apiGet).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        findings: [
+          {
+            dedupeKey: 'dedupe-1',
+            documentId: SPRINT_ID,
+            documentType: 'sprint',
+            evidence: ['Sprint 8 is still planning after the expected week-start boundary.'],
+            findingKey: 'week-start-drift:workspace-1:sprint-8',
+            findingType: 'week_start_drift',
+            id: 'finding-1',
+            metadata: {
+              statusReason: 'planning_after_start',
+            },
+            status: 'active',
+            summary: 'Sprint 8 looks late to start.',
+            threadId: 'fleetgraph:workspace-1:scheduled-sweep',
+            title: 'Week start drift: Sprint 8',
+            updatedAt: '2026-03-17T12:00:00.000Z',
+            workspaceId: 'workspace-1',
+          },
+          {
+            dedupeKey: 'dedupe-2',
+            documentId: SPRINT_ID,
+            documentType: 'sprint',
+            evidence: ['Sprint 8 is active but no owner is assigned yet.'],
+            findingKey: 'sprint-no-owner:workspace-1:sprint-8',
+            findingType: 'sprint_no_owner',
+            id: 'finding-2',
+            metadata: {},
+            status: 'active',
+            summary: 'Sprint 8 needs a named owner before work coordination slips.',
+            threadId: 'fleetgraph:workspace-1:scheduled-sweep',
+            title: 'Sprint owner gap: Sprint 8',
+            updatedAt: '2026-03-17T12:05:00.000Z',
+            workspaceId: 'workspace-1',
+          },
+        ],
+      }),
+    } as Response);
+
+    render(
+      <FleetGraphFindingsPanel
+        context={createContext()}
+        currentDocumentId={DOCUMENT_ID}
+      />,
+      { wrapper: createWrapper() }
+    );
+
+    expect(await screen.findByText('Week start drift: Sprint 8')).toBeInTheDocument();
+    expect(screen.getByText('Proactive findings')).toBeInTheDocument();
+    expect(screen.getByText('Sprint owner gap: Sprint 8')).toBeInTheDocument();
+    expect(
+      screen.getByText('Sprint 8 needs a named owner before work coordination slips.')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Week-start drift findings')).not.toBeInTheDocument();
+  });
+
   it('waits for confirmed dismiss success before showing the lifecycle notice', async () => {
     const dismissDeferred = createDeferred<Response>();
     vi.mocked(apiGet).mockResolvedValue({

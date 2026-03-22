@@ -21,7 +21,7 @@ async function fetchFleetGraphFindings(documentIds: string[]) {
 
   if (!response.ok) {
     const error = new Error(
-      'FleetGraph could not load this week’s proactive findings. Try refreshing the page.'
+      'FleetGraph could not load proactive findings for this page right now. Try refreshing the page.'
     ) as Error & {
       status?: number;
     };

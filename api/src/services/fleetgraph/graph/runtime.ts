@@ -706,6 +706,7 @@ export function createFleetGraphRuntime(
         ...parsed,
         routeSurface: buildRouteSurface(parsed),
         scenarioResults: [],
+        userMessage: parsed.userMessage,
       }, buildConfig(parsed.threadId, configurable))
       return graph.getState(buildConfig(parsed.threadId, configurable))
     },

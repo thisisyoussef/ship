@@ -93,6 +93,18 @@ Use this guide when verifying FleetGraph behavior on the sanctioned public demo.
 8. Click `Preview next step` again and confirm FleetGraph does not offer the same validation step a second time.
 9. Failure signal: the card shows no inline result, the review page stays stale after the action completes, or the same validation prompt reappears immediately.
 
+## Expected Follow-Up Chat Flow
+
+1. On `FleetGraph Demo Week - Review and Apply`, open the FleetGraph floating chat panel.
+2. Confirm any suggested next step is rendered as advisory text, not a clickable action button.
+3. Type `What else should I look at?`
+4. Confirm the typed text stays readable on the white input surface while you type.
+5. Confirm the follow-up response does one of the following instead of replaying the original opening summary verbatim:
+   - surfaces a distinct additional concern
+   - asks for deeper context in plain language
+   - says clearly that there is nothing materially new in the current context
+6. Failure signal: the suggested next step still looks clickable, the typed text is hard to read, or FleetGraph repeats the first answer without acknowledging the follow-up.
+
 ## Screenshot References
 
 - Review/apply page:

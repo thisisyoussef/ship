@@ -2,10 +2,10 @@
 
 ## Status
 
-- State: `todo`
+- State: `in_review`
 - Owner: Codex
 - Depends on: `US-608`
-- Related branch:
+- Related branch: `codex/fleetgraph-multi-finding-plumbing`
 - Related commit/PR:
 - Target environment: `local first`, `Railway demo via merged master`
 
@@ -156,6 +156,10 @@ git diff --check
 
 ## Checkpoint Result
 
-- Outcome: `pending`
+- Outcome: `implemented, pending Railway demo verification`
 - Evidence:
+  - the proactive findings schema now accepts `sprint_no_owner` and `unassigned_sprint_issues` in addition to `week_start_drift`
+  - the findings route now has mixed-type regression coverage, proving the shared serialization path stays clean
+  - the visible proactive shell now uses the generic `Proactive findings` heading and frontend type unions no longer force everything into `week_start_drift`
 - Residual risk:
+  - the container-backed store test still needs a machine with a working container runtime; this shell can run the route suite and typechecks, but not the Testcontainers-backed persistence suite

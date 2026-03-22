@@ -164,7 +164,13 @@ CREATE TABLE IF NOT EXISTS fleetgraph_proactive_findings (
   finding_key TEXT NOT NULL UNIQUE,
   dedupe_key TEXT NOT NULL,
   thread_id TEXT NOT NULL,
-  finding_type TEXT NOT NULL CHECK (finding_type IN ('week_start_drift')),
+  finding_type TEXT NOT NULL CHECK (
+    finding_type IN (
+      'sprint_no_owner',
+      'unassigned_sprint_issues',
+      'week_start_drift'
+    )
+  ),
   status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'dismissed', 'resolved', 'snoozed')),
   document_id TEXT NOT NULL,
   document_type TEXT NOT NULL,

@@ -44,6 +44,7 @@ Use this guide when verifying FleetGraph behavior on the sanctioned public demo.
 ## Expected FleetGraph Surface
 
 - The `FleetGraph proactive` panel is visible near the top of the document page.
+- The proactive panel heading reads `Proactive findings`, even when the current proof lane only shows a week-start drift example.
 - The `FleetGraph entry` card remains visible below the proactive panel.
 - The page scrolls as one comfortable document page instead of trapping the FleetGraph panels above a separate inner scroller.
 - On `FleetGraph Demo Week - Review and Apply`, the proactive card shows:

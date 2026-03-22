@@ -45,7 +45,7 @@ export interface FleetGraphFinding {
   documentType: string;
   evidence: string[];
   findingKey: string;
-  findingType: 'week_start_drift';
+  findingType: 'sprint_no_owner' | 'unassigned_sprint_issues' | 'week_start_drift';
   id: string;
   metadata: Record<string, unknown>;
   recommendedAction?: FleetGraphFindingAction;

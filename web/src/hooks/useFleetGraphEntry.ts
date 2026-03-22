@@ -93,6 +93,14 @@ export function useFleetGraphEntry() {
       if (currentDocumentId !== approval.targetId) {
         invalidateDocumentSurface(currentDocumentId)
       }
+      window.dispatchEvent(new CustomEvent('fleetgraph:entry-action-applied', {
+        detail: {
+          actionType: approval.type,
+          currentDocumentId,
+          targetId: approval.targetId,
+          targetType: approval.targetType,
+        },
+      }))
     },
   })
 

@@ -159,6 +159,51 @@ function createWeeklyPlanEntryPayload() {
   }
 }
 
+function createSprintReviewEntryPayload() {
+  return {
+    context: {
+      ancestors: [],
+      belongs_to: [
+        {
+          document_type: 'project',
+          id: PROJECT_ID,
+          title: 'North Star',
+          type: 'project',
+        },
+      ],
+      breadcrumbs: [
+        {
+          id: PROJECT_ID,
+          title: 'North Star',
+          type: 'project',
+        },
+        {
+          id: SPRINT_ID,
+          title: 'Sprint 8',
+          type: 'sprint',
+        },
+      ],
+      children: [],
+      current: {
+        document_type: 'sprint',
+        id: SPRINT_ID,
+        title: 'Sprint 8',
+      },
+    },
+    route: {
+      activeTab: 'review',
+      nestedPath: [],
+      surface: 'document-page',
+    },
+    trigger: {
+      documentId: SPRINT_ID,
+      documentType: 'sprint',
+      mode: 'on_demand',
+      trigger: 'document-context',
+    },
+  }
+}
+
 function createEntryPayloadWithNullableTicketNumbers() {
   const payload = createEntryPayload()
   return {
@@ -387,6 +432,51 @@ describe('FleetGraph routes', () => {
       targetType: 'sprint',
       title: 'Approve week plan',
       type: 'approve_week_plan',
+    })
+  })
+
+  it('accepts sprint-review validation payloads with a review write body', async () => {
+    const response = await request(app)
+      .post('/api/fleetgraph/entry')
+      .send({
+        ...createSprintReviewEntryPayload(),
+        draft: {
+          requestedAction: {
+            body: {
+              plan_validated: true,
+            },
+            endpoint: {
+              method: 'PATCH',
+              path: `/api/weeks/${SPRINT_ID}/review`,
+            },
+            evidence: [
+              'You are already on the week review, so the result stays visible on this page.',
+              'Marking the plan as validated updates Plan Validation to show Validated.',
+            ],
+            rationale: 'Validate the week plan when the review shows the plan held up in practice.',
+            summary: 'Mark the current week plan as validated in the review.',
+            targetId: SPRINT_ID,
+            targetType: 'sprint',
+            title: 'Validate week plan',
+            type: 'validate_week_plan',
+          },
+        },
+      })
+
+    expect(response.status).toBe(200)
+    expect(response.body.run.outcome).toBe('approval_required')
+    expect(response.body.approval).toMatchObject({
+      body: {
+        plan_validated: true,
+      },
+      endpoint: {
+        method: 'PATCH',
+        path: `/api/weeks/${SPRINT_ID}/review`,
+      },
+      targetId: SPRINT_ID,
+      targetType: 'sprint',
+      title: 'Validate week plan',
+      type: 'validate_week_plan',
     })
   })
 

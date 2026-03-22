@@ -15,3 +15,4 @@ This folder holds FleetGraph delivery and adjacent integration stories once the 
 | US-601 | Current-page approval preview | `done` | P0 | `US-901` |
 | US-602 | Entry apply through runtime | `done` | P0 | `US-601` |
 | US-603 | Entry approval follow-up fixes | `done` | P0 | `US-602` |
+| US-604 | Review-tab plan validation proof lane | `done` | P0 | `US-603` |

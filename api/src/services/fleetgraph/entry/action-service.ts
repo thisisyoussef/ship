@@ -80,6 +80,12 @@ function buildActionTitle(state: FleetGraphState) {
       : 'Week plan approved.'
   }
 
+  if (state.selectedAction?.type === 'validate_week_plan') {
+    return status === 'already_applied'
+      ? 'Week plan was already validated.'
+      : 'Week plan validated.'
+  }
+
   if (state.selectedAction?.type === 'post_comment') {
     return status === 'already_applied'
       ? 'Comment was already posted.'

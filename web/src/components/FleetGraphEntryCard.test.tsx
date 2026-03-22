@@ -7,11 +7,12 @@ vi.mock('@/lib/api', async () => {
   const actual = await vi.importActual<typeof import('@/lib/api')>('@/lib/api')
   return {
     ...actual,
+    apiGet: vi.fn(),
     apiPost: vi.fn(),
   }
 })
 
-import { apiPost } from '@/lib/api'
+import { apiGet, apiPost } from '@/lib/api'
 import { FleetGraphEntryCard } from './FleetGraphEntryCard'
 
 const DOCUMENT_ID = '33333333-3333-4333-8333-333333333333'
@@ -33,7 +34,10 @@ function createWrapper() {
   }
 }
 
-function createContext() {
+function createContext(
+  currentDocumentType: 'project' | 'sprint' | 'weekly_plan' = 'project',
+  currentTitle = 'Launch planner'
+) {
   return {
     ancestors: [],
     belongs_to: [
@@ -53,21 +57,22 @@ function createContext() {
       },
       {
         id: DOCUMENT_ID,
-        title: 'Launch planner',
-        type: 'project',
+        title: currentTitle,
+        type: currentDocumentType,
       },
     ],
     children: [],
     current: {
-      document_type: 'project',
+      document_type: currentDocumentType,
       id: DOCUMENT_ID,
-      title: 'Launch planner',
+      title: currentTitle,
     },
   }
 }
 
 describe('FleetGraphEntryCard', () => {
   beforeEach(() => {
+    vi.mocked(apiGet).mockReset()
     vi.mocked(apiPost).mockReset()
   })
 
@@ -193,7 +198,7 @@ describe('FleetGraphEntryCard', () => {
         summary: {
           detail: 'Review the suggested next step for Launch planner.',
           surfaceLabel: 'document-page / details',
-          title: 'FleetGraph paused for human approval.',
+          title: 'FleetGraph paused for your confirmation.',
         },
       }),
     } as Response)
@@ -214,9 +219,10 @@ describe('FleetGraphEntryCard', () => {
       { wrapper: createWrapper() }
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /preview approval step/i }))
+    fireEvent.click(screen.getByRole('button', { name: /preview next step/i }))
 
     expect(await screen.findByText('Approve project plan')).toBeInTheDocument()
+    expect(screen.getByText('FleetGraph paused for your confirmation.')).toBeInTheDocument()
     expect(screen.getByText('Approve the current project plan.')).toBeInTheDocument()
     expect(
       screen.getByText('Approve this plan when it is ready to guide the project.')
@@ -234,6 +240,138 @@ describe('FleetGraphEntryCard', () => {
     expect(screen.getByRole('button', { name: 'Dismiss' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Snooze' })).toBeInTheDocument()
     expect(screen.queryByText(`POST /api/projects/${DOCUMENT_ID}/approve-plan`)).not.toBeInTheDocument()
+  })
+
+  it('loads sprint review state and previews a validation step on the review tab', async () => {
+    vi.mocked(apiGet).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        content: {
+          content: [{ type: 'paragraph' }],
+          type: 'doc',
+        },
+        is_draft: true,
+        plan_validated: null,
+        title: 'Week 8 Review',
+      }),
+    } as Response)
+    vi.mocked(apiPost).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        approval: {
+          body: {
+            content: {
+              content: [{ type: 'paragraph' }],
+              type: 'doc',
+            },
+            plan_validated: true,
+            title: 'Week 8 Review',
+          },
+          endpoint: {
+            method: 'POST',
+            path: `/api/weeks/${DOCUMENT_ID}/review`,
+          },
+          evidence: [
+            'You are already on the week review, so the validation result is visible on this page.',
+            'Marking the plan as validated updates Plan Validation to show Validated.',
+          ],
+          options: [
+            { id: 'apply', label: 'Apply' },
+            { id: 'dismiss', label: 'Dismiss' },
+            { id: 'snooze', label: 'Snooze' },
+          ],
+          rationale: 'Validate the week plan when the review shows the plan held up in practice.',
+          state: 'pending_confirmation',
+          summary: 'Mark the current week plan as validated in the review.',
+          targetId: DOCUMENT_ID,
+          targetType: 'sprint',
+          title: 'Validate week plan',
+          type: 'validate_week_plan',
+        },
+        entry: {
+          current: {
+            documentType: 'sprint',
+            id: DOCUMENT_ID,
+            title: 'Sprint 8',
+          },
+          route: {
+            activeTab: 'review',
+            nestedPath: [],
+            surface: 'document-page',
+          },
+          threadId: 'fleetgraph:workspace-1:document:sprint-review',
+        },
+        run: {
+          outcome: 'approval_required',
+          path: ['approval_required'],
+          routeSurface: 'document-page',
+          threadId: 'fleetgraph:workspace-1:document:sprint-review',
+        },
+        summary: {
+          detail: 'Review the suggested next step for Sprint 8.',
+          surfaceLabel: 'document-page / review',
+          title: 'FleetGraph paused for your confirmation.',
+        },
+      }),
+    } as Response)
+
+    render(
+      <FleetGraphEntryCard
+        activeTab="review"
+        context={createContext('sprint', 'Sprint 8')}
+        document={{
+          documentType: 'sprint',
+          id: DOCUMENT_ID,
+          title: 'Sprint 8',
+          workspaceId: '22222222-2222-4222-8222-222222222222',
+        }}
+        userId="11111111-1111-4111-8111-111111111111"
+      />,
+      { wrapper: createWrapper() }
+    )
+
+    await waitFor(() => {
+      expect(apiGet).toHaveBeenCalledWith(`/api/weeks/${DOCUMENT_ID}/review`)
+    })
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /preview next step/i })).not.toBeDisabled()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /preview next step/i }))
+
+    await waitFor(() => {
+      expect(apiPost).toHaveBeenCalledWith(
+        '/api/fleetgraph/entry',
+        expect.objectContaining({
+          draft: expect.objectContaining({
+            requestedAction: expect.objectContaining({
+              body: expect.objectContaining({
+                plan_validated: true,
+                title: 'Week 8 Review',
+              }),
+              endpoint: expect.objectContaining({
+                method: 'POST',
+                path: `/api/weeks/${DOCUMENT_ID}/review`,
+              }),
+              type: 'validate_week_plan',
+            }),
+          }),
+        })
+      )
+    })
+
+    expect(await screen.findByText('Validate week plan')).toBeInTheDocument()
+    expect(screen.getByText('FleetGraph paused for your confirmation.')).toBeInTheDocument()
+    expect(screen.getByText('Review step')).toBeInTheDocument()
+    expect(screen.getByText('Needs your confirmation')).toBeInTheDocument()
+    expect(screen.getByText('Mark the current week plan as validated in the review.')).toBeInTheDocument()
+    expect(
+      screen.getByText('Validate the week plan when the review shows the plan held up in practice.')
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText('Marking the plan as validated updates Plan Validation to show Validated.')
+    ).toBeInTheDocument()
   })
 
   it('applies entry approvals through FleetGraph and shows the result inline', async () => {
@@ -285,7 +423,7 @@ describe('FleetGraphEntryCard', () => {
           summary: {
             detail: 'Review the suggested next step for Launch planner.',
             surfaceLabel: 'document-page / details',
-            title: 'FleetGraph paused for human approval.',
+            title: 'FleetGraph paused for your confirmation.',
           },
         }),
       } as Response)
@@ -333,7 +471,7 @@ describe('FleetGraphEntryCard', () => {
       { wrapper: createWrapper() }
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /preview approval step/i }))
+    fireEvent.click(screen.getByRole('button', { name: /preview next step/i }))
     expect(await screen.findByText('Approve project plan')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Apply' }))

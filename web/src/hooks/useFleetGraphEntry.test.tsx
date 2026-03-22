@@ -33,12 +33,12 @@ describe('useFleetGraphEntry', () => {
     vi.mocked(apiPost).mockReset()
   })
 
-  it('invalidates the current page and target sprint surfaces after apply', async () => {
+  it('invalidates the current page, target sprint surfaces, and dispatches a refresh event after apply', async () => {
     vi.mocked(apiPost).mockResolvedValue({
       ok: true,
       json: async () => ({
         actionOutcome: {
-          message: 'Week plan approved in Ship.',
+          message: 'Week plan marked as validated in Ship.',
           resultStatusCode: 200,
           status: 'applied',
         },
@@ -55,9 +55,9 @@ describe('useFleetGraphEntry', () => {
           threadId: 'fleetgraph:workspace-1:entry:weekly-plan',
         },
         summary: {
-          detail: 'Week plan approved in Ship.',
+          detail: 'Week plan marked as validated in Ship.',
           surfaceLabel: 'document-page',
-          title: 'FleetGraph completed the action.',
+          title: 'Week plan validated.',
         },
       }),
     } as Response)
@@ -69,28 +69,32 @@ describe('useFleetGraphEntry', () => {
       },
     })
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries')
+    const dispatchSpy = vi.spyOn(window, 'dispatchEvent')
     const { result } = renderHook(() => useFleetGraphEntry(), {
       wrapper: createWrapper(queryClient),
     })
 
     const approval: FleetGraphApprovalEnvelope = {
-      endpoint: {
-        method: 'POST',
-        path: '/api/weeks/sprint-1/approve-plan',
+      body: {
+        plan_validated: true,
       },
-      evidence: ['The team is ready to move forward with this week.'],
+      endpoint: {
+        method: 'PATCH',
+        path: '/api/weeks/sprint-1/review',
+      },
+      evidence: ['Marking the plan as validated updates Plan Validation to show Validated.'],
       options: [
         { id: 'apply', label: 'Apply' },
         { id: 'dismiss', label: 'Dismiss' },
         { id: 'snooze', label: 'Snooze' },
       ],
-      rationale: 'Approve this week plan when the team is ready to move forward.',
+      rationale: 'Validate the week plan when the review shows the plan held up in practice.',
       state: 'pending_confirmation',
-      summary: 'Approve the current week plan.',
+      summary: 'Mark the current week plan as validated in the review.',
       targetId: 'sprint-1',
       targetType: 'sprint',
-      title: 'Approve week plan',
-      type: 'approve_week_plan',
+      title: 'Validate week plan',
+      type: 'validate_week_plan',
     }
 
     await act(async () => {
@@ -102,7 +106,7 @@ describe('useFleetGraphEntry', () => {
     })
 
     await waitFor(() => {
-      expect(result.current.actionResult?.summary.title).toBe('FleetGraph completed the action.')
+      expect(result.current.actionResult?.summary.title).toBe('Week plan validated.')
     })
 
     expect(apiPost).toHaveBeenCalledWith('/api/fleetgraph/entry/apply', {
@@ -117,5 +121,12 @@ describe('useFleetGraphEntry', () => {
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['document', 'weekly-plan-1'] })
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: documentKeys.detail('weekly-plan-1') })
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: documentContextKeys.detail('weekly-plan-1') })
+    expect(dispatchSpy).toHaveBeenCalledWith(expect.objectContaining({
+      detail: expect.objectContaining({
+        actionType: 'validate_week_plan',
+        targetId: 'sprint-1',
+      }),
+      type: 'fleetgraph:entry-action-applied',
+    }))
   })
 })

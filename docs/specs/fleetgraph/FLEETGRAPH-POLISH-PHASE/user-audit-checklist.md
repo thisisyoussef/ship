@@ -16,7 +16,7 @@ This checklist covers the full FleetGraph polish pack:
 - secondary quick-actions grouping
 - entry-card quick-actions grouping
 - inline review/apply state
-- approval-preview state
+- guided-step preview state
 - secondary debug dock
 - worker-generated proactive proof
 
@@ -70,14 +70,15 @@ This checklist covers the full FleetGraph polish pack:
    If this fails:
    - the entry card is still reading like a utility box instead of guided help
 
-7. Click `Preview approval step`.
+7. Open the `Review` tab, then click `Preview next step`.
    Expected:
-   - the card shows `FleetGraph paused for human approval.`
+   - the card shows `FleetGraph paused for your confirmation.`
    - the result area includes `Current guidance`
-   - the approval state includes `Approval step`
-   - the approval choices remain obviously secondary previews, not active controls
+   - the guided state includes `Review step`
+   - the action preview explains that `Plan Validation` will show `Validated`
+   - the action choices remain obviously secondary previews, not active controls
    If this fails:
-   - the approval-preview hierarchy regressed
+   - the guided-step hierarchy regressed
 
 8. Open `Open FleetGraph debug`.
    Expected:

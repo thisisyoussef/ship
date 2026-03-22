@@ -21,7 +21,7 @@ FleetGraph is a project-intelligence agent for Ship. Its job is to notice meanin
 
 - The current issue, sprint, project, program, or weekly-doc surface inside Ship
 - Related work, ownership, history, comments, and next actions based on the current page context
-- Approval-preview actions available from the current page before anything consequential is executed
+- Guided next-step actions available from the current page before anything consequential is executed
 - What changed recently, what is blocked, and what the user should do next without forcing them to manually traverse tabs
 
 ### What it can do autonomously
@@ -44,7 +44,7 @@ FleetGraph is a project-intelligence agent for Ship. Its job is to notice meanin
 
 - Engineers and PMs for issue-level contextual help
 - PMs for week-start drift, sprint-owner gaps, and unassigned sprint issues
-- The current-page viewer for approval previews and page analysis
+- The current-page viewer for guided-step previews and page analysis
 - The person who can actually act on the surfaced problem, rather than broadcasting generic alerts
 
 ### How it derives project membership and role context
@@ -147,7 +147,7 @@ Minimum: 5.
 | 1 | PM | Week start day passes and the week is still `planning` or has zero issues | Week-start drift summary with owner and missing setup details | Start the week, add scope, or intentionally leave it idle |
 | 2 | PM | A planning or active week has reached its start window with no owner assigned | Sprint-owner gap summary naming the week and missing accountability | Assign an owner now, defer intentionally, or leave the week unchanged |
 | 3 | PM | An active or planning week has a meaningful cluster of unassigned issues | Unassigned-issues brief with count, sprint context, and why assignment is needed | Assign work now, rebalance later, or leave the issues unassigned intentionally |
-| 4 | Engineer or PM | User is on an issue, sprint, project, program, or weekly-doc page and wants to preview a consequential action | Approval preview from the current page, including the action target and exact next step | Confirm, cancel, or refine the action before anything is executed |
+| 4 | Engineer or PM | User is on an issue, sprint, project, program, or weekly-doc page and wants FleetGraph to preview the next consequential step | Current-page guided-step preview, including the action target, visible proof on the current surface, and exact next step | Confirm, cancel, or refine the action before anything is executed |
 | 5 | Engineer or PM | User opens an issue, sprint, project, program, or weekly-doc page and asks for help | Context-aware page analysis that pulls current document state, related work, history, comments, and next actions into one response | Choose the next step with less digging |
 
 ## Trigger Model
@@ -205,7 +205,7 @@ For each use case, record the triggering Ship state, the expected output, and th
 | 1 | Week is still `planning` or empty after it should be active | Week-start drift insight with week owner and missing setup details | Proactive worker path: [shared trace](https://smith.langchain.com/public/d5f1a274-6f81-4c42-b8be-924791429323/r). Approval-preview/HITL path: [shared trace](https://smith.langchain.com/public/e969f90a-ef5a-45e5-bded-9d6de7233311/r). |
 | 2 | Planning or active week has no owner assigned near its start window | Sprint-owner gap summary with week identity and accountability context | Planned next case; no live trace captured yet |
 | 3 | Planning or active week contains a meaningful cluster of unassigned issues | Unassigned-issues summary with count, sprint context, and assignment need | Planned next case; no live trace captured yet |
-| 4 | User opens a current page action preview from FleetGraph entry | Approval preview naming the target action and confirmation path | Current-page approval preview path shares the on-demand trace family; proof lane captured in the Tuesday MVP evidence bundle |
+| 4 | User opens a current page guided step from FleetGraph entry | Current-page action preview naming the target action, visible proof surface, and confirmation path | Current-page guided-step path shares the on-demand trace family; proof lane captured in the Tuesday MVP evidence bundle |
 | 5 | User asks for help from an issue, sprint, project, program, or weekly-doc page | Context-aware page analysis with current state, related work, and next actions | On-demand page-analysis wiring is in progress; no standalone live trace captured yet |
 
 ## Tuesday MVP Evidence
@@ -223,7 +223,7 @@ For each use case, record the triggering Ship state, the expected output, and th
   - `docs/evidence/screenshots/fleetgraph-worker-generated-live.png`
 - Shared trace links showing different execution paths:
   - Proactive worker advisory path: [worker trace](https://smith.langchain.com/public/d5f1a274-6f81-4c42-b8be-924791429323/r)
-  - On-demand approval-preview path: [approval-preview trace](https://smith.langchain.com/public/e969f90a-ef5a-45e5-bded-9d6de7233311/r)
+  - On-demand guided-step path: [approval-preview trace](https://smith.langchain.com/public/e969f90a-ef5a-45e5-bded-9d6de7233311/r)
 
 - Tuesday MVP slice shipped:
   - one proactive week-start drift detection wired end to end

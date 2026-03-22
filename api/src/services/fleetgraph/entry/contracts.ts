@@ -73,6 +73,7 @@ const FleetGraphApprovalOptionSchema = z.object({
 }).strict()
 
 export const FleetGraphApprovalEnvelopeSchema = z.object({
+  body: z.record(z.unknown()).optional(),
   endpoint: FleetGraphActionEndpointSchema,
   evidence: z.array(nonEmptyString).min(1),
   options: z.array(FleetGraphApprovalOptionSchema).length(3),

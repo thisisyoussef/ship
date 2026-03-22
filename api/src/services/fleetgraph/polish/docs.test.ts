@@ -33,8 +33,8 @@ describe('FleetGraph polish audit docs', () => {
       'Suggested next step',
       'Quick actions',
       'Open FleetGraph debug',
-      'FleetGraph paused for human approval.',
-      'Approval step',
+      'FleetGraph paused for your confirmation.',
+      'Review step',
     ]) {
       expect(inspectionGuide).toContain(phrase);
       expect(auditChecklist).toContain(phrase);

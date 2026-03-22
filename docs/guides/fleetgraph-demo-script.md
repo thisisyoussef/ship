@@ -8,8 +8,8 @@
 
 - Open Ship at `https://ship-demo-production.up.railway.app` (or localhost)
 - Log in as `dev@ship.local` / `admin123`
-- Navigate to the **Ship Core** program so the weeks list is visible
-- Have the 3 demo sprints visible: "Demo: Needs Start, Owner & Approval", "Demo: Needs Start & Owner", "Demo: Needs Plan Approval"
+- Navigate to the **Ship Core** program → **FleetGraph Demo Project**
+- Find **"FleetGraph Demo Week - Review and Apply"** in the weeks list
 - Close the FleetGraph FAB if it's open
 
 ---
@@ -22,7 +22,7 @@
 
 ## Part 1.5: What Changed Since Last Demo (30 seconds)
 
-> "Since the last demo, we made several significant architectural changes. First, we **completed the V2 pipeline rollout** — the proactive engine now runs nine independent detectors instead of three, covering everything from missing owners to deadline risk to approval gaps. Each detector scores findings on four dimensions — urgency, impact, actionability, and confidence — and FleetGraph surfaces all qualifying findings at once, not just the top one."
+> "Since the last demo, we made several significant architectural changes. First, we **completed the V2 pipeline rollout** — the proactive engine now runs nine independent detectors instead of three, covering everything from missing owners to deadline risk to approval gaps. Each detector scores findings on four dimensions — urgency, impact, actionability, and confidence — and FleetGraph surfaces all qualifying findings at once, not just the most urgent one."
 >
 > "Second, we **rebuilt the analysis chat as a separate analysis agent** with typed tool calls, grounded verification, and a completely new suggestion system. Analysis suggestions are now advisory-only — they inform but never execute. The LLM can suggest anything: Ship actions, process improvements, scope concerns, team health observations. Real mutations only happen through the Findings tab, behind a human gate with pre-validation."
 >
@@ -30,31 +30,31 @@
 
 ---
 
-## Part 2: Proactive Findings — Multiple at Once (90 seconds)
+## Part 2: Proactive Findings — Three at Once (90 seconds)
 
-**Click into "Demo: Needs Start, Owner & Approval"**
+**Click into "FleetGraph Demo Week - Review and Apply"**
 
-> "I'm opening this sprint — 'Needs Start, Owner & Approval.' Notice the FleetGraph button in the bottom-right corner. It already has a red badge showing **3** — that means FleetGraph detected three issues with this sprint before I even opened it."
+> "I'm opening this demo week. Notice the FleetGraph button in the bottom-right corner — it already has a red badge showing **3**. That means FleetGraph detected three separate issues with this sprint before I even opened it."
 
 **Click the FleetGraph FAB**
 
-> "Now I'm opening FleetGraph. The Findings tab shows three cards simultaneously. Behind the scenes, the proactive pipeline ran a workspace sweep, checked every sprint's state against its detectors, and found three problems with this document:"
+> "Now I'm opening FleetGraph. The Findings tab shows three cards simultaneously. Behind the scenes, the proactive pipeline ran a workspace sweep, checked this sprint's state against its detectors, and found three problems:"
 
 **Point to each finding card as you narrate**
 
-> "First — **'Week is still in planning.'** This sprint's start date has already passed, but it's still marked as planning. The recommended action is to start the week."
+> "First — **'Week start drift.'** This sprint's start date has already passed, but it's still marked as planning. The recommended action is to start the week."
 >
-> "Second — **'Week has no owner.'** Nobody is assigned as accountable for this sprint. FleetGraph suggests assigning an owner."
+> "Second — **'No owner.'** Nobody is assigned as accountable for this sprint. FleetGraph suggests assigning an owner."
 >
-> "Third — **'Week plan needs review.'** The plan was submitted three business days ago and is still waiting for approval. The suggested action is to approve the plan."
+> "Third — **'Plan needs approval.'** The plan is waiting for review. The suggested action is to approve it."
 
-> "Each of these was detected by a different detector in the scoring pipeline. FleetGraph runs all detectors, scores each finding on urgency, impact, actionability, and confidence, then surfaces everything above the threshold. That's why you see all three at once — not just the most urgent one."
+> "Each of these was detected by a different detector in the scoring pipeline. FleetGraph runs all nine detectors, scores each finding on urgency, impact, actionability, and confidence, then surfaces everything above the threshold. That's why you see all three at once — not just the most urgent one."
 
 ---
 
 ## Part 3: Applying an Action (60 seconds)
 
-**Click "Review and apply" on the "Week is still in planning" finding**
+**Click "Review and apply" on the "Week start drift" finding**
 
 > "Now I'm going to apply the first action. I click 'Review and apply,' and FleetGraph shows me exactly what will happen — it'll send a POST request to start this week. I can see the evidence it used to make this recommendation."
 
@@ -66,15 +66,11 @@
 
 ---
 
-## Part 4: Multiple Findings on Another Sprint (30 seconds)
+## Part 4: Dismiss and Snooze (30 seconds)
 
-**Navigate to "Demo: Needs Start & Owner"**
+**On the remaining findings, demonstrate dismiss and snooze**
 
-> "Let me show another sprint. This one — 'Needs Start & Owner' — has two findings. Same idea: FleetGraph detected that the start date has passed and there's no owner. These are independent findings from independent detectors, surfaced together because both are relevant to this document."
-
-**Optionally dismiss or snooze one**
-
-> "I can also dismiss a finding if it's not relevant, or snooze it if I want to deal with it later. These are quick actions — dismiss permanently hides it, snooze brings it back after the timer expires."
+> "For the remaining findings, I can dismiss one if it's not relevant right now — dismiss permanently hides it from the Findings tab. Or I can snooze it — snooze hides it temporarily and brings it back after the timer expires. These are lightweight lifecycle actions that don't change anything in Ship."
 
 ---
 
@@ -90,23 +86,15 @@
 
 **Point to the suggestion cards**
 
-> "Below the analysis, you'll see suggestion cards. These aren't limited to Ship actions — the agent can suggest anything: process improvements, team health observations, scope concerns. For example, it might say 'Consider splitting this sprint's scope' or 'This team member may be overloaded.' These are advisory — they help you think, not execute."
+> "Below the analysis, you'll see suggestion cards. These aren't limited to Ship actions — the agent can suggest anything: process improvements, team health observations, scope concerns. For example, it might suggest assigning an owner or approving the plan. These are advisory — they help you think, not execute. Real mutations only happen through the Findings tab."
 
 **Type a follow-up question**
 
-> "I can also ask follow-up questions. Let me type 'What issues are at risk?' — the agent keeps the conversation context and gives a targeted answer based on the current sprint's data."
+> "I can also ask follow-up questions. Let me type 'What should I prioritize first?' — the agent keeps the conversation context and gives a targeted answer based on the current sprint's data."
 
 ---
 
-## Part 6: Single Finding Sprint (20 seconds)
-
-**Navigate to "Demo: Needs Plan Approval"**
-
-> "One more — this sprint has just one finding: the plan needs approval. This sprint has an owner and a future start date, so the only issue FleetGraph detected is the approval gap. The pipeline is selective — it only surfaces what's actually wrong."
-
----
-
-## Part 7: Wrap-Up (20 seconds)
+## Part 6: Wrap-Up (20 seconds)
 
 > "That's FleetGraph. Two surfaces — Findings for proactive detection with executable actions behind a human gate, and Analysis for open-ended conversational advice. The proactive pipeline runs in the background on every workspace sweep, scoring candidates across nine detector types. The analysis agent can suggest anything — from Ship actions to team health advice. Everything is grounded in real data, and no mutation happens without explicit human confirmation."
 
@@ -118,22 +106,21 @@
 |---------|----------|
 | Introduction | 0:30 |
 | What changed since last demo | 0:30 |
-| Multiple findings (Sprint 1) | 1:30 |
+| Three findings at once | 1:30 |
 | Applying an action | 1:00 |
-| Two findings (Sprint 2) | 0:30 |
+| Dismiss and snooze | 0:30 |
 | Analysis tab | 1:00 |
-| Single finding (Sprint 3) | 0:20 |
 | Wrap-up | 0:20 |
-| **Total** | **~5:40** |
+| **Total** | **~5:20** |
 
-> To hit 3 minutes: skip Part 1.5, Part 4 (Sprint 2), and shorten Part 5 (skip the follow-up question).
+> To hit 3 minutes: skip Part 1.5 and shorten Part 5 (skip the follow-up question).
 > To hit 5 minutes: shorten Part 1.5 to one sentence ("We expanded from 3 to 9 detectors and rebuilt the analysis agent").
 
 ---
 
 ## Recovery Tips
 
-- **If a finding was already applied:** Re-run `pnpm db:seed` to reset demo data
-- **If no findings appear:** Check that the seed ran (`pnpm db:seed`) — findings are inserted at seed time
-- **If analysis is slow:** The first call takes longer (cold LLM). Subsequent follow-ups are faster
-- **If the FAB badge shows 0:** Navigate away and back — the badge refreshes on document change
+- **If a finding was already applied:** Re-run `pnpm db:seed` to reset demo data. The seed re-creates all three findings on the demo week.
+- **If no findings appear:** The server re-seeds findings on every boot. Restart the server or re-run `pnpm db:seed`.
+- **If analysis is slow:** The first call takes longer (cold LLM). Subsequent follow-ups are faster.
+- **If the FAB badge shows 0:** Navigate away and back — the badge refreshes on document change.

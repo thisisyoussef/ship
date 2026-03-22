@@ -13,6 +13,9 @@ Use this file as durable working memory for recurring corrections, decisions, an
 - Automatic finalization is the default.
   Source: `US-901`, follow-on user direction
   Meaning: once requested work is complete, finish the GitHub flow automatically unless the user explicitly asks to pause or use a different merge path.
+- Railway demo deploys should follow the real platform path.
+  Source: post-`US-602` correction
+  Meaning: when the demo already auto-deploys from `master`, do not add a manual Railway deploy attempt to the default closeout flow unless the story is about deployment itself or the user explicitly asks for a manual refresh.
 - Check in on non-obvious architectural trade-offs.
   Source: FleetGraph follow-on after `US-601`
   Meaning: if there is a materially higher-cost or broader path, pause and confirm before taking it.
@@ -25,6 +28,9 @@ Use this file as durable working memory for recurring corrections, decisions, an
 
 ## Recurring Corrections
 
+- Final handoff must say exactly what to test.
+  Source: post-`US-602` correction
+  Apply this by including a short `What to test` section with the exact route, interaction, and expected result instead of only pointing at a guide or proof lane.
 - Approval-preview copy should explain why the action matters to the user, not backend mechanics.
   Source: post-`US-601` correction
   Apply this by preferring language like “the team can move forward with this week” over language like “changes persistent sprint approval state.”

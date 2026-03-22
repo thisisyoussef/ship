@@ -18,7 +18,7 @@ Last updated: 2026-03-22
 ## Deployment Surfaces
 
 - Canonical production baseline: API on AWS Elastic Beanstalk, frontend on S3/CloudFront, AWS-backed config/secrets
-- Public demo baseline as of March 22, 2026: Railway via `scripts/deploy-railway-demo.sh`
+- Public demo baseline as of March 22, 2026: Railway, with demo updates flowing automatically from merged `master` changes
 - Legacy demo script still present: `scripts/deploy-render-demo.sh`
 
 ## Current Working Truth

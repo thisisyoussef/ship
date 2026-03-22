@@ -42,6 +42,7 @@ This phase will hold proof-lane, UX, deployment, and reliability follow-through 
 | US-901 | AGENTS-first harness reset | `done` | P0 | — |
 | US-902 | Seeded verification entry rule | `done` | P1 | `US-901` |
 | US-903 | Workflow memory log | `done` | P1 | `US-901` |
+| US-904 | Autodeploy and test handoff rule | `done` | P1 | `US-901` |
 
 ## Execution Order
 
@@ -49,8 +50,9 @@ This phase will hold proof-lane, UX, deployment, and reliability follow-through 
 2. `US-601` completes the first FleetGraph completion-pack story by finishing the current-page approval preview use case on the smallest safe path.
 3. `US-902` makes repeatable seeded verification entries part of the checked-in workflow for visible stories.
 4. `US-903` adds a durable workflow-memory log for recurring corrections, decisions, and reusable patterns.
-5. `US-602` completes `T601A` by routing entry-card apply through the runtime review/execute path.
-6. Active product packs continue to port into `docs/user-stories/` in dependency order.
+5. `US-904` aligns closeout behavior with Railway autodeploy and requires explicit `What to test` instructions in visible-story handoffs.
+6. `US-602` completes `T601A` by routing entry-card apply through the runtime review/execute path.
+7. Active product packs continue to port into `docs/user-stories/` in dependency order.
 
 ## Files
 

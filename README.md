@@ -189,12 +189,12 @@ Ship is a project management tool that combines documentation, issue tracking, a
 
 Ship has four main views, each designed for different questions:
 
-| View | What it answers |
-|------|-----------------|
-| **Docs** | "Where's that document?" — Wiki-style pages for team knowledge |
-| **Issues** | "What needs to be done?" — Track tasks, bugs, and features |
-| **Projects** | "What are we building?" — Group issues into deliverables |
-| **Teams** | "Who's doing what?" — See workload across people and weeks |
+| View         | What it answers                                                |
+| ------------ | -------------------------------------------------------------- |
+| **Docs**     | "Where's that document?" — Wiki-style pages for team knowledge |
+| **Issues**   | "What needs to be done?" — Track tasks, bugs, and features     |
+| **Projects** | "What are we building?" — Group issues into deliverables       |
+| **Teams**    | "Who's doing what?" — See workload across people and weeks     |
 
 ### The Basics
 
@@ -277,18 +277,19 @@ Once it's running, open your browser to:
 **http://localhost:5173**
 
 Log in with the demo account:
+
 - **Email:** `dev@ship.local`
 - **Password:** `admin123`
 
 ### What's Running
 
-| Service | URL | Description |
-|---------|-----|-------------|
-| Web app | http://localhost:5173 | The Ship interface |
-| API server | http://localhost:3000 | Backend services |
-| Swagger UI | http://localhost:3000/api/docs | Interactive API documentation |
-| OpenAPI spec | http://localhost:3000/api/openapi.json | OpenAPI 3.0 specification |
-| PostgreSQL | localhost:5432 | Database (via Docker) |
+| Service      | URL                                    | Description                   |
+| ------------ | -------------------------------------- | ----------------------------- |
+| Web app      | http://localhost:5173                  | The Ship interface            |
+| API server   | http://localhost:3000                  | Backend services              |
+| Swagger UI   | http://localhost:3000/api/docs         | Interactive API documentation |
+| OpenAPI spec | http://localhost:3000/api/openapi.json | OpenAPI 3.0 specification     |
+| PostgreSQL   | localhost:5432                         | Database (via Docker)         |
 
 ### Common Commands
 
@@ -315,13 +316,13 @@ Ship is a monorepo with three packages:
 
 ### Tech Stack
 
-| Layer | Technology |
-|-------|------------|
-| Frontend | React, Vite, TailwindCSS |
-| Editor | TipTap + Yjs (real-time collaboration) |
-| Backend | Express, Node.js |
-| Database | PostgreSQL |
-| Real-time | WebSocket |
+| Layer     | Technology                             |
+| --------- | -------------------------------------- |
+| Frontend  | React, Vite, TailwindCSS               |
+| Editor    | TipTap + Yjs (real-time collaboration) |
+| Backend   | Express, Node.js                       |
+| Database  | PostgreSQL                             |
+| Real-time | WebSocket                              |
 
 ### Design Decisions
 
@@ -378,12 +379,12 @@ Ship uses Playwright for end-to-end testing with 73+ tests covering all major fu
 
 Ship supports multiple deployment patterns:
 
-| Environment | Recommended Approach |
-|-------------|---------------------|
-| **Development** | Local with Docker Compose |
-| **Public Demo** | Railway via `./scripts/deploy-railway-demo.sh <commit-ish>` |
-| **Staging** | AWS Elastic Beanstalk |
-| **Production** | AWS GovCloud with Terraform |
+| Environment     | Recommended Approach                                                                                                         |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| **Development** | Local with Docker Compose                                                                                                    |
+| **Public Demo** | Railway auto-deploy on push to `master` via GitHub Actions; manual fallback: `./scripts/deploy-railway-demo.sh <commit-ish>` |
+| **Staging**     | AWS Elastic Beanstalk                                                                                                        |
+| **Production**  | AWS GovCloud with Terraform                                                                                                  |
 
 ### Docker
 
@@ -398,13 +399,13 @@ docker-compose -f docker-compose.prod.yml up
 
 ### Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `DATABASE_URL` | PostgreSQL connection string | Required |
-| `SESSION_SECRET` | Cookie signing secret | Required |
-| `PORT` | API server port | `3000` |
+| Variable         | Description                  | Default  |
+| ---------------- | ---------------------------- | -------- |
+| `DATABASE_URL`   | PostgreSQL connection string | Required |
+| `SESSION_SECRET` | Cookie signing secret        | Required |
+| `PORT`           | API server port              | `3000`   |
 
-Production remains AWS-native. The sanctioned public demo now targets Railway through the checked-in `scripts/deploy-railway-demo.sh` workflow and a Railway-managed public URL.
+Production remains AWS-native. The sanctioned public demo now auto-deploys to Railway from `master` through GitHub Actions, using the checked-in `scripts/deploy-railway-demo.sh` workflow and a Railway-managed public URL.
 
 ---
 

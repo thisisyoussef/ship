@@ -2,6 +2,8 @@ import { MemorySaver } from '@langchain/langgraph'
 import { Router, type Request, type Response } from 'express'
 import { ZodError } from 'zod'
 
+import { pool } from '../db/client.js'
+
 import {
   createFleetGraphFindingActionService,
   createFleetGraphFindingActionStore,
@@ -875,6 +877,122 @@ export function createFleetGraphRouter(
     } catch (error) {
       console.error('FleetGraph turn error:', error)
       res.status(500).json({ error: 'Failed to process conversation turn' })
+    }
+  })
+
+  // ─── Admin: database diagnostics and cleanup ─────────────────────────
+  router.get('/admin/db-stats', authMiddleware, async (req: Request, res: Response) => {
+    const auth = getAuthContext(req, res)
+    if (!auth) return
+    if (!req.isSuperAdmin) {
+      res.status(403).json({ error: 'Super admin required' })
+      return
+    }
+
+    try {
+      const dbSize = await pool.query(
+        `SELECT pg_database_size(current_database()) AS db_bytes`
+      )
+      const tableStats = await pool.query(
+        `SELECT relname AS table_name,
+                pg_total_relation_size(c.oid) AS total_bytes,
+                pg_relation_size(c.oid) AS data_bytes,
+                n_live_tup AS live_rows,
+                n_dead_tup AS dead_rows
+         FROM pg_stat_user_tables s
+         JOIN pg_class c ON c.relname = s.relname
+         ORDER BY pg_total_relation_size(c.oid) DESC
+         LIMIT 20`
+      )
+      const fleetgraphCounts = await pool.query(
+        `SELECT 'fleetgraph_queue_jobs' AS tbl, count(*) AS cnt FROM fleetgraph_queue_jobs
+         UNION ALL SELECT 'fleetgraph_dedupe_ledger', count(*) FROM fleetgraph_dedupe_ledger
+         UNION ALL SELECT 'fleetgraph_proactive_findings', count(*) FROM fleetgraph_proactive_findings
+         UNION ALL SELECT 'fleetgraph_finding_action_runs', count(*) FROM fleetgraph_finding_action_runs`
+      )
+
+      const dbBytes = Number(dbSize.rows[0]?.db_bytes ?? 0)
+      res.json({
+        database_size_mb: Math.round(dbBytes / 1024 / 1024),
+        database_size_bytes: dbBytes,
+        top_tables: tableStats.rows.map((r: Record<string, unknown>) => ({
+          table: r.table_name,
+          total_mb: Math.round(Number(r.total_bytes) / 1024 / 1024 * 100) / 100,
+          data_mb: Math.round(Number(r.data_bytes) / 1024 / 1024 * 100) / 100,
+          live_rows: Number(r.live_rows),
+          dead_rows: Number(r.dead_rows),
+        })),
+        fleetgraph_counts: fleetgraphCounts.rows.map((r: Record<string, unknown>) => ({
+          table: r.tbl,
+          count: Number(r.cnt),
+        })),
+      })
+    } catch (error) {
+      console.error('DB stats error:', error)
+      res.status(500).json({ error: 'Failed to get database stats' })
+    }
+  })
+
+  router.post('/admin/db-cleanup', authMiddleware, async (req: Request, res: Response) => {
+    const auth = getAuthContext(req, res)
+    if (!auth) return
+    if (!req.isSuperAdmin) {
+      res.status(403).json({ error: 'Super admin required' })
+      return
+    }
+
+    try {
+      const results: Array<{ action: string; affected: number }> = []
+
+      // Delete old queue jobs
+      const queueDel = await pool.query(
+        `DELETE FROM fleetgraph_queue_jobs WHERE created_at < NOW() - INTERVAL '1 day' RETURNING id`
+      )
+      results.push({ action: 'delete_old_queue_jobs', affected: queueDel.rowCount ?? 0 })
+
+      // Delete old dedupe records
+      const dedupeDel = await pool.query(
+        `DELETE FROM fleetgraph_dedupe_ledger WHERE created_at < NOW() - INTERVAL '1 day' RETURNING dedupe_key`
+      )
+      results.push({ action: 'delete_old_dedupe', affected: dedupeDel.rowCount ?? 0 })
+
+      // Delete old action runs
+      const actionDel = await pool.query(
+        `DELETE FROM fleetgraph_finding_action_runs WHERE executed_at < NOW() - INTERVAL '1 day' RETURNING id`
+      )
+      results.push({ action: 'delete_old_action_runs', affected: actionDel.rowCount ?? 0 })
+
+      // Delete dismissed/snoozed findings older than 1 day
+      const findingDel = await pool.query(
+        `DELETE FROM fleetgraph_proactive_findings
+         WHERE (status = 'dismissed' OR status = 'snoozed')
+         AND updated_at < NOW() - INTERVAL '1 day' RETURNING id`
+      )
+      results.push({ action: 'delete_old_dismissed_findings', affected: findingDel.rowCount ?? 0 })
+
+      // Try VACUUM (may fail on Railway but won't crash)
+      try {
+        await pool.query('VACUUM ANALYZE fleetgraph_queue_jobs')
+        await pool.query('VACUUM ANALYZE fleetgraph_dedupe_ledger')
+        await pool.query('VACUUM ANALYZE fleetgraph_proactive_findings')
+        await pool.query('VACUUM ANALYZE fleetgraph_finding_action_runs')
+        results.push({ action: 'vacuum_fleetgraph_tables', affected: 0 })
+      } catch {
+        results.push({ action: 'vacuum_skipped_no_permission', affected: 0 })
+      }
+
+      // Get final size
+      const dbSize = await pool.query(
+        `SELECT pg_database_size(current_database()) AS db_bytes`
+      )
+
+      res.json({
+        cleanup_results: results,
+        database_size_mb_after: Math.round(Number(dbSize.rows[0]?.db_bytes ?? 0) / 1024 / 1024),
+      })
+    } catch (error) {
+      console.error('DB cleanup error:', error)
+      res.status(500).json({ error: 'Failed to cleanup database' })
     }
   })
 

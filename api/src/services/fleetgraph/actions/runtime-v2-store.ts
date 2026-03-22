@@ -146,6 +146,15 @@ export function createFleetGraphV2FindingStoreAdapter(
           continue
         }
 
+        const findingKey = buildFindingKey(finding)
+
+        // Preserve demo fixture findings — don't let sweeps overwrite
+        // seeded findings with potentially incomplete pipeline data
+        const existing = await deps.findingStore.getFindingByKey(findingKey)
+        if (existing?.metadata?.demoFixture) {
+          continue
+        }
+
         const actionDraft = findDraftForFinding(state.actionDrafts, finding)
         await deps.findingStore.upsertFinding({
           dedupeKey: finding.fingerprint,
@@ -154,7 +163,7 @@ export function createFleetGraphV2FindingStoreAdapter(
             state.documentType ?? finding.targetEntity.type
           ),
           evidence: finding.evidence,
-          findingKey: buildFindingKey(finding),
+          findingKey,
           findingType: finding.findingType,
           metadata: {
             severity: finding.severity,

@@ -13,6 +13,7 @@ Use this guide when verifying FleetGraph behavior on the sanctioned public demo.
 - Project title: `FleetGraph Demo Project`
 - Seeded HITL week title: `FleetGraph Demo Week - Review and Apply`
 - Validation-ready week title: `FleetGraph Demo Week - Validation Ready`
+- Current-page analysis proof lane: `FleetGraph Demo Week - Validation Ready` on the `Review` tab
 - Current-page guided-step proof lane: `FleetGraph Demo Week - Validation Ready` on the `Review` tab
 - Seeded HITL finding title: `Week start drift: FleetGraph Demo Week - Review and Apply`
 - Worker-generated week title: `FleetGraph Demo Week - Worker Generated`
@@ -32,11 +33,13 @@ Use this guide when verifying FleetGraph behavior on the sanctioned public demo.
 10. Return to `Documents`.
 11. Open `FleetGraph Demo Week - Validation Ready`.
 12. Open the `Review` tab for `FleetGraph Demo Week - Validation Ready`.
-13. Click `Preview next step` in the entry card and inspect the guided-step preview state.
-14. Open `FleetGraph debug`.
-15. Inspect the secondary debug dock for thread history and pending interrupts.
-16. Return to `Documents`.
-17. Open `FleetGraph Demo Week - Worker Generated`.
+13. Click `Check this page` in the entry card and inspect the page-analysis response.
+14. Ask a follow-up such as `What else should I look at?`
+15. Click `Preview next step` in the entry card and inspect the guided-step preview state.
+16. Open `FleetGraph debug`.
+17. Inspect the secondary debug dock for thread history and pending interrupts.
+18. Return to `Documents`.
+19. Open `FleetGraph Demo Week - Worker Generated`.
 
 ## Expected FleetGraph Surface
 
@@ -53,6 +56,7 @@ Use this guide when verifying FleetGraph behavior on the sanctioned public demo.
 - On `FleetGraph Demo Week - Validation Ready`, the `Review` tab is available immediately and `Plan Validation` starts unset so FleetGraph can validate it.
 - Lifecycle controls such as `Dismiss` and `Snooze 4h` remain available in the `Quick actions` block for finding-state checks.
 - The entry card should also show a `Quick actions` section instead of an unlabeled button row.
+- The entry card is the canonical current-page analysis surface for the assignment proof lane.
 - The main card copy should read in user terms first, with diagnostics moved behind `Open FleetGraph debug`.
 - The debug dock should show secondary details such as:
   - FleetGraph thread ids
@@ -68,6 +72,19 @@ Use this guide when verifying FleetGraph behavior on the sanctioned public demo.
 5. Confirm the same click that opened review did not already start the week.
 6. Open `FleetGraph debug` and confirm the review thread appears as a secondary diagnostic detail, not primary product copy.
 7. Apply only when you want to test the real HITL path.
+
+## Expected Entry-Card Page-Analysis Flow
+
+1. On `FleetGraph Demo Week - Validation Ready`, open the `Review` tab and find the `FleetGraph entry` card.
+2. Confirm the card shows a `Quick actions` section with `Check this page` and `Preview next step`.
+3. Click `Check this page`.
+4. Confirm the result area shows `Current guidance`.
+5. Confirm the analysis explains what matters on the current page in user terms instead of generic placeholder copy.
+6. Confirm the card shows a follow-up composer with `Ask a follow-up...`.
+7. Ask `What else should I look at?`
+8. Confirm the answer continues on the same page-analysis thread instead of resetting to a generic first response.
+9. Confirm diagnostics remain secondary under `Open FleetGraph debug`.
+10. Failure signal: the card only shows a generic “FleetGraph reviewed this page” stub, there is no follow-up composer, or the second answer repeats the first without advancing.
 
 ## Expected Entry-Card Preview Flow
 
@@ -92,18 +109,6 @@ Use this guide when verifying FleetGraph behavior on the sanctioned public demo.
 7. Confirm the `Plan Validation` control now shows `Validated` on the review page.
 8. Click `Preview next step` again and confirm FleetGraph does not offer the same validation step a second time.
 9. Failure signal: the card shows no inline result, the review page stays stale after the action completes, or the same validation prompt reappears immediately.
-
-## Expected Follow-Up Chat Flow
-
-1. On `FleetGraph Demo Week - Review and Apply`, open the FleetGraph floating chat panel.
-2. Confirm any suggested next step is rendered as advisory text, not a clickable action button.
-3. Type `What else should I look at?`
-4. Confirm the typed text stays readable on the white input surface while you type.
-5. Confirm the follow-up response does one of the following instead of replaying the original opening summary verbatim:
-   - surfaces a distinct additional concern
-   - asks for deeper context in plain language
-   - says clearly that there is nothing materially new in the current context
-6. Failure signal: the suggested next step still looks clickable, the typed text is hard to read, or FleetGraph repeats the first answer without acknowledging the follow-up.
 
 ## Screenshot References
 

@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { apiPost } from '@/lib/api'
 import {
+  type FleetGraphEntryAnalysisFinding,
   buildFleetGraphEntryPayload,
   type FleetGraphEntryApplyResponse,
   type FleetGraphApprovalEnvelope,
@@ -13,9 +14,29 @@ import { documentContextKeys } from './useDocumentContextQuery'
 import { documentKeys } from './useDocumentsQuery'
 import { sprintKeys } from './useWeeksQuery'
 
+export interface FleetGraphEntryConversationEntry {
+  content: string
+  findings?: FleetGraphEntryAnalysisFinding[]
+  role: 'user' | 'assistant'
+  timestamp: string
+}
+
+function buildAnalysisThreadId(entry: FleetGraphEntryInput) {
+  const sessionId = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}`
+  return [
+    'fleetgraph',
+    entry.document.workspaceId ?? 'workspace',
+    'entry-analysis',
+    entry.document.id,
+    sessionId,
+  ].join(':')
+}
+
 export function useFleetGraphEntry() {
   const queryClient = useQueryClient()
   const [actionResult, setActionResult] = useState<FleetGraphEntryApplyResponse | null>(null)
+  const [analysisConversation, setAnalysisConversation] = useState<FleetGraphEntryConversationEntry[]>([])
+  const [analysisThreadId, setAnalysisThreadId] = useState<string | null>(null)
 
   function invalidateDocumentSurface(documentId: string) {
     queryClient.invalidateQueries({ queryKey: ['document', documentId] })
@@ -27,10 +48,11 @@ export function useFleetGraphEntry() {
     mutationFn: async (input: {
       entry: FleetGraphEntryInput
       previewApproval: boolean
+      threadId?: string
     }) => {
       const response = await apiPost(
         '/api/fleetgraph/entry',
-        buildFleetGraphEntryPayload(input.entry, input.previewApproval)
+        buildFleetGraphEntryPayload(input.entry, input.previewApproval, input.threadId)
       )
 
       if (!response.ok) {
@@ -47,6 +69,21 @@ export function useFleetGraphEntry() {
       }
 
       return response.json() as Promise<FleetGraphEntryResponse>
+    },
+    onSuccess: (result, variables) => {
+      if (variables.previewApproval || !result.analysis) {
+        return
+      }
+
+      setAnalysisThreadId(result.entry.threadId)
+      setAnalysisConversation([
+        {
+          content: result.analysis.text,
+          findings: result.analysis.findings,
+          role: 'assistant',
+          timestamp: new Date().toISOString(),
+        },
+      ])
     },
   })
 
@@ -104,8 +141,61 @@ export function useFleetGraphEntry() {
     },
   })
 
+  const followUpMutation = useMutation({
+    mutationFn: async (message: string) => {
+      if (!analysisThreadId) {
+        throw new Error('FleetGraph needs an active page-analysis thread first.')
+      }
+
+      const response = await apiPost(
+        `/api/fleetgraph/thread/${encodeURIComponent(analysisThreadId)}/turn`,
+        { message }
+      )
+      if (!response.ok) {
+        let errorMessage = 'FleetGraph could not answer that follow-up right now.'
+        try {
+          const data = await response.json()
+          if (typeof data?.error === 'string') {
+            errorMessage = data.error
+          }
+        } catch {
+          // Keep the default message when the error payload is missing.
+        }
+        throw new Error(errorMessage)
+      }
+
+      return response.json() as Promise<{
+        analysisFindings: FleetGraphEntryAnalysisFinding[]
+        analysisText: string
+      }>
+    },
+    onMutate: (message) => {
+      setAnalysisConversation((current) => [
+        ...current,
+        {
+          content: message,
+          role: 'user',
+          timestamp: new Date().toISOString(),
+        },
+      ])
+    },
+    onSuccess: (result) => {
+      setAnalysisConversation((current) => [
+        ...current,
+        {
+          content: result.analysisText,
+          findings: result.analysisFindings,
+          role: 'assistant',
+          timestamp: new Date().toISOString(),
+        },
+      ])
+    },
+  })
+
   return {
     actionResult,
+    analysisConversation,
+    analysisThreadId,
     applyApproval(
       threadId: string,
       approval: FleetGraphApprovalEnvelope,
@@ -116,7 +206,13 @@ export function useFleetGraphEntry() {
     },
     checkCurrentContext(entry: FleetGraphEntryInput) {
       setActionResult(null)
-      mutation.mutate({ entry, previewApproval: false })
+      setAnalysisConversation([])
+      setAnalysisThreadId(null)
+      mutation.mutate({
+        entry,
+        previewApproval: false,
+        threadId: buildAnalysisThreadId(entry),
+      })
     },
     dismissApproval() {
       setActionResult(null)
@@ -124,14 +220,19 @@ export function useFleetGraphEntry() {
     },
     errorMessage:
       (mutation.error instanceof Error ? mutation.error.message : null)
-      ?? (applyMutation.error instanceof Error ? applyMutation.error.message : null),
+      ?? (applyMutation.error instanceof Error ? applyMutation.error.message : null)
+      ?? (followUpMutation.error instanceof Error ? followUpMutation.error.message : null),
     isApplying: applyMutation.isPending,
     isLoading: mutation.isPending,
+    isResponding: followUpMutation.isPending,
     previewApproval(entry: FleetGraphEntryInput) {
       setActionResult(null)
       mutation.mutate({ entry, previewApproval: true })
     },
     result: mutation.data,
+    sendAnalysisFollowUp(message: string) {
+      followUpMutation.mutate(message)
+    },
     snoozeApproval() {
       setActionResult(null)
       mutation.reset()

@@ -500,7 +500,6 @@ export function createFleetGraphRouter(
         return
       }
 
-      // TODO: pass userMessage to graph once reason node is wired into master's scenario runner
       const state = await runtime.invoke({
         contextKind: 'entry' as const,
         documentId: values.documentId as string,

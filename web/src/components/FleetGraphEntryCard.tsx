@@ -1,6 +1,10 @@
 import { useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
+import {
+  FleetGraphConversationFeed,
+  FleetGraphFollowUpComposer,
+} from '@/components/FleetGraphConversation';
 import { useFleetGraphDebugSurface } from '@/components/FleetGraphDebugSurface';
 import type { DocumentContext } from '@/hooks/useDocumentContextQuery';
 import { useFleetGraphEntry } from '@/hooks/useFleetGraphEntry';
@@ -79,6 +83,7 @@ export function FleetGraphEntryCard({
   }, [activeTab, context, effectiveDocument, nestedPath, userId]);
   const fleetGraph = useFleetGraphEntry();
   const approval = fleetGraph.result?.approval;
+  const hasAnalysis = fleetGraph.analysisConversation.length > 0;
   const actionResult = fleetGraph.actionResult;
   const { setEntry } = useFleetGraphDebugSurface();
   const actionResultTone = actionResult?.actionOutcome.status === 'failed'
@@ -163,13 +168,32 @@ export function FleetGraphEntryCard({
         </p>
       ) : null}
 
-      {fleetGraph.result || actionResult ? (
+      {fleetGraph.result || actionResult || hasAnalysis ? (
         <div className="mt-4 space-y-3 rounded-xl border border-border bg-muted/20 px-3 py-3">
-          {fleetGraph.result ? (
+          {fleetGraph.result?.analysis && hasAnalysis ? (
+            <div className="space-y-1">
+              <p className={sectionLabelClassName}>Current guidance</p>
+              <p className="text-sm font-semibold text-foreground">{fleetGraph.result.summary.title}</p>
+              <p className="text-sm text-muted">
+                FleetGraph is answering from this page’s current Ship context.
+              </p>
+            </div>
+          ) : fleetGraph.result ? (
             <div className="space-y-1">
               <p className={sectionLabelClassName}>Current guidance</p>
               <p className="text-sm font-semibold text-foreground">{fleetGraph.result.summary.title}</p>
               <p className="text-sm text-muted">{fleetGraph.result.summary.detail}</p>
+            </div>
+          ) : null}
+
+          {hasAnalysis ? (
+            <div className="space-y-3 rounded-xl border border-border/80 bg-background/80 px-3 py-3">
+              <FleetGraphConversationFeed conversation={fleetGraph.analysisConversation} />
+              <FleetGraphFollowUpComposer
+                disabled={fleetGraph.isLoading}
+                isResponding={fleetGraph.isResponding}
+                onSend={fleetGraph.sendAnalysisFollowUp}
+              />
             </div>
           ) : null}
 
@@ -246,11 +270,11 @@ export function FleetGraphEntryCard({
                 ))}
               </div>
             </div>
-          ) : (
+          ) : fleetGraph.result && !fleetGraph.result.analysis ? (
             <p className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-muted">
               No guided step is needed for this page right now.
             </p>
-          )}
+          ) : null}
         </div>
       ) : null}
     </section>

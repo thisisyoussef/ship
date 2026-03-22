@@ -50,7 +50,31 @@ export interface FleetGraphEntryActionOutcome {
   status: 'already_applied' | 'applied' | 'dismissed' | 'failed' | 'pending'
 }
 
+export interface FleetGraphEntryAnalysisFinding {
+  actionTier: 'A' | 'B' | 'C'
+  evidence: string[]
+  findingType: string
+  proposedAction?: {
+    endpoint: {
+      method: string
+      path: string
+    }
+    label: string
+    targetId: string
+    targetType: string
+  }
+  severity: 'info' | 'warning' | 'critical'
+  summary: string
+  title: string
+}
+
+export interface FleetGraphEntryAnalysis {
+  findings: FleetGraphEntryAnalysisFinding[]
+  text: string
+}
+
 export interface FleetGraphEntryResponse {
+  analysis?: FleetGraphEntryAnalysis
   approval?: FleetGraphApprovalEnvelope
   entry: {
     current: {
@@ -220,7 +244,8 @@ function buildRequestedAction(
 
 export function buildFleetGraphEntryPayload(
   input: FleetGraphEntryInput,
-  previewApproval = false
+  previewApproval = false,
+  threadId?: string
 ) {
   if (!input.document.workspaceId) {
     throw new Error('FleetGraph needs a workspace id from the current document.')
@@ -245,6 +270,7 @@ export function buildFleetGraphEntryPayload(
       documentId: input.document.id,
       documentType: input.document.documentType,
       mode: 'on_demand',
+      threadId,
       trigger: 'document-context',
       workspaceId: input.document.workspaceId,
     },

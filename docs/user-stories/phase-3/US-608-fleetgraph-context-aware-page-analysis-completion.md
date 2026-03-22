@@ -2,10 +2,10 @@
 
 ## Status
 
-- State: `todo`
+- State: `in_review`
 - Owner: Codex
 - Depends on: `US-605`
-- Related branch:
+- Related branch: `codex/fleetgraph-page-analysis-completion`
 - Related commit/PR:
 - Target environment: `local first`, `Railway demo via merged master`
 
@@ -160,6 +160,10 @@ git diff --check
 
 ## Checkpoint Result
 
-- Outcome: `pending`
+- Outcome: `implemented, pending Railway demo verification`
 - Evidence:
+  - `Check this page` now returns real current-page analysis on the FleetGraph entry card instead of the old generic stub summary
+  - entry-card follow-up turns stay on the same FleetGraph thread through `/api/fleetgraph/thread/:threadId/turn`
+  - the floating FAB is no longer the canonical page-analysis proof lane on `UnifiedDocumentPage`
 - Residual risk:
+  - public-demo verification is still needed on `FleetGraph Demo Week - Validation Ready` after merge/autodeploy

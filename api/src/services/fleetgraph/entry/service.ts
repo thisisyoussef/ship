@@ -144,8 +144,12 @@ function buildSummary(
   response: FleetGraphEntryResponse['entry'],
   state: FleetGraphState
 ) {
+  const hasAnalysis = typeof state.analysisText === 'string' && state.analysisText.trim().length > 0
+
   const title = state.outcome === 'approval_required'
     ? 'FleetGraph paused for your confirmation.'
+    : hasAnalysis
+      ? 'What matters on this page'
     : state.outcome === 'quiet'
       ? `FleetGraph has no guided step for this ${response.current.documentType} right now.`
       : `FleetGraph is ready in this ${response.current.documentType} context.`
@@ -153,6 +157,8 @@ function buildSummary(
   return {
     detail: state.outcome === 'approval_required'
       ? `Review the suggested next step for ${response.current.title}.`
+      : hasAnalysis
+        ? 'FleetGraph analyzed the current page context.'
       : state.outcome === 'quiet'
         ? `FleetGraph checked ${response.current.title} and did not find a guided next step yet.`
         : `FleetGraph reviewed ${response.current.title} and can help from this page.`,
@@ -218,6 +224,14 @@ export function createFleetGraphEntryService(
       })
 
       const response = FleetGraphEntryResponseSchema.parse({
+        analysis: parsed.draft?.requestedAction
+          ? undefined
+          : (typeof state.analysisText === 'string' && state.analysisText.trim().length > 0)
+            ? {
+              findings: Array.isArray(state.analysisFindings) ? state.analysisFindings : [],
+              text: state.analysisText,
+            }
+            : undefined,
         approval: parsed.draft?.requestedAction
           ? buildApproval(parsed.draft.requestedAction)
           : undefined,

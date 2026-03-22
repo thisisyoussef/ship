@@ -92,7 +92,28 @@ const FleetGraphEntrySummarySchema = z.object({
   title: nonEmptyString,
 }).strict()
 
+const FleetGraphEntryAnalysisFindingSchema = z.object({
+  actionTier: z.enum(['A', 'B', 'C']),
+  evidence: z.array(nonEmptyString),
+  findingType: nonEmptyString,
+  proposedAction: z.object({
+    endpoint: FleetGraphActionEndpointSchema,
+    label: nonEmptyString,
+    targetId: nonEmptyString,
+    targetType: nonEmptyString,
+  }).strict().optional(),
+  severity: z.enum(['info', 'warning', 'critical']),
+  summary: nonEmptyString,
+  title: nonEmptyString,
+}).strict()
+
+const FleetGraphEntryAnalysisSchema = z.object({
+  findings: z.array(FleetGraphEntryAnalysisFindingSchema),
+  text: nonEmptyString,
+}).strict()
+
 export const FleetGraphEntryResponseSchema = z.object({
+  analysis: FleetGraphEntryAnalysisSchema.optional(),
   approval: FleetGraphApprovalEnvelopeSchema.optional(),
   entry: z.object({
     current: FleetGraphEntryCurrentSchema,

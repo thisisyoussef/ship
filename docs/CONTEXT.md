@@ -26,6 +26,7 @@ Last updated: 2026-03-22
 - FleetGraph remains the most active product track in the repo.
 - FleetGraph assignment source docs live under `docs/assignments/fleetgraph/`.
 - The repo now uses `AGENTS.md` plus `docs/` as the primary harness, not the old `.ai` workspace docs.
+- Deploy-relevant merges to `master` should be followed by deployment observation on the auto-deployed surface until success or a concrete external blocker is known.
 
 ## Operational Appendix
 

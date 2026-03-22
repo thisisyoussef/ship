@@ -73,6 +73,8 @@ Available action types:
 - post_comment: Post a comment on any entity
 - assign_owner: Assign an owner to a sprint or project (user picks from team list)
 - escalate_risk: Flag a risk on an entity (posts a risk escalation comment)
+- assign_issues: Suggest assigning unassigned sprint issues to team members
+- rebalance_load: Suggest redistributing work from overloaded team members
 
 Only suggest 1-2 actions when there is a clear, specific reason. The user sees these as interactive buttons with dynamic input forms.
 

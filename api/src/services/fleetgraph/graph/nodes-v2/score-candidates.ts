@@ -97,6 +97,11 @@ function scoreUrgency(finding: CandidateFinding): number {
     case 'workload_imbalance':
       return 30
 
+    case 'sprint_no_owner':
+      return 60 // Owner needed for accountability
+    case 'unassigned_sprint_issues':
+      return 55 // Issues need owners for tracking
+
     default:
       return 25
   }
@@ -131,6 +136,13 @@ function scoreImpact(finding: CandidateFinding): number {
 
     case 'missing_standup':
       return 25 // Low impact, visibility issue
+
+    case 'sprint_no_owner':
+      return 55 // Blocks accountability
+    case 'unassigned_sprint_issues': {
+      const unassignedCount = (metadata.unassignedCount as number) ?? 0
+      return Math.min(40 + unassignedCount * 8, 85)
+    }
 
     default:
       return 30
@@ -167,6 +179,11 @@ function scoreActionability(finding: CandidateFinding): number {
       // Action: remind person
       return 40
 
+    case 'sprint_no_owner':
+      return 85 // Clear action: assign an owner
+    case 'unassigned_sprint_issues':
+      return 75 // Clear action: assign issues
+
     default:
       return 30
   }
@@ -199,6 +216,11 @@ function scoreConfidence(
       // Medium confidence - proxy detection
       score -= 5
       break
+
+    case 'sprint_no_owner':
+      return Math.max(90 - (partialData ? 20 : 0), 20) // Very clear — either there's an owner or not
+    case 'unassigned_sprint_issues':
+      return Math.max(85 - (partialData ? 20 : 0), 20) // Clear count from data
   }
 
   return Math.max(score, 20)

@@ -83,6 +83,22 @@ describe('buildFleetGraphEntryPayload', () => {
     )
   })
 
+  it('does not create a week approval action when the page is already approved', () => {
+    const payload = buildFleetGraphEntryPayload({
+      context: createContext('sprint'),
+      document: {
+        documentType: 'sprint',
+        id: DOCUMENT_ID,
+        planApprovalState: 'approved',
+        title: 'Sprint 8',
+        workspaceId: WORKSPACE_ID,
+      },
+      userId: USER_ID,
+    }, true)
+
+    expect(payload.draft).toBeUndefined()
+  })
+
   it('falls back to a safe current-document comment action for weekly retro pages', () => {
     const payload = buildFleetGraphEntryPayload({
       context: createContext('weekly_retro'),

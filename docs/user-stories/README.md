@@ -30,6 +30,7 @@ This phase will hold FleetGraph product and integration stories as the active pa
 | --- | --- | --- | --- | --- |
 | US-601 | Current-page approval preview | `done` | P0 | `US-901` |
 | US-602 | Entry apply through runtime | `done` | P0 | `US-601` |
+| US-603 | Entry approval follow-up fixes | `done` | P0 | `US-602` |
 
 ### Phase 3: Reliability and Productization
 
@@ -54,7 +55,8 @@ This phase will hold proof-lane, UX, deployment, and reliability follow-through 
 5. `US-904` aligns closeout behavior with Railway autodeploy and requires explicit `What to test` instructions in visible-story handoffs.
 6. `US-905` makes post-merge deployment observation part of deploy-relevant story completion on auto-deployed surfaces.
 7. `US-602` completes `T601A` by routing entry-card apply through the runtime review/execute path.
-8. Active product packs continue to port into `docs/user-stories/` in dependency order.
+8. `US-603` closes the FleetGraph approval follow-up by making preview state-aware, refreshing the current page after apply, and darkening the result copy.
+9. Active product packs continue to port into `docs/user-stories/` in dependency order.
 
 ## Files
 

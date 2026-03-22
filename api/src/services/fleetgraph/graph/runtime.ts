@@ -172,7 +172,7 @@ function buildGenericActionSuccessMessage(
     case 'approve_project_plan':
       return 'Project plan approved in Ship.'
     case 'approve_week_plan':
-      return 'Week plan approved in Ship.'
+      return 'Week plan approved in Ship. This page should now show the week plan as approved.'
     case 'post_comment':
       return 'Comment posted in Ship.'
     case 'assign_owner':

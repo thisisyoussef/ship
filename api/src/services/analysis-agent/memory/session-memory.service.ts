@@ -11,6 +11,8 @@ interface Turn {
 
 export interface SessionState {
   sessionId: string
+  userId: string
+  workspaceId: string
   turns: Turn[]
   summary: string | null
   context: AnalysisContext
@@ -19,7 +21,7 @@ export interface SessionState {
 }
 
 export interface SessionMemoryService {
-  getOrCreate(sessionId: string, context: AnalysisContext): SessionState
+  getOrCreate(sessionId: string, context: AnalysisContext, userId: string, workspaceId: string): SessionState
   addTurn(sessionId: string, turn: { role: 'user' | 'assistant'; content: string; toolCalls?: ToolCallRecord[] }): void
   getRecentTurns(sessionId: string, limit?: number): Turn[]
   getSummary(sessionId: string): string | null
@@ -67,11 +69,28 @@ export function createSessionMemoryService(): SessionMemoryService {
   }
 
   return {
-    getOrCreate(sessionId: string, context: AnalysisContext): SessionState {
+    getOrCreate(sessionId: string, context: AnalysisContext, userId: string, workspaceId: string): SessionState {
       cleanupExpired()
 
       const existing = store.get(sessionId)
       if (existing) {
+        // If the userId doesn't match, create a fresh session to prevent cross-user access
+        if (existing.userId !== userId) {
+          store.delete(sessionId)
+          const freshId = `_reset_${sessionId}`
+          const freshSession: SessionState = {
+            sessionId: freshId,
+            userId,
+            workspaceId,
+            turns: [],
+            summary: null,
+            context,
+            createdAt: new Date().toISOString(),
+            lastActiveAt: new Date().toISOString(),
+          }
+          store.set(freshId, freshSession)
+          return freshSession
+        }
         existing.lastActiveAt = new Date().toISOString()
         existing.context = context
         return existing
@@ -79,6 +98,8 @@ export function createSessionMemoryService(): SessionMemoryService {
 
       const session: SessionState = {
         sessionId,
+        userId,
+        workspaceId,
         turns: [],
         summary: null,
         context,

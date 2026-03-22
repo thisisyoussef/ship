@@ -71,7 +71,7 @@ export function createAnalysisAgentService(deps: AnalysisAgentServiceDeps) {
       }
 
       // Session
-      const session = memory.getOrCreate(request.session_id, request.context)
+      const session = memory.getOrCreate(request.session_id, request.context, auth.userId, auth.workspaceId)
       memory.updateContext(request.session_id, request.context)
 
       // Intent classification

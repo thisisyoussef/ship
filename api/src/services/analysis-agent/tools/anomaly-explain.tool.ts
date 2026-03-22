@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type { AnalysisTool, ToolContext, ToolResult } from '../types.js'
+import { uuidSchema } from './schemas.js'
 import { fetchShipApi } from './fetch-ship-api.js'
 
 export const anomalyExplainTool: AnalysisTool = {
@@ -7,7 +8,7 @@ export const anomalyExplainTool: AnalysisTool = {
   description:
     'Analyze data patterns to find anomalies — stale issues, sudden scope changes, blocked work, missing standups. Use when the user asks \'why\' something happened.',
   parameters: z.object({
-    entity_id: z.string(),
+    entity_id: uuidSchema,
     entity_type: z.string(),
   }),
 
@@ -86,7 +87,7 @@ function detectSprintAnomalies(
   const now = Date.now()
   const staleThresholdMs = 3 * 24 * 60 * 60 * 1000 // 3 days
   const staleIssues = issues.filter((i) => {
-    const updated = i.updated_at ? new Date(i.updated_at as string).getTime() : 0
+    const updated = i.updated_at ? new Date(i.updated_at as string).getTime() : Date.now()
     const status = String(i.status ?? '').toLowerCase()
     return status !== 'done' && status !== 'closed' && (now - updated) > staleThresholdMs
   })

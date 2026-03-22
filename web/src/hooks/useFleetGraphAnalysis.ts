@@ -167,6 +167,17 @@ export function useFleetGraphAnalysis() {
         buildAssistantConversationEntry(data),
       ])
     },
+    onError: (error: Error) => {
+      // Add error message to conversation
+      setConversation((prev) => [
+        ...prev,
+        {
+          content: `Error: ${error.message}. Please try again.`,
+          role: 'assistant' as const,
+          timestamp: new Date().toISOString(),
+        },
+      ])
+    },
   })
 
   const reviewActionMutation = useMutation({
@@ -235,6 +246,10 @@ export function useFleetGraphAnalysis() {
     onMutate: ({ actionDraft }) => {
       setApplyError(null)
       setPendingActionId(actionDraft.actionId)
+    },
+    onError: (error: Error) => {
+      setApplyError(`Action failed: ${error.message}`)
+      setPendingActionId(null)
     },
     onSuccess: (data) => {
       setCurrentReview(null)

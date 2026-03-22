@@ -1,6 +1,10 @@
 import type { ToolContext } from '../types.js'
 
 export async function fetchShipApi(path: string, ctx: ToolContext): Promise<unknown> {
+  // Safety: reject paths containing query strings or fragments from untrusted input
+  if (/[?#]/.test(path) && !path.startsWith('/api/')) {
+    throw new Error(`Invalid API path: ${path}`)
+  }
   const baseUrl = ctx.requestContext.baseUrl
   const headers: Record<string, string> = { accept: 'application/json' }
   if (ctx.requestContext.cookieHeader) headers.cookie = ctx.requestContext.cookieHeader

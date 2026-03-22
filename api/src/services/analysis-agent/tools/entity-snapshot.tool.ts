@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type { AnalysisTool, ToolContext, ToolResult } from '../types.js'
+import { uuidSchema } from './schemas.js'
 import { fetchShipApi } from './fetch-ship-api.js'
 
 export const entitySnapshotTool: AnalysisTool = {
@@ -7,7 +8,7 @@ export const entitySnapshotTool: AnalysisTool = {
   description:
     'Fetch full details of a Ship entity (sprint, project, issue, program). Returns properties, status, ownership, dates, and associations.',
   parameters: z.object({
-    entity_id: z.string(),
+    entity_id: uuidSchema,
     entity_type: z.string().optional(),
   }),
 

@@ -152,9 +152,9 @@ export function AnalysisSection({
                     {msg.actionSuggestions.filter(a => a.action && a.label).map((suggestion, k) => (
                       <div key={`suggestion-${k}`} className="flex items-start gap-2 py-0.5">
                         <span className="shrink-0 mt-0.5 text-amber-600 dark:text-amber-400">→</span>
-                        <div className="text-[12px] text-foreground/80">
-                          <span className="font-medium">{suggestion.label}:</span>{' '}
-                          <span className="text-muted">{suggestion.rationale}</span>
+                        <div className="text-[12px]">
+                          <span className="font-semibold text-foreground">{suggestion.label}:</span>{' '}
+                          <span className="text-foreground/70">{suggestion.rationale}</span>
                         </div>
                       </div>
                     ))}

@@ -6,7 +6,7 @@
 - Owner: Codex
 - Depends on: `US-606`
 - Related branch: `codex/fleetgraph-panel-visibility-polish-merge`
-- Related commit/PR:
+- Related commit/PR: `40ae938`, [PR #141](https://github.com/thisisyoussef/ship/pull/141)
 - Target environment: `local first`, `Railway demo via merged master`
 
 ## Persona

@@ -89,9 +89,10 @@ const definition: FleetGraphActionDefinition = {
           method: 'PATCH' as const,
           path: `/api/documents/${draft.targetId}`,
           body: {
-            properties: {
-              owner_id: personId,
-            },
+            // owner_id must be at top level — the documents PATCH handler
+            // extracts it as a top-level field (line 723 of documents.ts)
+            // and merges it into properties automatically
+            owner_id: personId,
           },
         },
       ],

@@ -143,12 +143,11 @@ export function AnalysisSection({
         case 'assign_owner': {
           const ownerId = actionInputs.owner_id?.trim()
           if (!ownerId) throw new Error('Please select an owner')
-          // Determine if target is a week or project based on target_type
-          const ownerEndpoint = pendingAction.target_type === 'project'
-            ? `/api/projects/${targetId}`
-            : `/api/weeks/${targetId}`
-          response = await apiPatch(ownerEndpoint, {
-            properties: { owner_id: ownerId },
+          // Use /api/documents/:id with owner_id at top level (not nested in properties)
+          // The documents PATCH handler extracts owner_id and merges it into properties,
+          // and for sprints also stores it in assignee_ids[0] for consistency
+          response = await apiPatch(`/api/documents/${targetId}`, {
+            owner_id: ownerId,
           })
           break
         }
@@ -156,20 +155,25 @@ export function AnalysisSection({
           const content = actionInputs.content?.trim()
           if (!content) throw new Error('Please describe the risk')
           response = await apiPost(`/api/documents/${targetId}/comments`, {
+            comment_id: crypto.randomUUID(),
             content: `⚠️ RISK ESCALATION: ${content}`,
           })
           break
         }
         case 'post_standup': {
-          const content = actionInputs.content?.trim()
-          if (!content) throw new Error('Please enter standup content')
-          response = await apiPost(`/api/weeks/${targetId}/standups`, { content })
+          // Use the standalone /api/standups endpoint which is idempotent
+          // and only requires a date (creates the standup doc for today)
+          const today = new Date().toISOString().slice(0, 10)
+          response = await apiPost('/api/standups', { date: today })
           break
         }
         case 'post_comment': {
           const content = actionInputs.content?.trim()
           if (!content) throw new Error('Please enter a comment')
-          response = await apiPost(`/api/documents/${targetId}/comments`, { content })
+          response = await apiPost(`/api/documents/${targetId}/comments`, {
+            comment_id: crypto.randomUUID(),
+            content,
+          })
           break
         }
         default:

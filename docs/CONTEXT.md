@@ -30,6 +30,7 @@ Last updated: 2026-03-22
 ## Operational Appendix
 
 - Use `.claude/CLAUDE.md` for the current Ship command and architecture appendix.
+- Use `docs/WORKFLOW_MEMORY.md` for recurring corrections, durable workflow decisions, and reusable implementation patterns.
 - Use `docs/user-stories/README.md` to determine the next valid implementation story.
 
 ## Open Maintenance Items

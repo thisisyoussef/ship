@@ -9,6 +9,7 @@
     "alwaysReadFirst": [
       "AGENTS.md",
       "docs/CONTEXT.md",
+      "docs/WORKFLOW_MEMORY.md",
       "docs/IMPLEMENTATION_STRATEGY.md",
       "docs/user-stories/README.md"
     ],
@@ -20,6 +21,7 @@
       "Use TDD for behavior changes and record validation, deployment status, and checkpoint evidence in the active story.",
       "Run bash scripts/check_ai_wiring.sh when the harness contract changes.",
       "Keep docs/CONTEXT.md current when live environment truth changes.",
+      "Keep docs/WORKFLOW_MEMORY.md current when recurring corrections, decisions, or patterns should persist.",
       "Use .claude/CLAUDE.md only as a secondary appendix for Ship commands and architecture notes."
     ],
     "beforeHandoff": [

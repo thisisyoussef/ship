@@ -6,6 +6,7 @@ Use this file as the quick index for the repo's active documentation surfaces.
 
 - `AGENTS.md`: primary repo rulebook and execution contract
 - `docs/CONTEXT.md`: live environment truth, current URLs, and what is true right now
+- `docs/WORKFLOW_MEMORY.md`: recurring corrections, durable decisions, and reusable execution patterns
 - `docs/IMPLEMENTATION_STRATEGY.md`: broad roadmap and execution model
 - `docs/user-stories/README.md`: master story queue, dependency graph, and execution order
 - `docs/DEFINITION_OF_DONE.md`: hard gate for completion

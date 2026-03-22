@@ -29,11 +29,11 @@ from pathlib import Path
 import sys
 
 targets = {
-    "AGENTS.md": ["docs/CONTEXT.md", "docs/IMPLEMENTATION_STRATEGY.md", "docs/user-stories/README.md", "docs/DEFINITION_OF_DONE.md"],
-    "CLAUDE.md": ["AGENTS.md", "docs/CONTEXT.md", "docs/IMPLEMENTATION_STRATEGY.md", "docs/user-stories/README.md"],
-    ".clauderc": ["AGENTS.md", "docs/CONTEXT.md", "docs/IMPLEMENTATION_STRATEGY.md", "docs/user-stories/README.md"],
-    ".cursorrules": ["AGENTS.md", "docs/CONTEXT.md", "docs/IMPLEMENTATION_STRATEGY.md", "docs/user-stories/README.md"],
-    "docs/README.md": ["AGENTS.md", "docs/CONTEXT.md", "docs/IMPLEMENTATION_STRATEGY.md", "docs/user-stories/README.md", "docs/DEFINITION_OF_DONE.md", "docs/submissions/"],
+    "AGENTS.md": ["docs/CONTEXT.md", "docs/WORKFLOW_MEMORY.md", "docs/IMPLEMENTATION_STRATEGY.md", "docs/user-stories/README.md", "docs/DEFINITION_OF_DONE.md"],
+    "CLAUDE.md": ["AGENTS.md", "docs/CONTEXT.md", "docs/WORKFLOW_MEMORY.md", "docs/IMPLEMENTATION_STRATEGY.md", "docs/user-stories/README.md"],
+    ".clauderc": ["AGENTS.md", "docs/CONTEXT.md", "docs/WORKFLOW_MEMORY.md", "docs/IMPLEMENTATION_STRATEGY.md", "docs/user-stories/README.md"],
+    ".cursorrules": ["AGENTS.md", "docs/CONTEXT.md", "docs/WORKFLOW_MEMORY.md", "docs/IMPLEMENTATION_STRATEGY.md", "docs/user-stories/README.md"],
+    "docs/README.md": ["AGENTS.md", "docs/CONTEXT.md", "docs/WORKFLOW_MEMORY.md", "docs/IMPLEMENTATION_STRATEGY.md", "docs/user-stories/README.md", "docs/DEFINITION_OF_DONE.md", "docs/submissions/"],
 }
 errors: list[str] = []
 
@@ -59,19 +59,24 @@ import sys
 agents = Path("AGENTS.md").read_text(encoding="utf-8")
 strategy = Path("docs/IMPLEMENTATION_STRATEGY.md").read_text(encoding="utf-8")
 context = Path("docs/CONTEXT.md").read_text(encoding="utf-8")
+memory = Path("docs/WORKFLOW_MEMORY.md").read_text(encoding="utf-8")
 errors: list[str] = []
 
 for token in ("primary checked-in rulebook", "docs/user-stories/README.md", ".claude/CLAUDE.md"):
     if token not in agents:
         errors.append(f"AGENTS.md missing '{token}'")
 
-for token in ("AGENTS.md", "docs/user-stories/README.md", "docs/plans/", "docs/submissions/"):
+for token in ("AGENTS.md", "docs/WORKFLOW_MEMORY.md", "docs/user-stories/README.md", "docs/plans/", "docs/submissions/"):
     if token not in strategy:
         errors.append(f"docs/IMPLEMENTATION_STRATEGY.md missing '{token}'")
 
-for token in ("Last updated:", "Local path:", "Public demo baseline", "AGENTS.md"):
+for token in ("Last updated:", "Local path:", "Public demo baseline", "AGENTS.md", "docs/WORKFLOW_MEMORY.md"):
     if token not in context:
         errors.append(f"docs/CONTEXT.md missing '{token}'")
+
+for token in ("corrections", "decisions", "patterns", "AGENTS.md"):
+    if token not in memory:
+        errors.append(f"docs/WORKFLOW_MEMORY.md missing '{token}'")
 
 if errors:
     print("ERROR: Control-plane issues detected:", file=sys.stderr)

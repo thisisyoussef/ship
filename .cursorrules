@@ -4,10 +4,11 @@
 
 1. `AGENTS.md`
 2. `docs/CONTEXT.md`
-3. `docs/IMPLEMENTATION_STRATEGY.md`
-4. `docs/user-stories/README.md`
-5. The active story file in `docs/user-stories/`
-6. `docs/DEFINITION_OF_DONE.md`
+3. `docs/WORKFLOW_MEMORY.md`
+4. `docs/IMPLEMENTATION_STRATEGY.md`
+5. `docs/user-stories/README.md`
+6. The active story file in `docs/user-stories/`
+7. `docs/DEFINITION_OF_DONE.md`
 
 Use `.claude/CLAUDE.md` only as a secondary Ship appendix for commands, architecture notes, and deployment details.
 
@@ -18,6 +19,7 @@ Use `.claude/CLAUDE.md` only as a secondary Ship appendix for commands, architec
 - Use `docs/plans/` for design and implementation workups.
 - Use `docs/submissions/` only for packaged review/demo artifacts.
 - Keep `docs/CONTEXT.md` current when runtime truth changes.
+- Keep `docs/WORKFLOW_MEMORY.md` current when recurring corrections, decisions, or reusable patterns should persist.
 
 ## Development Rules
 

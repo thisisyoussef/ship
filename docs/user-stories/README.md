@@ -40,14 +40,16 @@ This phase will hold proof-lane, UX, deployment, and reliability follow-through 
 | --- | --- | --- | --- | --- |
 | US-901 | AGENTS-first harness reset | `done` | P0 | — |
 | US-902 | Seeded verification entry rule | `done` | P1 | `US-901` |
+| US-903 | Workflow memory log | `done` | P1 | `US-901` |
 
 ## Execution Order
 
 1. `US-901` completes the control-plane reset from the old `.ai` workspace to the checked-in docs model.
 2. `US-601` completes the first FleetGraph completion-pack story by finishing the current-page approval preview use case on the smallest safe path.
 3. `US-902` makes repeatable seeded verification entries part of the checked-in workflow for visible stories.
-4. The next FleetGraph implementation story should pick up the `T601A` runtime-apply convergence work.
-5. Active product packs continue to port into `docs/user-stories/` in dependency order.
+4. `US-903` adds a durable workflow-memory log for recurring corrections, decisions, and reusable patterns.
+5. The next FleetGraph implementation story should pick up the `T601A` runtime-apply convergence work.
+6. Active product packs continue to port into `docs/user-stories/` in dependency order.
 
 ## Files
 

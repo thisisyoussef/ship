@@ -45,7 +45,7 @@ This phase will hold FleetGraph product and integration stories as the active pa
 | US-608 | FleetGraph context-aware page analysis completion | `done` | P0 | `US-605` |
 | US-609 | FleetGraph shared proactive multi-finding plumbing | `done` | P0 | `US-608` |
 | US-609.5 | FleetGraph FAB analysis handoff | `done` | P1 | `US-609` |
-| US-610 | FleetGraph sprint-owner gap | `todo` | P0 | `US-609.5` |
+| US-610 | FleetGraph sprint-owner gap | `done` | P0 | `US-609.5` |
 | US-611 | FleetGraph unassigned sprint issues | `todo` | P0 | `US-610` |
 | US-612 | FleetGraph assignment evidence refresh | `todo` | P0 | `US-611` |
 | US-613 | FleetGraph panel gradient removal | `todo` | P2 | `US-612` |

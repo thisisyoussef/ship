@@ -64,6 +64,7 @@ function buildSummaryPrompt(candidate: SprintNoOwnerCandidate) {
     startDate: candidate.startDate.toISOString().slice(0, 10),
     status: candidate.week.status,
     weekName: candidate.week.name,
+    weekStatus: candidate.week.status,
   })
 }
 
@@ -117,7 +118,7 @@ export function createSprintNoOwnerScenarioRunner(
             instructions: [
               'You are FleetGraph, a PM-facing project intelligence agent.',
               'Write one concise advisory sentence under 180 characters.',
-              'State why this sprint needs an owner assigned without inventing missing facts.',
+              'State why this sprint needs a named owner and missing accountability is risky without inventing missing facts.',
             ].join(' '),
           },
           settings: deps.tracingSettings,

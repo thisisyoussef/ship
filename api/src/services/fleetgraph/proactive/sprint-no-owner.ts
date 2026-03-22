@@ -75,10 +75,11 @@ export function buildSprintNoOwnerFindingDraft(
       sprintNumber: candidate.week.sprint_number,
       startDate: candidate.startDate.toISOString(),
       statusReason: candidate.statusReason,
+      weekStatus: candidate.week.status,
     },
     recommendedAction: buildSprintNoOwnerRecommendedAction(candidate, evidence),
     summary,
-    title: `No owner: ${candidate.week.name}`,
+    title: `Sprint owner gap: ${candidate.week.name}`,
   }
 }
 
@@ -90,10 +91,15 @@ export function buildSprintNoOwnerFindingKey(
 }
 
 function buildSprintNoOwnerEvidence(candidate: SprintNoOwnerCandidate): string[] {
+  const startedOn = candidate.startDate.toISOString().slice(0, 10)
+  const accountabilityLine = candidate.week.issue_count > 0
+    ? `This sprint already has ${candidate.week.issue_count} linked issue${candidate.week.issue_count === 1 ? '' : 's'}, but no one is accountable for coordinating it.`
+    : 'No one is accountable for coordinating this sprint yet.'
+
   return [
-    'This sprint has no owner assigned.',
-    `Sprint ${candidate.week.sprint_number} started on ${candidate.startDate.toISOString().slice(0, 10)}.`,
-    'No week owner is set — someone should be accountable for this sprint.',
+    'No sprint owner is assigned right now.',
+    `Sprint ${candidate.week.sprint_number} is ${candidate.week.status} and started on ${startedOn}.`,
+    accountabilityLine,
   ]
 }
 
@@ -107,12 +113,11 @@ function buildSprintNoOwnerRecommendedAction(
       path: `/api/documents/${candidate.week.id}`,
     },
     evidence,
-    rationale: 'Starting the week is a consequential Ship mutation and should stay behind human confirmation.',
-    summary: 'Assign an owner to this sprint so someone is accountable.',
+    rationale: 'FleetGraph can surface the missing owner, but assigning accountability should remain a human decision in Ship.',
+    summary: 'Name a sprint owner so someone is accountable for coordination and follow-through.',
     targetId: candidate.week.id,
     targetType: 'sprint',
     title: 'Assign sprint owner',
     type: 'assign_owner',
   }
 }
-

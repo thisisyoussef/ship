@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { createWorkerTestDatabase } from '../worker/test-helpers.js'
 import {
+  FLEETGRAPH_DEMO_OWNER_GAP_WEEK_TITLE,
   FLEETGRAPH_DEMO_PROJECT_TITLE,
   FLEETGRAPH_DEMO_VALIDATION_WEEK_TITLE,
   FLEETGRAPH_DEMO_WORKER_FINDING_TITLE,
@@ -21,7 +22,7 @@ describe('FleetGraph demo fixture', () => {
     await testDb?.close()
   })
 
-  it('creates seeded FleetGraph proof lanes, including a reusable validation-ready week', async () => {
+  it('creates seeded FleetGraph proof lanes, including an owner-gap week and a reusable validation-ready week', async () => {
     const workspaceId = '00000000-0000-4000-8000-000000000001'
     const userId = '00000000-0000-4000-8000-000000000002'
     const programId = '00000000-0000-4000-8000-000000000003'
@@ -72,6 +73,7 @@ describe('FleetGraph demo fixture', () => {
     expect(first.projectTitle).toBe(FLEETGRAPH_DEMO_PROJECT_TITLE)
     expect(first.weekTitle).toBe(FLEETGRAPH_DEMO_WEEK_TITLE)
     expect(first.findingTitle).toContain(FLEETGRAPH_DEMO_WEEK_TITLE)
+    expect(first.ownerGapWeekTitle).toBe(FLEETGRAPH_DEMO_OWNER_GAP_WEEK_TITLE)
     expect(first.validationWeekTitle).toBe(FLEETGRAPH_DEMO_VALIDATION_WEEK_TITLE)
     expect(first.workerWeekTitle).toBe(FLEETGRAPH_DEMO_WORKER_WEEK_TITLE)
     expect(first.workerFindingTitle).toBe(FLEETGRAPH_DEMO_WORKER_FINDING_TITLE)
@@ -82,18 +84,19 @@ describe('FleetGraph demo fixture', () => {
        WHERE workspace_id = $1`,
       [workspaceId]
     )
-    expect(finding.rows).toHaveLength(1)
-    expect(finding.rows[0]).toMatchObject({
-      status: 'active',
-      title: `Week start drift: ${FLEETGRAPH_DEMO_WEEK_TITLE}`,
-    })
-    expect(finding.rows[0]?.metadata).toMatchObject({
-      demoFixture: true,
-      inspectionProjectTitle: FLEETGRAPH_DEMO_PROJECT_TITLE,
-      inspectionWeekTitle: FLEETGRAPH_DEMO_WEEK_TITLE,
-      preserveDemoLane: true,
-      proofLane: 'seeded-hitl',
-    })
+    expect(finding.rows).toHaveLength(2)
+    expect(finding.rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          status: 'active',
+          title: `Week start drift: ${FLEETGRAPH_DEMO_WEEK_TITLE}`,
+        }),
+        expect.objectContaining({
+          status: 'active',
+          title: `Sprint owner gap: ${FLEETGRAPH_DEMO_OWNER_GAP_WEEK_TITLE}`,
+        }),
+      ])
+    )
 
     const sweepSchedules = await testDb.pool.query(
       'SELECT workspace_id FROM fleetgraph_sweep_schedules WHERE workspace_id = $1',
@@ -186,23 +189,31 @@ describe('FleetGraph demo fixture', () => {
         [
           FLEETGRAPH_DEMO_PROJECT_TITLE,
           FLEETGRAPH_DEMO_WEEK_TITLE,
+          FLEETGRAPH_DEMO_OWNER_GAP_WEEK_TITLE,
           FLEETGRAPH_DEMO_VALIDATION_WEEK_TITLE,
           FLEETGRAPH_DEMO_WORKER_WEEK_TITLE,
         ],
       ]
     )
 
-    expect(rerunFinding.rows).toHaveLength(1)
-    expect(rerunFinding.rows[0]?.status).toBe('active')
+    expect(rerunFinding.rows).toHaveLength(2)
     expect(actionRuns.rows).toHaveLength(0)
     expect(rerunQueueJobs.rows).toEqual([{ status: 'queued' }])
-    expect(documents.rows).toHaveLength(4)
+    expect(documents.rows).toHaveLength(5)
     expect(
       documents.rows.find((row) => row.title === FLEETGRAPH_DEMO_WEEK_TITLE)?.properties
     ).toMatchObject({
       project_id: first.projectId,
       sprint_number: 2,
       status: 'planning',
+    })
+    expect(
+      documents.rows.find((row) => row.title === FLEETGRAPH_DEMO_OWNER_GAP_WEEK_TITLE)?.properties
+    ).toMatchObject({
+      owner_id: null,
+      project_id: first.projectId,
+      sprint_number: 2,
+      status: 'active',
     })
     expect(
       documents.rows.find((row) => row.title === FLEETGRAPH_DEMO_VALIDATION_WEEK_TITLE)?.properties

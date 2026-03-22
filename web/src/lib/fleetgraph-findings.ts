@@ -13,7 +13,13 @@ export interface FleetGraphFindingAction {
   targetId: string;
   targetType: 'document' | 'project' | 'sprint';
   title: string;
-  type: 'approve_project_plan' | 'approve_week_plan' | 'post_comment' | 'start_week';
+  type:
+    | 'approve_project_plan'
+    | 'approve_week_plan'
+    | 'assign_issues'
+    | 'assign_owner'
+    | 'post_comment'
+    | 'start_week';
 }
 
 export interface FleetGraphFindingActionExecution {

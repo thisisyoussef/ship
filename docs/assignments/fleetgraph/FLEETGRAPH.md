@@ -203,7 +203,7 @@ For each use case, record the triggering Ship state, the expected output, and th
 | # | Ship State | Expected Output | Trace Link |
 |---|------------|-----------------|------------|
 | 1 | Week is still `planning` or empty after it should be active | Week-start drift insight with week owner and missing setup details | Proactive worker path: [shared trace](https://smith.langchain.com/public/d5f1a274-6f81-4c42-b8be-924791429323/r). Approval-preview/HITL path: [shared trace](https://smith.langchain.com/public/e969f90a-ef5a-45e5-bded-9d6de7233311/r). |
-| 2 | Planning or active week has no owner assigned near its start window | Sprint-owner gap summary with week identity and accountability context | Planned next case; no live trace captured yet |
+| 2 | Planning or active week has no owner assigned near its start window | Sprint-owner gap summary with week identity and accountability context | Public demo proof lane: `FleetGraph Demo Week - Owner Gap` in `docs/guides/fleetgraph-demo-inspection.md`; no public trace captured yet |
 | 3 | Planning or active week contains a meaningful cluster of unassigned issues | Unassigned-issues summary with count, sprint context, and assignment need | Planned next case; no live trace captured yet |
 | 4 | User opens a current page guided step from FleetGraph entry | Current-page action preview naming the target action, visible proof surface, and confirmation path | Current-page guided-step path shares the on-demand trace family; proof lane captured in the Tuesday MVP evidence bundle |
 | 5 | User asks for help from an issue, sprint, project, program, or weekly-doc page | Context-aware page analysis with current state, related work, and next actions | Current-page analysis now starts from FleetGraph entry and hands off into the FAB chat on the public demo proof lane; it shares the on-demand trace family, with visible verification in `docs/guides/fleetgraph-demo-inspection.md` |
@@ -216,6 +216,7 @@ For each use case, record the triggering Ship state, the expected output, and th
 - Evidence bundle: `docs/evidence/fleetgraph-mvp-evidence.json` and `docs/evidence/fleetgraph-mvp-evidence.md`
 - Named public demo inspection targets:
   - `FleetGraph Demo Week - Review and Apply`
+  - `FleetGraph Demo Week - Owner Gap`
   - `FleetGraph Demo Week - Validation Ready`
   - `FleetGraph Demo Week - Worker Generated`
 - Screenshot artifacts:

@@ -242,7 +242,7 @@ describe('buildSprintNoOwnerFindingDraft', () => {
 
   it('sets title to No owner: {weekName}', () => {
     const draft = buildSprintNoOwnerFindingDraft(candidate, 'ws-1', 'Advisory sentence.')
-    expect(draft.title).toBe('No owner: Sprint 1')
+    expect(draft.title).toBe('Sprint owner gap: Sprint 1')
   })
 
   it('sets recommendedAction.type to assign_owner', () => {
@@ -258,5 +258,16 @@ describe('buildSprintNoOwnerFindingDraft', () => {
   it('sets recommendedAction.endpoint.path to contain the week id', () => {
     const draft = buildSprintNoOwnerFindingDraft(candidate, 'ws-1', 'Advisory sentence.')
     expect(draft.recommendedAction.endpoint.path).toContain('week-abc')
+  })
+
+  it('includes accountability-focused evidence for the missing owner gap', () => {
+    const draft = buildSprintNoOwnerFindingDraft(candidate, 'ws-1', 'Advisory sentence.')
+
+    expect(draft.evidence).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/no sprint owner/i),
+        expect.stringMatching(/accountable/i),
+      ])
+    )
   })
 })

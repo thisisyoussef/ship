@@ -158,6 +158,104 @@ describe('createFleetGraphRuntime', () => {
     }))
   })
 
+  it('surfaces sprint-owner gaps as a real proactive finding when a started week has no owner', async () => {
+    const upsertFinding = vi.fn(async (input) => ({
+      dedupeKey: input.dedupeKey,
+      documentId: input.documentId,
+      documentType: input.documentType,
+      evidence: input.evidence,
+      findingKey: input.findingKey,
+      findingType: input.findingType,
+      id: 'finding-owner-gap',
+      metadata: input.metadata ?? {},
+      recommendedAction: input.recommendedAction,
+      status: 'active' as const,
+      summary: input.summary,
+      threadId: input.threadId,
+      title: input.title,
+      tracePublicUrl: input.tracePublicUrl,
+      traceRunId: input.traceRunId,
+      updatedAt: new Date('2026-03-17T12:00:00.000Z'),
+      workspaceId: input.workspaceId,
+    }))
+    const findingStore = {
+      ...createFindingStoreMock(),
+      listActiveFindings: vi.fn(async () => []),
+      upsertFinding,
+    }
+    const shipClient = createShipClientMock()
+    shipClient.listWeeks.mockResolvedValue({
+      weeks: [
+        {
+          id: 'week-8',
+          issue_count: 3,
+          name: 'Sprint 8',
+          owner: null,
+          sprint_number: 2,
+          status: 'active',
+          workspace_sprint_start_date: '2026-03-10T00:00:00.000Z',
+        },
+      ],
+      workspace_sprint_start_date: '2026-03-10T00:00:00.000Z',
+    } as Awaited<ReturnType<typeof shipClient.listWeeks>>)
+    const generate = vi.fn(async () => ({
+      model: 'gpt-5-mini',
+      provider: 'openai' as const,
+      text: 'Sprint 8 needs a named owner before coordination slips.',
+    }))
+
+    const runtime = createFleetGraphRuntime({
+      actionStore: createActionStoreMock(),
+      checkpointer: new MemorySaver(),
+      findingStore,
+      llmAdapter: {
+        generate,
+        model: 'gpt-5-mini',
+        provider: 'openai',
+      },
+      shipClient,
+      tracingSettings: {
+        enabled: false,
+        flushTimeoutMs: 1000,
+        projectName: 'ship-fleetgraph',
+        sharePublicTraces: false,
+      },
+    })
+
+    const response = await runtime.invoke({
+      contextKind: 'proactive',
+      mode: 'proactive',
+      threadId: 'thread-owner-gap',
+      trigger: 'scheduled-sweep',
+      workspaceId: 'workspace-123',
+    })
+
+    expect(response).toMatchObject({
+      branch: 'reasoned',
+      outcome: 'advisory',
+      selectedScenario: 'sprint_no_owner',
+    })
+    expect(response.path).toEqual(expect.arrayContaining([
+      'resolve_trigger_context',
+      'select_scenarios',
+      'run_scenario:sprint_no_owner',
+      'merge_candidates',
+      'score_and_rank',
+      'reason_and_deliver',
+      'persist_result',
+    ]))
+    expect(upsertFinding).toHaveBeenCalledWith(
+      expect.objectContaining({
+        documentId: 'week-8',
+        findingKey: 'sprint-no-owner:workspace-123:week-8',
+        findingType: 'sprint_no_owner',
+        summary: 'Sprint 8 needs a named owner before coordination slips.',
+        title: 'Sprint owner gap: Sprint 8',
+      }),
+      expect.any(Date)
+    )
+  })
+
   it('routes on-demand runs through fetch_medium → reason when page context is available', async () => {
     const llmResponse = JSON.stringify({
       analysisText: 'Everything looks healthy.',

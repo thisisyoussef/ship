@@ -7,9 +7,12 @@ import {
   buildFleetGraphThreadId,
 } from '../worker/keys.js'
 import { buildWeekStartFindingDraft } from '../proactive/week-start-drift.js'
+import { buildSprintNoOwnerFindingDraft } from '../proactive/sprint-no-owner.js'
 import type { WeekStartDriftCandidate } from '../proactive/types.js'
 import {
   FLEETGRAPH_DEMO_FINDING_SUMMARY,
+  FLEETGRAPH_DEMO_OWNER_GAP_FINDING_SUMMARY,
+  FLEETGRAPH_DEMO_OWNER_GAP_WEEK_TITLE,
   FLEETGRAPH_DEMO_PROJECT_TITLE,
   FLEETGRAPH_DEMO_THREAD_PREFIX,
   FLEETGRAPH_DEMO_VALIDATION_WEEK_TITLE,
@@ -33,6 +36,9 @@ export interface FleetGraphDemoFixtureInput {
 
 export interface FleetGraphDemoFixtureResult {
   findingTitle: string
+  ownerGapFindingTitle: string
+  ownerGapWeekId: string
+  ownerGapWeekTitle: string
   projectId: string
   projectTitle: string
   validationWeekId: string
@@ -45,6 +51,7 @@ export interface FleetGraphDemoFixtureResult {
 }
 
 interface DemoWeekInput {
+  ownerId?: string | null
   plan: string
   sprintNumber: number
   status: 'active' | 'completed' | 'planning'
@@ -147,7 +154,7 @@ async function ensureDemoWeek(
 
   const properties = {
     confidence: 90,
-    owner_id: input.ownerUserId,
+    owner_id: week.ownerId === undefined ? input.ownerUserId : week.ownerId,
     plan: week.plan,
     project_id: projectId,
     sprint_number: week.sprintNumber,
@@ -334,6 +341,14 @@ export async function ensureFleetGraphDemoProofLane(
     successCriteria: 'The public demo shows an unvalidated review tab where FleetGraph can validate the week plan.',
     title: FLEETGRAPH_DEMO_VALIDATION_WEEK_TITLE,
   })
+  const ownerGapWeekId = await ensureDemoWeek(queryable, input, projectId, {
+    ownerId: null,
+    plan: 'Use the proactive FleetGraph panel to inspect a sprint-owner gap without triggering a fake apply flow.',
+    sprintNumber: input.currentSprintNumber,
+    status: 'active',
+    successCriteria: 'The public demo shows a proactive sprint-owner gap with advisory-only next-step guidance.',
+    title: FLEETGRAPH_DEMO_OWNER_GAP_WEEK_TITLE,
+  })
   const workerWeekId = await ensureDemoWeek(queryable, input, projectId, {
     plan: 'Let the deployed FleetGraph worker generate this finding through the real proactive path.',
     sprintNumber: input.currentSprintNumber,
@@ -376,8 +391,27 @@ export async function ensureFleetGraphDemoProofLane(
     input.workspaceId,
     FLEETGRAPH_DEMO_FINDING_SUMMARY
   )
+  const ownerGapDraft = buildSprintNoOwnerFindingDraft(
+    {
+      startDate,
+      statusReason: 'no_owner',
+      week: {
+        id: ownerGapWeekId,
+        issue_count: 0,
+        name: FLEETGRAPH_DEMO_OWNER_GAP_WEEK_TITLE,
+        owner: null,
+        program_name: input.programName,
+        sprint_number: input.currentSprintNumber,
+        status: 'active',
+        workspace_sprint_start_date: input.workspaceSprintStartDate,
+      },
+    },
+    input.workspaceId,
+    FLEETGRAPH_DEMO_OWNER_GAP_FINDING_SUMMARY
+  )
   const workerFindingKey = `week-start-drift:${input.workspaceId}:${workerWeekId}`
   await resetFindingByKey(queryable, findingStore, draft.findingKey)
+  await resetFindingByKey(queryable, findingStore, ownerGapDraft.findingKey)
   await resetFindingByKey(queryable, findingStore, workerFindingKey)
   await resetWorkerDemoProofLane(queryable, input.workspaceId)
 
@@ -400,6 +434,27 @@ export async function ensureFleetGraphDemoProofLane(
     summary: draft.summary,
     threadId: `${FLEETGRAPH_DEMO_THREAD_PREFIX}:${input.workspaceId}:${weekId}`,
     title: draft.title,
+    workspaceId: input.workspaceId,
+  }, now)
+  await findingStore.upsertFinding({
+    dedupeKey: `demo:${ownerGapDraft.findingKey}`,
+    documentId: ownerGapWeekId,
+    documentType: 'sprint',
+    evidence: ownerGapDraft.evidence,
+    findingKey: ownerGapDraft.findingKey,
+    findingType: 'sprint_no_owner',
+    metadata: {
+      ...ownerGapDraft.metadata,
+      demoFixture: true,
+      inspectionProjectTitle: FLEETGRAPH_DEMO_PROJECT_TITLE,
+      inspectionWeekTitle: FLEETGRAPH_DEMO_OWNER_GAP_WEEK_TITLE,
+      preserveDemoLane: true,
+      proofLane: 'seeded-owner-gap',
+    },
+    recommendedAction: ownerGapDraft.recommendedAction,
+    summary: ownerGapDraft.summary,
+    threadId: `${FLEETGRAPH_DEMO_THREAD_PREFIX}:${input.workspaceId}:${ownerGapWeekId}`,
+    title: ownerGapDraft.title,
     workspaceId: input.workspaceId,
   }, now)
   await workerStore.enqueue(
@@ -426,6 +481,9 @@ export async function ensureFleetGraphDemoProofLane(
 
   return {
     findingTitle: draft.title,
+    ownerGapFindingTitle: ownerGapDraft.title,
+    ownerGapWeekId,
+    ownerGapWeekTitle: FLEETGRAPH_DEMO_OWNER_GAP_WEEK_TITLE,
     projectId,
     projectTitle: FLEETGRAPH_DEMO_PROJECT_TITLE,
     validationWeekId,

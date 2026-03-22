@@ -4,6 +4,7 @@ import type {
 } from '@/lib/fleetgraph-findings';
 import {
   buildFindingSummary,
+  canReviewFindingActionInFleetGraph,
   formatFleetGraphTimestamp,
   renderExecutionLabel,
   renderExecutionTone,
@@ -65,6 +66,7 @@ export function FleetGraphFindingCard({
   review,
 }: FleetGraphFindingCardProps) {
   const executionLabel = finding.actionExecution ? renderExecutionLabel(finding) : null;
+  const canReviewInFleetGraph = canReviewFindingActionInFleetGraph(finding);
 
   return (
     <article className="rounded-xl border border-border bg-muted/20 px-4 py-4 shadow-sm">
@@ -98,7 +100,7 @@ export function FleetGraphFindingCard({
                     {' '}• Updated {formatFleetGraphTimestamp(finding.actionExecution.updatedAt)}
                   </p>
                 </div>
-              ) : confirming ? (
+              ) : canReviewInFleetGraph && confirming ? (
                 <div className="space-y-3 rounded-md border border-emerald-200 bg-white/70 px-3 py-3">
                   <div className="space-y-1">
                     <p className="text-base font-semibold text-slate-950">
@@ -135,7 +137,7 @@ export function FleetGraphFindingCard({
                     </button>
                   </div>
                 </div>
-              ) : (
+              ) : canReviewInFleetGraph ? (
                 <div className="flex flex-wrap items-center gap-3">
                   <button
                     className={applyButtonClassName}
@@ -147,6 +149,13 @@ export function FleetGraphFindingCard({
                   </button>
                   <p className="text-xs opacity-90">
                     You review this first. FleetGraph only acts after you confirm.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2 text-sm opacity-90">
+                  <p>{finding.recommendedAction.rationale}</p>
+                  <p className="text-xs opacity-80">
+                    FleetGraph is surfacing the next step, but this one stays advisory for now.
                   </p>
                 </div>
               )}

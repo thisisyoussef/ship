@@ -264,6 +264,73 @@ describe('FleetGraphFindingsPanel', () => {
     expect(screen.queryByText('Week-start drift findings')).not.toBeInTheDocument();
   });
 
+  it('renders sprint-owner guidance as advisory-only instead of a fake apply flow', async () => {
+    vi.mocked(apiGet).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        findings: [
+          {
+            dedupeKey: 'dedupe-2',
+            documentId: SPRINT_ID,
+            documentType: 'sprint',
+            evidence: [
+              'No sprint owner is assigned right now.',
+              'No one is accountable for coordinating this sprint yet.',
+            ],
+            findingKey: 'sprint-no-owner:workspace-1:sprint-8',
+            findingType: 'sprint_no_owner',
+            id: 'finding-2',
+            metadata: {
+              sprintNumber: 8,
+              statusReason: 'no_owner',
+            },
+            recommendedAction: {
+              endpoint: {
+                method: 'PATCH',
+                path: `/api/documents/${SPRINT_ID}`,
+              },
+              evidence: ['No sprint owner is assigned right now.'],
+              rationale: 'Assigning an owner should remain a human decision in Ship.',
+              summary: 'Name a sprint owner so someone is accountable for coordination and follow-through.',
+              targetId: SPRINT_ID,
+              targetType: 'sprint',
+              title: 'Assign sprint owner',
+              type: 'assign_owner',
+            },
+            status: 'active',
+            summary: 'Sprint 8 needs a named owner before work coordination slips.',
+            threadId: 'fleetgraph:workspace-1:scheduled-sweep',
+            title: 'Sprint owner gap: Sprint 8',
+            updatedAt: '2026-03-17T12:05:00.000Z',
+            workspaceId: 'workspace-1',
+          },
+        ],
+      }),
+    } as Response);
+
+    render(
+      <FleetGraphFindingsPanel
+        context={createContext()}
+        currentDocumentId={DOCUMENT_ID}
+      />,
+      { wrapper: createWrapper() }
+    );
+
+    expect(await screen.findByText('Sprint owner gap: Sprint 8')).toBeInTheDocument();
+    expect(screen.getByText('Assign sprint owner')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Name a sprint owner so someone is accountable for coordination and follow-through.'
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Review and apply' })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Start week in Ship' })
+    ).not.toBeInTheDocument();
+  });
+
   it('waits for confirmed dismiss success before showing the lifecycle notice', async () => {
     const dismissDeferred = createDeferred<Response>();
     vi.mocked(apiGet).mockResolvedValue({

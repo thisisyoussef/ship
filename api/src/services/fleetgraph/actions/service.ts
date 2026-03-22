@@ -1,19 +1,11 @@
 import type { Request } from 'express'
 
-import { buildEmptyDialogSubmission, actionDraftFromRequestedAction } from './drafts.js'
-import { ensureFirstPackActionsRegistered } from './definitions/index.js'
-import { getActionDefinition } from './registry.js'
 import {
   buildShipRestRequestContext,
 } from './executor.js'
 import {
-  buildFleetGraphActionSuccessMessage,
-} from './action-outcome.js'
-import {
-  ActionExecutionService,
-  type ActionExecutionContext,
-} from './execution-service.js'
-import { createFleetGraphFindingActionStore } from './store.js'
+  createFleetGraphFindingActionStore,
+} from './store.js'
 import type {
   FleetGraphFindingActionExecutionRecord,
   FleetGraphFindingActionStore,
@@ -23,6 +15,10 @@ import {
   type FleetGraphFindingRecord,
   type FleetGraphFindingStore,
 } from '../findings/index.js'
+import {
+  createFleetGraphRuntime,
+  type FleetGraphRuntime,
+} from '../graph/index.js'
 
 export class FleetGraphFindingActionError extends Error {
   constructor(
@@ -61,6 +57,7 @@ interface FleetGraphFindingWithExecution extends FleetGraphFindingRecord {
 interface FleetGraphFindingActionServiceDeps {
   actionStore?: FleetGraphFindingActionStore
   findingStore?: FleetGraphFindingStore
+  runtime?: FleetGraphRuntime
 }
 
 function mapExecutions(
@@ -77,24 +74,34 @@ function mapExecutions(
   }))
 }
 
-function buildActionThreadId(
-  finding: FleetGraphFindingRecord,
-  actionId: string
-) {
+function buildActionThreadId(finding: FleetGraphFindingRecord) {
   return [
     'fleetgraph',
     finding.workspaceId,
     'finding-review',
     finding.id,
-    actionId,
+    'start-week',
   ].join(':')
 }
 
-function ensureApplicableFinding(
-  finding: FleetGraphFindingRecord | null
-) {
+function buildReview(finding: FleetGraphFindingRecord) {
+  return {
+    cancelLabel: 'Cancel',
+    confirmLabel: 'Start week in Ship',
+    evidence: finding.recommendedAction?.evidence ?? [],
+    summary: finding.recommendedAction?.summary
+      ?? 'Review this recommendation before making a Ship change.',
+    threadId: buildActionThreadId(finding),
+    title: finding.recommendedAction?.title ?? 'Start week',
+  } satisfies FleetGraphFindingActionReview
+}
+
+function ensureApplicableFinding(finding: FleetGraphFindingRecord | null) {
   if (!finding) {
-    throw new FleetGraphFindingActionError('FleetGraph finding not found', 404)
+    throw new FleetGraphFindingActionError(
+      'FleetGraph finding not found',
+      404
+    )
   }
 
   if (finding.status !== 'active') {
@@ -105,15 +112,14 @@ function ensureApplicableFinding(
   }
 
   const action = finding.recommendedAction
-  const actionDraft = action ? actionDraftFromRequestedAction(action) : undefined
-  if (!action || !actionDraft) {
+  if (!action || action.type !== 'start_week' || action.endpoint.method !== 'POST') {
     throw new FleetGraphFindingActionError(
-      'This FleetGraph finding does not expose a valid action.',
+      'This FleetGraph finding does not expose a valid start-week action.',
       400
     )
   }
 
-  return { actionDraft, finding }
+  return finding
 }
 
 async function hydrateFinding(
@@ -126,146 +132,83 @@ async function hydrateFinding(
     [finding.id]
   )
 
-  return mapExecutions(
-    [await findingStore.getFindingById(finding.id, finding.workspaceId).then((result) => result ?? finding)],
-    executions,
-  )[0] as FleetGraphFindingWithExecution
+  return mapExecutions([finding], executions)[0] as FleetGraphFindingWithExecution
 }
 
-function buildExecutionContext(
-  request: Pick<Request, 'get' | 'header' | 'protocol'>
-): ActionExecutionContext {
-  const requestContext = buildShipRestRequestContext(request)
+async function ensurePendingReview(
+  runtime: FleetGraphRuntime,
+  finding: FleetGraphFindingRecord
+) {
+  const threadId = buildActionThreadId(finding)
+  const pendingInterrupts = await runtime.getPendingInterrupts(threadId)
+    .catch(() => [])
 
-  return {
-    async shipRequest(method, path, body) {
-      const response = await fetch(`${requestContext.baseUrl}${path}`, {
-        body: body ? JSON.stringify(body) : undefined,
-        headers: {
-          ...(requestContext.cookieHeader ? { cookie: requestContext.cookieHeader } : {}),
-          ...(requestContext.csrfToken ? { 'x-csrf-token': requestContext.csrfToken } : {}),
-          accept: 'application/json',
-          'content-type': 'application/json',
-        },
-        method,
-      })
-
-      return {
-        json: async () => response.json(),
-        ok: response.ok,
-        status: response.status,
-      }
-    },
+  if (pendingInterrupts.length > 0) {
+    return threadId
   }
+
+  await runtime.invoke({
+    contextKind: 'finding_review',
+    documentId: finding.documentId,
+    documentType: finding.documentType,
+    findingId: finding.id,
+    mode: 'on_demand',
+    requestedAction: finding.recommendedAction,
+    routeSurface: 'document-page',
+    threadId,
+    trigger: 'human-review',
+    workspaceId: finding.workspaceId,
+  })
+
+  return threadId
 }
 
 export function createFleetGraphFindingActionService(
   deps: FleetGraphFindingActionServiceDeps = {}
 ) {
-  ensureFirstPackActionsRegistered()
-
   const findingStore = deps.findingStore ?? createFleetGraphFindingStore()
   const actionStore = deps.actionStore ?? createFleetGraphFindingActionStore()
+  const runtime = deps.runtime ?? createFleetGraphRuntime({
+    actionStore,
+    findingStore,
+  })
 
   return {
     async reviewStartWeekFinding(
       input: ReviewFindingActionInput
     ): Promise<{ finding: FleetGraphFindingWithExecution; review: FleetGraphFindingActionReview }> {
-      const { actionDraft, finding } = ensureApplicableFinding(
+      const finding = ensureApplicableFinding(
         await findingStore.getFindingById(input.findingId, input.workspaceId)
       )
-
-      const review = new ActionExecutionService({
-        shipRequest: async () => ({
-          json: async () => ({}),
-          ok: true,
-          status: 200,
-        }),
-      })
-      const response = await review.review({
-        actionId: actionDraft.actionId,
-        draft: actionDraft,
-        workspaceId: input.workspaceId,
-      })
+      await ensurePendingReview(runtime, finding)
 
       return {
         finding: await hydrateFinding(actionStore, findingStore, finding),
-        review: {
-          cancelLabel: response.dialogSpec.cancelLabel,
-          confirmLabel: response.dialogSpec.confirmLabel,
-          evidence: response.dialogSpec.evidence,
-          summary: response.dialogSpec.summary,
-          threadId: buildActionThreadId(finding, actionDraft.actionId),
-          title: response.dialogSpec.title,
-        },
+        review: buildReview(finding),
       }
     },
 
     async applyStartWeekFinding(
       input: ApplyFindingActionInput
     ): Promise<FleetGraphFindingWithExecution> {
-      const { actionDraft, finding } = ensureApplicableFinding(
+      const finding = ensureApplicableFinding(
+        await findingStore.getFindingById(input.findingId, input.workspaceId)
+      )
+      const threadId = await ensurePendingReview(runtime, finding)
+
+      await runtime.resume(
+        threadId,
+        'approved',
+        {
+          fleetgraphActionRequestContext: buildShipRestRequestContext(input.request),
+        }
+      )
+
+      const refreshed = ensureApplicableFinding(
         await findingStore.getFindingById(input.findingId, input.workspaceId)
       )
 
-      const executionService = new ActionExecutionService(
-        buildExecutionContext(input.request)
-      )
-      const review = await executionService.review({
-        actionId: actionDraft.actionId,
-        draft: actionDraft,
-        workspaceId: input.workspaceId,
-      })
-      const submission = buildEmptyDialogSubmission(actionDraft.actionId)
-      const definition = getActionDefinition(actionDraft.actionType)
-      const executionPlan = definition?.buildExecutionPlan(actionDraft, submission)
-      const firstEndpoint = executionPlan?.endpoints[0]
-      if (firstEndpoint) {
-        const begin = await actionStore.beginExecution({
-          actionType: actionDraft.actionType,
-          endpoint: {
-            method: firstEndpoint.method,
-            path: firstEndpoint.path,
-          },
-          findingId: finding.id,
-          workspaceId: finding.workspaceId,
-        })
-
-        if (begin.shouldExecute) {
-          const plan = await executionService.apply({
-            actionId: actionDraft.actionId,
-            draft: actionDraft,
-            submission,
-            workspaceId: input.workspaceId,
-          })
-          const firstResult = plan.results[0]
-          await actionStore.finishExecution({
-            actionType: actionDraft.actionType,
-            appliedAt: firstResult?.status === 'success' ? new Date() : undefined,
-            endpoint: {
-              method: firstEndpoint.method,
-              path: firstEndpoint.path,
-            },
-            findingId: finding.id,
-            message: firstResult?.status === 'success'
-              ? buildFleetGraphActionSuccessMessage(actionDraft.actionType, {
-                responseBody: firstResult.body,
-              })
-              : (firstResult?.error ?? 'FleetGraph action failed.'),
-            resultStatusCode: firstResult?.statusCode,
-            status: firstResult?.status === 'success' ? 'applied' : 'failed',
-            workspaceId: finding.workspaceId,
-          })
-
-          if (plan.status === 'applied') {
-            await findingStore.resolveFinding(finding.findingKey)
-          }
-        } else if (begin.execution?.status === 'applied' || begin.execution?.status === 'already_applied') {
-          await findingStore.resolveFinding(finding.findingKey)
-        }
-      }
-
-      return hydrateFinding(actionStore, findingStore, finding)
+      return hydrateFinding(actionStore, findingStore, refreshed)
     },
 
     async attachExecutions(

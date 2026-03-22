@@ -113,29 +113,7 @@ export function useFleetGraphFindings(documentIds: string[]) {
 
   const applyMutation = useMutation({
     mutationFn: applyFleetGraphFinding,
-    onSuccess: (response) => {
-      queryClient.setQueryData<FleetGraphFindingListResponse | undefined>(queryKey, (current) => {
-        if (!current) {
-          return current;
-        }
-
-        const existingIndex = current.findings.findIndex((finding) => finding.id === response.finding.id);
-        if (response.finding.status !== 'active') {
-          return {
-            findings: current.findings.filter((finding) => finding.id !== response.finding.id),
-          };
-        }
-
-        if (existingIndex === -1) {
-          return {
-            findings: [...current.findings, response.finding],
-          };
-        }
-
-        const nextFindings = [...current.findings];
-        nextFindings[existingIndex] = response.finding;
-        return { findings: nextFindings };
-      });
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
       queryClient.invalidateQueries({ queryKey: ['document'] });
       queryClient.invalidateQueries({ queryKey: ['sprints'] });

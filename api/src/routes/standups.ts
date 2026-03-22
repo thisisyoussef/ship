@@ -302,15 +302,8 @@ router.get('/status', authMiddleware, async (req: Request, res: Response) => {
 });
 
 // Schema for updating a standup
-// Content accepts both TipTap JSON objects and plain strings (auto-wrapped)
 const updateStandupSchema = z.object({
-  content: z.union([
-    z.record(z.unknown()),
-    z.string().transform((text) => ({
-      type: 'doc',
-      content: [{ type: 'paragraph', content: [{ type: 'text', text }] }],
-    })),
-  ]).optional(),
+  content: z.record(z.unknown()).optional(),
   title: z.string().max(200).optional(),
 });
 

@@ -1,4 +1,5 @@
 import type { FleetGraphState } from '../graph/types.js'
+import { createFleetGraphRuntime } from '../graph/index.js'
 import type { FleetGraphFindingActionStore } from '../actions/index.js'
 import type { FleetGraphFindingStore } from '../findings/index.js'
 import type { BaseCheckpointSaver } from '@langchain/langgraph'
@@ -34,13 +35,18 @@ interface FleetGraphProactiveRuntimeDeps {
 export function createFleetGraphProactiveRuntime(
   deps: FleetGraphProactiveRuntimeDeps = {}
 ): FleetGraphRuntimeLike {
-  if (!deps.baseRuntime) {
-    throw new Error(
-      'createFleetGraphProactiveRuntime now requires an injected base runtime. Use createFleetGraphV2Runtime for canonical production wiring.'
-    )
+  const runtimeDeps = deps.baseRuntime ? deps : {
+    actionStore: deps.actionStore,
+    checkpointer: deps.checkpointer,
+    executeShipRestAction: deps.executeShipRestAction,
+    findingStore: deps.findingStore ?? deps.findings,
+    llmAdapter: deps.llmAdapter,
+    now: deps.now,
+    shipClient: deps.shipClient,
+    tracingClient: deps.tracingClient,
+    tracingSettings: deps.tracingSettings,
   }
-
-  const baseRuntime = deps.baseRuntime
+  const baseRuntime = deps.baseRuntime ?? createFleetGraphRuntime(runtimeDeps)
 
   return {
     getState(threadId: string) {

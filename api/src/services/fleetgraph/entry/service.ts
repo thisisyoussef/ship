@@ -39,27 +39,12 @@ const ACTION_SHAPE_BY_TYPE = {
   assign_owner: {
     method: 'PATCH',
     path: (targetId: string) => `/api/documents/${targetId}`,
-    targetType: 'document',
-  },
-  escalate_risk: {
-    method: 'POST',
-    path: (targetId: string) => `/api/documents/${targetId}/comments`,
-    targetType: 'project',
+    targetType: 'sprint',
   },
   post_comment: {
     method: 'POST',
     path: (targetId: string) => `/api/documents/${targetId}/comments`,
     targetType: 'document',
-  },
-  post_standup: {
-    method: 'POST',
-    path: (_targetId: string) => `/api/standups`,
-    targetType: 'person',
-  },
-  rebalance_load: {
-    method: 'PATCH',
-    path: (targetId: string) => `/api/documents/${targetId}`,
-    targetType: 'person',
   },
   start_week: {
     method: 'POST',

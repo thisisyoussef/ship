@@ -218,8 +218,3 @@ Capture failures so they are not repeated.
 - **Example**: The first click opens review, but the confirm action appears in nearly the same location immediately, so a fast second click or double-click can feel like an accidental approval.
 - **Why it failed**: Users lose trust in whether they actually reviewed the action before Ship mutated, even if the code intended a two-step flow.
 - **Prevention rule**: Keep a clearly separate review state, order `Cancel` before the confirm action, and guard against same-gesture or double-click confirmation.
-
-- **Problem**: Re-wrapping native FleetGraph V2 results into V1-shaped payloads on canonical surfaces
-- **Example**: Routes or hooks call the V2 runtime but immediately map the result back into legacy `analysisText`/`analysisFindings`/`actionOutcome` envelopes or fall back to the old runtime when a native contract path gets awkward.
-- **Why it failed**: The rollout becomes half-native, follow-up turns and review/apply flows drift apart, and readiness/docs no longer describe the runtime users are actually hitting.
-- **Prevention rule**: Keep `/api/fleetgraph/entry`, `/api/fleetgraph/analyze`, `/api/fleetgraph/thread/:threadId/turn`, the thread action review/apply routes, the worker, and the web hooks on the native V2 contract; only leave legacy helpers on clearly non-canonical surfaces until they can be removed.

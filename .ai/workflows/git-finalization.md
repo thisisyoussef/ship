@@ -79,12 +79,6 @@ If a PR already exists, update it as needed and confirm the correct base branch.
 
 If push or PR creation fails, stop and route to `.ai/workflows/finalization-recovery.md`.
 
-Before leaving this step, record the exact GitHub state:
-- branch pushed or not
-- PR URL or “no PR”
-- PR open/closed/merged state
-- whether the work is merged to the target base branch yet
-
 ---
 
 ## Step 5: Run the Finalization Guard
@@ -152,7 +146,6 @@ Return a concise finalization update with:
 - target remote
 - PR URL/status
 - merge status
-- explicit GitHub state: local-only, pushed-without-PR, open PR, or merged
 - branch cleanup status
 - deployment status
 - `git_finalize_guard.sh` result

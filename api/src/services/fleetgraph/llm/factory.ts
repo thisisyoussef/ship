@@ -12,7 +12,7 @@ import {
   type LLMUsage,
 } from './types.js';
 
-const DEFAULT_OPENAI_MODEL = 'gpt-4o-mini';
+const DEFAULT_OPENAI_MODEL = 'gpt-5-mini';
 const DEFAULT_OPENAI_BASE_URL = 'https://api.openai.com/v1';
 const DEFAULT_BEDROCK_REGION = 'us-east-1';
 const DEFAULT_BEDROCK_MODEL =
@@ -92,7 +92,6 @@ export function createLLMAdapter(
       new BedrockRuntimeClient({ region: config.bedrockAnthropic.region })
   );
 }
-
 
 function resolveProvider(rawProvider?: string): FleetGraphLLMProvider {
   const normalized = rawProvider?.trim().toLowerCase() || 'openai';

@@ -31,4 +31,3 @@ export interface LLMAdapter {
   readonly provider: FleetGraphLLMProvider;
   generate(request: LLMGenerateRequest): Promise<LLMGenerateResponse>;
 }
-

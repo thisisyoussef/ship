@@ -16,17 +16,13 @@ const ShipIssueDocumentSchema = z.object({
   }).passthrough().optional(),
 }).passthrough()
 
-const ShipSprintIssuesRawSchema = z.union([
-  z.array(ShipIssueDocumentSchema),
-  z.object({ documents: z.array(ShipIssueDocumentSchema) }).passthrough(),
-])
+const ShipSprintIssuesRawSchema = z.object({
+  documents: z.array(ShipIssueDocumentSchema),
+}).passthrough()
 
-function parseSprintIssuesResponse(
-  raw: z.infer<typeof ShipSprintIssuesRawSchema>
-): ShipSprintIssuesResponse {
-  const documents = Array.isArray(raw) ? raw : raw.documents
+function parseSprintIssuesResponse(raw: z.infer<typeof ShipSprintIssuesRawSchema>): ShipSprintIssuesResponse {
   return {
-    issues: documents.map((doc) => ({
+    issues: raw.documents.map((doc) => ({
       assignee_id: doc.properties?.assignee_id ?? null,
       id: doc.id,
       status: doc.properties?.status ?? 'open',
@@ -44,8 +40,6 @@ interface FleetGraphShipApiConfig {
   baseUrl: string
   token: string
 }
-
-const TEAM_PEOPLE_PATH = '/api/team/people'
 
 function buildReadHeaders(
   config: FleetGraphShipApiConfig,
@@ -152,16 +146,17 @@ export function createFleetGraphShipApiClient(
 
     async fetchMembers(
       userIds: string[],
-      _workspaceId: string,
+      workspaceId: string,
       requestContext?: ShipRestRequestContext
     ) {
       if (userIds.length === 0) {
         return []
       }
 
+      const ids = userIds.map((id) => encodeURIComponent(id)).join(',')
       const url = buildReadUrl(
         config,
-        TEAM_PEOPLE_PATH,
+        `/api/people?workspace_id=${encodeURIComponent(workspaceId)}&ids=${ids}`,
         requestContext
       )
       const response = await fetchFn(url, {
@@ -173,30 +168,9 @@ export function createFleetGraphShipApiClient(
         throw new Error(`FleetGraph Ship fetch members request failed with ${response.status}.`)
       }
 
-      const raw = await response.json() as { documents?: unknown[]; people?: unknown[] } | unknown[]
-      const list = Array.isArray(raw)
-        ? raw
-        : Array.isArray(raw.people)
-          ? raw.people
-          : Array.isArray(raw.documents)
-            ? raw.documents
-            : []
-      const wantedIds = new Set(userIds)
-
-      return list.filter((entry) => {
-        if (!entry || typeof entry !== 'object') {
-          return false
-        }
-
-        const personId = typeof (entry as { id?: unknown }).id === 'string'
-          ? (entry as { id: string }).id
-          : ''
-        const userId = typeof (entry as { user_id?: unknown }).user_id === 'string'
-          ? (entry as { user_id: string }).user_id
-          : ''
-
-        return wantedIds.has(personId) || wantedIds.has(userId)
-      })
+      const raw = await response.json() as { documents?: unknown[]; people?: unknown[] }
+      const list = raw.people ?? raw.documents ?? []
+      return Array.isArray(list) ? list : []
     },
 
     async listSprintIssues(sprintId: string, requestContext?: ShipRestRequestContext) {

@@ -17,7 +17,6 @@ import {
   getCachedListResponse,
   listCacheInvalidationMiddleware,
 } from '../services/list-response-cache.js';
-import { enqueueFleetGraphEvent } from '../services/fleetgraph/worker/singleton.js';
 import {
   ensureUuidId,
   getAuthContext,
@@ -343,9 +342,10 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
                u.name as assignee_name,
                CASE WHEN person_doc.archived_at IS NOT NULL THEN true ELSE false END as assignee_archived
         FROM documents d
-        LEFT JOIN documents assignee_person ON assignee_person.id = (d.properties->>'assignee_id')::uuid AND assignee_person.document_type = 'person'
-        LEFT JOIN users u ON (assignee_person.properties->>'user_id')::uuid = u.id
-        LEFT JOIN documents person_doc ON person_doc.id = (d.properties->>'assignee_id')::uuid AND person_doc.document_type = 'person'
+        LEFT JOIN users u ON (d.properties->>'assignee_id')::uuid = u.id
+        LEFT JOIN documents person_doc ON person_doc.workspace_id = d.workspace_id
+          AND person_doc.document_type = 'person'
+          AND person_doc.properties->>'user_id' = d.properties->>'assignee_id'
         WHERE d.workspace_id = $1 AND d.document_type = 'issue'
           AND ${VISIBILITY_FILTER_SQL('d', '$2', '$3')}
       `;
@@ -585,9 +585,10 @@ router.get('/by-ticket/:number', authMiddleware, async (req: Request<TicketParam
               CASE WHEN person_doc.archived_at IS NOT NULL THEN true ELSE false END as assignee_archived,
               creator.name as created_by_name
        FROM documents d
-       LEFT JOIN documents assignee_person ON assignee_person.id = (d.properties->>'assignee_id')::uuid AND assignee_person.document_type = 'person'
-       LEFT JOIN users u ON (assignee_person.properties->>'user_id')::uuid = u.id
-       LEFT JOIN documents person_doc ON person_doc.id = (d.properties->>'assignee_id')::uuid AND person_doc.document_type = 'person'
+       LEFT JOIN users u ON (d.properties->>'assignee_id')::uuid = u.id
+       LEFT JOIN documents person_doc ON person_doc.workspace_id = d.workspace_id
+         AND person_doc.document_type = 'person'
+         AND person_doc.properties->>'user_id' = d.properties->>'assignee_id'
        LEFT JOIN users creator ON d.created_by = creator.id
        WHERE d.ticket_number = $1 AND d.workspace_id = $2 AND d.document_type = 'issue'
          AND ${VISIBILITY_FILTER_SQL('d', '$3', '$4')}`,
@@ -683,9 +684,10 @@ router.get('/:id/children', authMiddleware, async (req: Request<IdParams>, res: 
               CASE WHEN person_doc.archived_at IS NOT NULL THEN true ELSE false END as assignee_archived
        FROM documents d
        JOIN document_associations da ON da.document_id = d.id
-       LEFT JOIN documents assignee_person ON assignee_person.id = (d.properties->>'assignee_id')::uuid AND assignee_person.document_type = 'person'
-       LEFT JOIN users u ON (assignee_person.properties->>'user_id')::uuid = u.id
-       LEFT JOIN documents person_doc ON person_doc.id = (d.properties->>'assignee_id')::uuid AND person_doc.document_type = 'person'
+       LEFT JOIN users u ON (d.properties->>'assignee_id')::uuid = u.id
+       LEFT JOIN documents person_doc ON person_doc.workspace_id = d.workspace_id
+         AND person_doc.document_type = 'person'
+         AND person_doc.properties->>'user_id' = d.properties->>'assignee_id'
        WHERE da.related_id = $1
          AND da.relationship_type = 'parent'
          AND d.workspace_id = $2
@@ -753,9 +755,10 @@ router.get('/:id', authMiddleware, async (req: Request<IdParams>, res: Response)
               CASE WHEN person_doc.archived_at IS NOT NULL THEN true ELSE false END as assignee_archived,
               creator.name as created_by_name
        FROM documents d
-       LEFT JOIN documents assignee_person ON assignee_person.id = (d.properties->>'assignee_id')::uuid AND assignee_person.document_type = 'person'
-       LEFT JOIN users u ON (assignee_person.properties->>'user_id')::uuid = u.id
-       LEFT JOIN documents person_doc ON person_doc.id = (d.properties->>'assignee_id')::uuid AND person_doc.document_type = 'person'
+       LEFT JOIN users u ON (d.properties->>'assignee_id')::uuid = u.id
+       LEFT JOIN documents person_doc ON person_doc.workspace_id = d.workspace_id
+         AND person_doc.document_type = 'person'
+         AND person_doc.properties->>'user_id' = d.properties->>'assignee_id'
        LEFT JOIN users creator ON d.created_by = creator.id
        WHERE d.id = $1 AND d.workspace_id = $2 AND d.document_type = 'issue'
          AND ${VISIBILITY_FILTER_SQL('d', '$3', '$4')}`,
@@ -921,15 +924,6 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
 
     // Get the belongs_to associations with display info
     const belongsToResult = await getBelongsToAssociations(newIssueId);
-
-    // Notify FleetGraph of the new issue (async, non-blocking)
-    void enqueueFleetGraphEvent({
-      actorId: userId,
-      documentId: newIssueId,
-      documentType: 'issue',
-      routeSurface: 'issue-create',
-      workspaceId,
-    });
 
     const issue = extractIssueFromRow(createdIssue);
     res.status(201).json({
@@ -1295,15 +1289,6 @@ router.patch('/:id', authMiddleware, async (req: Request<IdParams>, res: Respons
         broadcastToUser(assigneeId, 'accountability:updated', { issueId: id, state: data.state });
       }
     }
-
-    // Notify FleetGraph of the issue update (async, non-blocking)
-    void enqueueFleetGraphEvent({
-      actorId: userId,
-      documentId: id,
-      documentType: 'issue',
-      routeSurface: 'issue-update',
-      workspaceId,
-    });
 
     res.json({ ...issue, display_id: displayId, belongs_to: belongsTo });
   } catch (err) {

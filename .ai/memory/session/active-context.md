@@ -1,10 +1,10 @@
 # Active Context
 
 - **Session Started**: 2026-03-16
-- **Current Task**: Land the FleetGraph V2 native rollout pack
-- **Status**: Ready for audit
+- **Current Task**: Land the FleetGraph local Studio integration pack
+- **Status**: In Progress
 
 ## Next 3 Actions
-1. [ ] Run FleetGraph API route/service tests in a DB-ready environment and capture the native V2 proof.
-2. [ ] QA entry, follow-up chat, confirm action, and typed-dialog action flows on the best available Ship surface.
-3. [ ] Refresh the Railway demo after merge or record the exact deployment block in the final handoff.
+1. [ ] Finish the Studio graph export, examples, and `langgraph.json`.
+2. [ ] Validate local Studio preview plus compiled graph registration.
+3. [ ] Finalize the Studio integration pack and merge it.

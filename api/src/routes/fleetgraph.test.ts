@@ -1,6 +1,13 @@
 import express from 'express'
 import request from 'supertest'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { MemorySaver } from '@langchain/langgraph'
+
+import type { FleetGraphFindingActionExecutionRecord } from '../services/fleetgraph/actions/index.js'
+import type {
+  FleetGraphFindingRecord,
+  FleetGraphFindingStore,
+} from '../services/fleetgraph/findings/index.js'
 
 vi.mock('../middleware/auth.js', () => ({
   authMiddleware: vi.fn((req, _res, next) => {
@@ -12,243 +19,603 @@ vi.mock('../middleware/auth.js', () => ({
 
 import { createFleetGraphRouter } from './fleetgraph.js'
 
-const WORKSPACE_ID = '22222222-2222-4222-8222-222222222222'
 const DOCUMENT_ID = '33333333-3333-4333-8333-333333333333'
-const THREAD_ID = `fleetgraph:${WORKSPACE_ID}:analyze:${DOCUMENT_ID}`
+const PROJECT_ID = '44444444-4444-4444-8444-444444444444'
+const SPRINT_ID = '55555555-5555-4555-8555-555555555555'
 
-function makeState(overrides: Record<string, unknown> = {}) {
+function makeFinding(
+  overrides: Partial<FleetGraphFindingRecord> = {}
+): FleetGraphFindingRecord {
   return {
-    actionDrafts: [
-      {
-        actionId: 'start_week:week-1',
-        actionType: 'start_week',
-        contextHints: {
-          endpoint: {
-            method: 'POST',
-            path: '/api/weeks/week-1/start',
-          },
-          findingFingerprint: 'finding-1',
-        },
-        evidence: ['hoursSinceStart: 30'],
-        rationale: 'The week is overdue and still planning.',
-        targetId: 'week-1',
-        targetType: 'sprint',
-      },
-    ],
-    analysisNarrative: 'The week is overdue and still planning.',
-    branch: 'action_required',
-    contextSummary: null,
-    conversationHistory: [],
-    path: ['resolve_trigger_context', 'reason_findings', 'approval_interrupt'],
-    reasonedFindings: [
-      {
-        evidence: ['hoursSinceStart: 30'],
-        explanation: 'This week is overdue and still planning.',
-        findingType: 'week_start_drift',
-        fingerprint: 'finding-1',
-        severity: 'warning',
-        targetEntity: {
-          id: 'week-1',
-          name: 'Week 1',
-          type: 'sprint',
-        },
-        title: 'Week is still in planning',
-      },
-    ],
-    responsePayload: {
-      answer: {
-        entityLinks: [],
-        suggestedNextSteps: ['start_week'],
-        text: 'The week is overdue and still planning.',
-      },
-      type: 'chat_answer',
-    },
-    fallbackStage: null,
-    threadId: THREAD_ID,
-    turnCount: 1,
-    workspaceId: WORKSPACE_ID,
+    dedupeKey: 'dedupe-1',
+    documentId: DOCUMENT_ID,
+    documentType: 'sprint',
+    evidence: ['Week is still planning after the start window.'],
+    findingKey: `week-start-drift:workspace:${DOCUMENT_ID}`,
+    findingType: 'week_start_drift',
+    id: 'finding-1',
+    metadata: {},
+    status: 'active',
+    summary: 'Current week still needs to be started.',
+    threadId: 'fleetgraph:workspace-1:scheduled-sweep',
+    title: 'Week start drift: Sprint 8',
+    updatedAt: new Date('2026-03-17T12:00:00.000Z'),
+    workspaceId: '22222222-2222-4222-8222-222222222222',
     ...overrides,
   }
 }
 
-describe('FleetGraph native V2 routes', () => {
+function createEntryPayload() {
+  return {
+    context: {
+      ancestors: [],
+      belongs_to: [
+        {
+          document_type: 'project',
+          id: PROJECT_ID,
+          title: 'North Star',
+          type: 'project',
+        },
+        {
+          document_type: 'sprint',
+          id: SPRINT_ID,
+          title: 'Sprint 8',
+          type: 'sprint',
+        },
+      ],
+      breadcrumbs: [
+        {
+          id: PROJECT_ID,
+          title: 'North Star',
+          type: 'project',
+        },
+        {
+          id: SPRINT_ID,
+          title: 'Sprint 8',
+          type: 'sprint',
+        },
+        {
+          id: DOCUMENT_ID,
+          title: 'Launch planner',
+          type: 'project',
+        },
+      ],
+      children: [],
+      current: {
+        document_type: 'project',
+        id: DOCUMENT_ID,
+        program_id: '66666666-6666-4666-8666-666666666666',
+        ticket_number: 18,
+        title: 'Launch planner',
+      },
+    },
+    route: {
+      activeTab: 'details',
+      nestedPath: ['milestones'],
+      surface: 'document-page',
+    },
+    trigger: {
+      documentId: DOCUMENT_ID,
+      documentType: 'project',
+      mode: 'on_demand',
+      trigger: 'document-context',
+    },
+  }
+}
+
+function createEntryPayloadWithNullableTicketNumbers() {
+  const payload = createEntryPayload()
+  return {
+    ...payload,
+    context: {
+      ...payload.context,
+      breadcrumbs: payload.context.breadcrumbs.map((crumb, index) => (
+        index === payload.context.breadcrumbs.length - 1
+          ? { ...crumb, ticket_number: null }
+          : crumb
+      )),
+      current: {
+        ...payload.context.current,
+        ticket_number: null,
+      },
+    },
+  }
+}
+
+function createEntryPayloadWithNullableProgramContext() {
+  const payload = createEntryPayload()
+  return {
+    ...payload,
+    context: {
+      ...payload.context,
+      current: {
+        ...payload.context.current,
+        program_color: null,
+        program_id: null,
+        program_name: null,
+      },
+    },
+  }
+}
+
+describe('FleetGraph routes', () => {
   let app: express.Express
-  let runtimeV2: {
-    getCheckpointHistory: ReturnType<typeof vi.fn>
-    getPendingInterrupts: ReturnType<typeof vi.fn>
-    getState: ReturnType<typeof vi.fn>
-    invoke: ReturnType<typeof vi.fn>
-    resume: ReturnType<typeof vi.fn>
+  const runtime = {
+    checkpointer: new MemorySaver(),
+    checkpointerKind: 'memory',
+    getCheckpointHistory: vi.fn(async () => []),
+    getPendingInterrupts: vi.fn(async () => []),
+    getState: vi.fn(),
+    invoke: vi.fn(async (input: {
+      contextKind: 'entry'
+      mode: 'on_demand'
+      requestedAction?: unknown
+      routeSurface: string
+      threadId: string
+    }) => ({
+      approvalRequired: Boolean(input.requestedAction),
+      branch: input.requestedAction ? 'approval_required' : 'reasoned',
+      candidateCount: input.requestedAction ? 1 : 0,
+      checkpointNamespace: 'fleetgraph',
+      contextKind: input.contextKind,
+      hasError: false,
+      mode: input.mode,
+      outcome: input.requestedAction ? 'approval_required' : 'advisory',
+      path: input.requestedAction
+        ? [
+          'resolve_trigger_context',
+          'select_scenarios',
+          'run_scenario:entry_requested_action',
+          'merge_candidates',
+          'score_and_rank',
+          'approval_interrupt',
+        ]
+        : [
+          'resolve_trigger_context',
+          'select_scenarios',
+          'run_scenario:entry_context_check',
+          'merge_candidates',
+          'score_and_rank',
+          'reason_and_deliver',
+          'persist_result',
+        ],
+      routeSurface: input.routeSurface,
+      scenarioResults: [],
+      threadId: input.threadId,
+      trigger: 'document-context',
+      workspaceId: '22222222-2222-4222-8222-222222222222',
+    })),
+    invokeRaw: vi.fn(),
+    resume: vi.fn(),
+  }
+  const originalEnv = { ...process.env }
+  const applyStartWeekFinding = vi.fn()
+  const reviewStartWeekFinding = vi.fn()
+  const attachExecutions = vi.fn(async (findings: FleetGraphFindingRecord[]) => findings)
+  const dismissFinding = vi.fn<FleetGraphFindingStore['dismissFinding']>()
+  const getFindingByKey = vi.fn<FleetGraphFindingStore['getFindingByKey']>()
+  const getFindingById = vi.fn<FleetGraphFindingStore['getFindingById']>()
+  const listActiveFindings = vi.fn<FleetGraphFindingStore['listActiveFindings']>(
+    async () => []
+  )
+  const resolveFinding = vi.fn<FleetGraphFindingStore['resolveFinding']>()
+  const snoozeFinding = vi.fn<FleetGraphFindingStore['snoozeFinding']>()
+  const upsertFinding = vi.fn<FleetGraphFindingStore['upsertFinding']>()
+  const findingStore: FleetGraphFindingStore = {
+    dismissFinding,
+    getFindingById,
+    getFindingByKey,
+    listActiveFindings,
+    resolveFinding,
+    snoozeFinding,
+    upsertFinding,
   }
 
   beforeEach(() => {
-    process.env = { ...process.env }
-    delete process.env.FLEETGRAPH_V2_ENABLED
-
-    runtimeV2 = {
-      getCheckpointHistory: vi.fn(async () => []),
-      getPendingInterrupts: vi.fn(async () => [{
-        taskName: 'approval_interrupt',
-        value: {
-          actionDraft: makeState().actionDrafts[0],
-          dialogSpec: {
-            cancelLabel: 'Cancel',
-            confirmLabel: 'Start week',
-            evidence: ['hoursSinceStart: 30'],
-            fields: [],
-            kind: 'confirm',
-            summary: 'This week has passed its planned start, but Ship still lists it as Planning. Starting it now will unlock issue tracking and standups for the team.',
-            title: 'Start this week in Ship?',
-          },
-          id: 'approval:finding-1:start_week:week-1',
-          summary: 'This week has passed its planned start, but Ship still lists it as Planning. Starting it now will unlock issue tracking and standups for the team.',
-          title: 'Start this week in Ship?',
-          type: 'approval_request',
-        },
-      }]),
-      getState: vi.fn(async () => ({
-        tasks: [],
-        values: makeState(),
-      })),
-      invoke: vi.fn(async () => makeState()),
-      resume: vi.fn(async () => makeState({
-        actionResult: {
-          endpoint: 'POST /api/weeks/week-1/start',
-          executedAt: '2026-03-19T10:00:00.000Z',
-          method: 'POST',
-          path: '/api/weeks/week-1/start',
-          statusCode: 200,
-          success: true,
-        },
-        approvalDecision: 'approved',
-        branch: 'advisory',
-        path: ['resolve_trigger_context', 'approval_interrupt', 'execute_confirmed_action'],
-        responsePayload: {
-          answer: {
-            entityLinks: [],
-            suggestedNextSteps: [],
-            text: 'Week "Week 1" is now active in Ship.',
-          },
-          type: 'chat_answer',
-        },
-      })),
-    }
-
+    vi.useRealTimers()
+    process.env = { ...originalEnv }
+    ;[
+      applyStartWeekFinding,
+      reviewStartWeekFinding,
+      attachExecutions,
+      dismissFinding,
+      getFindingById,
+      getFindingByKey,
+      listActiveFindings,
+      resolveFinding,
+      snoozeFinding,
+      upsertFinding,
+    ].forEach((mock) => {
+      mock.mockReset()
+    })
+    listActiveFindings.mockResolvedValue([])
+    attachExecutions.mockImplementation(async (findings: FleetGraphFindingRecord[]) => findings)
     app = express()
     app.use(express.json())
     app.use('/api/fleetgraph', createFleetGraphRouter({
-      runtimeV2: runtimeV2 as never,
+      actionService: {
+        applyStartWeekFinding,
+        attachExecutions,
+        reviewStartWeekFinding,
+      },
+      findingStore,
+      runtime: runtime as never,
     }))
   })
 
-  it('reports readiness using the actual V2 default-enabled behavior', async () => {
-    process.env.FLEETGRAPH_SERVICE_TOKEN = 'service-token'
+  it('receives Ship page context for embedded entry', async () => {
+    const response = await request(app)
+      .post('/api/fleetgraph/entry')
+      .send(createEntryPayload())
+
+    expect(response.status).toBe(200)
+    expect(response.body.entry.current.id).toBe(DOCUMENT_ID)
+    expect(response.body.entry.route.activeTab).toBe('details')
+    expect(response.body.entry.route.nestedPath).toEqual(['milestones'])
+    expect(response.body.run.outcome).toBe('advisory')
+    expect(response.body.summary.surfaceLabel).toContain('details')
+  })
+
+  it('requires a HITL pause for consequential actions', async () => {
+    const response = await request(app)
+      .post('/api/fleetgraph/entry')
+      .send({
+        ...createEntryPayload(),
+        draft: {
+          requestedAction: {
+            endpoint: {
+              method: 'POST',
+              path: `/api/projects/${DOCUMENT_ID}/approve-plan`,
+            },
+            evidence: [
+              'Project plan exists in the current document context.',
+              'The approval endpoint changes persistent project approval state.',
+            ],
+            rationale: 'Approving the plan is a consequential Ship write.',
+            summary: 'Approve the current project plan.',
+            targetId: DOCUMENT_ID,
+            targetType: 'project',
+            title: 'Approve project plan',
+            type: 'approve_project_plan',
+          },
+        },
+      })
+
+    expect(response.status).toBe(200)
+    expect(response.body.run.outcome).toBe('approval_required')
+    expect(response.body.summary.detail).toBe('Review the suggested next step for Launch planner.')
+    expect(response.body.summary.detail).not.toContain('breadcrumb')
+    expect(response.body.approval).toMatchObject({
+      state: 'pending_confirmation',
+      targetId: DOCUMENT_ID,
+      type: 'approve_project_plan',
+    })
+    expect(response.body.approval.options.map((option: { id: string }) => option.id))
+      .toEqual(['apply', 'dismiss', 'snooze'])
+  })
+
+  it('accepts nullable ticket numbers from the live document context payload', async () => {
+    const response = await request(app)
+      .post('/api/fleetgraph/entry')
+      .send(createEntryPayloadWithNullableTicketNumbers())
+
+    expect(response.status).toBe(200)
+    expect(response.body.run.outcome).toBe('advisory')
+    expect(response.body.entry.current.id).toBe(DOCUMENT_ID)
+  })
+
+  it('accepts nullable program metadata from the live document context payload', async () => {
+    const response = await request(app)
+      .post('/api/fleetgraph/entry')
+      .send(createEntryPayloadWithNullableProgramContext())
+
+    expect(response.status).toBe(200)
+    expect(response.body.run.outcome).toBe('advisory')
+    expect(response.body.entry.current.id).toBe(DOCUMENT_ID)
+  })
+
+  it('rejects readiness checks without the FleetGraph service token', async () => {
+    const response = await request(app)
+      .get('/api/fleetgraph/ready')
+
+    expect(response.status).toBe(403)
+    expect(response.body).toEqual({
+      error: 'FleetGraph service authorization failed',
+    })
+  })
+
+  it('reports deploy readiness through the service-auth route', async () => {
+    process.env.NODE_ENV = 'production'
+    process.env.APP_BASE_URL = 'https://ship-demo-production.up.railway.app'
+    process.env.FLEETGRAPH_ENTRY_ENABLED = 'true'
+    process.env.FLEETGRAPH_API_TOKEN = 'ship_test_token'
+    process.env.FLEETGRAPH_SERVICE_TOKEN = 'fleetgraph-service-token'
+    process.env.FLEETGRAPH_WORKER_ENABLED = 'true'
+    process.env.LANGSMITH_API_KEY = 'ls-test-key'
+    process.env.LANGSMITH_TRACING = 'true'
+    process.env.OPENAI_API_KEY = 'openai-test-key'
 
     const response = await request(app)
       .get('/api/fleetgraph/ready')
-      .set('x-fleetgraph-service-token', 'service-token')
-
-    expect(response.status).toBe(503)
-    expect(response.body.v2.enabled).toBe(true)
-  })
-
-  it('returns the native V2 analyze contract', async () => {
-    const response = await request(app)
-      .post('/api/fleetgraph/analyze')
-      .send({
-        documentId: DOCUMENT_ID,
-        documentType: 'project',
-      })
+      .set('x-fleetgraph-service-token', 'fleetgraph-service-token')
 
     expect(response.status).toBe(200)
-    expect(response.body.branch).toBe('action_required')
-    expect(response.body.responsePayload.type).toBe('chat_answer')
-    expect(response.body.actionDrafts[0].actionId).toBe('start_week:week-1')
-    expect(response.body.pendingApproval.actionDraft.actionId).toBe('start_week:week-1')
+    expect(response.body.api).toMatchObject({
+      publicBaseUrl: 'https://ship-demo-production.up.railway.app',
+      ready: true,
+      serviceAuthConfigured: true,
+      tracingEnabled: true,
+    })
+    expect(response.body.worker).toMatchObject({
+      ready: true,
+    })
+    expect(response.body.checklist.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'public-access-smoke', status: 'missing' }),
+        expect.objectContaining({ id: 'trace-evidence', status: 'missing' }),
+      ])
+    )
   })
 
-  it('surfaces fallback stage metadata in the analyze response', async () => {
-    runtimeV2.invoke.mockResolvedValueOnce(makeState({
-      actionDrafts: [],
-      branch: 'fallback',
-      fallbackReason: 'FleetGraph could not load the current Ship document.',
-      fallbackStage: 'fetch',
-      pendingApproval: null,
-      reasonedFindings: [],
-      responsePayload: {
-        disclaimer: 'Some Ship data was unavailable, so this answer may be incomplete.',
-        type: 'degraded',
+  it('lists active findings for the current document context', async () => {
+    listActiveFindings.mockResolvedValue([makeFinding()])
+
+    const response = await request(app)
+      .get(`/api/fleetgraph/findings?documentIds=${DOCUMENT_ID},${SPRINT_ID}`)
+
+    expect(response.status).toBe(200)
+    expect(response.body.findings).toHaveLength(1)
+    expect(response.body.findings[0]).toMatchObject({
+      documentId: DOCUMENT_ID,
+      findingType: 'week_start_drift',
+      status: 'active',
+    })
+    expect(listActiveFindings).toHaveBeenCalledWith({
+      documentIds: [DOCUMENT_ID, SPRINT_ID],
+      workspaceId: '22222222-2222-4222-8222-222222222222',
+    })
+  })
+
+  it('applies a start-week finding through the FleetGraph action route', async () => {
+    const actionExecution: FleetGraphFindingActionExecutionRecord = {
+      actionType: 'start_week',
+      appliedAt: new Date('2026-03-17T12:05:00.000Z'),
+      attemptCount: 1,
+      endpoint: {
+        method: 'POST',
+        path: `/api/weeks/${SPRINT_ID}/start`,
       },
-    }))
-    runtimeV2.getPendingInterrupts.mockResolvedValueOnce([])
+      findingId: 'finding-1',
+      message: 'Week started successfully with 3 scoped issues.',
+      resultStatusCode: 200,
+      status: 'applied',
+      updatedAt: new Date('2026-03-17T12:05:00.000Z'),
+    }
+    applyStartWeekFinding.mockResolvedValue(
+      makeFinding({
+        actionExecution,
+        id: 'finding-1',
+        recommendedAction: {
+          endpoint: actionExecution.endpoint,
+          evidence: ['Week is still in planning after the expected start date.'],
+          rationale: 'Start the week after review.',
+          summary: 'Start the week.',
+          targetId: SPRINT_ID,
+          targetType: 'sprint',
+          title: 'Start week',
+          type: 'start_week',
+        },
+      })
+    )
 
     const response = await request(app)
-      .post('/api/fleetgraph/analyze')
-      .send({
-        documentId: DOCUMENT_ID,
-        documentType: 'project',
-      })
+      .post('/api/fleetgraph/findings/finding-1/apply')
+      .set('x-csrf-token', 'csrf-token')
 
     expect(response.status).toBe(200)
-    expect(response.body.branch).toBe('fallback')
-    expect(response.body.fallbackStage).toBe('fetch')
-    expect(response.body.responsePayload.type).toBe('degraded')
+    expect(applyStartWeekFinding).toHaveBeenCalledWith({
+      findingId: 'finding-1',
+      request: expect.any(Object),
+      workspaceId: '22222222-2222-4222-8222-222222222222',
+    })
+    expect(response.body.finding.actionExecution).toMatchObject({
+      message: 'Week started successfully with 3 scoped issues.',
+      status: 'applied',
+    })
   })
 
-  it('routes follow-up turns through V2 with the user question', async () => {
-    runtimeV2.getState.mockResolvedValueOnce({
-      tasks: [],
-      values: makeState({
-        documentId: DOCUMENT_ID,
-        documentType: 'project',
-        triggerSource: 'document-page',
+  it('returns a server-backed review payload for start-week findings', async () => {
+    reviewStartWeekFinding.mockResolvedValue({
+      finding: makeFinding({
+        id: 'finding-1',
       }),
+      review: {
+        cancelLabel: 'Cancel',
+        confirmLabel: 'Start week in Ship',
+        evidence: ['The week is still in planning after its expected start date.'],
+        summary: 'Nothing changes in Ship until the PM confirms this action.',
+        threadId: 'fleetgraph:workspace-1:finding-review:finding-1:start-week',
+        title: 'Confirm before starting this week',
+      },
     })
 
     const response = await request(app)
-      .post(`/api/fleetgraph/thread/${encodeURIComponent(THREAD_ID)}/turn`)
-      .send({ message: 'What is the riskiest thing here?' })
+      .post('/api/fleetgraph/findings/finding-1/review')
 
     expect(response.status).toBe(200)
-    expect(runtimeV2.invoke).toHaveBeenCalledWith(expect.objectContaining({
-      documentId: DOCUMENT_ID,
-      selectedActionId: null,
-      threadId: THREAD_ID,
-      userQuestion: 'What is the riskiest thing here?',
-    }), { threadId: THREAD_ID })
-    expect(response.body.turnCount).toBe(1)
+    expect(reviewStartWeekFinding).toHaveBeenCalledWith({
+      findingId: 'finding-1',
+      workspaceId: '22222222-2222-4222-8222-222222222222',
+    })
+    expect(response.body.review).toMatchObject({
+      confirmLabel: 'Start week in Ship',
+      threadId: 'fleetgraph:workspace-1:finding-review:finding-1:start-week',
+      title: 'Confirm before starting this week',
+    })
   })
 
-  it('returns native V2 review payloads for thread actions', async () => {
+  it('passes the current Ship request context into on-demand analysis reads', async () => {
     const response = await request(app)
-      .post(`/api/fleetgraph/thread/${encodeURIComponent(THREAD_ID)}/actions/start_week%3Aweek-1/review`)
-      .send({})
-
-    expect(response.status).toBe(200)
-    expect(response.body.actionDraft.actionId).toBe('start_week:week-1')
-    expect(response.body.dialogSpec.kind).toBe('confirm')
-    expect(response.body.threadId).toBe(`${THREAD_ID}:action:start_week:week-1`)
-  })
-
-  it('applies native V2 thread actions with structured values', async () => {
-    const response = await request(app)
-      .post(`/api/fleetgraph/thread/${encodeURIComponent(THREAD_ID)}/actions/start_week%3Aweek-1/apply`)
+      .post('/api/fleetgraph/analyze')
+      .set('cookie', 'ship_session=demo')
+      .set('host', 'ship-demo-production.up.railway.app')
+      .set('x-csrf-token', 'csrf-token')
+      .set('x-forwarded-proto', 'https')
       .send({
-        values: {},
+        documentId: DOCUMENT_ID,
+        documentTitle: 'Launch planner',
+        documentType: 'project',
       })
 
     expect(response.status).toBe(200)
-    expect(runtimeV2.resume).toHaveBeenCalledWith(
-      `${THREAD_ID}:action:start_week:week-1`,
-      {
-        actionId: 'start_week:week-1',
-        decision: 'approved',
-        dialogSubmission: {
-          actionId: 'start_week:week-1',
-          values: {},
-        },
+    expect(runtime.invoke).toHaveBeenCalledWith(expect.objectContaining({
+      contextKind: 'entry',
+      documentId: DOCUMENT_ID,
+      documentTitle: 'Launch planner',
+      documentType: 'project',
+      mode: 'on_demand',
+      threadId: `fleetgraph:22222222-2222-4222-8222-222222222222:analyze:${DOCUMENT_ID}`,
+    }), {
+      fleetgraphReadRequestContext: {
+        baseUrl: 'https://ship-demo-production.up.railway.app',
+        cookieHeader: 'ship_session=demo',
+        csrfToken: 'csrf-token',
       },
+    })
+  })
+
+  it('returns checkpoint history and pending interrupts for requested threads', async () => {
+    const debugRuntime = {
+      checkpointer: new MemorySaver(),
+      checkpointerKind: 'memory',
+      getCheckpointHistory: vi.fn(async () => [
+        {
+          config: {
+            configurable: {
+              thread_id: 'fleetgraph:workspace-1:scheduled-sweep',
+            },
+          },
+          createdAt: '2026-03-17T12:00:00.000Z',
+          metadata: {},
+          next: [],
+          parentConfig: undefined,
+          tasks: [],
+          values: {
+            branch: 'reasoned',
+            outcome: 'advisory',
+            path: ['resolve_trigger_context', 'reason_and_deliver'],
+          },
+        },
+      ]),
+      getPendingInterrupts: vi.fn(async () => [
+        {
+          id: 'interrupt-1',
+          taskName: 'approval_interrupt',
+          value: {
+            title: 'Confirm before starting this week',
+          },
+        },
+      ]),
+      getState: vi.fn(),
+      invoke: vi.fn(),
+      invokeRaw: vi.fn(),
+      resume: vi.fn(),
+    }
+    const debugApp = express()
+    debugApp.use(express.json())
+    debugApp.use('/api/fleetgraph', createFleetGraphRouter({
+      actionService: {
+        applyStartWeekFinding,
+        attachExecutions,
+        reviewStartWeekFinding,
+      },
+      findingStore,
+      runtime: debugRuntime as never,
+    }))
+
+    const response = await request(debugApp)
+      .get('/api/fleetgraph/debug/threads?threadIds=fleetgraph:workspace-1:scheduled-sweep')
+
+    expect(response.status).toBe(200)
+    expect(debugRuntime.getCheckpointHistory).toHaveBeenCalledWith(
+      'fleetgraph:workspace-1:scheduled-sweep'
     )
-    expect(response.body.actionResult.success).toBe(true)
+    expect(response.body.threads).toEqual([
+      {
+        checkpoints: [
+          expect.objectContaining({
+            branch: 'reasoned',
+            outcome: 'advisory',
+            path: ['resolve_trigger_context', 'reason_and_deliver'],
+            threadId: 'fleetgraph:workspace-1:scheduled-sweep',
+          }),
+        ],
+        pendingInterrupts: [
+          expect.objectContaining({
+            id: 'interrupt-1',
+            taskName: 'approval_interrupt',
+          }),
+        ],
+        threadId: 'fleetgraph:workspace-1:scheduled-sweep',
+      },
+    ])
+  })
+
+  it('updates finding lifecycle through dismiss and snooze actions', async () => {
+    dismissFinding.mockResolvedValue(
+      makeFinding({
+        status: 'dismissed',
+        summary: 'Dismissed summary',
+      })
+    )
+    snoozeFinding.mockResolvedValue(
+      makeFinding({
+        snoozedUntil: new Date('2026-03-17T16:00:00.000Z'),
+        status: 'snoozed',
+        summary: 'Snoozed summary',
+      })
+    )
+
+    const dismissResponse = await request(app)
+      .post('/api/fleetgraph/findings/finding-1/dismiss')
+
+    expect(dismissResponse.status).toBe(200)
+    expect(dismissResponse.body.finding.status).toBe('dismissed')
+
+    const snoozeResponse = await request(app)
+      .post('/api/fleetgraph/findings/finding-1/snooze')
+      .send({ minutes: 120 })
+
+    expect(snoozeResponse.status).toBe(200)
+    expect(snoozeResponse.body.finding.status).toBe('snoozed')
+    expect(snoozeFinding).toHaveBeenCalledWith(
+      'finding-1',
+      '22222222-2222-4222-8222-222222222222',
+      expect.any(Date)
+    )
+  })
+
+  it('accepts second-level snoozes for demo flows', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-03-17T12:00:00.000Z'))
+
+    snoozeFinding.mockResolvedValue(
+      makeFinding({
+        snoozedUntil: new Date('2026-03-17T12:00:10.000Z'),
+        status: 'snoozed',
+        summary: 'Snoozed summary',
+      })
+    )
+
+    const response = await request(app)
+      .post('/api/fleetgraph/findings/finding-1/snooze')
+      .send({ seconds: 10 })
+
+    expect(response.status).toBe(200)
+    expect(snoozeFinding).toHaveBeenCalledWith(
+      'finding-1',
+      '22222222-2222-4222-8222-222222222222',
+      new Date('2026-03-17T12:00:10.000Z')
+    )
   })
 })

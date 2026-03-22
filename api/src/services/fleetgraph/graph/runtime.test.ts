@@ -49,12 +49,10 @@ function createShipClientMock() {
 }
 
 function createActionStoreMock(): FleetGraphFindingActionStore {
-  const beginExecution = vi.fn(async (
-    input: Parameters<FleetGraphFindingActionStore['beginExecution']>[0],
-    _now?: Parameters<FleetGraphFindingActionStore['beginExecution']>[1],
-  ) => ({
+  return {
+    beginStartWeekExecution: vi.fn(async (input) => ({
       execution: {
-        actionType: input.actionType,
+        actionType: 'start_week' as const,
         attemptCount: 1,
         endpoint: input.endpoint,
         findingId: input.findingId,
@@ -63,12 +61,9 @@ function createActionStoreMock(): FleetGraphFindingActionStore {
         updatedAt: new Date('2026-03-17T12:00:00.000Z'),
       },
       shouldExecute: true,
-    }))
-  const finishExecution = vi.fn(async (
-    input: Parameters<FleetGraphFindingActionStore['finishExecution']>[0],
-    _now?: Parameters<FleetGraphFindingActionStore['finishExecution']>[1],
-  ) => ({
-      actionType: input.actionType,
+    })),
+    finishStartWeekExecution: vi.fn(async (input) => ({
+      actionType: 'start_week' as const,
       appliedAt: input.appliedAt,
       attemptCount: 1,
       endpoint: input.endpoint,
@@ -77,23 +72,7 @@ function createActionStoreMock(): FleetGraphFindingActionStore {
       resultStatusCode: input.resultStatusCode,
       status: input.status,
       updatedAt: new Date('2026-03-17T12:05:00.000Z'),
-    }))
-
-  return {
-    beginExecution,
-    beginStartWeekExecution(input, now) {
-      return beginExecution({
-        ...input,
-        actionType: 'start_week',
-      }, now)
-    },
-    finishExecution,
-    finishStartWeekExecution(input, now) {
-      return finishExecution({
-        ...input,
-        actionType: 'start_week',
-      }, now)
-    },
+    })),
     listExecutionsForFindings: vi.fn(async () => []),
   }
 }

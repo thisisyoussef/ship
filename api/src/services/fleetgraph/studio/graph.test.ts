@@ -1,60 +1,27 @@
 import { MemorySaver } from '@langchain/langgraph'
 import { describe, expect, it, vi } from 'vitest'
 
-import type { FleetGraphFindingActionStore } from '../actions/index.js'
 import { createFleetGraphRuntime, createFleetGraphStudioGraph } from '../graph/runtime.js'
 import { createStudioPreviewSafeFleetGraph } from './graph.js'
 
 function createDeps() {
-  const beginExecution = vi.fn(async (
-    input: Parameters<FleetGraphFindingActionStore['beginExecution']>[0],
-    _now?: Parameters<FleetGraphFindingActionStore['beginExecution']>[1],
-  ) => ({
-      execution: {
-        actionType: input.actionType,
-        attemptCount: 1,
-        endpoint: input.endpoint,
-        findingId: input.findingId,
-        message: 'Pending execution.',
-        status: 'pending' as const,
-        updatedAt: new Date('2026-03-17T12:00:00.000Z'),
-      },
-      shouldExecute: true,
-    }))
-  const finishExecution = vi.fn(async (
-    input: Parameters<FleetGraphFindingActionStore['finishExecution']>[0],
-    _now?: Parameters<FleetGraphFindingActionStore['finishExecution']>[1],
-  ) => ({
-    actionType: input.actionType,
-    appliedAt: input.appliedAt,
-    attemptCount: 1,
-    endpoint: input.endpoint,
-    findingId: input.findingId,
-    message: input.message,
-    resultStatusCode: input.resultStatusCode,
-    status: input.status,
-    updatedAt: new Date('2026-03-17T12:05:00.000Z'),
-  }))
-  const actionStore: FleetGraphFindingActionStore = {
-    beginExecution,
-    beginStartWeekExecution(input, now) {
-      return beginExecution({
-        ...input,
-        actionType: 'start_week',
-      }, now)
-    },
-    finishExecution,
-    finishStartWeekExecution(input, now) {
-      return finishExecution({
-        ...input,
-        actionType: 'start_week',
-      }, now)
-    },
-    listExecutionsForFindings: vi.fn(async () => []),
-  }
-
   return {
-    actionStore,
+    actionStore: {
+      beginStartWeekExecution: vi.fn(async (input) => ({
+        execution: {
+          actionType: 'start_week' as const,
+          attemptCount: 1,
+          endpoint: input.endpoint,
+          findingId: input.findingId,
+          message: 'Pending execution.',
+          status: 'pending' as const,
+          updatedAt: new Date('2026-03-17T12:00:00.000Z'),
+        },
+        shouldExecute: true,
+      })),
+      finishStartWeekExecution: vi.fn(),
+      listExecutionsForFindings: vi.fn(async () => []),
+    },
     checkpointer: new MemorySaver(),
     findingStore: {
       dismissFinding: vi.fn(),

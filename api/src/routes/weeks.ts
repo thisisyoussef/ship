@@ -12,7 +12,6 @@ import { logDocumentChange, getLatestDocumentFieldHistory } from '../utils/docum
 import { broadcastToUser } from '../collaboration/index.js';
 import { extractText } from '../utils/document-content.js';
 import { listCacheInvalidationMiddleware } from '../services/list-response-cache.js';
-import { enqueueFleetGraphEvent } from '../services/fleetgraph/worker/singleton.js';
 import type { WeekProperties } from '@ship/shared';
 import {
   getAuthContext,
@@ -314,9 +313,6 @@ function extractSprintFromRow(row: SprintRow) {
       name: row.owner_name,
       email: row.owner_email,
     } : null,
-    // Expose owner_id from sprint properties so FleetGraph normalizer can detect ownership
-    owner_id: props.owner_id || (Array.isArray(props.assignee_ids) ? props.assignee_ids[0] : null) || null,
-    assignee_ids: Array.isArray(props.assignee_ids) ? props.assignee_ids : [],
     program_id: row.program_id,
     program_name: row.program_name,
     program_prefix: row.program_prefix,
@@ -473,14 +469,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
        FROM documents d
        LEFT JOIN document_associations prog_da ON prog_da.document_id = d.id AND prog_da.relationship_type = 'program'
        LEFT JOIN documents p ON prog_da.related_id = p.id
-       LEFT JOIN documents owner_person
-         ON owner_person.id = (d.properties->'assignee_ids'->>0)::uuid
-         AND owner_person.document_type = 'person'
-         AND owner_person.workspace_id = d.workspace_id
-       LEFT JOIN users u ON u.id = COALESCE(
-         (d.properties->>'owner_id')::uuid,
-         (owner_person.properties->>'user_id')::uuid
-       )
+       LEFT JOIN users u ON (d.properties->'assignee_ids'->>0)::uuid = u.id
        WHERE d.workspace_id = $1 AND d.document_type = 'sprint'
          AND (d.properties->>'sprint_number')::int = $2
          AND ${VISIBILITY_FILTER_SQL('d', '$3', '$4')}
@@ -491,6 +480,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
     const sprints = result.rows.map(row => ({
       ...extractSprintFromRow(row),
       days_remaining: daysRemaining,
+      status: 'active',
     }));
 
     res.json({
@@ -917,14 +907,7 @@ router.get('/:id', authMiddleware, async (req: Request<IdParams>, res: Response)
        LEFT JOIN document_associations prog_da ON prog_da.document_id = d.id AND prog_da.relationship_type = 'program'
        LEFT JOIN documents p ON prog_da.related_id = p.id
        JOIN workspaces w ON d.workspace_id = w.id
-       LEFT JOIN documents owner_person
-         ON owner_person.id = (d.properties->'assignee_ids'->>0)::uuid
-         AND owner_person.document_type = 'person'
-         AND owner_person.workspace_id = d.workspace_id
-       LEFT JOIN users u ON u.id = COALESCE(
-         (d.properties->>'owner_id')::uuid,
-         (owner_person.properties->>'user_id')::uuid
-       )
+       LEFT JOIN users u ON (d.properties->'assignee_ids'->>0)::uuid = u.id
        WHERE d.id = $1 AND d.workspace_id = $2 AND d.document_type = 'sprint'
          AND ${VISIBILITY_FILTER_SQL('d', '$3', '$4')}`,
       [id, workspaceId, userId, isAdmin]
@@ -1308,15 +1291,6 @@ router.patch('/:id', authMiddleware, async (req: Request<IdParams>, res: Respons
       [...values, id, req.workspaceId]
     );
 
-    // Notify FleetGraph of the change (async, non-blocking)
-    void enqueueFleetGraphEvent({
-      actorId: userId,
-      documentId: id,
-      documentType: 'sprint',
-      routeSurface: 'week-update',
-      workspaceId,
-    });
-
     // Re-query to get full sprint with owner info
     const result = await pool.query(
       `SELECT d.id, d.title, d.properties, prog_da.related_id as program_id,
@@ -1348,14 +1322,7 @@ router.patch('/:id', authMiddleware, async (req: Request<IdParams>, res: Respons
        LEFT JOIN document_associations prog_da ON prog_da.document_id = d.id AND prog_da.relationship_type = 'program'
        LEFT JOIN documents p ON prog_da.related_id = p.id
        JOIN workspaces w ON d.workspace_id = w.id
-       LEFT JOIN documents owner_person
-         ON owner_person.id = (d.properties->'assignee_ids'->>0)::uuid
-         AND owner_person.document_type = 'person'
-         AND owner_person.workspace_id = d.workspace_id
-       LEFT JOIN users u ON u.id = COALESCE(
-         (d.properties->>'owner_id')::uuid,
-         (owner_person.properties->>'user_id')::uuid
-       )
+       LEFT JOIN users u ON (d.properties->'assignee_ids'->>0)::uuid = u.id
        WHERE d.id = $1 AND d.document_type = 'sprint'`,
       [id]
     );
@@ -1430,15 +1397,6 @@ router.post('/:id/start', authMiddleware, async (req: Request<IdParams>, res: Re
     // Broadcast celebration when sprint is started
     broadcastToUser(userId, 'accountability:updated', { type: 'week_start', targetId: id });
 
-    // Notify FleetGraph of the status change (async, non-blocking)
-    void enqueueFleetGraphEvent({
-      actorId: userId,
-      documentId: id,
-      documentType: 'sprint',
-      routeSurface: 'week-start',
-      workspaceId,
-    });
-
     // Re-query to get full sprint with owner info
     const result = await pool.query(
       `SELECT d.id, d.title, d.properties, prog_da.related_id as program_id,
@@ -1470,14 +1428,7 @@ router.post('/:id/start', authMiddleware, async (req: Request<IdParams>, res: Re
        LEFT JOIN document_associations prog_da ON prog_da.document_id = d.id AND prog_da.relationship_type = 'program'
        LEFT JOIN documents p ON prog_da.related_id = p.id
        JOIN workspaces w ON d.workspace_id = w.id
-       LEFT JOIN documents owner_person
-         ON owner_person.id = (d.properties->'assignee_ids'->>0)::uuid
-         AND owner_person.document_type = 'person'
-         AND owner_person.workspace_id = d.workspace_id
-       LEFT JOIN users u ON u.id = COALESCE(
-         (d.properties->>'owner_id')::uuid,
-         (owner_person.properties->>'user_id')::uuid
-       )
+       LEFT JOIN users u ON (d.properties->'assignee_ids'->>0)::uuid = u.id
        WHERE d.id = $1 AND d.document_type = 'sprint'`,
       [id]
     );
@@ -1693,14 +1644,7 @@ router.patch('/:id/plan', authMiddleware, async (req: Request<IdParams>, res: Re
        LEFT JOIN document_associations prog_da ON prog_da.document_id = d.id AND prog_da.relationship_type = 'program'
        LEFT JOIN documents p ON prog_da.related_id = p.id
        JOIN workspaces w ON d.workspace_id = w.id
-       LEFT JOIN documents owner_person
-         ON owner_person.id = (d.properties->'assignee_ids'->>0)::uuid
-         AND owner_person.document_type = 'person'
-         AND owner_person.workspace_id = d.workspace_id
-       LEFT JOIN users u ON u.id = COALESCE(
-         (d.properties->>'owner_id')::uuid,
-         (owner_person.properties->>'user_id')::uuid
-       )
+       LEFT JOIN users u ON (d.properties->'assignee_ids'->>0)::uuid = u.id
        WHERE d.id = $1 AND d.document_type = 'sprint'`,
       [id]
     );
@@ -2014,17 +1958,8 @@ router.get('/:id/scope-changes', authMiddleware, async (req: Request<IdParams>, 
 
 // Schema for creating a standup
 // Note: date field is optional but if provided must be today (enforced in handler)
-// Content accepts both TipTap JSON objects and plain strings (auto-wrapped)
-const standupContentSchema = z.union([
-  z.record(z.unknown()),
-  z.string().transform((text) => ({
-    type: 'doc',
-    content: [{ type: 'paragraph', content: [{ type: 'text', text }] }],
-  })),
-]).default({ type: 'doc', content: [{ type: 'paragraph' }] });
-
 const createStandupSchema = z.object({
-  content: standupContentSchema,
+  content: z.record(z.unknown()).default({ type: 'doc', content: [{ type: 'paragraph' }] }),
   title: z.string().max(200).optional().default('Standup Update'),
   date: z.string().optional(), // ISO date string - must be today if provided
 });

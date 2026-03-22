@@ -48,11 +48,6 @@ export function renderExecutionLabel(finding: FleetGraphFinding) {
   }
 }
 
-export interface FleetGraphApplyNotice {
-  message: string;
-  tone: 'error' | 'info' | 'success';
-}
-
 function readWeekStartStatusReason(finding: FleetGraphFinding) {
   const value = finding.metadata?.statusReason;
   return typeof value === 'string' ? value : null;
@@ -86,27 +81,12 @@ export function buildSnoozeNotice(snoozedUntil?: string, durationLabel = '4 hour
   return `Snoozed until ${timestamp}. FleetGraph will stay quiet until then.`;
 }
 
-export function buildApplyNotice(
-  finding: FleetGraphFinding
-): FleetGraphApplyNotice | null {
-  const actionMessage = finding.actionExecution?.message;
-
+export function buildApplyNotice(finding: FleetGraphFinding) {
   switch (finding.actionExecution?.status) {
     case 'applied':
-      return {
-        message: actionMessage ?? 'The week is now active in Ship.',
-        tone: 'success',
-      };
+      return 'Week started in Ship.';
     case 'already_applied':
-      return {
-        message: actionMessage ?? 'This week was already active in Ship.',
-        tone: 'info',
-      };
-    case 'failed':
-      return {
-        message: actionMessage ?? 'FleetGraph could not complete that Ship action. Nothing changed in Ship.',
-        tone: 'error',
-      };
+      return 'This week was already active in Ship.';
     default:
       return null;
   }

@@ -4,7 +4,6 @@ import {
   FleetGraphActionEndpointSchema,
   type FleetGraphRequestedAction,
 } from '../contracts/actions.js'
-import { FleetGraphActionTypeSchema } from './registry.js'
 
 const nonEmptyString = z.string().min(1)
 
@@ -20,7 +19,7 @@ export const FleetGraphFindingActionStatusSchema = z.enum(
 )
 
 export const FleetGraphFindingActionExecutionSchema = z.object({
-  actionType: FleetGraphActionTypeSchema,
+  actionType: z.literal('start_week'),
   appliedAt: z.string().datetime().optional(),
   attemptCount: z.number().int().positive(),
   endpoint: FleetGraphActionEndpointSchema,
@@ -32,7 +31,7 @@ export const FleetGraphFindingActionExecutionSchema = z.object({
 }).strict()
 
 export interface FleetGraphFindingActionExecutionRecord {
-  actionType: z.infer<typeof FleetGraphActionTypeSchema>
+  actionType: 'start_week'
   appliedAt?: Date
   attemptCount: number
   endpoint: Pick<FleetGraphRequestedAction['endpoint'], 'method' | 'path'>
@@ -44,7 +43,6 @@ export interface FleetGraphFindingActionExecutionRecord {
 }
 
 export interface BeginFindingActionExecutionInput {
-  actionType: z.infer<typeof FleetGraphActionTypeSchema>
   endpoint: Pick<FleetGraphRequestedAction['endpoint'], 'method' | 'path'>
   findingId: string
   workspaceId: string
@@ -64,20 +62,12 @@ export interface BeginFindingActionExecutionResult {
 }
 
 export interface FleetGraphFindingActionStore {
-  beginExecution(
+  beginStartWeekExecution(
     input: BeginFindingActionExecutionInput,
     now?: Date
   ): Promise<BeginFindingActionExecutionResult>
-  beginStartWeekExecution(
-    input: Omit<BeginFindingActionExecutionInput, 'actionType'>,
-    now?: Date
-  ): Promise<BeginFindingActionExecutionResult>
-  finishExecution(
-    input: FinishFindingActionExecutionInput,
-    now?: Date
-  ): Promise<FleetGraphFindingActionExecutionRecord>
   finishStartWeekExecution(
-    input: Omit<FinishFindingActionExecutionInput, 'actionType'>,
+    input: FinishFindingActionExecutionInput,
     now?: Date
   ): Promise<FleetGraphFindingActionExecutionRecord>
   listExecutionsForFindings(

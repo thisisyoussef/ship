@@ -50,53 +50,6 @@ describe('FleetGraph Ship API client', () => {
     })
   })
 
-  it('accepts sprint issue responses as either an array or an object with documents', async () => {
-    const issuesResponseAsArray = [
-      {
-        id: 'issue-1',
-        title: 'Unassigned issue',
-        properties: {
-          assignee_id: null,
-          status: 'open',
-        },
-      },
-      {
-        id: 'issue-2',
-        title: 'Another issue',
-        properties: {
-          status: 'closed',
-        },
-      },
-    ] as const
-
-    const client = createFleetGraphShipApiClient(
-      {
-        baseUrl: 'https://ship-demo-production.up.railway.app',
-        token: 'token',
-      },
-      {
-        fetchFn: vi.fn(async () => new Response(JSON.stringify(issuesResponseAsArray))),
-      }
-    )
-
-    await expect(client.listSprintIssues('sprint-1')).resolves.toEqual({
-      issues: [
-        {
-          assignee_id: null,
-          id: 'issue-1',
-          status: 'open',
-          title: 'Unassigned issue',
-        },
-        {
-          assignee_id: null,
-          id: 'issue-2',
-          status: 'closed',
-          title: 'Another issue',
-        },
-      ],
-    })
-  })
-
   it('uses the current Ship session for on-demand document reads when request context is provided', async () => {
     const fetchFn = vi.fn(async () => new Response(JSON.stringify({
       id: 'doc-1',
@@ -131,48 +84,6 @@ describe('FleetGraph Ship API client', () => {
           cookie: 'ship_session=demo',
           'x-csrf-token': 'csrf-token',
         },
-        method: 'GET',
-      })
-    )
-  })
-
-  it('fetches members from the live team people route and matches user ids or person document ids', async () => {
-    const fetchFn = vi.fn(async () => new Response(JSON.stringify([
-      {
-        id: 'person-doc-1',
-        user_id: 'user-1',
-        name: 'Alice PM',
-      },
-      {
-        id: 'person-doc-2',
-        user_id: 'user-2',
-        name: 'Bob Eng',
-      },
-    ])))
-    const client = createFleetGraphShipApiClient(
-      {
-        baseUrl: 'https://ship-demo-production.up.railway.app',
-        token: 'token',
-      },
-      { fetchFn }
-    )
-
-    await expect(client.fetchMembers(['user-2', 'person-doc-1'], 'workspace-1')).resolves.toEqual([
-      {
-        id: 'person-doc-1',
-        user_id: 'user-1',
-        name: 'Alice PM',
-      },
-      {
-        id: 'person-doc-2',
-        user_id: 'user-2',
-        name: 'Bob Eng',
-      },
-    ])
-
-    expect(fetchFn).toHaveBeenCalledWith(
-      'https://ship-demo-production.up.railway.app/api/team/people',
-      expect.objectContaining({
         method: 'GET',
       })
     )

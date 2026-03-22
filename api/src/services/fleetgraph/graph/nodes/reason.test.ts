@@ -146,10 +146,10 @@ describe('reason node', () => {
             actionTier: 'C',
             evidence: ['Status is planning, should be active'],
             proposedAction: {
-              actionType: 'start_week',
-              targetId: '123e4567-e89b-12d3-a456-426614174000',
+              label: 'Start this week',
+              targetId: 'week-1',
               targetType: 'sprint',
-              endpoint: { method: 'POST', path: '/api/weeks/123e4567-e89b-12d3-a456-426614174000/start' },
+              endpoint: { method: 'POST', path: '/api/weeks/week-1/start' },
             },
           },
         ],
@@ -162,7 +162,7 @@ describe('reason node', () => {
       analysisFindings: [],
       context: {
         actorId: 'user-1',
-        documentId: '123e4567-e89b-12d3-a456-426614174000',
+        documentId: 'week-1',
         documentTitle: 'Week 1',
         documentType: 'week',
         surface: 'document-page',
@@ -175,109 +175,8 @@ describe('reason node', () => {
     });
 
     expect(result.pendingAction).toBeDefined();
-    expect(result.pendingAction?.actionType).toBe('start_week');
-    expect(result.pendingAction?.actionId).toBe('start_week:123e4567-e89b-12d3-a456-426614174000');
-    expect(result.pendingAction?.dialogKind).toBe('confirm');
+    expect(result.pendingAction?.label).toBe('Start this week');
     expect(result.pendingAction?.endpoint.method).toBe('POST');
-  });
-
-  it('maps project approval into a supported on-demand action draft', async () => {
-    mockLLM.generate.mockResolvedValue({
-      model: 'test-model',
-      provider: 'openai',
-      text: JSON.stringify({
-        analysisText: 'Project plan is ready for approval.',
-        findings: [
-          {
-            title: 'Project ready for approval',
-            summary: 'The plan is complete and waiting for approval.',
-            findingType: 'risk',
-            severity: 'info',
-            actionTier: 'B',
-            evidence: ['Project plan is submitted and unapproved.'],
-            proposedAction: {
-              actionType: 'approve_project_plan',
-              targetId: '223e4567-e89b-12d3-a456-426614174000',
-              targetType: 'project',
-              endpoint: { method: 'POST', path: '/api/projects/223e4567-e89b-12d3-a456-426614174000/approve-plan' },
-            },
-          },
-        ],
-        needsDeeperContext: false,
-      }),
-    });
-
-    const node = createReasonNode({ llm: mockLLM });
-    const result = await node({
-      analysisFindings: [],
-      context: {
-        actorId: 'user-1',
-        documentId: '223e4567-e89b-12d3-a456-426614174000',
-        documentTitle: 'Launch planner',
-        documentType: 'project',
-        surface: 'document-page',
-        workspaceId: 'ws-1',
-      },
-      conversationHistory: [],
-      fetchedData: {},
-      mode: 'on_demand',
-      turnCount: 0,
-    });
-
-    expect(result.analysisFindings[0]?.proposedAction).toMatchObject({
-      actionId: 'approve_project_plan:223e4567-e89b-12d3-a456-426614174000',
-      actionType: 'approve_project_plan',
-      label: 'Review project approval',
-      reviewTitle: 'Confirm before approving this project plan',
-      targetType: 'project',
-    });
-  });
-
-  it('downgrades unsupported stagnation actions to advisory-only findings', async () => {
-    mockLLM.generate.mockResolvedValue({
-      model: 'test-model',
-      provider: 'openai',
-      text: JSON.stringify({
-        analysisText: 'This sprint is stagnant and needs follow-up.',
-        findings: [
-          {
-            title: 'Stagnation risk',
-            summary: 'The sprint has no updates and would benefit from outreach.',
-            findingType: 'risk',
-            severity: 'warning',
-            actionTier: 'B',
-            evidence: ['No active tasks or updates were recorded.'],
-            proposedAction: {
-              actionType: 'approve_week_plan',
-              targetId: 'not-a-real-target',
-              targetType: 'sprint',
-              endpoint: { method: 'POST', path: '/api/comments/encourage-engagement' },
-            },
-          },
-        ],
-        needsDeeperContext: false,
-      }),
-    });
-
-    const node = createReasonNode({ llm: mockLLM });
-    const result = await node({
-      analysisFindings: [],
-      context: {
-        actorId: 'user-1',
-        documentId: 'sprint-1',
-        documentTitle: 'Week 1',
-        documentType: 'sprint',
-        surface: 'document-page',
-        workspaceId: 'ws-1',
-      },
-      conversationHistory: [],
-      fetchedData: {},
-      mode: 'on_demand',
-      turnCount: 0,
-    });
-
-    expect(result.analysisFindings[0]?.proposedAction).toBeUndefined();
-    expect(result.pendingAction).toBeUndefined();
   });
 });
 

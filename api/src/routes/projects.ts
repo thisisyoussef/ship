@@ -15,7 +15,6 @@ import { checkDocumentCompleteness } from '../utils/extractHypothesis.js';
 import { logDocumentChange, getLatestDocumentFieldHistory } from '../utils/document-crud.js';
 import { broadcastToUser } from '../collaboration/index.js';
 import { listCacheInvalidationMiddleware } from '../services/list-response-cache.js';
-import { enqueueFleetGraphEvent } from '../services/fleetgraph/worker/singleton.js';
 import {
   ensureUuidId,
   getAuthContext,
@@ -602,8 +601,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
               WHERE i.document_type = 'issue') as issue_count,
              (${inferredStatusSubquery}) as inferred_status
       FROM documents d
-      LEFT JOIN documents owner_person ON owner_person.id = (d.properties->>'owner_id')::uuid AND owner_person.document_type = 'person'
-      LEFT JOIN users u ON (owner_person.properties->>'user_id')::uuid = u.id
+      LEFT JOIN users u ON u.id = (d.properties->>'owner_id')::uuid
       LEFT JOIN document_associations prog_da ON prog_da.document_id = d.id AND prog_da.relationship_type = 'program'
       WHERE d.workspace_id = $1 AND d.document_type = 'project'
         AND ${VISIBILITY_FILTER_SQL('d', '$2', '$3')}
@@ -690,8 +688,7 @@ router.get('/:id', authMiddleware, async (req: Request<IdParams>, res: Response)
                WHERE i.document_type = 'issue') as issue_count,
               (${inferredStatusSubquery}) as inferred_status
        FROM documents d
-       LEFT JOIN documents owner_person ON owner_person.id = (d.properties->>'owner_id')::uuid AND owner_person.document_type = 'person'
-       LEFT JOIN users u ON (owner_person.properties->>'user_id')::uuid = u.id
+       LEFT JOIN users u ON u.id = (d.properties->>'owner_id')::uuid
        LEFT JOIN document_associations prog_da ON prog_da.document_id = d.id AND prog_da.relationship_type = 'program'
        WHERE d.id = $1 AND d.workspace_id = $2 AND d.document_type = 'project'
          AND ${VISIBILITY_FILTER_SQL('d', '$3', '$4')}`,
@@ -820,15 +817,6 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
         };
       }
     }
-
-    // Enqueue FleetGraph event for project creation
-    void enqueueFleetGraphEvent({
-      actorId: userId,
-      documentId: createdProject.id,
-      documentType: 'project',
-      routeSurface: 'project-create',
-      workspaceId,
-    });
 
     res.status(201).json({
       ...extractProjectFromRow({ ...createdProject, program_id: program_id || null, inferred_status: 'backlog' }),
@@ -1098,8 +1086,7 @@ router.patch('/:id', authMiddleware, async (req: Request<IdParams>, res: Respons
                WHERE i.document_type = 'issue') as issue_count,
               (${updateInferredStatusSubquery}) as inferred_status
        FROM documents d
-       LEFT JOIN documents owner_person ON owner_person.id = (d.properties->>'owner_id')::uuid AND owner_person.document_type = 'person'
-       LEFT JOIN users u ON (owner_person.properties->>'user_id')::uuid = u.id
+       LEFT JOIN users u ON u.id = (d.properties->>'owner_id')::uuid
        LEFT JOIN document_associations prog_da ON prog_da.document_id = d.id AND prog_da.relationship_type = 'program'
        WHERE d.id = $1 AND d.document_type = 'project'`,
       [id]
@@ -1110,15 +1097,6 @@ router.patch('/:id', authMiddleware, async (req: Request<IdParams>, res: Respons
       res.status(404).json({ error: 'Project not found' });
       return;
     }
-
-    // Enqueue FleetGraph event for project update
-    void enqueueFleetGraphEvent({
-      actorId: userId,
-      documentId: id,
-      documentType: 'project',
-      routeSurface: 'project-update',
-      workspaceId,
-    });
 
     res.json(extractProjectFromRow(updatedProject));
   } catch (err) {
@@ -1474,8 +1452,7 @@ router.get('/:id/issues', authMiddleware, async (req: Request<IdParams>, res: Re
        FROM documents d
        JOIN document_associations da ON da.document_id = d.id
          AND da.related_id = $1 AND da.relationship_type = 'project'
-       LEFT JOIN documents assignee_person ON assignee_person.id = (d.properties->>'assignee_id')::uuid AND assignee_person.document_type = 'person'
-       LEFT JOIN users u ON (assignee_person.properties->>'user_id')::uuid = u.id
+       LEFT JOIN users u ON (d.properties->>'assignee_id')::uuid = u.id
        WHERE d.workspace_id = $2 AND d.document_type = 'issue'
          AND d.archived_at IS NULL AND d.deleted_at IS NULL
          AND ${VISIBILITY_FILTER_SQL('d', '$3', '$4')}
@@ -1571,8 +1548,7 @@ router.get('/:id/weeks', authMiddleware, async (req: Request<IdParams>, res: Res
        LEFT JOIN documents p ON prog_da.related_id = p.id
        LEFT JOIN documents proj ON proj.id = $1
        JOIN workspaces w ON d.workspace_id = w.id
-       LEFT JOIN documents owner_person ON owner_person.id = (d.properties->>'owner_id')::uuid AND owner_person.document_type = 'person'
-       LEFT JOIN users u ON (owner_person.properties->>'user_id')::uuid = u.id
+       LEFT JOIN users u ON (d.properties->>'owner_id')::uuid = u.id
        WHERE d.workspace_id = $2 AND d.document_type = 'sprint'
          AND ${VISIBILITY_FILTER_SQL('d', '$3', '$4')}
        ORDER BY (d.properties->>'sprint_number')::int DESC`,
@@ -1639,8 +1615,7 @@ router.get('/:id/sprints', authMiddleware, async (req: Request<IdParams>, res: R
        LEFT JOIN documents p ON prog_da.related_id = p.id
        LEFT JOIN documents proj ON proj.id = $1
        JOIN workspaces w ON d.workspace_id = w.id
-       LEFT JOIN documents owner_person ON owner_person.id = (d.properties->>'owner_id')::uuid AND owner_person.document_type = 'person'
-       LEFT JOIN users u ON (owner_person.properties->>'user_id')::uuid = u.id
+       LEFT JOIN users u ON (d.properties->>'owner_id')::uuid = u.id
        WHERE d.workspace_id = $2 AND d.document_type = 'sprint'
          AND ${VISIBILITY_FILTER_SQL('d', '$3', '$4')}
        ORDER BY (d.properties->>'sprint_number')::int DESC`,
@@ -2040,15 +2015,6 @@ router.post('/:id/approve-plan', authMiddleware, async (req: Request<IdParams>, 
        WHERE id = $2 AND document_type = 'project'`,
       [JSON.stringify(newProps), id]
     );
-
-    // Enqueue FleetGraph event for plan approval
-    void enqueueFleetGraphEvent({
-      actorId: userId,
-      documentId: id,
-      documentType: 'project',
-      routeSurface: 'project-approve-plan',
-      workspaceId,
-    });
 
     res.json({
       success: true,

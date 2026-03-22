@@ -180,9 +180,6 @@ export function FleetGraphDebugDock() {
                               Latest: {latestCheckpoint.outcome ?? 'unknown'}
                               {latestCheckpoint.branch ? ` / ${latestCheckpoint.branch}` : ''}
                             </p>
-                            {latestCheckpoint.fallbackStage ? (
-                              <p>Fallback stage: {latestCheckpoint.fallbackStage}</p>
-                            ) : null}
                             <p>Path: {latestCheckpoint.path.join(' -> ')}</p>
                             <p>Task count: {latestCheckpoint.taskCount}</p>
                           </>

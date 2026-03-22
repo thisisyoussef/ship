@@ -1,5 +1,4 @@
 import type { LLMAdapter } from '../../llm/types.js';
-import { sanitizeOnDemandActionDraft } from '../on-demand-actions.js';
 import type {
   FleetGraphAnalysisFinding,
   FleetGraphContextEnvelope,
@@ -53,15 +52,15 @@ RESPONSE FORMAT: You MUST respond with valid JSON matching this schema:
     {
       "title": "string — short finding title",
       "summary": "string — 1-2 sentence explanation",
-      "findingType": "string — one of: stale_issue, blocker, overload, missing_update, drift, risk, insight, missing_owner, missing_standup, deadline_risk, workload_imbalance",
+      "findingType": "string — one of: stale_issue, blocker, overload, missing_update, drift, risk, insight",
       "severity": "info | warning | critical",
       "actionTier": "A | B | C",
       "evidence": ["string — specific data points supporting this finding"],
       "proposedAction": null or {
-        "actionType": "approve_project_plan | approve_week_plan | start_week | assign_owner | assign_issues | post_comment | post_standup | escalate_risk | rebalance_load",
+        "label": "string — human-readable action label",
         "targetId": "string — document ID to act on",
-        "targetType": "project | sprint | document | person",
-        "endpoint": { "method": "POST | PATCH", "path": "string — API path, MUST start with /api/" }
+        "targetType": "string — document type",
+        "endpoint": { "method": "POST | PATCH", "path": "string — API path" }
       }
     }
   ],
@@ -73,40 +72,9 @@ RESPONSE FORMAT: You MUST respond with valid JSON matching this schema:
 }
 
 Action tiers:
-- A = read-only insight (no mutation needed) — USE THIS when no Ship API action exists
-- B = server-backed approval flow (requires human review before execution)
-- C = server-backed operational action (direct mutation)
-
-CRITICAL: Only propose actions that match one of the supported FleetGraph action types below. If the best recommendation is advisory only, use actionTier "A" with proposedAction: null.
-
-Supported FleetGraph action types and Ship API paths (ONLY these are valid):
-
-SPRINT/WEEK ACTIONS:
-- Start a week/sprint: POST /api/weeks/{weekId}/start (actionType: start_week, targetType: sprint)
-- Approve a week plan: POST /api/weeks/{weekId}/approve-plan (actionType: approve_week_plan, targetType: sprint)
-- Assign issues to sprint: PATCH /api/documents/{issueId} with body {"sprint_id": sprintId} (actionType: assign_issues, targetType: sprint)
-
-PROJECT ACTIONS:
-- Approve a project plan: POST /api/projects/{projectId}/approve-plan (actionType: approve_project_plan, targetType: project)
-- Escalate/respond to deadline risk: POST /api/documents/{projectId}/comments (actionType: escalate_risk, targetType: project)
-
-DOCUMENT ACTIONS:
-- Assign owner to document: PATCH /api/documents/{documentId} with body {"owner_id": personId} (actionType: assign_owner, targetType: document)
-- Post comment on document: POST /api/documents/{documentId}/comments (actionType: post_comment, targetType: document)
-
-PERSON ACTIONS:
-- Post standup for person: POST /api/standups (actionType: post_standup, targetType: person)
-- Rebalance workload (reassign issues): PATCH /api/documents/{issueId} with body {"assignee_id": newPersonId} (actionType: rebalance_load, targetType: person)
-
-WHEN TO USE EACH ACTION:
-- Missing owner on sprint/project/document → assign_owner
-- Sprint in planning past start date → start_week
-- Week/project plan needs approval → approve_week_plan / approve_project_plan
-- Issues not assigned to sprint → assign_issues
-- Deadline at risk, needs documented decision → escalate_risk
-- Team member hasn't posted standup → post_standup (advisory, suggest they post)
-- Workload imbalance detected → rebalance_load
-- General observation or feedback → post_comment
+- A = read-only insight (no mutation needed)
+- B = soft mutation (create issue, add comment, assign person)
+- C = structural mutation (move issues between sprints, close items, start week)
 
 If the data is insufficient to draw conclusions, set needsDeeperContext to true with a specific hint.
 If everything looks healthy, return an empty findings array with a positive analysisText.
@@ -163,42 +131,6 @@ interface ReasonLLMResponse {
   needsDeeperContext: boolean;
 }
 
-function normalizeEndpointPath(path: string): string {
-  // Ensure path starts with /api/
-  if (!path.startsWith('/api/')) {
-    return `/api${path.startsWith('/') ? '' : '/'}${path}`
-  }
-  return path
-}
-
-function sanitizeFinding(finding: FleetGraphAnalysisFinding): FleetGraphAnalysisFinding {
-  if (finding.proposedAction?.endpoint?.path) {
-    const proposedAction = sanitizeOnDemandActionDraft({
-      ...finding.proposedAction,
-      evidence: finding.evidence,
-      endpoint: {
-        ...finding.proposedAction.endpoint,
-        path: normalizeEndpointPath(finding.proposedAction.endpoint.path),
-      },
-    })
-
-    if (!proposedAction) {
-      console.warn('[FleetGraph] Rejecting unsupported on-demand action proposal')
-      return {
-        ...finding,
-        actionTier: 'A',
-        proposedAction: undefined,
-      }
-    }
-
-    return {
-      ...finding,
-      proposedAction,
-    }
-  }
-  return finding
-}
-
 function parseReasonResponse(text: string): ReasonLLMResponse {
   // Strip markdown code fences if present
   const cleaned = text
@@ -208,11 +140,10 @@ function parseReasonResponse(text: string): ReasonLLMResponse {
 
   try {
     const parsed = JSON.parse(cleaned) as ReasonLLMResponse;
-    const findings = Array.isArray(parsed.findings) ? parsed.findings : []
     return {
       analysisText: parsed.analysisText || 'Analysis complete.',
       deeperContextHint: parsed.deeperContextHint ?? undefined,
-      findings: findings.map(sanitizeFinding),
+      findings: Array.isArray(parsed.findings) ? parsed.findings : [],
       needsDeeperContext: Boolean(parsed.needsDeeperContext),
     };
   } catch {

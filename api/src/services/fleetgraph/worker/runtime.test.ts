@@ -135,7 +135,7 @@ describe('FleetGraph worker runtime', () => {
       eventDebounceMs: 90_000,
       retryDelayMs: 60_000,
       sweepBatchSize: 10,
-      sweepIntervalMs: 120_000,
+      sweepIntervalMs: 240_000,
     }
     const store = createFleetGraphWorkerStore(testDb.pool)
     const tracedState = makeState()
@@ -181,7 +181,7 @@ describe('FleetGraph worker runtime', () => {
     })
 
     const blockedSweep = await runtime.runDueSweeps(
-      new Date(baseNow.getTime() + 120_000)
+      new Date(baseNow.getTime() + 240_000)
     )
     expect(blockedSweep).toEqual({
       blocked: 1,

@@ -29,7 +29,6 @@ export interface FleetGraphDebugEntrySnapshot {
 export interface FleetGraphDebugCheckpoint {
   branch?: string;
   createdAt?: string;
-  fallbackStage?: 'input' | 'fetch' | 'scoring';
   next?: string[];
   outcome?: string;
   path: string[];
@@ -86,17 +85,11 @@ export function buildEntryDebugSnapshot(
   activeTab?: string,
   nestedPath?: string
 ): FleetGraphDebugEntrySnapshot {
-  const endpoint = result.pendingApproval?.actionDraft?.contextHints?.endpoint as
-    | FleetGraphDebugEndpoint
-    | undefined
-
   return {
-    approvalEndpoint: endpoint,
+    approvalEndpoint: result.approval?.endpoint,
     routeLabel: buildFleetGraphRouteLabel(activeTab, nestedPath),
-    surfaceLabel: result.entry.route.surface,
+    surfaceLabel: result.summary.surfaceLabel,
     threadId: result.entry.threadId,
-    title: result.responsePayload.type === 'chat_answer'
-      ? result.responsePayload.answer.text
-      : result.entry.current.title,
+    title: result.summary.title,
   };
 }

@@ -23,7 +23,6 @@ Every completion gate must include:
 - `Testing Brief`
 - `Decision / Design Brief`
 - `Visible Proof`
-- `GitHub Status`
 - `Completion Plan`
 - `User Audit Checklist (Run This Now)`
 
@@ -48,7 +47,6 @@ The completion gate must include the finalization plan in the same packet as the
 - current branch
 - target base branch
 - writable remote
-- current GitHub state: local-only, pushed-without-PR, open PR, or merged
 - proposed commit message
 - expected deploy status: `deployed`, `not deployed`, or `blocked`
 - public demo status when deploy-relevant
@@ -105,7 +103,6 @@ When a story changes user-visible behavior, the completion gate must treat UI in
 ## Exit Criteria
 
 - Completion evidence summarized clearly
-- GitHub state and merge status made explicit so the user never has to guess whether work is only local, on a PR, or already merged
 - Finalization plan included in the same packet as the user audit
 - User audit focused on manual judgment rather than routine commands
 - Explicit user approval awaited before git finalization

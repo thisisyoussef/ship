@@ -38,9 +38,10 @@ Recommended read order:
 1. `docs/assignments/fleetgraph/FleetGraph_PRD.pdf`
 2. `docs/assignments/fleetgraph/README.md`
 3. `docs/assignments/fleetgraph/APPROACH_REFERENCE.md`
-4. `.ai/docs/references/fleetgraph-prd.md`
+4. `docs/assignments/fleetgraph/FLEETGRAPH.md`
 5. `docs/assignments/fleetgraph/PRESEARCH.md`
 6. `docs/specs/fleetgraph/FLEETGRAPH-FOUNDATION-PHASE/`
+7. `docs/specs/fleetgraph/FLEETGRAPH-ASSIGNMENT-COMPLETION-PHASE/`
 
 Use this reference when you need the concise "current direction" version.
 Use `docs/assignments/fleetgraph/PRESEARCH.md` when you need the full evidence and reasoning behind that direction.

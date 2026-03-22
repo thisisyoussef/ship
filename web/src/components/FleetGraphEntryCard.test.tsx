@@ -235,4 +235,119 @@ describe('FleetGraphEntryCard', () => {
     expect(screen.getByRole('button', { name: 'Snooze' })).toBeInTheDocument()
     expect(screen.queryByText(`POST /api/projects/${DOCUMENT_ID}/approve-plan`)).not.toBeInTheDocument()
   })
+
+  it('applies entry approvals through FleetGraph and shows the result inline', async () => {
+    vi.mocked(apiPost)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          approval: {
+            endpoint: {
+              method: 'POST',
+              path: `/api/projects/${DOCUMENT_ID}/approve-plan`,
+            },
+            evidence: [
+              'You are already on the project page, so you can review the plan in context.',
+              'Approving it marks this plan as ready for the team to follow.',
+            ],
+            options: [
+              { id: 'apply', label: 'Apply' },
+              { id: 'dismiss', label: 'Dismiss' },
+              { id: 'snooze', label: 'Snooze' },
+            ],
+            rationale: 'Approve this plan when it is ready to guide the project.',
+            state: 'pending_confirmation',
+            summary: 'Approve the current project plan.',
+            targetId: DOCUMENT_ID,
+            targetType: 'project',
+            title: 'Approve project plan',
+            type: 'approve_project_plan',
+          },
+          entry: {
+            current: {
+              documentType: 'project',
+              id: DOCUMENT_ID,
+              title: 'Launch planner',
+            },
+            route: {
+              activeTab: 'details',
+              nestedPath: ['milestones'],
+              surface: 'document-page',
+            },
+            threadId: 'fleetgraph:workspace-1:entry:project',
+          },
+          run: {
+            outcome: 'approval_required',
+            path: ['approval_required'],
+            routeSurface: 'document-page',
+            threadId: 'fleetgraph:workspace-1:entry:project',
+          },
+          summary: {
+            detail: 'Review the suggested next step for Launch planner.',
+            surfaceLabel: 'document-page / details',
+            title: 'FleetGraph paused for human approval.',
+          },
+        }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          actionOutcome: {
+            message: 'Project plan approved in Ship.',
+            resultStatusCode: 200,
+            status: 'applied',
+          },
+          run: {
+            branch: 'approval_required',
+            outcome: 'approval_required',
+            path: [
+              'resolve_trigger_context',
+              'approval_interrupt',
+              'execute_action',
+              'persist_action_outcome',
+            ],
+            routeSurface: 'document-page',
+            threadId: 'fleetgraph:workspace-1:entry:project',
+          },
+          summary: {
+            detail: 'Project plan approved in Ship.',
+            surfaceLabel: 'document-page',
+            title: 'FleetGraph completed the action.',
+          },
+        }),
+      } as Response)
+
+    render(
+      <FleetGraphEntryCard
+        activeTab="details"
+        context={createContext()}
+        document={{
+          documentType: 'project',
+          id: DOCUMENT_ID,
+          title: 'Launch planner',
+          workspaceId: '22222222-2222-4222-8222-222222222222',
+        }}
+        nestedPath="milestones"
+        userId="11111111-1111-4111-8111-111111111111"
+      />,
+      { wrapper: createWrapper() }
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: /preview approval step/i }))
+    expect(await screen.findByText('Approve project plan')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Apply' }))
+
+    await waitFor(() => {
+      expect(apiPost).toHaveBeenNthCalledWith(
+        2,
+        '/api/fleetgraph/entry/apply',
+        { threadId: 'fleetgraph:workspace-1:entry:project' }
+      )
+    })
+
+    expect(screen.queryByText(`POST /api/projects/${DOCUMENT_ID}/approve-plan`)).not.toBeInTheDocument()
+    expect(await screen.findByText('FleetGraph completed the action.')).toBeInTheDocument()
+    expect(screen.getByText('Project plan approved in Ship.')).toBeInTheDocument()
+  })
 })

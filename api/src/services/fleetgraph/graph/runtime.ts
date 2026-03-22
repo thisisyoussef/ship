@@ -165,6 +165,44 @@ function buildReviewPayload(state: {
   }
 }
 
+function buildGenericActionSuccessMessage(
+  action: FleetGraphState['selectedAction']
+) {
+  switch (action?.type) {
+    case 'approve_project_plan':
+      return 'Project plan approved in Ship.'
+    case 'approve_week_plan':
+      return 'Week plan approved in Ship.'
+    case 'post_comment':
+      return 'Comment posted in Ship.'
+    case 'assign_owner':
+      return 'Owner updated in Ship.'
+    case 'assign_issues':
+      return 'Assignments updated in Ship.'
+    default:
+      return 'FleetGraph completed the requested action in Ship.'
+  }
+}
+
+function buildGenericActionFailureFallback(
+  action: FleetGraphState['selectedAction']
+) {
+  switch (action?.type) {
+    case 'approve_project_plan':
+      return 'Ship could not approve the project plan.'
+    case 'approve_week_plan':
+      return 'Ship could not approve the week plan.'
+    case 'post_comment':
+      return 'Ship could not post the comment.'
+    case 'assign_owner':
+      return 'Ship could not update the owner.'
+    case 'assign_issues':
+      return 'Ship could not update the assignments.'
+    default:
+      return 'Ship could not apply the requested FleetGraph action.'
+  }
+}
+
 function createFleetGraphRuntimeInternals(
   deps: FleetGraphRuntimeDeps = {},
   env: NodeJS.ProcessEnv = process.env
@@ -406,7 +444,7 @@ function createFleetGraphRuntimeInternals(
       ends: ['execute_action', 'fallback', 'persist_action_outcome'],
     })
     .addNode('execute_action', async (state) => {
-      if (!state.selectedAction || !state.selectedFindingId) {
+      if (!state.selectedAction) {
         return {
           actionOutcome: {
             message: 'FleetGraph could not resolve the requested Ship action.',
@@ -431,6 +469,32 @@ function createFleetGraphRuntimeInternals(
             message: 'FleetGraph could not resolve the current Ship request context.',
             status: 'failed',
           },
+          path: 'execute_action',
+        }
+      }
+
+      if (!state.selectedFindingId) {
+        const result = await executeShipRestActionTask({
+          method: actionMethod,
+          path: endpoint.path,
+          requestContext,
+        })
+
+        return {
+          actionOutcome: result.ok
+            ? {
+              message: buildGenericActionSuccessMessage(state.selectedAction),
+              resultStatusCode: result.status,
+              status: 'applied',
+            }
+            : {
+              message: readShipActionMessage(
+                result.body,
+                buildGenericActionFailureFallback(state.selectedAction)
+              ),
+              resultStatusCode: result.status,
+              status: 'failed',
+            },
           path: 'execute_action',
         }
       }

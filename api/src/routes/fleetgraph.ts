@@ -28,6 +28,10 @@ import {
   type FleetGraphRuntime,
 } from '../services/fleetgraph/graph/index.js'
 import { createFleetGraphEntryService, FleetGraphEntryError } from '../services/fleetgraph/entry/index.js'
+import {
+  createFleetGraphEntryActionService,
+  FleetGraphEntryActionError,
+} from '../services/fleetgraph/entry/index.js'
 import { authMiddleware } from '../middleware/auth.js'
 import { getAuthContext } from './route-helpers.js'
 
@@ -35,6 +39,7 @@ type RouterType = ReturnType<typeof Router>
 
 interface FleetGraphRouterDeps {
   actionService?: ReturnType<typeof createFleetGraphFindingActionService>
+  entryActionService?: ReturnType<typeof createFleetGraphEntryActionService>
   entryService?: ReturnType<typeof createFleetGraphEntryService>
   findingStore?: ReturnType<typeof createFleetGraphFindingStore>
   runtime?: FleetGraphRuntime
@@ -148,6 +153,7 @@ export function createFleetGraphRouter(
 ) {
   const runtime = deps.runtime ?? createFleetGraphRuntime()
   const entryService = deps.entryService ?? createFleetGraphEntryService({ runtime })
+  const entryActionService = deps.entryActionService ?? createFleetGraphEntryActionService({ runtime })
   const findingStore = deps.findingStore ?? createFleetGraphFindingStore()
   const actionService = deps.actionService ?? createFleetGraphFindingActionService({
     findingStore,
@@ -199,6 +205,34 @@ export function createFleetGraphRouter(
 
       console.error('FleetGraph entry error:', error)
       res.status(500).json({ error: 'Failed to create FleetGraph entry' })
+    }
+  })
+
+  router.post('/entry/apply', authMiddleware, async (req: Request, res: Response) => {
+    const auth = getAuthContext(req, res)
+    if (!auth) {
+      return
+    }
+
+    if (!isSurfaceEnabled('api')) {
+      res.status(503).json({ error: 'FleetGraph entry is not enabled in this environment' })
+      return
+    }
+
+    try {
+      const response = await entryActionService.applyEntry(req.body, {
+        request: req,
+        workspaceId: auth.workspaceId,
+      })
+      res.json(response)
+    } catch (error) {
+      if (error instanceof FleetGraphEntryActionError) {
+        res.status(error.statusCode).json({ error: error.message })
+        return
+      }
+
+      console.error('FleetGraph entry apply error:', error)
+      res.status(500).json({ error: 'Failed to apply FleetGraph entry action' })
     }
   })
 

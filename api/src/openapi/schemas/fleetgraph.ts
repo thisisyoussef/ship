@@ -4,6 +4,8 @@ import {
   FleetGraphDeploymentReadinessResponseSchema,
 } from '../../services/fleetgraph/deployment/index.js'
 import {
+  FleetGraphEntryApplyRequestSchema,
+  FleetGraphEntryApplyResponseSchema,
   FleetGraphApprovalEnvelopeSchema,
   FleetGraphEntryRequestSchema,
   FleetGraphEntryResponseSchema,
@@ -61,6 +63,8 @@ const FleetGraphDebugThreadsResponseSchema = z.object({
 registry.register('FleetGraphRequestedAction', FleetGraphRequestedActionSchema.openapi('FleetGraphRequestedAction'))
 registry.register('FleetGraphActionEndpoint', FleetGraphActionEndpointSchema.openapi('FleetGraphActionEndpoint'))
 registry.register('FleetGraphApprovalEnvelope', FleetGraphApprovalEnvelopeSchema.openapi('FleetGraphApprovalEnvelope'))
+registry.register('FleetGraphEntryApplyRequest', FleetGraphEntryApplyRequestSchema.openapi('FleetGraphEntryApplyRequest'))
+registry.register('FleetGraphEntryApplyResponse', FleetGraphEntryApplyResponseSchema.openapi('FleetGraphEntryApplyResponse'))
 registry.register('FleetGraphEntryRun', FleetGraphEntryRunSchema.openapi('FleetGraphEntryRun'))
 registry.register('FleetGraphEntryRequest', FleetGraphEntryRequestSchema.openapi('FleetGraphEntryRequest'))
 registry.register('FleetGraphEntryResponse', FleetGraphEntryResponseSchema.openapi('FleetGraphEntryResponse'))
@@ -130,6 +134,45 @@ registry.registerPath({
     },
     403: {
       description: 'Workspace mismatch for FleetGraph entry',
+    },
+  },
+  security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+})
+
+registry.registerPath({
+  method: 'post',
+  path: '/fleetgraph/entry/apply',
+  tags: ['FleetGraph'],
+  summary: 'Apply a pending FleetGraph entry approval through the runtime review path',
+  request: {
+    body: {
+      content: {
+        'application/json': {
+          schema: FleetGraphEntryApplyRequestSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: 'FleetGraph resumed the pending entry approval and executed the selected action',
+      content: {
+        'application/json': {
+          schema: FleetGraphEntryApplyResponseSchema,
+        },
+      },
+    },
+    400: {
+      description: 'Invalid FleetGraph entry apply payload',
+    },
+    403: {
+      description: 'Workspace mismatch for FleetGraph entry apply',
+    },
+    404: {
+      description: 'No active FleetGraph approval was found for this thread',
+    },
+    409: {
+      description: 'The FleetGraph approval is no longer waiting for confirmation',
     },
   },
   security: [{ cookieAuth: [] }, { bearerAuth: [] }],

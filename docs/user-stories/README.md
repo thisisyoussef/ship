@@ -29,6 +29,7 @@ This phase will hold FleetGraph product and integration stories as the active pa
 | ID | Title | Status | Priority | Depends On |
 | --- | --- | --- | --- | --- |
 | US-601 | Current-page approval preview | `done` | P0 | `US-901` |
+| US-602 | Entry apply through runtime | `done` | P0 | `US-601` |
 
 ### Phase 3: Reliability and Productization
 
@@ -48,7 +49,7 @@ This phase will hold proof-lane, UX, deployment, and reliability follow-through 
 2. `US-601` completes the first FleetGraph completion-pack story by finishing the current-page approval preview use case on the smallest safe path.
 3. `US-902` makes repeatable seeded verification entries part of the checked-in workflow for visible stories.
 4. `US-903` adds a durable workflow-memory log for recurring corrections, decisions, and reusable patterns.
-5. The next FleetGraph implementation story should pick up the `T601A` runtime-apply convergence work.
+5. `US-602` completes `T601A` by routing entry-card apply through the runtime review/execute path.
 6. Active product packs continue to port into `docs/user-stories/` in dependency order.
 
 ## Files

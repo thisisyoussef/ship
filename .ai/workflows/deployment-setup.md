@@ -7,36 +7,43 @@
 ## Phase 0: Setup and Research
 
 ### Step 0.1: Run Preflight
+
 - Run `agent-preflight`
 - Deliver a concise preflight brief before deployment changes
 
 ### Step 0.2: Run Story Lookup
+
 - Run `.ai/workflows/story-lookup.md`
 - Gather provider-specific guidance for the selected hosting/runtime platforms
 - Publish the lookup brief before changes
 
 ### Step 0.3: Size the Story
+
 - Run `.ai/workflows/story-sizing.md`
 - Publish `lane: trivial` or `lane: standard`
 - Deployment and infra stories usually remain `standard`; only one-file documentation/config clarifications should take the trivial lane
 
 ### Step 0.4: Standard-Lane Lock Only
+
 If `lane: standard`:
+
 - run `.ai/workflows/parallel-flight.md`
 - claim a `deploy` or `infra` single writer lock before edits
 
 ### Step 0.5: Confirm the Real Provider Baseline
+
 - Verify the active deployment contract from repo docs and scripts instead of guessing from neighboring repos or historical artifacts
 - For Ship today, the canonical production baseline is:
   - API/runtime: AWS Elastic Beanstalk
   - Frontend/static: S3 + CloudFront
   - Infra/config/secrets: AWS-native scripts, SSM, and related services
-- For Ship today, the sanctioned public demo baseline is:
-  - Railway service selected through `RAILWAY_PUBLIC_DEMO_PROJECT_ID` + `RAILWAY_PUBLIC_DEMO_SERVICE`
-  - URL: `RAILWAY_PUBLIC_DEMO_URL`
-  - Repo-owned deploy path: `scripts/deploy-railway-demo.sh`
+- For Ship today, the sanctioned Railway-hosted baseline is:
+  - Railway service selected through `RAILWAY_PRODUCTION_PROJECT_ID` + `RAILWAY_PRODUCTION_SERVICE`
+  - URL: `RAILWAY_PRODUCTION_URL`
+  - Repo-owned deploy path: `scripts/deploy-railway-production.sh`
 
 ### Step 0.6: Verify Deployment Access Early
+
 - Before promising a deploy, verify the required provider access is available from the current machine/session
 - If access is missing, do not imply the change was deployed
 - Record the exact blocker and continue with deploy-readiness work only
@@ -46,6 +53,7 @@ If `lane: standard`:
 ## Phase 1: Choose the Deployment Shape
 
 ### Step 1: Record Deployment Decisions
+
 - Production environments needed
 - Preview environments needed
 - Service topology
@@ -54,6 +62,7 @@ If `lane: standard`:
 - Rollback strategy
 
 ### Step 2: Record Provider Choices
+
 - Backend/runtime host
 - Frontend/static host
 - Data/service providers
@@ -64,43 +73,50 @@ If `lane: standard`:
 ## Phase 2: Configure the Chosen Providers
 
 ### Step 3: Create Provider Config
+
 - Add the minimum config required by the selected providers
 
 ### Step 4: Configure Secrets
+
 - Environment variables only
 - No secrets committed to the repo
 - Keep `.env.example` current when applicable
 
 ### Step 5: Configure the Git-Based Deploy Flow
+
 - Choose a single production deployment path
 - Prefer Git-linked auto-deploy where the provider supports it
-- For Ship's public demo, keep `scripts/deploy-railway-demo.sh` current
+- For Ship's Railway-hosted surface, keep `scripts/deploy-railway-production.sh` current
 
 ---
 
 ## Phase 3: Validate the Deployment Path
 
 ### Step 6: Verify Required Checks Before Release
+
 - Run the project-specific validation commands defined during setup
 
 ### Step 7: Verify Runtime Health
+
 - Health or readiness endpoint
 - Critical path smoke test
 - Logs/metrics/traces visible
 - Rollback path documented and tested if practical
 
 ### Step 8: Record Deployment Execution Status
+
 - Explicitly capture one of:
   - `deployed` with environment and command evidence
   - `not deployed` with rationale
   - `blocked` with the missing credential/access/prerequisite
-- For Ship deploy-relevant stories, include both production-path review status and public-demo Railway status
+- For Ship deploy-relevant stories, include both production-path review status and Railway production status
 
 ---
 
 ## Phase 4: Completion
 
 ### Step 9: Document the Final Deployment Contract
+
 - Chosen providers
 - Environments
 - Required secrets
@@ -109,6 +125,7 @@ If `lane: standard`:
 - Production vs preview behavior
 
 ### Step 10: Run the Combined Completion Gate
+
 - Run `.ai/workflows/story-handoff.md`
 - Include the finalization plan in the same packet as the user audit checklist
 - Release the single writer lock if this story claimed it

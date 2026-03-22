@@ -19,14 +19,14 @@ jobs:
     name: Deploy to Railway production
     runs-on: ubuntu-latest
     env:
-      RAILWAY_PUBLIC_DEMO_PROJECT_ID: ${{ secrets.RAILWAY_PRODUCTION_PROJECT_ID }}
-      RAILWAY_PUBLIC_DEMO_SERVICE: ${{ secrets.RAILWAY_PRODUCTION_SERVICE }}
-      RAILWAY_PUBLIC_DEMO_WORKER_SERVICE: ${{ secrets.RAILWAY_PRODUCTION_WORKER_SERVICE }}
-      RAILWAY_PUBLIC_DEMO_ENVIRONMENT: production
-      RAILWAY_PUBLIC_DEMO_URL: ${{ secrets.RAILWAY_PRODUCTION_URL }}
+      RAILWAY_PRODUCTION_PROJECT_ID: ${{ secrets.RAILWAY_PRODUCTION_PROJECT_ID }}
+      RAILWAY_PRODUCTION_SERVICE: ${{ secrets.RAILWAY_PRODUCTION_SERVICE }}
+      RAILWAY_PRODUCTION_WORKER_SERVICE: ${{ secrets.RAILWAY_PRODUCTION_WORKER_SERVICE }}
+      RAILWAY_PRODUCTION_ENVIRONMENT: production
+      RAILWAY_PRODUCTION_URL: ${{ secrets.RAILWAY_PRODUCTION_URL }}
       RAILWAY_TOKEN: ${{ secrets.RAILWAY_PRODUCTION_TOKEN }}
-      SHIP_DEMO_EMAIL: ${{ secrets.RAILWAY_PRODUCTION_DEMO_EMAIL }}
-      SHIP_DEMO_PASSWORD: ${{ secrets.RAILWAY_PRODUCTION_DEMO_PASSWORD }}
+      RAILWAY_PRODUCTION_DEMO_EMAIL: ${{ secrets.RAILWAY_PRODUCTION_DEMO_EMAIL }}
+      RAILWAY_PRODUCTION_DEMO_PASSWORD: ${{ secrets.RAILWAY_PRODUCTION_DEMO_PASSWORD }}
       FLEETGRAPH_SERVICE_TOKEN: ${{ secrets.RAILWAY_PRODUCTION_FLEETGRAPH_SERVICE_TOKEN }}
     steps:
       - name: Check out repository
@@ -47,4 +47,4 @@ jobs:
         run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Deploy Railway production commit
-        run: ./scripts/deploy-railway-demo.sh "$GITHUB_SHA"
+        run: ./scripts/deploy-railway-production.sh "$GITHUB_SHA"

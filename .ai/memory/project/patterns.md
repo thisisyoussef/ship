@@ -3,6 +3,7 @@
 Capture reusable patterns that repeatedly work in this project.
 
 ## Pattern Template
+
 - **Pattern**:
 - **Use when**:
 - **Approach**:
@@ -11,6 +12,7 @@ Capture reusable patterns that repeatedly work in this project.
 - **References**:
 
 ## Seeded Patterns
+
 - **Pattern**: Eval-driven AI story contract
 - **Use when**: A story changes prompts, retrieval, tool-use, routing, graders, or any nondeterministic AI behavior.
 - **Approach**: Define objective, dataset slices, evaluator types, thresholds, and regression plan before implementation; keep accepted cases in the regression set.
@@ -270,12 +272,12 @@ Capture reusable patterns that repeatedly work in this project.
 - **Tradeoffs**: Demo fixtures add intentional non-product data that must stay clearly named and documented so reviewers do not confuse them with organic workspace content.
 - **References**: `api/src/services/fleetgraph/demo/fixture.ts`, `api/src/db/seed.ts`, `docs/guides/fleetgraph-demo-inspection.md`
 
-- **Pattern**: Repo-owned Railway public demo deploy
-- **Use when**: The team needs a sanctioned public demo surface that can run the containerized boot path, including migrations and optional demo seed/bootstrap, without free-plan provider workarounds.
-- **Approach**: Keep AWS as production, but deploy the public demo through `scripts/deploy-railway-demo.sh` with Railway project/service/url envs, then verify demo login plus FleetGraph findings instead of relying on `/health` alone.
-- **Benefits**: Moves deploy proof into the repo, reduces provider-side tribal knowledge, and makes the demo smoke check visible-product aware.
-- **Tradeoffs**: Requires local Railway access plus public-demo env variables to be present before deploys can succeed.
-- **References**: `scripts/deploy-railway-demo.sh`, `railway.json`, `docs/guides/fleetgraph-deployment-readiness.md`
+- **Pattern**: Repo-owned Railway production deploy
+- **Use when**: The team needs the Railway-hosted Ship surface to deploy directly from `master` into the production-named environment while still running the repo-owned smoke proof.
+- **Approach**: Keep AWS as the canonical production stack, but deploy the Railway-hosted surface through `scripts/deploy-railway-production.sh` with `RAILWAY_PRODUCTION_*` envs, then verify login plus FleetGraph findings instead of relying on `/health` alone.
+- **Benefits**: Moves deploy proof into the repo, reduces provider-side tribal knowledge, and makes the Railway production lane unambiguous in CI and dashboard history.
+- **Tradeoffs**: Requires local Railway access plus production env variables to be present before deploys can succeed.
+- **References**: `scripts/deploy-railway-production.sh`, `railway.json`, `docs/guides/fleetgraph-deployment-readiness.md`
 
 - **Pattern**: Preserve the seeded HITL lane, queue the worker proof lane
 - **Use when**: The public demo needs one deterministic UI audit target and one live worker-generated proof target at the same time.

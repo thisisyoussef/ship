@@ -186,7 +186,7 @@ Deploys the frontend to S3 + CloudFront.
 
 Pushes to `master` automatically deploy the Railway production service through `.github/workflows/railway-production-deploy.yml`.
 
-- Uses `./scripts/deploy-railway-demo.sh` under GitHub Actions
+- Uses `./scripts/deploy-railway-production.sh` under GitHub Actions
 - Requires repository secrets for the Railway production project, service, URL, token, and demo credentials used by the smoke check
 - Optional: set `RAILWAY_PRODUCTION_WORKER_SERVICE` if the production environment includes a separate worker service
 

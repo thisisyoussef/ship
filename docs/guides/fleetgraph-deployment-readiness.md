@@ -42,7 +42,7 @@ After deploying the API surface, run:
 
 ```bash
 pnpm fleetgraph:deploy:smoke \
-  --base-url "$RAILWAY_PUBLIC_DEMO_URL" \
+  --base-url "$RAILWAY_PRODUCTION_URL" \
   --service-token "$FLEETGRAPH_SERVICE_TOKEN" \
   --trace-url "https://smith.langchain.com/public/..."
 ```
@@ -59,17 +59,17 @@ The smoke command requires:
 - It requires `X-FleetGraph-Service-Token` or `Authorization: Bearer <token>`.
 - Treat `FLEETGRAPH_SERVICE_TOKEN` as a shared service secret for deployment smoke and future worker-to-API service calls.
 
-## Railway Public Demo
+## Railway Production
 
-- Public demo URL: `RAILWAY_PUBLIC_DEMO_URL`
-- Demo deploy path: `./scripts/deploy-railway-demo.sh <commit-ish>`
+- Public URL: `RAILWAY_PRODUCTION_URL`
+- Deploy path: `./scripts/deploy-railway-production.sh <commit-ish>`
 - Required local deploy vars:
-- `RAILWAY_PUBLIC_DEMO_PROJECT_ID`
-- `RAILWAY_PUBLIC_DEMO_SERVICE`
-- `RAILWAY_PUBLIC_DEMO_WORKER_SERVICE`
-- `RAILWAY_PUBLIC_DEMO_URL`
+- `RAILWAY_PRODUCTION_PROJECT_ID`
+- `RAILWAY_PRODUCTION_SERVICE`
+- `RAILWAY_PRODUCTION_WORKER_SERVICE`
+- `RAILWAY_PRODUCTION_URL`
 
-Railway now covers the public web/API demo surface and the dedicated FleetGraph worker lane. AWS remains the canonical production path.
+Railway now covers the production-deployed public web/API surface and the dedicated FleetGraph worker lane. AWS remains the canonical production path.
 
 For the named UI proof target and demo-user flow, use `docs/guides/fleetgraph-demo-inspection.md`.
 

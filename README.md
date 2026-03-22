@@ -379,12 +379,12 @@ Ship uses Playwright for end-to-end testing with 73+ tests covering all major fu
 
 Ship supports multiple deployment patterns:
 
-| Environment     | Recommended Approach                                                                                                         |
-| --------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| **Development** | Local with Docker Compose                                                                                                    |
-| **Public Demo** | Railway auto-deploy on push to `master` via GitHub Actions; manual fallback: `./scripts/deploy-railway-demo.sh <commit-ish>` |
-| **Staging**     | AWS Elastic Beanstalk                                                                                                        |
-| **Production**  | AWS GovCloud with Terraform                                                                                                  |
+| Environment            | Recommended Approach                                                                                                       |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| **Development**        | Local with Docker Compose                                                                                                  |
+| **Railway Production** | Auto-deploy on push to `master` via GitHub Actions; manual fallback: `./scripts/deploy-railway-production.sh <commit-ish>` |
+| **Staging**            | AWS Elastic Beanstalk                                                                                                      |
+| **Production**         | AWS GovCloud with Terraform                                                                                                |
 
 ### Docker
 
@@ -405,7 +405,7 @@ docker-compose -f docker-compose.prod.yml up
 | `SESSION_SECRET` | Cookie signing secret        | Required |
 | `PORT`           | API server port              | `3000`   |
 
-Production remains AWS-native. The sanctioned public demo now auto-deploys to Railway from `master` through GitHub Actions, using the checked-in `scripts/deploy-railway-demo.sh` workflow and a Railway-managed public URL.
+Production remains AWS-native. The sanctioned Railway production environment now auto-deploys from `master` through GitHub Actions, using the checked-in `scripts/deploy-railway-production.sh` workflow and a Railway-managed public URL.
 
 ---
 

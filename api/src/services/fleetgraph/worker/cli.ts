@@ -62,7 +62,7 @@ async function main() {
   try {
     const { pool } = await import('../../../db/client.js')
     const result = await pool.query(
-      'SELECT id FROM workspaces WHERE deleted_at IS NULL'
+      'SELECT id FROM workspaces WHERE archived_at IS NULL'
     )
     const now = new Date()
     let registered = 0

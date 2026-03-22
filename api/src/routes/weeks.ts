@@ -314,6 +314,9 @@ function extractSprintFromRow(row: SprintRow) {
       name: row.owner_name,
       email: row.owner_email,
     } : null,
+    // Expose owner_id from sprint properties so FleetGraph normalizer can detect ownership
+    owner_id: props.owner_id || (Array.isArray(props.assignee_ids) ? props.assignee_ids[0] : null) || null,
+    assignee_ids: Array.isArray(props.assignee_ids) ? props.assignee_ids : [],
     program_id: row.program_id,
     program_name: row.program_name,
     program_prefix: row.program_prefix,
@@ -470,7 +473,14 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
        FROM documents d
        LEFT JOIN document_associations prog_da ON prog_da.document_id = d.id AND prog_da.relationship_type = 'program'
        LEFT JOIN documents p ON prog_da.related_id = p.id
-       LEFT JOIN users u ON (d.properties->'assignee_ids'->>0)::uuid = u.id
+       LEFT JOIN documents owner_person
+         ON owner_person.id = COALESCE(
+           (d.properties->>'owner_id')::uuid,
+           (d.properties->'assignee_ids'->>0)::uuid
+         )
+         AND owner_person.document_type = 'person'
+         AND owner_person.workspace_id = d.workspace_id
+       LEFT JOIN users u ON (owner_person.properties->>'user_id')::uuid = u.id
        WHERE d.workspace_id = $1 AND d.document_type = 'sprint'
          AND (d.properties->>'sprint_number')::int = $2
          AND ${VISIBILITY_FILTER_SQL('d', '$3', '$4')}
@@ -481,7 +491,6 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
     const sprints = result.rows.map(row => ({
       ...extractSprintFromRow(row),
       days_remaining: daysRemaining,
-      status: 'active',
     }));
 
     res.json({
@@ -908,7 +917,14 @@ router.get('/:id', authMiddleware, async (req: Request<IdParams>, res: Response)
        LEFT JOIN document_associations prog_da ON prog_da.document_id = d.id AND prog_da.relationship_type = 'program'
        LEFT JOIN documents p ON prog_da.related_id = p.id
        JOIN workspaces w ON d.workspace_id = w.id
-       LEFT JOIN users u ON (d.properties->'assignee_ids'->>0)::uuid = u.id
+       LEFT JOIN documents owner_person
+         ON owner_person.id = COALESCE(
+           (d.properties->>'owner_id')::uuid,
+           (d.properties->'assignee_ids'->>0)::uuid
+         )
+         AND owner_person.document_type = 'person'
+         AND owner_person.workspace_id = d.workspace_id
+       LEFT JOIN users u ON (owner_person.properties->>'user_id')::uuid = u.id
        WHERE d.id = $1 AND d.workspace_id = $2 AND d.document_type = 'sprint'
          AND ${VISIBILITY_FILTER_SQL('d', '$3', '$4')}`,
       [id, workspaceId, userId, isAdmin]

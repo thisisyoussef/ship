@@ -158,10 +158,12 @@ export function normalizeShipWeek(
 
   const baseProperties = getProperties(raw)
   const properties = mergeTopLevelProperties(baseProperties, raw, [
+    'assignee_ids',
     'confidence',
     'has_plan',
     'has_retro',
     'issue_count',
+    'owner_id',
     'owner_reports_to',
     'plan',
     'plan_approval',

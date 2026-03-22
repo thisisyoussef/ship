@@ -254,6 +254,21 @@ describe('FleetGraph routes', () => {
       routeSurface: string
       threadId: string
     }) => ({
+      analysisFindings: input.requestedAction
+        ? []
+        : [
+          {
+            actionTier: 'A',
+            evidence: ['Launch planner has no milestones scoped yet.'],
+            findingType: 'risk',
+            severity: 'warning',
+            summary: 'The page still needs concrete milestones before execution.',
+            title: 'Planning detail is still thin',
+          },
+        ],
+      analysisText: input.requestedAction
+        ? ''
+        : 'Launch planner still needs milestones and ownership detail before execution.',
       approvalRequired: Boolean(input.requestedAction),
       branch: input.requestedAction ? 'approval_required' : 'reasoned',
       candidateCount: input.requestedAction ? 1 : 0,
@@ -360,6 +375,16 @@ describe('FleetGraph routes', () => {
     expect(response.body.entry.route.nestedPath).toEqual(['milestones'])
     expect(response.body.run.outcome).toBe('advisory')
     expect(response.body.summary.surfaceLabel).toContain('details')
+    expect(response.body.summary.title).toBe('What matters on this page')
+    expect(response.body.analysis).toMatchObject({
+      text: 'Launch planner still needs milestones and ownership detail before execution.',
+      findings: [
+        expect.objectContaining({
+          severity: 'warning',
+          title: 'Planning detail is still thin',
+        }),
+      ],
+    })
   })
 
   it('requires a HITL pause for consequential actions', async () => {

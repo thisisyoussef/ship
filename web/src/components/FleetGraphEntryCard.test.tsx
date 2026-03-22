@@ -80,6 +80,19 @@ describe('FleetGraphEntryCard', () => {
     vi.mocked(apiPost).mockResolvedValue({
       ok: true,
       json: async () => ({
+        analysis: {
+          findings: [
+            {
+              actionTier: 'A',
+              evidence: ['Launch planner still has no milestones scoped.'],
+              findingType: 'risk',
+              severity: 'warning',
+              summary: 'The page still needs execution detail.',
+              title: 'Planning detail is still thin',
+            },
+          ],
+          text: 'Launch planner still needs milestones and ownership detail before execution.',
+        },
         entry: {
           current: {
             documentType: 'project',
@@ -100,9 +113,9 @@ describe('FleetGraphEntryCard', () => {
           threadId: 'fleetgraph:workspace-1:document:project',
         },
         summary: {
-          detail: 'FleetGraph can help with this page right now.',
+          detail: 'FleetGraph analyzed the current page context.',
           surfaceLabel: 'document-page / details',
-          title: 'FleetGraph is ready in this project context.',
+          title: 'What matters on this page',
         },
       }),
     } as Response)
@@ -144,10 +157,111 @@ describe('FleetGraphEntryCard', () => {
       )
     })
 
-    expect(screen.getByText('FleetGraph is ready in this project context.'))
-      .toBeInTheDocument()
+    expect(screen.getByText('What matters on this page')).toBeInTheDocument()
+    expect(
+      screen.getByText('Launch planner still needs milestones and ownership detail before execution.')
+    ).toBeInTheDocument()
+    expect(screen.getByText('Planning detail is still thin')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Ask a follow-up...')).toBeInTheDocument()
     expect(screen.queryByText('fleetgraph:workspace-1:document:project')).not.toBeInTheDocument()
     expect(screen.queryByText('document-page / details')).not.toBeInTheDocument()
+  })
+
+  it('keeps page-analysis follow-up turns on the same FleetGraph entry thread', async () => {
+    vi.mocked(apiGet).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        content: {
+          content: [{ type: 'paragraph' }],
+          type: 'doc',
+        },
+        is_draft: false,
+        plan_validated: null,
+        title: 'Week 8 Review',
+      }),
+    } as Response)
+    vi.mocked(apiPost)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          analysis: {
+            findings: [],
+            text: 'Sprint 8 still has one planning gap.',
+          },
+          entry: {
+            current: {
+              documentType: 'sprint',
+              id: DOCUMENT_ID,
+              title: 'Sprint 8',
+            },
+            route: {
+              activeTab: 'review',
+              nestedPath: [],
+              surface: 'document-page',
+            },
+            threadId: 'fleetgraph:workspace-1:entry-analysis:sprint-8',
+          },
+          run: {
+            outcome: 'advisory',
+            path: ['resolve_trigger_context', 'select_scenarios', 'run_scenario:on_demand_analysis'],
+            routeSurface: 'document-page / review',
+            threadId: 'fleetgraph:workspace-1:entry-analysis:sprint-8',
+          },
+          summary: {
+            detail: 'FleetGraph analyzed the current page context.',
+            surfaceLabel: 'document-page / review',
+            title: 'What matters on this page',
+          },
+        }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          analysisFindings: [],
+          analysisText: 'You should also review the unassigned issue before closing the week.',
+          outcome: 'advisory',
+          path: ['resolve_trigger_context', 'select_scenarios', 'run_scenario:on_demand_analysis'],
+          threadId: 'fleetgraph:workspace-1:entry-analysis:sprint-8',
+        }),
+      } as Response)
+
+    render(
+      <FleetGraphEntryCard
+        activeTab="review"
+        context={createContext('sprint', 'Sprint 8')}
+        document={{
+          documentType: 'sprint',
+          id: DOCUMENT_ID,
+          title: 'Sprint 8',
+          workspaceId: '22222222-2222-4222-8222-222222222222',
+        }}
+        userId="11111111-1111-4111-8111-111111111111"
+      />,
+      { wrapper: createWrapper() }
+    )
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /check this page/i })).not.toBeDisabled()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /check this page/i }))
+    expect(await screen.findByText('Sprint 8 still has one planning gap.')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByPlaceholderText('Ask a follow-up...'), {
+      target: { value: 'What else should I look at?' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }))
+
+    await waitFor(() => {
+      expect(apiPost).toHaveBeenNthCalledWith(
+        2,
+        '/api/fleetgraph/thread/fleetgraph%3Aworkspace-1%3Aentry-analysis%3Asprint-8/turn',
+        { message: 'What else should I look at?' }
+      )
+    })
+
+    expect(await screen.findByText('You should also review the unassigned issue before closing the week.'))
+      .toBeInTheDocument()
   })
 
   it('renders the approval gate when the backend marks the run as approval required', async () => {

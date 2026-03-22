@@ -129,4 +129,135 @@ describe('useFleetGraphEntry', () => {
       type: 'fleetgraph:entry-action-applied',
     }))
   })
+
+  it('starts a fresh page-analysis thread and reuses it for follow-up turns', async () => {
+    vi.mocked(apiPost)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          analysis: {
+            findings: [],
+            text: 'Sprint 8 still has one planning gap.',
+          },
+          entry: {
+            current: {
+              documentType: 'sprint',
+              id: 'sprint-1',
+              title: 'Sprint 8',
+            },
+            route: {
+              activeTab: 'review',
+              nestedPath: [],
+              surface: 'document-page',
+            },
+            threadId: 'fleetgraph:workspace-1:entry-analysis:sprint-1:session-1',
+          },
+          run: {
+            branch: 'reasoned',
+            outcome: 'advisory',
+            path: [
+              'resolve_trigger_context',
+              'select_scenarios',
+              'run_scenario:on_demand_analysis',
+              'merge_candidates',
+              'score_and_rank',
+              'persist_result',
+            ],
+            routeSurface: 'document-page / review',
+            threadId: 'fleetgraph:workspace-1:entry-analysis:sprint-1:session-1',
+          },
+          summary: {
+            detail: 'FleetGraph analyzed the current page context.',
+            surfaceLabel: 'document-page / review',
+            title: 'What matters on this page',
+          },
+        }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          analysisFindings: [],
+          analysisText: 'You should also review the unassigned issue before closing the week.',
+          outcome: 'advisory',
+          path: [
+            'resolve_trigger_context',
+            'select_scenarios',
+            'run_scenario:on_demand_analysis',
+            'merge_candidates',
+            'score_and_rank',
+            'persist_result',
+          ],
+          threadId: 'fleetgraph:workspace-1:entry-analysis:sprint-1:session-1',
+        }),
+      } as Response)
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        mutations: { retry: false },
+        queries: { retry: false },
+      },
+    })
+    const { result } = renderHook(() => useFleetGraphEntry(), {
+      wrapper: createWrapper(queryClient),
+    })
+
+    await act(async () => {
+      result.current.checkCurrentContext({
+        activeTab: 'review',
+        context: {
+          ancestors: [],
+          belongs_to: [],
+          breadcrumbs: [
+            {
+              id: 'sprint-1',
+              title: 'Sprint 8',
+              type: 'sprint',
+            },
+          ],
+          children: [],
+          current: {
+            document_type: 'sprint',
+            id: 'sprint-1',
+            title: 'Sprint 8',
+          },
+        },
+        document: {
+          documentType: 'sprint',
+          id: 'sprint-1',
+          title: 'Sprint 8',
+          workspaceId: 'workspace-1',
+        },
+        userId: 'user-1',
+      })
+    })
+
+    await waitFor(() => {
+      expect(result.current.analysisConversation[0]?.content).toBe('Sprint 8 still has one planning gap.')
+    })
+
+    expect(apiPost).toHaveBeenNthCalledWith(
+      1,
+      '/api/fleetgraph/entry',
+      expect.objectContaining({
+        trigger: expect.objectContaining({
+          threadId: expect.stringContaining('fleetgraph:workspace-1:entry-analysis:sprint-1'),
+        }),
+      })
+    )
+
+    await act(async () => {
+      result.current.sendAnalysisFollowUp('What else should I look at?')
+    })
+
+    await waitFor(() => {
+      expect(result.current.analysisConversation.at(-1)?.content)
+        .toBe('You should also review the unassigned issue before closing the week.')
+    })
+
+    expect(apiPost).toHaveBeenNthCalledWith(
+      2,
+      '/api/fleetgraph/thread/fleetgraph%3Aworkspace-1%3Aentry-analysis%3Asprint-1%3Asession-1/turn',
+      { message: 'What else should I look at?' }
+    )
+  })
 })

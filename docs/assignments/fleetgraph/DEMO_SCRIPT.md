@@ -46,9 +46,9 @@
 
 "Once I approve, FleetGraph applies the change. The finding resolves because the problem is fixed."
 
-**[Click FAB again, scroll to bottom section]**
+**[Stay on the FleetGraph entry card]**
 
-"The bottom section is on-demand mode. 'Help for this page' lets me ask FleetGraph to analyze whatever I'm looking at right now."
+"This same entry card is also the on-demand mode. 'Help for this page' lets me ask FleetGraph to analyze whatever I'm looking at right now."
 
 **[Click "Check this page"]**
 
@@ -57,6 +57,10 @@
 **[Wait for analysis]**
 
 "It's thinking through the page, and will surface anything relevant it finds."
+
+**[Ask a follow-up]**
+
+"Because it stays on the same FleetGraph thread, I can ask a follow-up without resetting the conversation."
 
 **[Switch to LangSmith tab/window - have this pre-opened]**
 

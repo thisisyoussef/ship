@@ -47,6 +47,7 @@ This phase will hold FleetGraph product and integration stories as the active pa
 | US-610 | FleetGraph sprint-owner gap | `todo` | P0 | `US-609` |
 | US-611 | FleetGraph unassigned sprint issues | `todo` | P0 | `US-610` |
 | US-612 | FleetGraph assignment evidence refresh | `todo` | P0 | `US-611` |
+| US-613 | FleetGraph panel gradient removal | `todo` | P2 | `US-612` |
 
 ### Phase X: Harness and Workflow Evolution
 
@@ -79,7 +80,8 @@ This phase will hold FleetGraph product and integration stories as the active pa
 16. `US-610` restores the original assignment-critical `T604` lane by shipping the sprint-owner gap use case.
 17. `US-611` restores the original assignment-critical `T605` lane by shipping the unassigned sprint issues use case.
 18. `US-612` restores the original assignment-critical `T606` lane by refreshing the workbook, traces, and audit path from shipped behavior.
-19. Active product packs continue to port into `docs/user-stories/` in dependency order.
+19. `US-613` removes the FleetGraph panel gradient after the assignment-critical sequence is complete, keeping the shell calmer without re-opening the core use-case work.
+20. Active product packs continue to port into `docs/user-stories/` in dependency order.
 
 ## Files
 

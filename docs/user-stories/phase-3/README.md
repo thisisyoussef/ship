@@ -21,3 +21,4 @@ This folder holds FleetGraph assignment-gap stories plus the UX, reliability, de
 | US-610 | FleetGraph sprint-owner gap | `todo` | P0 | `US-609` |
 | US-611 | FleetGraph unassigned sprint issues | `todo` | P0 | `US-610` |
 | US-612 | FleetGraph assignment evidence refresh | `todo` | P0 | `US-611` |
+| US-613 | FleetGraph panel gradient removal | `todo` | P2 | `US-612` |

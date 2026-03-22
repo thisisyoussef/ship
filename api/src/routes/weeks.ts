@@ -474,13 +474,13 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
        LEFT JOIN document_associations prog_da ON prog_da.document_id = d.id AND prog_da.relationship_type = 'program'
        LEFT JOIN documents p ON prog_da.related_id = p.id
        LEFT JOIN documents owner_person
-         ON owner_person.id = COALESCE(
-           (d.properties->>'owner_id')::uuid,
-           (d.properties->'assignee_ids'->>0)::uuid
-         )
+         ON owner_person.id = (d.properties->'assignee_ids'->>0)::uuid
          AND owner_person.document_type = 'person'
          AND owner_person.workspace_id = d.workspace_id
-       LEFT JOIN users u ON (owner_person.properties->>'user_id')::uuid = u.id
+       LEFT JOIN users u ON u.id = COALESCE(
+         (d.properties->>'owner_id')::uuid,
+         (owner_person.properties->>'user_id')::uuid
+       )
        WHERE d.workspace_id = $1 AND d.document_type = 'sprint'
          AND (d.properties->>'sprint_number')::int = $2
          AND ${VISIBILITY_FILTER_SQL('d', '$3', '$4')}
@@ -776,11 +776,10 @@ router.get('/my-week', authMiddleware, async (req: Request, res: Response) => {
        JOIN documents s ON s.id = da.related_id AND s.document_type = 'sprint'
        LEFT JOIN document_associations prog_da ON prog_da.document_id = s.id AND prog_da.relationship_type = 'program'
        LEFT JOIN documents p ON prog_da.related_id = p.id
-       LEFT JOIN documents assignee_person ON assignee_person.id = (i.properties->>'assignee_id')::uuid AND assignee_person.document_type = 'person'
-       LEFT JOIN users u ON (assignee_person.properties->>'user_id')::uuid = u.id
-       LEFT JOIN documents person_doc ON person_doc.id = (i.properties->>'assignee_id')::uuid
+       LEFT JOIN users u ON (i.properties->>'assignee_id')::uuid = u.id
+       LEFT JOIN documents person_doc ON person_doc.workspace_id = i.workspace_id
          AND person_doc.document_type = 'person'
-         AND person_doc.workspace_id = i.workspace_id
+         AND person_doc.properties->>'user_id' = i.properties->>'assignee_id'
        WHERE i.workspace_id = $1
          AND i.document_type = 'issue'
          AND (s.properties->>'sprint_number')::int = $2
@@ -919,13 +918,13 @@ router.get('/:id', authMiddleware, async (req: Request<IdParams>, res: Response)
        LEFT JOIN documents p ON prog_da.related_id = p.id
        JOIN workspaces w ON d.workspace_id = w.id
        LEFT JOIN documents owner_person
-         ON owner_person.id = COALESCE(
-           (d.properties->>'owner_id')::uuid,
-           (d.properties->'assignee_ids'->>0)::uuid
-         )
+         ON owner_person.id = (d.properties->'assignee_ids'->>0)::uuid
          AND owner_person.document_type = 'person'
          AND owner_person.workspace_id = d.workspace_id
-       LEFT JOIN users u ON (owner_person.properties->>'user_id')::uuid = u.id
+       LEFT JOIN users u ON u.id = COALESCE(
+         (d.properties->>'owner_id')::uuid,
+         (owner_person.properties->>'user_id')::uuid
+       )
        WHERE d.id = $1 AND d.workspace_id = $2 AND d.document_type = 'sprint'
          AND ${VISIBILITY_FILTER_SQL('d', '$3', '$4')}`,
       [id, workspaceId, userId, isAdmin]
@@ -1350,13 +1349,13 @@ router.patch('/:id', authMiddleware, async (req: Request<IdParams>, res: Respons
        LEFT JOIN documents p ON prog_da.related_id = p.id
        JOIN workspaces w ON d.workspace_id = w.id
        LEFT JOIN documents owner_person
-         ON owner_person.id = COALESCE(
-           (d.properties->>'owner_id')::uuid,
-           (d.properties->'assignee_ids'->>0)::uuid
-         )
+         ON owner_person.id = (d.properties->'assignee_ids'->>0)::uuid
          AND owner_person.document_type = 'person'
          AND owner_person.workspace_id = d.workspace_id
-       LEFT JOIN users u ON (owner_person.properties->>'user_id')::uuid = u.id
+       LEFT JOIN users u ON u.id = COALESCE(
+         (d.properties->>'owner_id')::uuid,
+         (owner_person.properties->>'user_id')::uuid
+       )
        WHERE d.id = $1 AND d.document_type = 'sprint'`,
       [id]
     );
@@ -1472,13 +1471,13 @@ router.post('/:id/start', authMiddleware, async (req: Request<IdParams>, res: Re
        LEFT JOIN documents p ON prog_da.related_id = p.id
        JOIN workspaces w ON d.workspace_id = w.id
        LEFT JOIN documents owner_person
-         ON owner_person.id = COALESCE(
-           (d.properties->>'owner_id')::uuid,
-           (d.properties->'assignee_ids'->>0)::uuid
-         )
+         ON owner_person.id = (d.properties->'assignee_ids'->>0)::uuid
          AND owner_person.document_type = 'person'
          AND owner_person.workspace_id = d.workspace_id
-       LEFT JOIN users u ON (owner_person.properties->>'user_id')::uuid = u.id
+       LEFT JOIN users u ON u.id = COALESCE(
+         (d.properties->>'owner_id')::uuid,
+         (owner_person.properties->>'user_id')::uuid
+       )
        WHERE d.id = $1 AND d.document_type = 'sprint'`,
       [id]
     );
@@ -1695,13 +1694,13 @@ router.patch('/:id/plan', authMiddleware, async (req: Request<IdParams>, res: Re
        LEFT JOIN documents p ON prog_da.related_id = p.id
        JOIN workspaces w ON d.workspace_id = w.id
        LEFT JOIN documents owner_person
-         ON owner_person.id = COALESCE(
-           (d.properties->>'owner_id')::uuid,
-           (d.properties->'assignee_ids'->>0)::uuid
-         )
+         ON owner_person.id = (d.properties->'assignee_ids'->>0)::uuid
          AND owner_person.document_type = 'person'
          AND owner_person.workspace_id = d.workspace_id
-       LEFT JOIN users u ON (owner_person.properties->>'user_id')::uuid = u.id
+       LEFT JOIN users u ON u.id = COALESCE(
+         (d.properties->>'owner_id')::uuid,
+         (owner_person.properties->>'user_id')::uuid
+       )
        WHERE d.id = $1 AND d.document_type = 'sprint'`,
       [id]
     );
@@ -1757,12 +1756,11 @@ router.get('/:id/issues', authMiddleware, async (req: Request<IdParams>, res: Re
            ON sprint_da.document_id = d.id
           AND sprint_da.related_id = sprint.id
           AND sprint_da.relationship_type = 'sprint'
-         LEFT JOIN documents assignee_person ON assignee_person.id = (d.properties->>'assignee_id')::uuid AND assignee_person.document_type = 'person'
-         LEFT JOIN users u ON (assignee_person.properties->>'user_id')::uuid = u.id
+         LEFT JOIN users u ON (d.properties->>'assignee_id')::uuid = u.id
          LEFT JOIN documents person_doc
-           ON person_doc.id = (d.properties->>'assignee_id')::uuid
+           ON person_doc.workspace_id = d.workspace_id
           AND person_doc.document_type = 'person'
-          AND person_doc.workspace_id = d.workspace_id
+          AND person_doc.properties->>'user_id' = d.properties->>'assignee_id'
          WHERE d.document_type = 'issue'
            AND ${VISIBILITY_FILTER_SQL('d', '$3', '$4')}
          ORDER BY
@@ -2424,8 +2422,7 @@ router.get('/:id/review', authMiddleware, async (req: Request<IdParams>, res: Re
               u.name as owner_name, u.email as owner_email
        FROM documents d
        JOIN document_associations da ON da.document_id = d.id AND da.related_id = $1 AND da.relationship_type = 'sprint'
-       LEFT JOIN documents owner_person ON owner_person.id = (d.properties->>'owner_id')::uuid AND owner_person.document_type = 'person'
-       LEFT JOIN users u ON (owner_person.properties->>'user_id')::uuid = u.id
+       LEFT JOIN users u ON (d.properties->>'owner_id')::uuid = u.id
        WHERE d.document_type = 'weekly_review'
          AND d.workspace_id = $2
          AND ${VISIBILITY_FILTER_SQL('d', '$3', '$4')}`,
@@ -2757,8 +2754,7 @@ router.patch('/:id/review', authMiddleware, async (req: Request<IdParams>, res: 
       `SELECT d.id, d.title, d.content, d.properties, d.created_at, d.updated_at,
               u.name as owner_name, u.email as owner_email
        FROM documents d
-       LEFT JOIN documents owner_person ON owner_person.id = (d.properties->>'owner_id')::uuid AND owner_person.document_type = 'person'
-       LEFT JOIN users u ON (owner_person.properties->>'user_id')::uuid = u.id
+       LEFT JOIN users u ON (d.properties->>'owner_id')::uuid = u.id
        WHERE d.id = $1 AND d.document_type = 'weekly_review'`,
       [reviewId]
     );

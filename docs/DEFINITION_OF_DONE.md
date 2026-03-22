@@ -23,6 +23,7 @@ All items should be complete before the story is marked `done`.
 - [ ] Deployment status is explicit: `deployed`, `not deployed`, or `blocked`.
 - [ ] Environment and command evidence are recorded when a deploy happened.
 - [ ] User-facing verification steps and expected results are recorded.
+- [ ] A named seeded verification entry or proof lane is recorded for visible stories when the product supports one.
 - [ ] Actual observed verification result is recorded.
 
 ## Handoff

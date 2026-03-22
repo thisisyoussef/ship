@@ -121,6 +121,7 @@ Run these before handoff:
 
 ## How To Verify
 
+- Seeded verification entry or proof lane:
 - Route or URL:
 - Interaction:
 - Expected result:

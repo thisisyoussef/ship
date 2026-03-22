@@ -6,7 +6,7 @@
 - Owner: Codex
 - Depends on: `US-901`
 - Related branch: `codex/fleetgraph-t601-approval-preview`
-- Related commit/PR: pending
+- Related commit/PR: `d1f7313`, PR #127, merge commit `829e6fc`
 - Target environment: `local first`, `Railway demo if needed for visual verification`
 
 ## Persona
@@ -140,7 +140,8 @@ git diff --check
 
 ## How To Verify
 
-- Route or URL: open any supported `UnifiedDocumentPage` surface with FleetGraph enabled, ideally one `project`, one `sprint`, and one `weekly_plan`.
+- Seeded verification entry or proof lane: `FleetGraph Demo Week - Review and Apply`
+- Route or URL: open the public demo or a local `UnifiedDocumentPage` surface with FleetGraph enabled; the seeded FleetGraph demo week is the fastest proof lane.
 - Interaction: click `Preview approval step`.
 - Expected result: FleetGraph shows a human-readable approval preview with the exact action title/summary plus supporting rationale/evidence, and supported weekly plans resolve to a week approval preview rather than a generic comment fallback.
 - Failure signal: weekly plans still preview a generic `Post comment` action, or the approval panel lacks enough detail to understand why FleetGraph is suggesting the action.

@@ -25,7 +25,8 @@ Write stories that are executable, testable, and resumable from the repo alone.
 6. Write the TDD or validation plan before production edits.
 7. Add acceptance criteria and concrete local validation commands.
 8. Add deployment and user verification steps.
-9. Update the relevant checkpoint log when the story advances or closes.
+9. For visible stories, create or refresh a named seeded verification entry or proof lane when the product supports one, and record it explicitly in `How To Verify`.
+10. Update the relevant checkpoint log when the story advances or closes.
 
 ## Phase Folders
 

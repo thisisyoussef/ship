@@ -42,6 +42,7 @@ Load context in this order before making non-trivial changes:
 - Run `git diff --check` before handoff.
 - If the change touches the agent harness contract, run `bash scripts/check_ai_wiring.sh`.
 - If the story changes visible behavior, include a user-facing verification checklist with exact routes and expected results.
+- If the story changes visible behavior and the product supports a repeatable proof lane, create or refresh a named seeded verification entry and record its exact title and route in the story, audit checklist, and any relevant inspection guide.
 - Do not call a story complete until `docs/DEFINITION_OF_DONE.md` is satisfied.
 
 ## Deployment Rules

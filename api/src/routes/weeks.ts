@@ -2014,8 +2014,17 @@ router.get('/:id/scope-changes', authMiddleware, async (req: Request<IdParams>, 
 
 // Schema for creating a standup
 // Note: date field is optional but if provided must be today (enforced in handler)
+// Content accepts both TipTap JSON objects and plain strings (auto-wrapped)
+const standupContentSchema = z.union([
+  z.record(z.unknown()),
+  z.string().transform((text) => ({
+    type: 'doc',
+    content: [{ type: 'paragraph', content: [{ type: 'text', text }] }],
+  })),
+]).default({ type: 'doc', content: [{ type: 'paragraph' }] });
+
 const createStandupSchema = z.object({
-  content: z.record(z.unknown()).default({ type: 'doc', content: [{ type: 'paragraph' }] }),
+  content: standupContentSchema,
   title: z.string().max(200).optional().default('Standup Update'),
   date: z.string().optional(), // ISO date string - must be today if provided
 });

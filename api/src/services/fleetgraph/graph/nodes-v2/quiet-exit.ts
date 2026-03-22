@@ -28,18 +28,18 @@ import type { FleetGraphStateV2, FleetGraphStateV2Update } from '../state-v2.js'
 export function quietExit(
   state: FleetGraphStateV2
 ): FleetGraphStateV2Update {
-  const responsePayload: ResponsePayload = state.mode === 'on_demand'
-    ? {
-        type: 'chat_answer',
-        answer: {
-          entityLinks: [],
-          suggestedNextSteps: [],
-          text: state.userQuestion
-            ? `I checked this ${state.documentType ?? 'document'} against your question and did not find an immediate issue to flag.`
-            : `I analyzed this ${state.documentType ?? 'document'} and did not find anything that needs immediate attention.`,
-        },
-      }
-    : { type: 'empty' }
+  const quietMessage = state.userQuestion
+    ? `I checked this ${state.documentType ?? 'document'} against your question and did not find an immediate issue to flag.`
+    : `No quick actions are needed right now. I analyzed this ${state.documentType ?? 'document'} and did not find anything that needs immediate attention.`
+
+  const responsePayload: ResponsePayload = {
+    type: 'chat_answer',
+    answer: {
+      entityLinks: [],
+      suggestedNextSteps: [],
+      text: quietMessage,
+    },
+  }
 
   // Update trace metadata with branch
   const traceMetadata: TraceMetadata = {

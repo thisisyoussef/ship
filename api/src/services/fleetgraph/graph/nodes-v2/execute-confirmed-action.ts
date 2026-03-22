@@ -134,6 +134,46 @@ async function preValidateAction(
       return { valid: true }
     }
 
+    case 'approve_week_plan': {
+      const week = await fetchDocumentState(`/api/weeks/${targetId}`, config)
+      if (!week) return { valid: true }
+      const status = typeof week.status === 'string' ? week.status : null
+      if (status === 'active') {
+        return { valid: false, reason: 'This week is already active — its plan has already been approved.' }
+      }
+      if (status === 'completed') {
+        return { valid: false, reason: 'This week is already completed.' }
+      }
+      return { valid: true }
+    }
+
+    case 'approve_project_plan': {
+      const project = await fetchDocumentState(`/api/documents/${targetId}`, config)
+      if (!project) return { valid: true }
+      const props = isJsonObject(project.properties) ? project.properties : {}
+      const projectStatus = typeof props.status === 'string' ? props.status : null
+      if (projectStatus === 'active') {
+        return { valid: false, reason: 'This project plan is already approved and active.' }
+      }
+      return { valid: true }
+    }
+
+    case 'post_standup': {
+      // The standalone POST /api/standups is idempotent — it returns existing if found.
+      // No pre-validation needed, but verify the person exists.
+      return { valid: true }
+    }
+
+    case 'post_comment':
+    case 'escalate_risk': {
+      // Verify the target document still exists
+      const targetDoc = await fetchDocumentState(`/api/documents/${targetId}`, config)
+      if (!targetDoc) {
+        return { valid: false, reason: 'The target document no longer exists.' }
+      }
+      return { valid: true }
+    }
+
     default:
       return { valid: true }
   }

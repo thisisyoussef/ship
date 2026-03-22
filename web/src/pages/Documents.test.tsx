@@ -41,6 +41,11 @@ function createWrapper() {
 describe('DocumentsPage', () => {
   beforeEach(() => {
     vi.mocked(useDocuments).mockReset();
+    vi.stubGlobal('localStorage', {
+      getItem: vi.fn(() => null),
+      removeItem: vi.fn(),
+      setItem: vi.fn(),
+    });
   });
 
   it('shows FleetGraph week proof lanes in the standard documents surface', async () => {
@@ -68,6 +73,16 @@ describe('DocumentsPage', () => {
           updated_at: '2026-03-17T00:00:00.000Z',
           visibility: 'workspace',
         },
+        {
+          created_at: '2026-03-17T00:00:00.000Z',
+          document_type: 'sprint',
+          id: 'sprint-2',
+          parent_id: null,
+          position: 0,
+          title: 'FleetGraph Demo Week - Validation Ready',
+          updated_at: '2026-03-17T00:00:00.000Z',
+          visibility: 'workspace',
+        },
       ],
       loading: false,
       refreshDocuments: vi.fn(),
@@ -79,6 +94,10 @@ describe('DocumentsPage', () => {
     expect(await screen.findByRole('link', { name: 'FleetGraph Demo Week - Review and Apply' })).toHaveAttribute(
       'href',
       '/documents/sprint-1'
+    );
+    expect(screen.getByRole('link', { name: 'FleetGraph Demo Week - Validation Ready' })).toHaveAttribute(
+      'href',
+      '/documents/sprint-2'
     );
     expect(screen.getByRole('link', { name: 'Product handbook' })).toBeInTheDocument();
   });

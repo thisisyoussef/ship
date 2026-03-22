@@ -216,6 +216,7 @@ For each use case, record the triggering Ship state, the expected output, and th
 - Evidence bundle: `docs/evidence/fleetgraph-mvp-evidence.json` and `docs/evidence/fleetgraph-mvp-evidence.md`
 - Named public demo inspection targets:
   - `FleetGraph Demo Week - Review and Apply`
+  - `FleetGraph Demo Week - Validation Ready`
   - `FleetGraph Demo Week - Worker Generated`
 - Screenshot artifacts:
   - `docs/evidence/screenshots/fleetgraph-review-apply-live.png`
@@ -228,8 +229,9 @@ For each use case, record the triggering Ship state, the expected output, and th
 - Tuesday MVP slice shipped:
   - one proactive week-start drift detection wired end to end
   - one human-confirmed `start week` gate routed through Ship REST
+  - one current-page review-tab validation lane with visible page-state proof
   - real Ship data on the public Railway deployment
-  - visible Ship UI proof for both the seeded review/apply lane and the worker-generated proactive lane
+  - visible Ship UI proof for the seeded review/apply lane, the validation-ready review lane, and the worker-generated proactive lane
 
 ## Architecture Decisions
 

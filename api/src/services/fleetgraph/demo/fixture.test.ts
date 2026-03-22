@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createWorkerTestDatabase } from '../worker/test-helpers.js'
 import {
   FLEETGRAPH_DEMO_PROJECT_TITLE,
+  FLEETGRAPH_DEMO_VALIDATION_WEEK_TITLE,
   FLEETGRAPH_DEMO_WORKER_FINDING_TITLE,
   FLEETGRAPH_DEMO_WORKER_WEEK_TITLE,
   FLEETGRAPH_DEMO_WEEK_TITLE,
@@ -20,7 +21,7 @@ describe('FleetGraph demo fixture', () => {
     await testDb?.close()
   })
 
-  it('creates a seeded HITL lane and a worker-generated lane', async () => {
+  it('creates seeded FleetGraph proof lanes, including a reusable validation-ready week', async () => {
     const workspaceId = '00000000-0000-4000-8000-000000000001'
     const userId = '00000000-0000-4000-8000-000000000002'
     const programId = '00000000-0000-4000-8000-000000000003'
@@ -71,6 +72,7 @@ describe('FleetGraph demo fixture', () => {
     expect(first.projectTitle).toBe(FLEETGRAPH_DEMO_PROJECT_TITLE)
     expect(first.weekTitle).toBe(FLEETGRAPH_DEMO_WEEK_TITLE)
     expect(first.findingTitle).toContain(FLEETGRAPH_DEMO_WEEK_TITLE)
+    expect(first.validationWeekTitle).toBe(FLEETGRAPH_DEMO_VALIDATION_WEEK_TITLE)
     expect(first.workerWeekTitle).toBe(FLEETGRAPH_DEMO_WORKER_WEEK_TITLE)
     expect(first.workerFindingTitle).toBe(FLEETGRAPH_DEMO_WORKER_FINDING_TITLE)
 
@@ -97,6 +99,17 @@ describe('FleetGraph demo fixture', () => {
       'SELECT workspace_id FROM fleetgraph_sweep_schedules WHERE workspace_id = $1',
       [workspaceId]
     )
+    const validationReview = await testDb.pool.query(
+      `SELECT d.title, d.properties
+       FROM documents d
+       JOIN document_associations da
+         ON da.document_id = d.id
+        AND da.related_id = $1
+        AND da.relationship_type = 'sprint'
+       WHERE d.workspace_id = $2
+         AND d.document_type = 'weekly_review'`,
+      [first.validationWeekId, workspaceId]
+    )
     const queueJobs = await testDb.pool.query(
       `SELECT status, trigger, route_surface
        FROM fleetgraph_queue_jobs
@@ -104,6 +117,16 @@ describe('FleetGraph demo fixture', () => {
       [workspaceId]
     )
     expect(sweepSchedules.rows).toHaveLength(1)
+    expect(validationReview.rows).toEqual([
+      {
+        properties: {
+          owner_id: userId,
+          plan_validated: null,
+          sprint_id: first.validationWeekId,
+        },
+        title: 'Week 2 Review',
+      },
+    ])
     expect(queueJobs.rows).toEqual([
       {
         route_surface: 'workspace-sweep',
@@ -163,6 +186,7 @@ describe('FleetGraph demo fixture', () => {
         [
           FLEETGRAPH_DEMO_PROJECT_TITLE,
           FLEETGRAPH_DEMO_WEEK_TITLE,
+          FLEETGRAPH_DEMO_VALIDATION_WEEK_TITLE,
           FLEETGRAPH_DEMO_WORKER_WEEK_TITLE,
         ],
       ]
@@ -172,13 +196,20 @@ describe('FleetGraph demo fixture', () => {
     expect(rerunFinding.rows[0]?.status).toBe('active')
     expect(actionRuns.rows).toHaveLength(0)
     expect(rerunQueueJobs.rows).toEqual([{ status: 'queued' }])
-    expect(documents.rows).toHaveLength(3)
+    expect(documents.rows).toHaveLength(4)
     expect(
       documents.rows.find((row) => row.title === FLEETGRAPH_DEMO_WEEK_TITLE)?.properties
     ).toMatchObject({
       project_id: first.projectId,
       sprint_number: 2,
       status: 'planning',
+    })
+    expect(
+      documents.rows.find((row) => row.title === FLEETGRAPH_DEMO_VALIDATION_WEEK_TITLE)?.properties
+    ).toMatchObject({
+      project_id: first.projectId,
+      sprint_number: 2,
+      status: 'active',
     })
     expect(
       documents.rows.find((row) => row.title === FLEETGRAPH_DEMO_WORKER_WEEK_TITLE)?.properties
@@ -192,6 +223,26 @@ describe('FleetGraph demo fixture', () => {
       'SELECT * FROM fleetgraph_proactive_findings WHERE finding_key = $1',
       [`week-start-drift:${workspaceId}:${first.workerWeekId}`]
     )
+    const rerunValidationReview = await testDb.pool.query(
+      `SELECT d.properties
+       FROM documents d
+       JOIN document_associations da
+         ON da.document_id = d.id
+        AND da.related_id = $1
+        AND da.relationship_type = 'sprint'
+       WHERE d.workspace_id = $2
+         AND d.document_type = 'weekly_review'`,
+      [first.validationWeekId, workspaceId]
+    )
     expect(workerFinding.rows).toHaveLength(0)
+    expect(rerunValidationReview.rows).toEqual([
+      {
+        properties: {
+          owner_id: userId,
+          plan_validated: null,
+          sprint_id: first.validationWeekId,
+        },
+      },
+    ])
   })
 })

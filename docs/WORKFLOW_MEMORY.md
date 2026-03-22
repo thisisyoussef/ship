@@ -43,6 +43,9 @@ Use this file as durable working memory for recurring corrections, decisions, an
 - Visible FleetGraph proof should use surfaced Ship state, not hidden internal state.
   Source: post-`US-603` review-tab pivot
   Apply this by preferring actions whose success is immediately visible on the current page, such as review-tab `Plan Validation`, instead of asking users to infer success from state that is absent or inconsistently rendered.
+- Repeatable proof lanes need resettable seeded state, not one-time happy-path data.
+  Source: post-`US-604` validation retest follow-up
+  Apply this by giving demo verification flows a dedicated seeded document whose visible state is reset on bootstrap, instead of reusing a lane that can be consumed during prior testing.
 
 ## Reusable Product Patterns
 

@@ -12,6 +12,7 @@ import {
   FLEETGRAPH_DEMO_FINDING_SUMMARY,
   FLEETGRAPH_DEMO_PROJECT_TITLE,
   FLEETGRAPH_DEMO_THREAD_PREFIX,
+  FLEETGRAPH_DEMO_VALIDATION_WEEK_TITLE,
   FLEETGRAPH_DEMO_WORKER_FINDING_TITLE,
   FLEETGRAPH_DEMO_WORKER_WEEK_TITLE,
   FLEETGRAPH_DEMO_WEEK_TITLE,
@@ -34,6 +35,8 @@ export interface FleetGraphDemoFixtureResult {
   findingTitle: string
   projectId: string
   projectTitle: string
+  validationWeekId: string
+  validationWeekTitle: string
   workerFindingTitle: string
   workerWeekId: string
   workerWeekTitle: string
@@ -44,6 +47,7 @@ export interface FleetGraphDemoFixtureResult {
 interface DemoWeekInput {
   plan: string
   sprintNumber: number
+  status: 'active' | 'completed' | 'planning'
   successCriteria: string
   title: string
 }
@@ -62,7 +66,7 @@ async function ensureAssociation(
   queryable: Queryable,
   documentId: string,
   relatedId: string,
-  relationshipType: 'program' | 'project'
+  relationshipType: 'program' | 'project' | 'sprint'
 ) {
   await queryable.query(
     `INSERT INTO document_associations (document_id, related_id, relationship_type, metadata)
@@ -147,7 +151,7 @@ async function ensureDemoWeek(
     plan: week.plan,
     project_id: projectId,
     sprint_number: week.sprintNumber,
-    status: 'planning',
+    status: week.status,
     success_criteria: week.successCriteria,
   }
 
@@ -174,6 +178,97 @@ async function ensureDemoWeek(
   await ensureAssociation(queryable, weekId, projectId, 'project')
   await ensureAssociation(queryable, weekId, input.programId, 'program')
   return weekId
+}
+
+function buildValidationReviewContent(weekNumber: number) {
+  return {
+    type: 'doc',
+    content: [
+      {
+        type: 'heading',
+        attrs: { level: 2 },
+        content: [{ type: 'text', text: `Week ${weekNumber} validation notes` }],
+      },
+      {
+        type: 'paragraph',
+        content: [{
+          type: 'text',
+          text: 'FleetGraph should let the reviewer validate this plan directly from the review tab.',
+        }],
+      },
+      {
+        type: 'bulletList',
+        content: [
+          {
+            type: 'listItem',
+            content: [{
+              type: 'paragraph',
+              content: [{ type: 'text', text: 'The review tab is visible and ready for inspection.' }],
+            }],
+          },
+          {
+            type: 'listItem',
+            content: [{
+              type: 'paragraph',
+              content: [{ type: 'text', text: 'Plan Validation should still be unset before the FleetGraph action runs.' }],
+            }],
+          },
+        ],
+      },
+    ],
+  }
+}
+
+async function ensureValidationReview(
+  queryable: Queryable,
+  input: FleetGraphDemoFixtureInput,
+  weekId: string,
+  sprintNumber: number
+) {
+  const existing = await queryable.query(
+    `SELECT d.id
+     FROM documents d
+     JOIN document_associations da
+       ON da.document_id = d.id
+      AND da.related_id = $2
+      AND da.relationship_type = 'sprint'
+     WHERE d.workspace_id = $1
+       AND d.document_type = 'weekly_review'`,
+    [input.workspaceId, weekId]
+  ) as { rows: Array<{ id: string }> }
+
+  const properties = {
+    owner_id: input.ownerUserId,
+    plan_validated: null,
+    sprint_id: weekId,
+  }
+  const content = buildValidationReviewContent(sprintNumber)
+  const title = `Week ${sprintNumber} Review`
+
+  if (existing.rows[0]?.id) {
+    await queryable.query(
+      `UPDATE documents
+       SET title = $3,
+           content = $4::jsonb,
+           properties = $5::jsonb,
+           updated_at = now()
+       WHERE id = $1 AND workspace_id = $2`,
+      [existing.rows[0].id, input.workspaceId, title, JSON.stringify(content), JSON.stringify(properties)]
+    )
+    await ensureAssociation(queryable, existing.rows[0].id, weekId, 'sprint')
+    return existing.rows[0].id
+  }
+
+  const inserted = await queryable.query(
+    `INSERT INTO documents (workspace_id, document_type, title, content, properties, created_by, visibility)
+     VALUES ($1, 'weekly_review', $2, $3::jsonb, $4::jsonb, $5, 'workspace')
+     RETURNING id`,
+    [input.workspaceId, title, JSON.stringify(content), JSON.stringify(properties), input.ownerUserId]
+  ) as { rows: Array<{ id: string }> }
+
+  const reviewId = inserted.rows[0]!.id
+  await ensureAssociation(queryable, reviewId, weekId, 'sprint')
+  return reviewId
 }
 
 async function resetFindingByKey(
@@ -228,15 +323,30 @@ export async function ensureFleetGraphDemoProofLane(
   const weekId = await ensureDemoWeek(queryable, input, projectId, {
     plan: 'Review the visible FleetGraph finding and use the apply confirmation path.',
     sprintNumber: input.currentSprintNumber,
+    status: 'planning',
     successCriteria: 'The public demo shows a visible proactive finding with Review and apply.',
     title: FLEETGRAPH_DEMO_WEEK_TITLE,
+  })
+  const validationWeekId = await ensureDemoWeek(queryable, input, projectId, {
+    plan: 'Use the review tab to test FleetGraph plan validation on a week that is ready but not yet validated.',
+    sprintNumber: input.currentSprintNumber,
+    status: 'active',
+    successCriteria: 'The public demo shows an unvalidated review tab where FleetGraph can validate the week plan.',
+    title: FLEETGRAPH_DEMO_VALIDATION_WEEK_TITLE,
   })
   const workerWeekId = await ensureDemoWeek(queryable, input, projectId, {
     plan: 'Let the deployed FleetGraph worker generate this finding through the real proactive path.',
     sprintNumber: input.currentSprintNumber,
+    status: 'planning',
     successCriteria: 'The public demo shows a worker-generated proactive finding without seeding it directly.',
     title: FLEETGRAPH_DEMO_WORKER_WEEK_TITLE,
   })
+  await ensureValidationReview(
+    queryable,
+    input,
+    validationWeekId,
+    input.currentSprintNumber
+  )
   const startDate = calculateWeekStartDate(
     input.workspaceSprintStartDate,
     input.currentSprintNumber
@@ -318,6 +428,8 @@ export async function ensureFleetGraphDemoProofLane(
     findingTitle: draft.title,
     projectId,
     projectTitle: FLEETGRAPH_DEMO_PROJECT_TITLE,
+    validationWeekId,
+    validationWeekTitle: FLEETGRAPH_DEMO_VALIDATION_WEEK_TITLE,
     workerFindingTitle: FLEETGRAPH_DEMO_WORKER_FINDING_TITLE,
     workerWeekId,
     workerWeekTitle: FLEETGRAPH_DEMO_WORKER_WEEK_TITLE,

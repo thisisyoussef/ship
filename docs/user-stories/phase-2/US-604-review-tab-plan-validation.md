@@ -81,7 +81,7 @@ Planned failing tests:
 
 Happy path:
 
-1. User opens `FleetGraph Demo Week - Review and Apply`.
+1. User opens `FleetGraph Demo Week - Validation Ready`.
 2. User goes to the `Review` tab and clicks `Preview next step`.
 3. FleetGraph previews `Validate week plan`.
 4. User clicks `Apply`.
@@ -142,15 +142,15 @@ git diff --check
 
 ## How To Verify
 
-- Seeded verification entry or proof lane: `FleetGraph Demo Week - Review and Apply`
-- Route or URL: `Documents` -> `FleetGraph Demo Week - Review and Apply` -> `Review`
+- Seeded verification entry or proof lane: `FleetGraph Demo Week - Validation Ready`
+- Route or URL: `Documents` -> `FleetGraph Demo Week - Validation Ready` -> `Review`
 - Interaction: click `Preview next step`, then `Apply`
 - Expected result: the card previews `Validate week plan`, the result panel says `Week plan validated.`, and the review sidebar shows `Plan Validation` -> `Validated`
 - Failure signal: no visible review-state change, no inline result, or the same validation step is re-offered immediately
 
 ## User Checkpoint Test
 
-1. Open `FleetGraph Demo Week - Review and Apply`.
+1. Open `FleetGraph Demo Week - Validation Ready`.
 2. Switch to the `Review` tab.
 3. Click `Preview next step`, then `Apply`.
 4. Confirm the result panel says `Week plan validated.` and the `Plan Validation` control shows `Validated`.
@@ -158,7 +158,7 @@ git diff --check
 
 ## What To Test
 
-- Route or URL: `Documents` -> `FleetGraph Demo Week - Review and Apply` -> `Review`
+- Route or URL: `Documents` -> `FleetGraph Demo Week - Validation Ready` -> `Review`
 - Interaction: preview the next step, apply it, then preview again
 - Expected visible result: FleetGraph previews `Validate week plan`, the review page visibly flips to `Validated`, and the repeated preview is suppressed
 - Failure signal: the result is not visible on the review page, or FleetGraph keeps offering the same validation step

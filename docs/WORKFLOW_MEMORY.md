@@ -18,7 +18,7 @@ Use this file as durable working memory for recurring corrections, decisions, an
   Meaning: before editing a story file or implementation, switch to a fresh `codex/` branch from current `master` for that story; when the story is complete, use the default finalization flow to merge it back to `master` unless the user explicitly pauses or an exact blocker is recorded.
 - Queue-first story selection is the default.
   Source: post-`US-913` user correction
-  Meaning: use `docs/user-stories/README.md` as the shared queue, but do not require active-work tracking, queue-truth preflights, inline agent-launch prompts, or merge-lock coordination just to keep story work moving.
+  Meaning: use `docs/user-stories/README.md` as the shared queue and keep the harness low-ceremony so story work can move without extra coordination-only workflow layers.
 - Railway demo deploys should follow the real platform path.
   Source: post-`US-602` correction
   Meaning: when the demo already auto-deploys from `master`, do not add a manual Railway deploy attempt to the default closeout flow unless the story is about deployment itself or the user explicitly asks for a manual refresh.

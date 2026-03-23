@@ -62,11 +62,11 @@ context = Path("docs/CONTEXT.md").read_text(encoding="utf-8")
 memory = Path("docs/WORKFLOW_MEMORY.md").read_text(encoding="utf-8")
 errors: list[str] = []
 
-for token in ("primary checked-in rulebook", "docs/user-stories/README.md", ".claude/CLAUDE.md"):
+for token in ("primary checked-in rulebook", "docs/user-stories/README.md", ".claude/CLAUDE.md", "copy-paste prompt"):
     if token not in agents:
         errors.append(f"AGENTS.md missing '{token}'")
 
-for token in ("AGENTS.md", "docs/WORKFLOW_MEMORY.md", "docs/user-stories/README.md", "docs/plans/", "docs/submissions/"):
+for token in ("AGENTS.md", "docs/WORKFLOW_MEMORY.md", "docs/user-stories/README.md", "docs/plans/", "docs/submissions/", "copy-paste prompt"):
     if token not in strategy:
         errors.append(f"docs/IMPLEMENTATION_STRATEGY.md missing '{token}'")
 
@@ -97,7 +97,7 @@ guide = Path("docs/user-stories/HOW_TO_CREATE_USER_STORIES.md").read_text(encodi
 done = Path("docs/DEFINITION_OF_DONE.md").read_text(encoding="utf-8")
 errors: list[str] = []
 
-for token in ("master queue", "TEMPLATE.md", "HOW_TO_CREATE_USER_STORIES.md", "CHECKPOINT-LOG.md", "phase-1/", "phase-2/", "phase-3/", "phase-x/"):
+for token in ("master queue", "TEMPLATE.md", "HOW_TO_CREATE_USER_STORIES.md", "CHECKPOINT-LOG.md", "phase-1/", "phase-2/", "phase-3/", "phase-x/", "copy-paste prompt"):
     if token not in queue:
         errors.append(f"docs/user-stories/README.md missing '{token}'")
 
@@ -105,11 +105,11 @@ for token in ("Preparation Phase", "TDD Plan", "Local Validation", "Deployment H
     if token not in template:
         errors.append(f"docs/user-stories/TEMPLATE.md missing '{token}'")
 
-for token in ("TEMPLATE.md", "docs/DEFINITION_OF_DONE.md", "Preparation Phase", "checkpoint log"):
+for token in ("TEMPLATE.md", "docs/DEFINITION_OF_DONE.md", "Preparation Phase", "checkpoint log", "copy-paste prompt"):
     if token not in guide:
         errors.append(f"docs/user-stories/HOW_TO_CREATE_USER_STORIES.md missing '{token}'")
 
-for token in ("Story scope", "Deployment status", "User-facing verification"):
+for token in ("Story scope", "Deployment status", "User-facing verification", "copy-paste prompt"):
     if token not in done:
         errors.append(f"docs/DEFINITION_OF_DONE.md missing '{token}'")
 

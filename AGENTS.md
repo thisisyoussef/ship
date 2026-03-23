@@ -34,6 +34,9 @@ Load context in this order before making non-trivial changes:
 - Every new user story starts by checking out a fresh `codex/` branch from current `master` before editing the story file or implementation.
 - Parallel branch-based work by multiple agents is expected. Keep one concern per branch and do not piggyback a new concern on another in-flight branch unless the user explicitly asks for stacked work.
 - Record any sibling-branch dependency or required merge order in the active story when the work is not independent.
+- When the user asks to continue, choose the next story, or create a new story, explicitly say whether another checked-in story can run in parallel right now.
+- If a parallel lane exists, name the recommended story ID and provide a ready-to-send copy-paste prompt inline in chat for the other agent. Do not create a prompt file unless the user explicitly asks for one.
+- If no additional queued story is unblocked for parallel work, say so plainly and name the blocking dependency or merge order reason.
 - Do a preparation pass before edits: inspect the relevant code, contracts, and local docs first.
 - Use TDD for behavior changes: red, green, refactor.
 - Record validation, deployment status, and checkpoint evidence in the story and checkpoint logs.

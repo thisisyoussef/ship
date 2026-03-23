@@ -27,9 +27,10 @@ describe('FleetGraph polish audit docs', () => {
     expect(inspectionGuide).toContain('Week start drift: FleetGraph Demo Week - Worker Generated');
     expect(demoScript).toContain('FleetGraph Demo Week - One Story');
     expect(demoScript).toContain('Detection -> graph -> decision -> human step -> result');
-    expect(demoScript).toContain('https://smith.langchain.com/public/019d18d1-3d4c-7018-b282-710da7ec0f2a/r');
-    expect(demoScript).toContain('https://smith.langchain.com/public/019d18c8-23ae-76a2-ae68-955a3e1d163d/r');
-    expect(demoScript).toContain('https://smith.langchain.com/public/019d18c7-382b-73f8-9a62-5cdc176254df/r');
+    expect(demoScript).toContain('019d18d1-3d4c-7018-b282-710da7ec0f2a');
+    expect(demoScript).toContain('019d18c8-23ae-76a2-ae68-955a3e1d163d');
+    expect(demoScript).toContain('019d18c7-382b-73f8-9a62-5cdc176254df');
+    expect(demoScript).toContain('click `Share`, and use the returned public URL');
   });
 
   it('records the seeded-but-blocked unassigned-issues public-demo lane truthfully', () => {

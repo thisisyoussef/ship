@@ -36,16 +36,17 @@ Use this immediately after the hook:
 - Project: `FleetGraph Demo Project`
 - Story sprint: `FleetGraph Demo Week - One Story`
 - Story finding: `Week start drift: FleetGraph Demo Week - One Story`
-- Proactive trace tab for the live one-story sweep: `https://smith.langchain.com/public/019d18d1-3d4c-7018-b282-710da7ec0f2a/r`
-- Guided-step trace tab for the matching review-tab approval branch: `https://smith.langchain.com/public/019d18c8-23ae-76a2-ae68-955a3e1d163d/r`
-- Analysis trace tab for the matching review-tab follow-up branch: `https://smith.langchain.com/public/019d18c7-382b-73f8-9a62-5cdc176254df/r`
+- Proactive root trace ID for the live one-story sweep: `019d18d1-3d4c-7018-b282-710da7ec0f2a`
+- Guided-step root trace ID for the matching review-tab approval branch: `019d18c8-23ae-76a2-ae68-955a3e1d163d`
+- Analysis root trace ID for the matching review-tab follow-up branch: `019d18c7-382b-73f8-9a62-5cdc176254df`
+- LangSmith publish step: open each root trace in `ship-fleetgraph`, click `Share`, and use the returned public URL in the browser tabs before recording. Do not hand-build `https://smith.langchain.com/public/<id>/r`.
 
 ## Pre-Recording Checklist
 
 - [ ] Log out of Ship so the video starts from a clean login.
 - [ ] Confirm `FleetGraph Demo Week - One Story` is visible in `Documents`.
 - [ ] Confirm the proactive panel on that sprint shows `Week start drift: FleetGraph Demo Week - One Story`.
-- [ ] Open the proactive, guided-step, and analysis public LangSmith traces in separate tabs before recording.
+- [ ] Open the proactive, guided-step, and analysis root traces in LangSmith, click `Share` on each root trace, and open the returned public URLs in separate tabs before recording.
 - [ ] If Railway has not picked up the new story lane yet, wait for the post-merge auto-deploy instead of improvising a different video path.
 
 ## Script

@@ -227,15 +227,15 @@ FleetGraph should use a hybrid trigger model:
 
 ## Test Cases
 
-This table matches the implemented scenario selection and the shared-trace evidence we actually have today. Where a public LangSmith URL has not been captured yet, the gap is stated explicitly instead of being replaced with a non-trace proof link.
+I refreshed this table against live `ship-fleetgraph` LangSmith CLI data on March 22, 2026 and March 23, 2026 UTC. Rows 1, 4, and 5 link to shared `fleetgraph.runtime` root traces. Rows 2 and 3 link to shared scenario-level `fleetgraph.run` traces captured inside the same March 23 proactive sweep, because the root ranking still selected `week_start_drift` as the top proactive outcome for that workspace state.
 
 | # | Ship State | Expected Output | Trace Link |
 |---|------------|-----------------|------------|
-| 1 | A scheduled sweep finds the earliest non-completed week whose calculated start date has passed and that week is still `planning`, or has reached its start window with `issue_count = 0`. | A persisted `week_start_drift` finding titled `Week start drift: ...`, with evidence about the passed start date, week state, and current owner state, plus a human-gated `Start week` action. | [worker proactive trace](https://smith.langchain.com/public/d5f1a274-6f81-4c42-b8be-924791429323/r) |
-| 2 | A scheduled sweep finds the earliest `planning` or `active` week whose calculated start date has passed and `owner === null`. | A persisted `sprint_no_owner` finding titled `Sprint owner gap: ...`, with accountability evidence and a human-gated `Assign sprint owner` action. | No public shared LangSmith trace has been captured yet for a `sprint_no_owner` run. |
-| 3 | A scheduled sweep finds an eligible `active` or `planning` week whose calculated start date has passed and at least 3 sprint issues have `assignee_id === null`. | A persisted `unassigned_sprint_issues` finding titled `{n} unassigned issues in ...`, with count/context evidence and advisory `Assign sprint issues` guidance for a human follow-up decision. | No public shared LangSmith trace has been captured yet for an `unassigned_sprint_issues` run. |
-| 4 | `POST /api/fleetgraph/entry` runs from a current document surface with `mode: on_demand`, document context present, and a validated `requestedAction` in the draft payload. | An `approval_required` preview on the entry thread, showing the requested action title, summary, evidence, and `Apply` / `Dismiss` / `Snooze` choices before any Ship mutation runs. | [approval-preview trace](https://smith.langchain.com/public/e969f90a-ef5a-45e5-bded-9d6de7233311/r) |
-| 5 | `POST /api/fleetgraph/entry` runs from a current document surface with `mode: on_demand`, document context present, and no `requestedAction`. | An `on_demand_analysis` run that fetches the document plus one-hop children, reasons over current page state, returns narrative analysis plus structured findings, and can request deeper context for follow-up turns. | No public shared LangSmith trace has been captured yet for the FAB/current-page analysis handoff. |
+| 1 | A scheduled sweep finds the earliest non-completed week whose calculated start date has passed and that week is still `planning`, or has reached its start window with `issue_count = 0`. | A persisted `week_start_drift` finding titled `Week start drift: ...`, with evidence about the passed start date, week state, and current owner state, plus a human-gated `Start week` action. | [proactive sweep root trace](https://smith.langchain.com/public/019d18d7-746e-74e8-b2c9-01ed0e002d4a/r) |
+| 2 | A scheduled sweep finds the earliest `planning` or `active` week whose calculated start date has passed and `owner === null`. | A persisted `sprint_no_owner` finding titled `Sprint owner gap: ...`, with accountability evidence and a human-gated `Assign sprint owner` action. | [sprint owner scenario trace](https://smith.langchain.com/public/019d18d7-7f06-7000-8000-03b54e455d91/r) |
+| 3 | A scheduled sweep finds an eligible `active` or `planning` week whose calculated start date has passed and at least 3 sprint issues have `assignee_id === null`. | A persisted `unassigned_sprint_issues` finding titled `{n} unassigned issues in ...`, with count/context evidence and a human-gated `Assign sprint issues` review/apply path that requires an assignee selection before execution. | [unassigned issues scenario trace](https://smith.langchain.com/public/019d18d7-81b2-7000-8000-00a127321df1/r) |
+| 4 | `POST /api/fleetgraph/entry` runs from a current document surface with `mode: on_demand`, document context present, and a validated `requestedAction` in the draft payload. | An `approval_required` preview on the entry thread, showing the requested action title, summary, evidence, and `Apply` / `Dismiss` / `Snooze` choices before any Ship mutation runs. | [approval-preview root trace](https://smith.langchain.com/public/019d18cb-c732-724f-9e62-85f95733e600/r) |
+| 5 | `POST /api/fleetgraph/entry` runs from a current document surface with `mode: on_demand`, document context present, and no `requestedAction`. | An `on_demand_analysis` run that fetches the document plus one-hop children, reasons over current page state, returns narrative analysis plus structured findings, and can request deeper context for follow-up turns. | [on-demand analysis root trace](https://smith.langchain.com/public/019d18ca-6e09-7168-859f-1381c196316b/r) |
 
 ## Tuesday MVP Evidence
 
@@ -260,9 +260,12 @@ This table matches the implemented scenario selection and the shared-trace evide
   - `docs/evidence/screenshots/fleetgraph-review-apply-live.png`
   - `docs/evidence/screenshots/fleetgraph-approval-preview-live.png`
   - `docs/evidence/screenshots/fleetgraph-worker-generated-live.png`
-- Shared trace links showing different execution paths:
-  - Proactive worker advisory path: [worker trace](https://smith.langchain.com/public/d5f1a274-6f81-4c42-b8be-924791429323/r)
-  - On-demand guided-step path: [approval-preview trace](https://smith.langchain.com/public/e969f90a-ef5a-45e5-bded-9d6de7233311/r)
+- Shared trace links showing different execution paths, refreshed from live LangSmith CLI data on March 23, 2026 UTC:
+  - Proactive sweep root path: [worker trace](https://smith.langchain.com/public/019d18d7-746e-74e8-b2c9-01ed0e002d4a/r)
+  - Proactive sprint-owner path: [sprint owner trace](https://smith.langchain.com/public/019d18d7-7f06-7000-8000-03b54e455d91/r)
+  - Proactive unassigned-issues path: [unassigned issues trace](https://smith.langchain.com/public/019d18d7-81b2-7000-8000-00a127321df1/r)
+  - On-demand analysis path: [analysis trace](https://smith.langchain.com/public/019d18ca-6e09-7168-859f-1381c196316b/r)
+  - On-demand guided-step path: [approval-preview trace](https://smith.langchain.com/public/019d18cb-c732-724f-9e62-85f95733e600/r)
 
 - Tuesday MVP slice shipped:
   - one proactive week-start drift detection wired end to end
@@ -308,33 +311,35 @@ That split is more operationally involved than embedding everything in the API p
 | OpenAI API - input tokens | about 5,386 input tokens in the captured Tuesday evidence window |
 | OpenAI API - output tokens | about 924 output tokens in the captured Tuesday evidence window |
 | Total invocations during development | 9 `fleetgraph.llm.generate` invocations in the captured Tuesday evidence window |
-| Total development spend | about $0.0032 on `gpt-5-mini` pricing for the captured Tuesday evidence window |
+| Total development spend | about $0.0014 in OpenAI API-equivalent cost at the live traced `gpt-4o-mini` rate for the captured Tuesday evidence window |
 
 Observed live trace totals for the Tuesday evidence window (`2026-03-17T12:02:20Z` to `2026-03-17T12:32:47Z`):
 
+- I re-queried the `ship-fleetgraph` LangSmith project through the LangSmith CLI on March 22, 2026 and March 23, 2026 UTC and confirmed the Tuesday workbook totals still match the recorded evidence window exactly.
 - `fleetgraph.runtime` root traces: 13
 - `fleetgraph.llm.generate` child invocations: 9
 - Total tokens recorded on child runs: 6,310
 - Average tokens per `fleetgraph.llm.generate` invocation: about 701
-- Public worker trace proof: the shared proactive trace records a single `fleetgraph.llm.generate` span with 552 total tokens on `gpt-5-mini`
-- Trace limitation: the public LangSmith run payload exposes `outputs.total_tokens`, but not populated `prompt_tokens`, `completion_tokens`, or `total_cost` fields for these runs, so the input/output split above is estimated from the same FleetGraph proactive/on-demand prompt mix used elsewhere in this workbook
+- Current live model proof: the March 23 public LangSmith refresh traces show the Railway demo executing `gpt-4o-mini-2024-07-18` today, even though `api/src/services/fleetgraph/llm/factory.ts` still defaults to `gpt-5-mini` when `FLEETGRAPH_OPENAI_MODEL` is unset
+- Trace limitation: the Tuesday LangSmith payloads still expose `outputs.total_tokens`, but not populated `prompt_tokens`, `completion_tokens`, or `total_cost` fields for that window, so the input/output split above remains an estimated reuse of the same proactive/on-demand prompt mix used elsewhere in this workbook
 
 ### Production Cost Projections
 
 | Users | Monthly Cost |
 |-------|--------------|
-| 100 | about $2.34 |
-| 1,000 | about $23.43 |
-| 10,000 | about $234.27 |
+| 100 | about $1.00 |
+| 1,000 | about $10.00 |
+| 10,000 | about $99.99 |
 
 Assumptions:
 - Preferred default provider: OpenAI
-- Preferred default model: `gpt-5-mini`
+- Current live traced deployment model: `gpt-4o-mini`
+- Repo fallback default when unset: `gpt-5-mini`
 - Proactive runs per project per day: about 6 after debounce and thresholding
 - On-demand invocations per user per day: about 0.7
 - Active project assumption: about 1 project per 4 users
 - Average tokens per invocation: about 701 based on the LangSmith Tuesday evidence window
-- Cost per run: about $0.000355 using `gpt-5-mini` pricing and the same estimated 85.4% input / 14.6% output token mix
+- Cost per run: about $0.0001515 using current `gpt-4o-mini` pricing and the same estimated 85.4% input / 14.6% output token mix
 - Estimated runs per day:
   - 100 users: about 220
   - 1,000 users: about 2,200

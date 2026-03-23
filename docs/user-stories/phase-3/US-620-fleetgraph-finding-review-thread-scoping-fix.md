@@ -6,7 +6,7 @@
 - Owner: Codex
 - Depends on: `US-618`
 - Related branch: `codex/us-620-finding-review-thread-scoping-fix`
-- Related commit/PR: `pending finalization`
+- Related commit/PR: `0d40756`, [PR #179](https://github.com/thisisyoussef/ship/pull/179)
 - Target environment: `local first`, `Railway demo via merged master`
 
 ## Persona

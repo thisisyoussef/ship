@@ -6,8 +6,6 @@
 - Owner: Codex
 - Depends on: `US-612`
 - Related branch: `codex/us-613-panel-gradient-removal`
-- Active worktree: `/Users/youss/Development/gauntlet/ship-us-613`
-- Parallel dependency / merge order: Refreshed from latest `master` before finalization after `US-911` landed; no remaining sibling-branch dependency is required for merge.
 - Related commit/PR: implementation `4a76596`, [PR #168](https://github.com/thisisyoussef/ship/pull/168), merged to `master` as `560b7d2`
 - Target environment: `local first`, `Railway demo via merged master`
 

@@ -10,7 +10,6 @@ cd "${ROOT_DIR}"
 
 fail() {
   echo "ERROR: $1" >&2
-  echo "Merge coordination: see docs/guides/merge-coordination.md" >&2
   echo "Recovery: see docs/guides/finalization-recovery.md" >&2
   exit 1
 }
@@ -31,12 +30,6 @@ fi
 if [[ -n "$(git status --porcelain)" ]]; then
   fail "working tree is not clean; commit/stash/discard local changes first"
 fi
-
-if ! merge_lock_output="$(bash scripts/merge_lock.sh assert-held --branch "${branch_name}" 2>&1)"; then
-  fail "${merge_lock_output}"
-fi
-
-echo "${merge_lock_output}"
 
 if ! git rev-parse --abbrev-ref --symbolic-full-name @{u} >/dev/null 2>&1; then
   fail "no upstream tracking branch configured for '${branch_name}'"

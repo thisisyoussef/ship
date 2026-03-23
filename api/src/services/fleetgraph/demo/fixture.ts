@@ -472,17 +472,17 @@ export async function ensureFleetGraphDemoProofLane(
     title: FLEETGRAPH_DEMO_WEEK_TITLE,
   })
   const validationWeekId = await ensureDemoWeek(queryable, input, projectId, {
-    plan: 'Use the review tab to test FleetGraph plan validation on a week that is ready but not yet validated.',
+    plan: 'Use the Review tab to test the guided overlay approval step, then use the separate FAB for current-page follow-up analysis.',
     sprintNumber: input.currentSprintNumber,
     status: 'active',
-    successCriteria: 'The public demo shows an unvalidated review tab where FleetGraph can validate the week plan.',
+    successCriteria: 'The public demo shows an unvalidated review tab where FleetGraph can validate the week plan from the overlay and continue analysis in the FAB.',
     title: FLEETGRAPH_DEMO_VALIDATION_WEEK_TITLE,
   })
   const storyWeekId = await ensureDemoWeek(queryable, input, projectId, {
-    plan: 'Start the week from the proactive FleetGraph finding, then stay on the same sprint to analyze the review tab and validate the week plan.',
+    plan: 'Start the week from the proactive FleetGraph finding, then stay on the same sprint so the Review tab can surface guided approval while the FAB handles follow-up analysis.',
     sprintNumber: input.currentSprintNumber,
     status: 'planning',
-    successCriteria: 'The public demo tells one continuous FleetGraph story on a single sprint: detect drift, pause for human approval, then use on-demand analysis and guided validation on the same page.',
+    successCriteria: 'The public demo tells one continuous FleetGraph story on a single sprint: detect drift, pause for human approval, then use the Review-tab guided overlay plus the FAB analysis thread on the same page.',
     title: FLEETGRAPH_DEMO_STORY_WEEK_TITLE,
   })
   const ownerGapWeekId = await ensureDemoWeek(queryable, input, projectId, {

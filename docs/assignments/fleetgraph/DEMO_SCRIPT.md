@@ -36,15 +36,16 @@ Use this immediately after the hook:
 - Project: `FleetGraph Demo Project`
 - Story sprint: `FleetGraph Demo Week - One Story`
 - Story finding: `Week start drift: FleetGraph Demo Week - One Story`
-- Proactive trace tab: `https://smith.langchain.com/public/d5f1a274-6f81-4c42-b8be-924791429323/r`
-- Approval-preview trace tab: `https://smith.langchain.com/public/e969f90a-ef5a-45e5-bded-9d6de7233311/r`
+- Proactive trace tab for the live one-story sweep: `https://smith.langchain.com/public/019d18d1-3d4c-7018-b282-710da7ec0f2a/r`
+- Guided-step trace tab for the matching review-tab approval branch: `https://smith.langchain.com/public/019d18c8-23ae-76a2-ae68-955a3e1d163d/r`
+- Analysis trace tab for the matching review-tab follow-up branch: `https://smith.langchain.com/public/019d18c7-382b-73f8-9a62-5cdc176254df/r`
 
 ## Pre-Recording Checklist
 
 - [ ] Log out of Ship so the video starts from a clean login.
 - [ ] Confirm `FleetGraph Demo Week - One Story` is visible in `Documents`.
 - [ ] Confirm the proactive panel on that sprint shows `Week start drift: FleetGraph Demo Week - One Story`.
-- [ ] Open both public LangSmith traces in separate tabs before recording.
+- [ ] Open the proactive, guided-step, and analysis public LangSmith traces in separate tabs before recording.
 - [ ] If Railway has not picked up the new story lane yet, wait for the post-merge auto-deploy instead of improvising a different video path.
 
 ## Script
@@ -115,7 +116,7 @@ Use this immediately after the hook:
 
 "Now the result is visible in Ship itself. The week has been started, and the original finding clears because the condition that triggered it is gone."
 
-### 7. Stay on the same sprint for on-demand mode
+### 7. Stay on the same sprint for review-tab guidance
 
 **[Switch to the `Review` tab on the same sprint]**
 
@@ -125,49 +126,59 @@ Use this immediately after the hook:
 
 "FleetGraph checks the new page context automatically. When there is a meaningful next step, it surfaces that guidance in a floating overlay without making me hunt for it."
 
-### 8. Show current-page analysis
+**[Briefly note that the embedded entry card is gone]**
+
+"That split matters. The embedded entry card is gone, the overlay owns guided approval steps, and the FAB is now the separate analysis surface."
+
+### 8. Show the graph and trace for the review-tab approval branch
 
 **[Wait for the overlay to surface `Validate week plan`]**
 
-"Here the next guided action is already ready. FleetGraph can see the document I’m on, the route surface, and the related review state, so it previews the consequential next step immediately."
+"Here the next guided step is already ready. FleetGraph can see the document I’m on, the route surface, and the related review state, so it previews the consequential next step immediately."
 
-**[Open the FAB]**
+**[Switch to the guided-step LangSmith trace tab]**
 
-"The FAB is now the separate analysis surface. This is not a generic chatbot answer. It is analysis tied to this exact sprint review."
+"This public trace shows the same review-tab approval branch FleetGraph uses when it pauses on `Validate week plan`. The important proof is the branch: current page context in, approval-required decision out, and no mutation until a human resumes the graph."
 
-**[Ask a short follow-up such as `What else should I do here?`]**
+**[Point to `approval_interrupt` and the requested action details]**
 
-"And because it keeps the same thread, I can ask a follow-up without losing that page context."
+"So again, the graph is observable and the safety boundary is explicit."
 
-### 9. Show guided next step on the same page
+**[Return to Ship]**
 
-**[Return attention to the overlay]**
-
-"The guided step is separate from the chat now. FleetGraph surfaced it automatically when the page became relevant, but it still pauses before it executes anything."
+### 9. Apply the guided step and show the visible result
 
 **[Point to `Validate week plan`]**
 
-"In this case, it proposes validating the week plan, and it tells me exactly where I’ll see the result on the current page."
+"In this case, FleetGraph proposes validating the week plan, and it tells me exactly where I’ll see the result on the current page."
 
-### 10. Show the graph and trace for the approval preview path
-
-**[Switch to the approval-preview LangSmith trace tab]**
-
-"This is the matching approval-preview graph path. Again, the goal is traceability: we can see how the graph reached an approval-required decision from the current page context."
-
-**[Point out that the run pauses instead of auto-applying]**
-
-"The graph pauses for confirmation instead of acting on its own, which is the same safety boundary we saw in proactive mode."
-
-### 11. Apply the guided action and show the final visible result
-
-**[Return to Ship and click `Apply`]**
+**[Click `Apply`]**
 
 "I’ll approve this guided step too."
 
 **[Wait for the overlay result and the page refresh]**
 
 "Now FleetGraph shows the action result in the overlay, and the page itself updates. `Plan Validation` now shows `Validated`, so the reviewer can see the outcome directly in Ship."
+
+### 10. Show current-page analysis in the separate FAB
+
+**[Open the FAB]**
+
+"The FAB is the separate analysis surface. This is where I can ask follow-up questions without losing the page context FleetGraph already has."
+
+**[Ask a short follow-up such as `What else should I do here?`]**
+
+"I’m not looking for a canned answer here. I’m checking that the response stays grounded in this review page and that the thread keeps its context."
+
+### 11. Show the graph and trace for the current-page analysis branch
+
+**[Switch to the analysis LangSmith trace tab]**
+
+"This public trace is the matching current-page analysis branch. It shows the same document-context path, the reasoning turn, and the follow-up staying on the same analysis thread."
+
+**[Point out the repeated `on_demand_analysis` path and conversation history]**
+
+"That matters because the demo is not just a one-shot answer. It proves FleetGraph can stay useful after the proactive fix and keep reasoning from the page I’m already on."
 
 ### 12. Wrap up
 

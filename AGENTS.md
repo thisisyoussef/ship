@@ -22,6 +22,7 @@ Load context in this order before making non-trivial changes:
 - Build by checked-in story, not by chat memory.
 - Treat `docs/user-stories/README.md` as the master queue and dependency graph.
 - Use the active story file as the execution contract for scope, prep, tests, validation, deploy, and proof.
+- Treat `master` as the shared integration trunk. Parallel story branches may be active at the same time; do not assume exclusive ownership of the repo.
 - Keep `docs/CONTEXT.md` current when live environment truth changes.
 - Keep `docs/WORKFLOW_MEMORY.md` current when recurring corrections, decisions, or reusable patterns should persist across stories.
 - Keep `docs/IMPLEMENTATION_STRATEGY.md` current when the broad roadmap or phase order changes.
@@ -30,8 +31,9 @@ Load context in this order before making non-trivial changes:
 
 ## Story Rules
 
-- Every new user story starts by checking out a fresh `codex/` branch before editing the story file or implementation.
-- Keep one concern per branch.
+- Every new user story starts by checking out a fresh `codex/` branch from current `master` before editing the story file or implementation.
+- Parallel branch-based work by multiple agents is expected. Keep one concern per branch and do not piggyback a new concern on another in-flight branch unless the user explicitly asks for stacked work.
+- Record any sibling-branch dependency or required merge order in the active story when the work is not independent.
 - Do a preparation pass before edits: inspect the relevant code, contracts, and local docs first.
 - Use TDD for behavior changes: red, green, refactor.
 - Record validation, deployment status, and checkpoint evidence in the story and checkpoint logs.
@@ -41,6 +43,7 @@ Load context in this order before making non-trivial changes:
 ## Validation Rules
 
 - Run the story-specific validation commands listed in the active story.
+- If another branch lands on `master` while the story is in flight, refresh from latest `master` and rerun the story-specific validation commands before finalization.
 - Run `git diff --check` before handoff.
 - If the change touches the agent harness contract, run `bash scripts/check_ai_wiring.sh`.
 - If the story changes visible behavior, include a user-facing verification checklist with exact routes and expected results.
@@ -63,7 +66,10 @@ Load context in this order before making non-trivial changes:
 ## Finalization Default
 
 - Once the requested work is complete, default to the full GitHub flow automatically: commit the branch, push it, open a PR, merge it to `master`, sync local `master`, and delete the branch unless the user explicitly asks to pause finalization or use a different merge path.
+- Merge each story branch independently. Do not batch unrelated agent branches together or reuse a sibling branch just because it already exists.
+- Before opening or merging the PR, ensure the branch is current with `master`; if sibling branches landed first, rebase or merge `master`, resolve conflicts, rerun validation, then continue the default GitHub flow.
 - Treat merge-to-`master` as the default end of the story branch lifecycle; if that merge does not happen, record the exact blocker instead of silently leaving the story branch open.
+- If another in-flight branch must land first, keep this branch open only long enough to record the exact dependency, refresh from the new `master`, and complete the merge flow afterward.
 - If GitHub tooling or auth is unavailable, report the exact blocker instead of stopping at a vague “ready to merge” handoff.
 
 ## Maintenance Rule

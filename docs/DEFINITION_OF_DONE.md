@@ -9,12 +9,14 @@ All items should be complete before the story is marked `done`.
 - [ ] Story status is updated in the story file and the relevant checkpoint log.
 - [ ] The master queue in `docs/user-stories/README.md` reflects the latest status.
 - [ ] Branch, commit SHA, and review reference are recorded where the story expects them.
+- [ ] Any sibling-branch dependency or merge order was recorded when parallel work existed.
 
 ## Engineering Validation
 
 - [ ] Preparation notes were completed before implementation.
 - [ ] Tests required by the story were written or updated.
 - [ ] Story-specific validation commands passed, or an explicit blocker/exception is recorded.
+- [ ] If sibling branches landed first, the branch was refreshed from latest `master` and story validation was rerun before merge.
 - [ ] `git diff --check` passed.
 - [ ] `bash scripts/check_ai_wiring.sh` passed when the harness contract changed.
 

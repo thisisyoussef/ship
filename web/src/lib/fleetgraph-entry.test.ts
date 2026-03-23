@@ -130,6 +130,32 @@ describe('buildFleetGraphEntryPayload', () => {
     )
   })
 
+  it('accepts nullable belongs_to color metadata from live document context payloads', () => {
+    const context = createContext('weekly_plan')
+    context.belongs_to[0] = {
+      ...context.belongs_to[0],
+      color: null,
+    }
+
+    const payload = buildFleetGraphEntryPayload({
+      context,
+      document: {
+        documentType: 'weekly_plan',
+        id: DOCUMENT_ID,
+        title: 'Alice plan',
+        workspaceId: WORKSPACE_ID,
+      },
+      userId: USER_ID,
+    }, true)
+
+    expect(payload.context.belongs_to[0]).toMatchObject({
+      color: null,
+      id: PROJECT_ID,
+      type: 'project',
+    })
+    expect(payload.draft?.requestedAction?.type).toBe('approve_week_plan')
+  })
+
   it('does not create a validation action when the sprint review already shows the plan as validated', () => {
     const payload = buildFleetGraphEntryPayload({
       activeTab: 'review',

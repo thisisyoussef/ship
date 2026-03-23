@@ -239,6 +239,21 @@ function createEntryPayloadWithNullableProgramContext() {
   }
 }
 
+function createEntryPayloadWithNullableBelongsToColor() {
+  const payload = createEntryPayload()
+  return {
+    ...payload,
+    context: {
+      ...payload.context,
+      belongs_to: payload.context.belongs_to.map((entry, index) => (
+        index === 0
+          ? { ...entry, color: null }
+          : entry
+      )),
+    },
+  }
+}
+
 describe('FleetGraph routes', () => {
   let app: express.Express
   const runtime = {
@@ -566,6 +581,16 @@ describe('FleetGraph routes', () => {
     const response = await request(app)
       .post('/api/fleetgraph/entry')
       .send(createEntryPayloadWithNullableProgramContext())
+
+    expect(response.status).toBe(200)
+    expect(response.body.run.outcome).toBe('advisory')
+    expect(response.body.entry.current.id).toBe(DOCUMENT_ID)
+  })
+
+  it('accepts nullable belongs_to metadata from the live document context payload', async () => {
+    const response = await request(app)
+      .post('/api/fleetgraph/entry')
+      .send(createEntryPayloadWithNullableBelongsToColor())
 
     expect(response.status).toBe(200)
     expect(response.body.run.outcome).toBe('advisory')

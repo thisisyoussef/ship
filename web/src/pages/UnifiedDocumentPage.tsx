@@ -22,6 +22,7 @@ import { FleetGraphFindingsPanel } from '@/components/FleetGraphFindingsPanel';
 import { FleetGraphPanelShell } from '@/components/FleetGraphPanelShell';
 import { useDocumentContextQuery } from '@/hooks/useDocumentContextQuery';
 import { useFleetGraphFindings } from '@/hooks/useFleetGraphFindings';
+import { useFleetGraphPageEntryInput } from '@/hooks/useFleetGraphPageEntryInput';
 import type { BelongsTo } from '@ship/shared';
 import {
   getTabsForDocument,
@@ -633,6 +634,23 @@ export function UnifiedDocumentPage() {
     return buildFleetGraphFindingDocumentIds(document.id, documentContextQuery.data);
   }, [document?.id, documentContextQuery.data]);
   const fleetGraphFindings = useFleetGraphFindings(fleetGraphDocumentIds);
+  const fleetGraphEntry = useFleetGraphPageEntryInput({
+    activeTab: activeTab || undefined,
+    context: documentContextQuery.data,
+    contextError: documentContextQuery.error instanceof Error ? documentContextQuery.error.message : undefined,
+    document: document
+      ? {
+          documentType: document.document_type,
+          id: document.id,
+          planApprovalState: getApprovalState(document.plan_approval),
+          title: document.title,
+          workspaceId: document.workspace_id,
+        }
+      : null,
+    loading: documentContextQuery.isLoading,
+    nestedPath,
+    userId: user?.id ?? null,
+  });
   const handleFleetGraphCheckCurrentContext = useCallback(() => {
     setFleetGraphFabLaunchKey((current) => current + 1);
   }, []);
@@ -681,27 +699,21 @@ export function UnifiedDocumentPage() {
           ownerOptions={fleetGraphOwnerOptions}
         />
         <FleetGraphEntryCard
-          activeTab={activeTab || undefined}
-          context={documentContextQuery.data}
-          contextError={documentContextQuery.error instanceof Error ? documentContextQuery.error.message : undefined}
-          document={{
-            documentType: document.document_type,
-            id: document.id,
-            planApprovalState: getApprovalState(document.plan_approval),
-            title: document.title,
-            workspaceId: document.workspace_id,
-          }}
-          loading={documentContextQuery.isLoading}
-          nestedPath={nestedPath}
+          helperText={fleetGraphEntry.helperText}
+          isActionDisabled={fleetGraphEntry.isActionDisabled}
           onCheckCurrentContext={handleFleetGraphCheckCurrentContext}
-          userId={user.id}
         />
       </FleetGraphPanelShell>
       <FleetGraphFab
+        activeTab={activeTab || undefined}
         documentId={document.id}
         documentTitle={document.title}
         documentType={document.document_type}
+        guidedActionsDisabled={fleetGraphEntry.isActionDisabled}
+        guidedEntry={fleetGraphEntry.entry}
+        guidedHelperText={fleetGraphEntry.helperText}
         launchRequestKey={fleetGraphFabLaunchKey}
+        nestedPath={nestedPath}
       />
       <FleetGraphDebugDock />
     </FleetGraphDebugSurfaceProvider>

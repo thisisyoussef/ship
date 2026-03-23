@@ -148,11 +148,13 @@ export function createUnassignedIssuesScenarioRunner(
       listWeeksTask(),
     ])
 
-    // Find active sprint (prefer 'active', fall back to 'planning') whose start date has passed
     const now = deps.now()
-    const activeSprint = findActiveSprint(weeks as ShipWeeksResponse, now)
+    const eligibleWeeks = listEligibleSprintWeeks(
+      excludePreservedDemoWeeks(weeks as ShipWeeksResponse, activeFindings),
+      now
+    )
 
-    if (!activeSprint) {
+    if (eligibleWeeks.length === 0) {
       const staleFindings = activeFindings.filter(
         (finding) =>
           finding.findingType === 'unassigned_sprint_issues'
@@ -169,12 +171,23 @@ export function createUnassignedIssuesScenarioRunner(
       return buildQuietResult()
     }
 
-    const issues = await listSprintIssuesTask(activeSprint.id)
-    const candidate = selectUnassignedIssuesCandidate(
-      excludePreservedDemoWeeks(weeks as ShipWeeksResponse, activeFindings),
-      issues,
-      now
-    )
+    let candidate: UnassignedIssuesCandidate | null = null
+
+    for (const week of eligibleWeeks) {
+      const issues = await listSprintIssuesTask(week.id)
+      candidate = selectUnassignedIssuesCandidate(
+        {
+          weeks: [week],
+          workspace_sprint_start_date: (weeks as ShipWeeksResponse).workspace_sprint_start_date,
+        },
+        issues,
+        now
+      )
+
+      if (candidate) {
+        break
+      }
+    }
 
     const candidateKey = candidate
       ? buildUnassignedIssuesFindingKey(state.workspaceId, candidate.week.id)
@@ -228,11 +241,11 @@ export function createUnassignedIssuesScenarioRunner(
   }
 }
 
-function findActiveSprint(
+function listEligibleSprintWeeks(
   weeks: ShipWeeksResponse,
   now: Date
-): { id: string } | null {
-  const eligible = weeks.weeks
+): ShipWeeksResponse['weeks'] {
+  return weeks.weeks
     .filter((week) => week.status !== 'completed')
     .map((week) => {
       const startDate = calculateWeekStartDate(
@@ -243,16 +256,19 @@ function findActiveSprint(
         return null
       }
       if (week.status === 'active' || week.status === 'planning') {
-        return { id: week.id, startDate, status: week.status }
+        return { startDate, status: week.status, week }
       }
       return null
     })
-    .filter((entry): entry is { id: string; startDate: Date; status: 'active' | 'planning' } => entry !== null)
+    .filter((entry): entry is {
+      startDate: Date
+      status: 'active' | 'planning'
+      week: ShipWeeksResponse['weeks'][number]
+    } => entry !== null)
     .sort((left, right) => {
       if (left.status === 'active' && right.status !== 'active') return -1
       if (right.status === 'active' && left.status !== 'active') return 1
       return left.startDate.getTime() - right.startDate.getTime()
     })
-
-  return eligible[0] ?? null
+    .map((entry) => entry.week)
 }

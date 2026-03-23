@@ -2,13 +2,13 @@
 
 ## Status
 
-- State: `in-progress`
+- State: `done`
 - Owner: Codex
 - Depends on: `US-612`
 - Related branch: `codex/us-613-panel-gradient-removal`
 - Active worktree: `/Users/youss/Development/gauntlet/ship-us-613`
-- Parallel dependency / merge order: Independent sidecar FleetGraph polish story; no sibling merge dependency is currently required.
-- Related commit/PR:
+- Parallel dependency / merge order: Refreshed from latest `master` before finalization after `US-911` landed; no remaining sibling-branch dependency is required for merge.
+- Related commit/PR: `4a76596`, [PR #168](https://github.com/thisisyoussef/ship/pull/168)
 - Target environment: `local first`, `Railway demo via merged master`
 
 ## Persona
@@ -99,9 +99,9 @@ Error path:
 
 ## Preconditions
 
-- [ ] Fresh story branch is checked out before edits begin
-- [ ] FleetGraph shell is visible on the current document page
-- [ ] Existing FleetGraph shell tests are passing before changes
+- [x] Fresh story branch is checked out before edits begin
+- [x] FleetGraph shell is visible on the current document page
+- [x] Existing FleetGraph shell tests are passing before changes
 
 ## TDD Plan
 
@@ -117,9 +117,9 @@ Error path:
 
 ## Acceptance Criteria
 
-- [ ] AC-1: The FleetGraph panel shell no longer uses a gradient background.
-- [ ] AC-2: Alert-state signaling remains visible and understandable.
-- [ ] AC-3: FleetGraph shell tests cover the flatter styling.
+- [x] AC-1: The FleetGraph panel shell no longer uses a gradient background.
+- [x] AC-2: Alert-state signaling remains visible and understandable.
+- [x] AC-3: FleetGraph shell tests cover the flatter styling.
 
 ## Local Validation
 
@@ -160,6 +160,14 @@ git diff --check
 
 ## Checkpoint Result
 
-- Outcome: `pending`
+- Outcome: `pass`
 - Evidence:
+  - Replaced the FleetGraph shell header gradients with flat amber and sky background tones while preserving the existing alert badge, icon treatment, and status pill for proactive signaling.
+  - Added a shell regression test that proves both alert and on-demand header states stay off gradient utility classes.
+  - Local validation passed after refreshing from latest `master`:
+    - `npx pnpm --filter @ship/web exec vitest run src/components/FleetGraphPanelShell.test.tsx src/pages/UnifiedDocumentPage.test.tsx`
+    - `npx pnpm --filter @ship/web exec tsc --noEmit`
+    - `git diff --check`
+  - Deployment status: `not deployed` from this branch; Railway demo verification is pending merged-`master` auto-deploy.
 - Residual risk:
+  - The live Railway demo still needs a quick visual check on `FleetGraph Demo Week - Validation Ready` after merge to confirm the flatter shell feels right in the seeded proof lane.

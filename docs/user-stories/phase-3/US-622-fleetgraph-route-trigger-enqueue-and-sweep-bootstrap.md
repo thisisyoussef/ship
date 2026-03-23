@@ -6,7 +6,7 @@
 - Owner: Codex
 - Depends on: `US-612`
 - Related branch: `codex/us-622-route-trigger-enqueue-sweep-bootstrap`
-- Related commit/PR: `pending finalization`
+- Related commit/PR: `eafca18`, [PR #182](https://github.com/thisisyoussef/ship/pull/182)
 - Target environment: `local first`, `Railway demo via merged master`
 
 ## Persona

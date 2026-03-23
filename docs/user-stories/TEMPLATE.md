@@ -85,6 +85,7 @@ Error path:
 
 - [ ] Fresh story branch is checked out from current `master` before edits begin
 - [ ] Any sibling-branch dependency or required merge order is recorded
+- [ ] If this story is active in parallel, the queue/Active Work visibility has landed on `master` or is being shipped as a separate docs-only correction now
 - [ ] Services/accounts exist
 - [ ] Secrets/config are present
 - [ ] Dependencies are healthy

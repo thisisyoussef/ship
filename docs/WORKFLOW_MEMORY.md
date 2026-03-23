@@ -25,6 +25,9 @@ Use this file as durable working memory for recurring corrections, decisions, an
 - Parallel-lane availability must be surfaced explicitly.
   Source: post-`US-908` user correction
   Meaning: when the user asks to continue, choose the next story, or create a story, explicitly say whether another checked-in story is unblocked for parallel work right now instead of leaving that inference implicit.
+- Active story ownership must be visible in the checked-in queue.
+  Source: post-`US-909` follow-up
+  Meaning: when a story is actually being worked on, mark it `in-progress` in the story file, root queue, and phase queue, and include the active owner, branch, and worktree path when one exists.
 - Copy-paste prompts for parallel agents stay in chat.
   Source: post-`US-908` user correction
   Meaning: when a parallel lane exists, include a ready-to-send prompt inline in the chat response for the other agent; do not create a prompt file unless the user explicitly asks.

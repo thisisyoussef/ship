@@ -24,7 +24,7 @@ Write stories that are executable, testable, and resumable from the repo alone.
 1. Create and switch to a fresh `codex/` branch from current `master` for the story before editing the story file or implementation.
 2. If other agent branches are already in flight, keep this story isolated and note any dependency or merge order in the story file.
 3. Copy `TEMPLATE.md` into the right phase folder.
-4. Fill status, ownership, dependencies, and target environment first.
+4. Fill status, ownership, dependencies, branch, and worktree fields first.
 5. Define persona, user story, goal, and scope.
 6. Make the dependency fields precise enough that a future agent can tell the user whether another checked-in story is parallel-safe or blocked.
 7. List the local files and contracts to audit before coding.
@@ -37,6 +37,7 @@ Write stories that are executable, testable, and resumable from the repo alone.
 14. If the story is used in a continue or next-step handoff, explicitly say whether another checked-in story can run in parallel now and provide a copy-paste prompt inline in chat when one exists.
 15. If sibling branches land first, refresh from latest `master`, rerun validation, and only then finalize the story branch.
 16. Update the relevant checkpoint log when the story advances or closes.
+17. As soon as implementation starts, update `docs/user-stories/README.md` and the relevant phase README so the story is visibly marked `in-progress` with its current owner, branch, and worktree path when applicable.
 
 ## Phase Folders
 

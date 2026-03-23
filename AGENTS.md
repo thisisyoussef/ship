@@ -79,3 +79,4 @@ Load context in this order before making non-trivial changes:
 ## Maintenance Rule
 
 - When the same correction or review note repeats, update `AGENTS.md` or the nearest story/harness doc so the fix persists.
+- Story ownership visibility is mandatory. As soon as a checked-in story is actively being worked on, update the story file, `docs/user-stories/README.md`, and the relevant phase README to show `in-progress` plus the current owner, branch, and worktree path when applicable. Do the same when a story becomes blocked, handed off, or done.

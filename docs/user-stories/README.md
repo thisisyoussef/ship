@@ -22,6 +22,14 @@ Work should resume from the repo by reading these files, not by reconstructing p
 12. Record outcome in the relevant checkpoint log.
 13. Finish the default GitHub flow by merging the story branch to `master` once it is current with latest `master`, unless the user explicitly pauses or an exact blocker is recorded.
 
+## Active Work
+
+Use this section to show stories that are actually in flight right now, including parallel-agent work that has not merged yet.
+
+| ID | State | Owner | Branch | Worktree | Notes |
+| --- | --- | --- | --- | --- | --- |
+| US-615 | `in-progress` | `parallel agent (user-assigned)` | `codex/us-615-assign-owner-review-apply-fresh` | `/Users/youss/Development/gauntlet/ship-us-615` | Assign-owner review/apply follow-through is actively being built on a separate lane. Refresh from latest `master` before it finalizes. |
+
 ## Story Index
 
 ### Phase 1: Core Ship Baseline
@@ -53,7 +61,7 @@ This phase will hold FleetGraph product and integration stories as the active pa
 | US-611 | FleetGraph unassigned sprint issues | `done` | P0 | `US-610` |
 | US-612 | FleetGraph assignment evidence refresh | `done` | P0 | `US-611` |
 | US-617 | FleetGraph entry nullable-context hardening | `todo` | P1 | `US-612` |
-| US-615 | FleetGraph assign-owner review/apply follow-through | `todo` | P1 | `US-612` |
+| US-615 | FleetGraph assign-owner review/apply follow-through | `in-progress` | P1 | `US-612` |
 | US-613 | FleetGraph panel gradient removal | `todo` | P2 | `US-612` |
 | US-614 | FleetGraph FAB guided-actions panel convergence | `todo` | P2 | `US-613` |
 | US-616 | FleetGraph assign-issues review/apply follow-through | `todo` | P2 | `US-614` |
@@ -95,7 +103,7 @@ This phase will hold FleetGraph product and integration stories as the active pa
 19. `US-611` restores the original assignment-critical `T605` lane by shipping the unassigned sprint issues use case.
 20. `US-612` restores the original assignment-critical `T606` lane by refreshing the workbook, traces, and audit path from shipped behavior.
 21. `US-617` hardens the embedded FleetGraph entry contract against live nullable document-context metadata so current-page entry actions stop failing with `/api/fleetgraph/entry` `400` errors on seeded proof lanes.
-22. `US-615` turns the shipped sprint-owner-gap advisory flow into a real FleetGraph review/apply path for assigning accountability in Ship once the assignment-critical lane is complete.
+22. `US-615` is currently in progress on a parallel branch and turns the shipped sprint-owner-gap advisory flow into a real FleetGraph review/apply path for assigning accountability in Ship once it lands.
 23. `US-613` removes the FleetGraph panel gradient after the assignment-critical sequence is complete, keeping the shell calmer without re-opening the core use-case work.
 24. `US-614` moves `Preview next step` plus the guided-actions portion of FleetGraph quick actions into the FAB as a dedicated guided-actions panel, while preserving the existing review/apply flow and behavior instead of turning it into a hard graph rewrite.
 25. `US-616` turns the shipped unassigned-issues advisory flow into a real FleetGraph review/apply path for closing the sprint coordination gap once the current tail stories are complete.

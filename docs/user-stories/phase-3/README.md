@@ -36,6 +36,6 @@ This folder holds FleetGraph assignment-gap stories plus the UX, reliability, de
 | US-615 | FleetGraph assign-owner review/apply follow-through | `done` | P1 | `US-612` |
 | US-619 | FleetGraph contract hardening sweep | `todo` | P1 | `US-617` |
 | US-618 | FleetGraph assign-owner picker follow-through | `todo` | P1 | `US-615` |
-| US-613 | FleetGraph panel gradient removal | `todo` | P2 | `US-612` |
+| US-613 | FleetGraph panel gradient removal | `done` | P2 | `US-612` |
 | US-614 | FleetGraph FAB guided-actions panel convergence | `todo` | P2 | `US-613` |
 | US-616 | FleetGraph assign-issues review/apply follow-through | `todo` | P2 | `US-614` |

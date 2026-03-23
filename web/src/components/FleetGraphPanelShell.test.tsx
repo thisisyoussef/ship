@@ -45,6 +45,26 @@ describe('FleetGraphPanelShell', () => {
     expect(screen.getByText('FleetGraph body')).toBeInTheDocument();
   });
 
+  it('uses flat header tones instead of gradients for alert and on-demand states', () => {
+    const { rerender } = renderShell({ activeFindingCount: 2 });
+
+    const alertButton = screen.getByRole('button', { name: /open fleetgraph panel/i });
+    expect(alertButton.className).toContain('bg-amber-50');
+    expect(alertButton.className).toContain('hover:bg-amber-100/80');
+    expect(alertButton.className).not.toContain('bg-gradient-to-r');
+
+    rerender(
+      <FleetGraphPanelShell activeFindingCount={0}>
+        <div>FleetGraph body</div>
+      </FleetGraphPanelShell>
+    );
+
+    const calmButton = screen.getByRole('button', { name: /open fleetgraph panel/i });
+    expect(calmButton.className).toContain('bg-sky-50/70');
+    expect(calmButton.className).toContain('hover:bg-sky-100/80');
+    expect(calmButton.className).not.toContain('bg-gradient-to-r');
+  });
+
   it('caps expanded content to the visible viewport height', async () => {
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
       bottom: 0,

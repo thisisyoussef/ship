@@ -1,16 +1,16 @@
 # AI Cost Analysis
 
-This document separates two different cost views so the numbers stay honest:
+I separated this write-up into two different cost views so the numbers stay honest:
 
-- actual development spend attributed from the seat plans you said you used
-- API-equivalent token math for the measured FleetGraph trace window
+- my attributed development spend from the seat plans I used
+- OpenAI API-equivalent token math for the measured FleetGraph trace window
 - production projections for the current FleetGraph model choice in this repo
 
-All pricing references below were checked on March 22, 2026 against the linked official pricing pages.
+I checked all pricing references below on March 22, 2026 against the linked official pricing pages.
 
 ## Development and Testing Costs
 
-Measured development evidence comes from the captured FleetGraph Tuesday window already recorded in the repo:
+I based the measured development evidence on the captured FleetGraph Tuesday window already recorded in the repo:
 
 - LangSmith project window: `2026-03-17T12:02:20Z` to `2026-03-17T12:32:47Z`
 - `fleetgraph.runtime` root traces: `13`
@@ -20,32 +20,35 @@ Measured development evidence comes from the captured FleetGraph Tuesday window 
 
 | Item | Amount |
 | --- | --- |
-| Claude API - input tokens | about `5,386` input tokens, or about `$0.0162` at Claude Sonnet 4.5 list pricing |
-| Claude API - output tokens | about `924` output tokens, or about `$0.0139` at Claude Sonnet 4.5 list pricing |
+| OpenAI API-equivalent input tokens | about `5,386` input tokens, or about `$0.0040` at `GPT-5.4 mini` list pricing |
+| OpenAI API-equivalent output tokens | about `924` output tokens, or about `$0.0042` at `GPT-5.4 mini` list pricing |
 | Total invocations during development | `9` measured `fleetgraph.llm.generate` invocations in the captured FleetGraph evidence window |
-| Claude API-equivalent total | about `$0.0300` for that measured trace window |
+| OpenAI API-equivalent total | about `$0.0082` for that measured trace window |
 | Claude Code Max attributed spend | about `$20.00`, using `10%` of Anthropic Max 20x at `$200/month` |
 | Codex attributed spend | about `$10.62`, using `23%` of one week of ChatGPT Pro at `$200/month ÷ 4.33 weeks` |
-| Total development spend | about `$30.62` in attributed seat cost for this assignment slice |
+| Total development spend | about `$30.62` in attributed seat cost for this assignment slice, with the API-equivalent math shown separately for reference |
 
 ### Development Assumptions
 
-- I treated your "Claude Code Max plan" as Anthropic Max 20x, because that is Anthropic's current top Max tier and the closest public match for heavy Claude Code usage.
-- I treated your "Codex weekly plan" as a weekly share of ChatGPT Pro because OpenAI does not publish a standalone weekly Codex seat price. That is an inference, not a directly published Codex weekly SKU.
-- If your Codex seat was actually ChatGPT Plus instead of Pro, the Codex portion would drop from about `$10.62` to about `$1.06`, and the total attributed development spend would drop from about `$30.62` to about `$21.06`.
-- The Claude API numbers above are API-equivalent reference math, not billed Anthropic API invoice values. They exist because the assignment asks for a Claude input/output token breakdown, but your actual development spend came through seat-plan usage.
+- I treated my "Claude Code Max plan" as Anthropic Max 20x, because that is Anthropic's current top Max tier and the closest public match for heavy Claude Code usage.
+- I treated my "Codex weekly plan" as a weekly share of ChatGPT Pro because OpenAI does not publish a standalone weekly Codex seat price. That is an inference, not a directly published Codex weekly SKU.
+- If my Codex seat was actually ChatGPT Plus instead of Pro, the Codex portion would drop from about `$10.62` to about `$1.06`, and the total attributed development spend would drop from about `$30.62` to about `$21.06`.
+- I normalized the measured token window to `GPT-5.4 mini` pricing instead of Claude pricing so the API-equivalent model references line up with FleetGraph's OpenAI-first runtime and the repo's current model direction.
+- The OpenAI API-equivalent numbers above are reference math, not billed OpenAI invoice values. My actual development spend came through seat-plan usage.
 
 ## Production Cost Projections
 
-FleetGraph is currently configured to default to `gpt-5-mini` in code. OpenAI's public pricing page does not publish a separate `gpt-5-mini` row today, so the projection below uses the nearest current public proxy, `GPT-5.4 mini`, at `$0.75 / 1M` input tokens and `$4.50 / 1M` output tokens.
+In the repo, FleetGraph is currently configured to default to `gpt-5-mini` in code. OpenAI's public pricing page does not publish a separate `gpt-5-mini` row today, so I used the nearest current public proxy, `GPT-5.4 mini`, at `$0.75 / 1M` input tokens and `$4.50 / 1M` output tokens for the projection below.
 
-That makes this projection higher than the early Tuesday workbook snapshot, which used an older `gpt-5-mini` price assumption before the current public rate card refresh.
+That makes this projection higher than my early Tuesday workbook snapshot, which used an older `gpt-5-mini` price assumption before the current public rate card refresh.
 
 | 100 Users | 1,000 Users | 10,000 Users |
 | --- | --- | --- |
 | `$6.01/month` | `$60.12/month` | `$601.15/month` |
 
 ### Production Assumptions
+
+I assumed:
 
 - proactive runs per project per day: about `6`
 - on-demand invocations per user per day: about `0.7`
@@ -61,13 +64,12 @@ That makes this projection higher than the early Tuesday workbook snapshot, whic
 
 ## Sources
 
-- FleetGraph trace evidence in repo:
+- FleetGraph trace evidence in the repo:
   - [`docs/evidence/fleetgraph-mvp-evidence.md`](../../evidence/fleetgraph-mvp-evidence.md)
   - [`docs/assignments/fleetgraph/FLEETGRAPH.md`](./FLEETGRAPH.md)
   - [`api/src/services/fleetgraph/llm/factory.ts`](../../../api/src/services/fleetgraph/llm/factory.ts)
 - Anthropic:
   - [Claude Max pricing](https://claude.com/pricing/max)
-  - [Claude API pricing](https://platform.claude.com/docs/en/about-claude/pricing)
 - OpenAI:
   - [API pricing](https://openai.com/api/pricing/)
   - [Using Codex with your ChatGPT plan](https://help.openai.com/en/articles/11369540-using-codex-with-your-chatgpt-plan)

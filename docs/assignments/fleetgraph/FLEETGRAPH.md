@@ -9,63 +9,50 @@ Use this as the working submission document for the FleetGraph assignment.
 
 ## Agent Responsibility
 
-FleetGraph is a project-intelligence agent for Ship. Its job is to notice meaningful project-state drift, summarize context that is otherwise scattered across Ship, and make the next action obvious without pretending to be a general chatbot.
+FleetGraph is a Ship-specific workflow agent, not a general chatbot. In the current codebase it has two responsibilities: run proactive graph checks for workspace and sprint drift, and help the person already looking at a Ship document understand the current page and preview the next guided step from that same surface.
 
-### What it monitors proactively
+### What it monitors
 
-- Week-start drift when a week is still `planning` or has zero issues after it should be active
-- Sprint-owner gaps when a planning or active week has no owner assigned
-- Unassigned sprint-issue clusters when a planning or active week has too many issues without clear ownership
+- Scheduled workspace sweeps and debounced background-event jobs, both of which enqueue proactive runs through the worker.
+- `week_start_drift`: the earliest non-completed week whose start date has passed and is still `planning`, or has reached its start window with zero issues.
+- `sprint_no_owner`: the earliest planning or active week whose start date has passed and still has no owner.
+- `unassigned_sprint_issues`: an eligible active or planning sprint whose start date has passed and still has at least 3 unassigned issues.
 
 ### What it reasons about on demand
 
-- The current issue, sprint, project, program, or weekly-doc surface inside Ship
-- Related work, ownership, history, comments, and next actions based on the current page context
-- Guided next-step actions available from the current page before anything consequential is executed
-- What changed recently, what is blocked, and what the user should do next without forcing them to manually traverse tabs
+- The current issue, sprint, project, program, or weekly document surface inside Ship.
+- The normalized page-context envelope passed through `/api/fleetgraph/entry`, including the current document, `belongs_to` relations, ancestors, breadcrumbs, children, and route surface.
+- Whether the right outcome for this page is quiet, advisory, or approval-required.
+- The current document plus one-hop children first, with an optional deeper-context fetch loop when the reason node decides it still needs more evidence.
 
 ### What it can do autonomously
 
-- Read Ship state through REST endpoints only
-- Normalize mixed Ship relationship shapes into one internal graph state
-- Score candidate findings deterministically before invoking the LLM
-- Produce read-only summaries, proactive findings, and suggested next actions
-- Persist dedupe, cooldown, dismiss, snooze, and trace metadata in FleetGraph-owned state
+- Read Ship state through REST endpoints only and normalize the current document context into FleetGraph’s internal state.
+- Fan out scenario checks, rank candidates, and persist proactive findings with dedupe, cooldown, dismiss, snooze, checkpoint, and trace metadata.
+- Produce read-only analysis, proactive findings, and approval previews before any Ship mutation occurs.
+- Prepare resumable review threads and action payloads for supported Ship mutations.
 
 ### What requires human approval
 
-- Any consequential Ship mutation
-- Starting a week
-- Reassigning or changing issue state
-- Posting persistent comments
-- Approval or request-changes actions on Ship review surfaces
+- Any branch that reaches `approval_interrupt`.
+- Current surfaced review/apply actions such as starting a week, assigning a sprint owner, approving a project plan, approving a week plan, and validating a week plan.
+- Applying a proactive finding through `/api/fleetgraph/findings/:id/apply` or applying an entry approval thread through `/api/fleetgraph/entry/apply`.
+- FleetGraph never mutates Ship during proactive advisory runs, `Check this page`, or `Preview next step` until a user explicitly confirms.
 
 ### Who it notifies and when
 
-- Engineers and PMs for issue-level contextual help
-- PMs for week-start drift, sprint-owner gaps, and unassigned sprint issues
-- The current-page viewer for guided-step previews and page analysis
-- The person who can actually act on the surfaced problem, rather than broadcasting generic alerts
+- This repo does not implement email, Slack, or push delivery; FleetGraph notifies by surfacing UI state inside Ship.
+- Proactive findings appear in the `FleetGraphFindingsPanel` when the current document, or one of its `belongs_to` parents, matches the finding query for that page.
+- On-demand guidance appears only for the current-page viewer, either in the entry card or in the FAB after the user asks FleetGraph to analyze the page.
+- In practice that means PM-facing sprint, project, and weekly-plan viewers see proactive drift findings, while the person already on the page gets analysis and guided-step previews.
 
-### How it derives project membership and role context
-
-- From Ship REST only, using normalized canonical `document_associations`, `belongs_to`, and live legacy fields such as `project_id` and `assignee_ids`
-- From workspace people and accountability data to determine role lens, manager chain, owner, and accountable user context
-
-### How current-view context shapes on-demand behavior
+### How current-view context shapes on-demand mode
 
 - FleetGraph is embedded in `UnifiedDocumentPage`, not on a standalone chat page
-- It starts from route-derived context:
-  - `document_id`
-  - `document_type`
-  - `active_tab`
-  - `nested_path`
-  - optional `project_context_id`
-- It varies the fetch fan-out and answer style by current surface:
-  - issue page -> issue detail, history, iterations, comments, related work
-  - week page -> week detail, issues, standups, review, scope changes
-  - project page -> project detail, issues, weeks, retro, activity
-  - program page -> program plus related projects and weeks
+- It keys entry threads by workspace, document, active tab, and nested path, so a review-tab thread is distinct from the same document’s default-tab thread.
+- It receives `context.current`, `ancestors`, `breadcrumbs`, `children`, `belongs_to`, `workspaceId`, `documentId`, `documentType`, `activeTab`, `nestedPath`, and `surface` from the current view.
+- `Preview next step` can build page-native approval drafts from the current surface, such as project-plan approval, week-plan approval, or week-plan validation on a sprint review tab.
+- `Check this page` uses the same current-view envelope but hands the analysis off into the FAB conversation so follow-up turns stay grounded in the current page.
 
 ## Graph Diagram
 

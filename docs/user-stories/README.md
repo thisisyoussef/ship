@@ -67,45 +67,8 @@ This phase will hold FleetGraph product and integration stories as the active pa
 | US-905 | Post-merge deploy monitoring rule | `done` | P1 | `US-901` |
 | US-906 | Story branch lifecycle rule | `done` | P1 | `US-901` |
 | US-907 | Skip default browser-verification closeout | `done` | P1 | `US-904` |
-| US-908 | Parallel multi-agent branch workflow | `done` | P1 | `US-906` |
-| US-909 | Parallel-lane callout and agent prompt | `done` | P1 | `US-908` |
-| US-910 | Shared merge coordination lock | `done` | P1 | `US-909` |
-| US-913 | Queue-first workflow reset | `done` | P1 | `US-910` |
-
-## Execution Order
-
-1. `US-901` completes the control-plane reset from the old `.ai` workspace to the checked-in docs model.
-2. `US-601` completes the first FleetGraph completion-pack story by finishing the current-page approval preview use case on the smallest safe path.
-3. `US-902` makes repeatable seeded verification entries part of the checked-in workflow for visible stories.
-4. `US-903` adds a durable workflow-memory log for recurring corrections, decisions, and reusable patterns.
-5. `US-904` aligns closeout behavior with Railway autodeploy and requires explicit `What to test` instructions in visible-story handoffs.
-6. `US-905` makes post-merge deployment observation part of deploy-relevant story completion on auto-deployed surfaces.
-7. `US-906` makes branch-before-start and merge-on-completion explicit for every checked-in story.
-8. `US-907` removes agent-run browser walkthroughs as a default completion requirement and prefers lighter proof paths unless the story genuinely needs visual debugging.
-9. `US-602` completes `T601A` by routing entry-card apply through the runtime review/execute path.
-10. `US-603` closes the FleetGraph approval follow-up by making preview state-aware, refreshing the current page after apply, and darkening the result copy.
-11. `US-604` pivots the visible FleetGraph proof lane to review-tab plan validation so the current-page guided step has explicit, user-visible evidence.
-12. `US-605` adds a dedicated validation-ready demo week so the review-tab proof lane can be retested after prior validations consume the original seeded state.
-13. `US-606` makes FleetGraph chat follow-ups conversational enough to use real user prompts, but it does not replace the original `T602` assignment story.
-14. `US-607` tightens the inline FleetGraph shell so it starts collapsed, stays within the viewport, and signals proactive alerts more clearly, but it is still a sidecar polish story.
-15. `US-608` restores the original assignment-critical `T602` lane by completing the context-aware page-analysis use case as a checked-in story.
-16. `US-609` restores the original assignment-critical `T603` lane by widening FleetGraph’s proactive plumbing beyond `week_start_drift`.
-17. `US-609.5` restores the lighter FleetGraph analysis flow by handing `Check this page` into the FAB chat while leaving guided-step preview on the embedded entry card.
-18. `US-610` restores the original assignment-critical `T604` lane by shipping the sprint-owner gap use case.
-19. `US-611` restores the original assignment-critical `T605` lane by shipping the unassigned sprint issues use case.
-20. `US-612` restores the original assignment-critical `T606` lane by refreshing the workbook, traces, and audit path from shipped behavior.
-21. `US-617` hardens the embedded FleetGraph entry contract against live nullable document-context metadata so current-page entry actions stop failing with `/api/fleetgraph/entry` `400` errors on seeded proof lanes.
-22. `US-615` turns the shipped sprint-owner-gap advisory flow into a real FleetGraph review/apply path for assigning accountability in Ship on the live owner-gap proof lane.
-23. `US-618` extends `US-615` by replacing the self-assignment shortcut with a Properties-tab-style owner picker so FleetGraph can assign the correct teammate from the review surface.
-24. `US-613` removes the FleetGraph panel gradient after the assignment-critical sequence is complete, keeping the shell calmer without re-opening the core use-case work.
-25. `US-614` moves `Preview next step` plus the guided-actions portion of FleetGraph quick actions into the FAB as a dedicated guided-actions panel, while preserving the existing review/apply flow and behavior instead of turning it into a hard graph rewrite.
-26. `US-616` turns the shipped unassigned-issues advisory flow into a real FleetGraph review/apply path for closing the sprint coordination gap once the current tail stories are complete.
-27. `US-619` adds a dedicated left-sidebar FleetGraph queue once both the owner-picker and assign-issues review/apply tails are complete, so proactive findings can be triaged across Ship from one surface with notification state and reusable action bars.
-28. Active product packs continue to port into `docs/user-stories/` in dependency order.
-29. `US-908` makes parallel multi-agent branch work explicit by treating separate per-agent branches as the default and requiring a re-sync with latest `master` before merge when sibling branches land first.
-30. `US-909` makes continuation and story-selection responses explicitly say whether another checked-in story can run in parallel now and provide an inline copy-paste prompt for the recommended other agent when one exists.
-31. `US-910` adds a shared merge lock for finalization so only one branch claims the merge slot at a time and waiting agents get explicit branch plus wait instructions before they re-sync and merge.
-32. `US-913` removes that parallel-agent coordination layer and restores the simpler queue-first workflow while keeping the checked-in story model, branch-per-story rule, and harness validation intact.
+| US-913 | Queue-first workflow reset | `done` | P1 | `US-907` |
+| US-914 | Prune superseded harness history | `done` | P1 | `US-913` |
 
 ## Files
 

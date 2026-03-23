@@ -19,6 +19,7 @@ This folder holds FleetGraph assignment-gap stories plus the UX, reliability, de
 | ID | State | Owner | Branch | Worktree | Notes |
 | --- | --- | --- | --- | --- | --- |
 | US-619 | `in-progress` | Codex | `codex/us-619-fleetgraph-sidebar-queue` | `/Users/youss/Development/gauntlet/ship-us-619` | Story drafting and queue setup are active; implementation stays blocked on `US-616` and `US-618`. |
+| US-618 | `in-progress` | Codex | `codex/us-618-owner-picker-follow-through` | `/Users/youss/Development/gauntlet/ship` | Replacing the FleetGraph owner-gap self-assignment shortcut with a Properties-style owner picker. |
 
 ## Story Sequence
 
@@ -34,7 +35,7 @@ This folder holds FleetGraph assignment-gap stories plus the UX, reliability, de
 | US-612 | FleetGraph assignment evidence refresh | `done` | P0 | `US-611` |
 | US-617 | FleetGraph entry nullable-context hardening | `done` | P1 | `US-612` |
 | US-615 | FleetGraph assign-owner review/apply follow-through | `done` | P1 | `US-612` |
-| US-618 | FleetGraph assign-owner picker follow-through | `todo` | P1 | `US-615` |
+| US-618 | FleetGraph assign-owner picker follow-through | `in-progress` | P1 | `US-615` |
 | US-613 | FleetGraph panel gradient removal | `done` | P2 | `US-612` |
 | US-614 | FleetGraph FAB guided-actions panel convergence | `todo` | P2 | `US-613` |
 | US-616 | FleetGraph assign-issues review/apply follow-through | `todo` | P2 | `US-614` |

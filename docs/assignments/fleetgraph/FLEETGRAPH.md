@@ -246,64 +246,29 @@ For each use case, record the triggering Ship state, the expected output, and th
 
 ## Architecture Decisions
 
-Cover:
-- framework choice
-- node design rationale
-- state management approach
-- deployment model
-- auth approach for proactive mode
-- human-in-the-loop boundaries
-
 ### Framework choice
 
-- LangGraph for the runtime and branching model
-- LangSmith from day one for traces and execution evidence
-- Provider-agnostic adapter boundary with OpenAI as the preferred default in this repo
-- The worker queue remains outside LangGraph; LangGraph owns workflow orchestration, not scheduling
+FleetGraph is built as a LangGraph workflow inside the Ship API, not as a single prompt handler or an ad hoc queue processor. The implementation in `api/src/services/fleetgraph/graph/runtime.ts` uses `StateGraph`, `Send`, `interrupt`, and `task()` to model the real execution paths we already need: proactive sweeps, on-demand page analysis, approval-gated actions, and resumable review flows. That choice fits the code better than a plain service class because FleetGraph has real branching, resumability, and checkpoint inspection requirements.
+
+We kept the model layer behind a provider-agnostic adapter and wrapped it with LangSmith tracing, but the core decision is that LangGraph owns workflow orchestration while the worker queue stays outside the graph. The tradeoff is extra runtime complexity compared with a simpler request-response controller, but the benefit is that the graph shape, traces, interrupts, and checkpoint history all line up with how FleetGraph actually behaves in production.
 
 ### Node design rationale
 
-- Deterministic scenario runners execute before branch selection so proactive sweeps do not spend tokens on obviously clean state
-- Scenario fan-out uses LangGraph `Send` so multiple scenario families can run in parallel under one thread
-- FleetGraph wraps side effects in LangGraph `task()` boundaries so replay/resume does not duplicate writes
-- Fetch/action nodes call real Ship REST endpoints, not hidden ORM or direct DB helpers
-- Branches remain explicit so traces can distinguish:
-  - quiet runs
-  - advisory/read-only runs
-  - approval-required runs
-  - fallback runs
+The node layout is intentionally split by responsibility. `select_scenarios` and `run_scenario` handle deterministic candidate generation first, which lets proactive runs check week-start drift, missing sprint owners, and unassigned issues before spending tokens on deeper reasoning. From there, `score_and_rank`, `fetch_medium`, `reason`, and `fetch_deep` form the analysis lane, while `approval_interrupt`, `execute_action`, and `persist_action_outcome` form the action lane.
+
+This is more verbose than a single "analyze and act" node, but it buys us three things the code needs today. First, the graph can distinguish quiet, advisory, fallback, and approval-required outcomes explicitly. Second, expensive model work is scoped to branches that produced a real candidate instead of every sweep. Third, side effects stay isolated behind explicit nodes and `task()` boundaries, which makes resume and replay behavior safer when the graph is interrupted for human review.
 
 ### State management approach
 
-- Rich run-local state lives inside the LangGraph execution and stores facts plus routing decisions, not just bookkeeping
-- Durable state is limited to the pieces needed for:
-  - dedupe
-  - cooldowns
-  - dismiss/snooze lifecycle
-  - approval tracking
-  - checkpoints keyed by `thread_id`
-- Production checkpoint persistence should use Postgres-backed LangGraph checkpointing; tests should inject memory/custom savers
+FleetGraph uses layered state instead of forcing every concern into one store. Run-local orchestration state lives in the LangGraph state object and is checkpointed per `thread_id`, which is what lets the runtime resume pending approvals and inspect prior graph state. `api/src/services/fleetgraph/graph/checkpointer.ts` keeps local and test runs lightweight with `MemorySaver`, but switches to `PostgresSaver` when `DATABASE_URL` is configured so deployed runs can survive process restarts.
+
+Durable product state is stored separately by lifecycle. Proactive findings live in `fleetgraph_proactive_findings`, worker scheduling and dedupe live in the worker tables, and action/finding review records live in their own stores. The tradeoff is that FleetGraph has more than one persistence surface to reason about, but the separation keeps each table honest about its job: checkpoints are for workflow recovery, findings are for user-visible status, and queue tables are for worker coordination and cooldown control.
 
 ### Deployment model
 
-- Same-origin Ship API routes for on-demand entry and approval callbacks
-- A separate worker process for proactive sweeps and dirty-context queue execution
-- Public demo now targets Railway through `scripts/deploy-railway-demo.sh`
-- Canonical production target remains AWS-backed Ship infrastructure
-- Debug support should expose checkpoint history and pending interrupts without putting those details into the primary user-facing cards
+FleetGraph deploys as two cooperating surfaces that share the same graph contract. The Ship API handles same-origin entry, findings, and review/apply routes, while the separate worker process handles scheduled sweeps, dirty-context enqueueing, and queued proactive execution. The worker runtime in `api/src/services/fleetgraph/worker/runtime.ts` claims due sweep schedules, dedupes jobs, runs the graph, and records checkpoint summaries, which keeps long-running or retried proactive work out of request handlers.
 
-### Auth approach for proactive mode
-
-- On-demand requests use the existing same-origin Ship session
-- Proactive mode uses a dedicated Ship API token and service user
-- FleetGraph runtime still reads Ship state through REST only
-
-### Human-in-the-loop boundaries
-
-- Any consequential Ship mutation must pause in `approval_interrupt`
-- The user must confirm before `execute_action` runs
-- Read-only summaries and advisory findings do not require confirmation
-- Human review threads should be resumable and inspectable later through checkpoint history
+That split is more operationally involved than embedding everything in the API process, but it matches the actual trigger model and keeps proactive detection reliable. The deployment config also makes the separation explicit: production requires `FLEETGRAPH_ENTRY_ENABLED` for the API surface, `FLEETGRAPH_WORKER_ENABLED` plus `FLEETGRAPH_API_TOKEN` for the worker surface, `FLEETGRAPH_SERVICE_TOKEN` for service-auth checks, and LangSmith tracing for readiness proof. In practice, that gives FleetGraph a same-origin user entry point with a separately operable background lane instead of pretending one process can do both jobs well.
 
 ## Cost Analysis
 

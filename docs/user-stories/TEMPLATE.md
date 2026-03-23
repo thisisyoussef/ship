@@ -6,6 +6,7 @@
 - Owner:
 - Depends on:
 - Related branch:
+- Active worktree:
 - Parallel dependency / merge order:
 - Related commit/PR:
 - Target environment:

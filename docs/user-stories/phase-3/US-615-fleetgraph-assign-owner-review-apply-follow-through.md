@@ -2,10 +2,12 @@
 
 ## Status
 
-- State: `todo`
-- Owner: Codex
+- State: `in-progress`
+- Owner: `parallel agent (user-assigned)`
 - Depends on: `US-612`
-- Related branch:
+- Related branch: `codex/us-615-assign-owner-review-apply-fresh`
+- Active worktree: `/Users/youss/Development/gauntlet/ship-us-615`
+- Parallel dependency / merge order: Independent of `US-617` and `US-613`, but refresh from latest `master` before finalization if sibling stories land first.
 - Related commit/PR:
 - Target environment: `local first`, `Railway demo via merged master`
 

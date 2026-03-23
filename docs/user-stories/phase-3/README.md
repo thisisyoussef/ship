@@ -16,7 +16,7 @@ This folder holds FleetGraph assignment-gap stories plus the UX, reliability, de
 
 | ID | State | Owner | Branch | Worktree | Notes |
 | --- | --- | --- | --- | --- | --- |
-| US-615 | `in-progress` | `parallel agent (user-assigned)` | `codex/us-615-assign-owner-review-apply-fresh` | `/Users/youss/Development/gauntlet/ship-us-615` | Active parallel lane. Keep other FleetGraph stories isolated and refresh from latest `master` before finalization if this lands first. |
+| — | — | — | — | — | No active Phase 3 parallel work is currently recorded. |
 
 ## Story Sequence
 
@@ -31,7 +31,7 @@ This folder holds FleetGraph assignment-gap stories plus the UX, reliability, de
 | US-611 | FleetGraph unassigned sprint issues | `done` | P0 | `US-610` |
 | US-612 | FleetGraph assignment evidence refresh | `done` | P0 | `US-611` |
 | US-617 | FleetGraph entry nullable-context hardening | `todo` | P1 | `US-612` |
-| US-615 | FleetGraph assign-owner review/apply follow-through | `in-progress` | P1 | `US-612` |
+| US-615 | FleetGraph assign-owner review/apply follow-through | `done` | P1 | `US-612` |
 | US-613 | FleetGraph panel gradient removal | `todo` | P2 | `US-612` |
 | US-614 | FleetGraph FAB guided-actions panel convergence | `todo` | P2 | `US-613` |
 | US-616 | FleetGraph assign-issues review/apply follow-through | `todo` | P2 | `US-614` |

@@ -7,9 +7,9 @@ import { createStudioPreviewSafeFleetGraph } from './graph.js'
 function createDeps() {
   return {
     actionStore: {
-      beginStartWeekExecution: vi.fn(async (input) => ({
+      beginExecution: vi.fn(async (input) => ({
         execution: {
-          actionType: 'start_week' as const,
+          actionType: input.actionType,
           attemptCount: 1,
           endpoint: input.endpoint,
           findingId: input.findingId,
@@ -19,7 +19,7 @@ function createDeps() {
         },
         shouldExecute: true,
       })),
-      finishStartWeekExecution: vi.fn(),
+      finishExecution: vi.fn(),
       listExecutionsForFindings: vi.fn(async () => []),
     },
     checkpointer: new MemorySaver(),

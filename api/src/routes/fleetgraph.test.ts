@@ -305,9 +305,9 @@ describe('FleetGraph routes', () => {
     resume: vi.fn(),
   }
   const originalEnv = { ...process.env }
-  const applyStartWeekFinding = vi.fn()
+  const applyFinding = vi.fn()
   const applyEntry = vi.fn()
-  const reviewStartWeekFinding = vi.fn()
+  const reviewFinding = vi.fn()
   const attachExecutions = vi.fn(async (findings: FleetGraphFindingRecord[]) => findings)
   const dismissFinding = vi.fn<FleetGraphFindingStore['dismissFinding']>()
   const getFindingByKey = vi.fn<FleetGraphFindingStore['getFindingByKey']>()
@@ -332,9 +332,9 @@ describe('FleetGraph routes', () => {
     vi.useRealTimers()
     process.env = { ...originalEnv }
     ;[
-      applyStartWeekFinding,
+      applyFinding,
       applyEntry,
-      reviewStartWeekFinding,
+      reviewFinding,
       attachExecutions,
       dismissFinding,
       getFindingById,
@@ -352,9 +352,9 @@ describe('FleetGraph routes', () => {
     app.use(express.json())
     app.use('/api/fleetgraph', createFleetGraphRouter({
       actionService: {
-        applyStartWeekFinding,
+        applyFinding,
         attachExecutions,
-        reviewStartWeekFinding,
+        reviewFinding,
       },
       entryActionService: {
         applyEntry,
@@ -687,7 +687,7 @@ describe('FleetGraph routes', () => {
       status: 'applied',
       updatedAt: new Date('2026-03-17T12:05:00.000Z'),
     }
-    applyStartWeekFinding.mockResolvedValue(
+    applyFinding.mockResolvedValue(
       makeFinding({
         actionExecution,
         id: 'finding-1',
@@ -709,7 +709,8 @@ describe('FleetGraph routes', () => {
       .set('x-csrf-token', 'csrf-token')
 
     expect(response.status).toBe(200)
-    expect(applyStartWeekFinding).toHaveBeenCalledWith({
+    expect(applyFinding).toHaveBeenCalledWith({
+      actorUserId: '11111111-1111-4111-8111-111111111111',
       findingId: 'finding-1',
       request: expect.any(Object),
       workspaceId: '22222222-2222-4222-8222-222222222222',
@@ -721,7 +722,7 @@ describe('FleetGraph routes', () => {
   })
 
   it('returns a server-backed review payload for start-week findings', async () => {
-    reviewStartWeekFinding.mockResolvedValue({
+    reviewFinding.mockResolvedValue({
       finding: makeFinding({
         id: 'finding-1',
       }),
@@ -739,7 +740,8 @@ describe('FleetGraph routes', () => {
       .post('/api/fleetgraph/findings/finding-1/review')
 
     expect(response.status).toBe(200)
-    expect(reviewStartWeekFinding).toHaveBeenCalledWith({
+    expect(reviewFinding).toHaveBeenCalledWith({
+      actorUserId: '11111111-1111-4111-8111-111111111111',
       findingId: 'finding-1',
       workspaceId: '22222222-2222-4222-8222-222222222222',
     })
@@ -747,6 +749,110 @@ describe('FleetGraph routes', () => {
       confirmLabel: 'Start week in Ship',
       threadId: 'fleetgraph:workspace-1:finding-review:finding-1:start-week',
       title: 'Confirm before starting this week',
+    })
+  })
+
+  it('returns a server-backed review payload for assign-owner findings', async () => {
+    reviewFinding.mockResolvedValue({
+      finding: makeFinding({
+        findingKey: 'sprint-no-owner:workspace-1:sprint-8',
+        findingType: 'sprint_no_owner',
+        id: 'finding-owner-gap',
+        recommendedAction: {
+          body: {
+            owner_id: '11111111-1111-4111-8111-111111111111',
+          },
+          endpoint: {
+            method: 'PATCH',
+            path: `/api/documents/${SPRINT_ID}`,
+          },
+          evidence: ['No sprint owner is assigned right now.'],
+          rationale: 'Assigning accountability should stay a human-reviewed action.',
+          summary: 'Assign yourself as sprint owner so someone is accountable for coordination and follow-through.',
+          targetId: SPRINT_ID,
+          targetType: 'sprint',
+          title: 'Assign sprint owner',
+          type: 'assign_owner',
+        },
+        summary: 'Sprint 8 needs a named owner before work coordination slips.',
+        title: 'Sprint owner gap: Sprint 8',
+      }),
+      review: {
+        cancelLabel: 'Cancel',
+        confirmLabel: 'Assign owner in Ship',
+        evidence: [
+          'No sprint owner is assigned right now.',
+          'FleetGraph will assign this sprint to you because you are applying the owner-fix action from this page.',
+        ],
+        summary: 'FleetGraph will assign this sprint to you in Ship so someone is explicitly accountable for coordination and follow-through.',
+        threadId: 'fleetgraph:workspace-1:finding-review:finding-owner-gap:assign-owner',
+        title: 'Confirm before assigning sprint owner',
+      },
+    })
+
+    const response = await request(app)
+      .post('/api/fleetgraph/findings/finding-owner-gap/review')
+
+    expect(response.status).toBe(200)
+    expect(response.body.review).toMatchObject({
+      confirmLabel: 'Assign owner in Ship',
+      title: 'Confirm before assigning sprint owner',
+    })
+  })
+
+  it('applies an assign-owner finding through the FleetGraph action route', async () => {
+    const actionExecution: FleetGraphFindingActionExecutionRecord = {
+      actionType: 'assign_owner',
+      appliedAt: new Date('2026-03-17T12:05:00.000Z'),
+      attemptCount: 1,
+      endpoint: {
+        method: 'PATCH',
+        path: `/api/documents/${SPRINT_ID}`,
+      },
+      findingId: 'finding-owner-gap',
+      message: 'Sprint owner assigned in Ship. Look for Owner showing you on this page.',
+      resultStatusCode: 200,
+      status: 'applied',
+      updatedAt: new Date('2026-03-17T12:05:00.000Z'),
+    }
+    applyFinding.mockResolvedValue(
+      makeFinding({
+        actionExecution,
+        findingKey: 'sprint-no-owner:workspace-1:sprint-8',
+        findingType: 'sprint_no_owner',
+        id: 'finding-owner-gap',
+        recommendedAction: {
+          body: {
+            owner_id: '11111111-1111-4111-8111-111111111111',
+          },
+          endpoint: actionExecution.endpoint,
+          evidence: ['No sprint owner is assigned right now.'],
+          rationale: 'Assigning accountability should stay a human-reviewed action.',
+          summary: 'Assign yourself as sprint owner so someone is accountable for coordination and follow-through.',
+          targetId: SPRINT_ID,
+          targetType: 'sprint',
+          title: 'Assign sprint owner',
+          type: 'assign_owner',
+        },
+        summary: 'Sprint 8 needs a named owner before work coordination slips.',
+        title: 'Sprint owner gap: Sprint 8',
+      })
+    )
+
+    const response = await request(app)
+      .post('/api/fleetgraph/findings/finding-owner-gap/apply')
+      .set('x-csrf-token', 'csrf-token')
+
+    expect(response.status).toBe(200)
+    expect(applyFinding).toHaveBeenCalledWith({
+      actorUserId: '11111111-1111-4111-8111-111111111111',
+      findingId: 'finding-owner-gap',
+      request: expect.any(Object),
+      workspaceId: '22222222-2222-4222-8222-222222222222',
+    })
+    expect(response.body.finding.actionExecution).toMatchObject({
+      actionType: 'assign_owner',
+      status: 'applied',
     })
   })
 
@@ -858,9 +964,9 @@ describe('FleetGraph routes', () => {
     debugApp.use(express.json())
     debugApp.use('/api/fleetgraph', createFleetGraphRouter({
       actionService: {
-        applyStartWeekFinding,
+        applyFinding,
         attachExecutions,
-        reviewStartWeekFinding,
+        reviewFinding,
       },
       findingStore,
       runtime: debugRuntime as never,

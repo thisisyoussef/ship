@@ -6,6 +6,7 @@ import {
   defaultShipRestExecutor,
   isAlreadyActiveResult,
   readShipActionMessage,
+  type ShipRestActionResult,
   type ShipRestExecutor,
   type ShipRestRequestContext,
 } from '../actions/executor.js'
@@ -178,7 +179,7 @@ function buildGenericActionSuccessMessage(
     case 'validate_week_plan':
       return 'Week plan marked as validated in Ship. Look for Plan Validation showing Validated on this page.'
     case 'assign_owner':
-      return 'Owner updated in Ship.'
+      return 'Sprint owner assigned in Ship. Look for Owner showing you on this page.'
     case 'assign_issues':
       return 'Assignments updated in Ship.'
     default:
@@ -205,6 +206,42 @@ function buildGenericActionFailureFallback(
     default:
       return 'Ship could not apply the requested FleetGraph action.'
   }
+}
+
+function buildTrackedFindingActionSuccessMessage(
+  action: FleetGraphState['selectedAction'],
+  body: Record<string, unknown> | undefined
+) {
+  if (action?.type === 'start_week') {
+    return buildShipActionSuccessMessage(body)
+  }
+
+  if (action?.type === 'assign_owner') {
+    return 'Sprint owner assigned in Ship. Look for Owner showing you on this page.'
+  }
+
+  return buildGenericActionSuccessMessage(action)
+}
+
+function buildTrackedFindingActionFailureMessage(
+  action: FleetGraphState['selectedAction'],
+  result: ShipRestActionResult
+) {
+  if (action?.type === 'start_week' && isAlreadyActiveResult(result)) {
+    return 'Week was already active when this FleetGraph action was applied.'
+  }
+
+  if (action?.type === 'start_week') {
+    return readShipActionMessage(
+      result.body,
+      'Ship could not apply the week-start action.'
+    )
+  }
+
+  return readShipActionMessage(
+    result.body,
+    buildGenericActionFailureFallback(action)
+  )
 }
 
 function createFleetGraphRuntimeInternals(
@@ -292,11 +329,13 @@ function createFleetGraphRuntimeInternals(
   const beginExecutionTask = task(
     'fleetgraph.action.begin_execution',
     async (input: {
+      actionType: 'assign_owner' | 'start_week'
       endpoint: { method: 'POST' | 'PATCH'; path: string }
       findingId: string
       workspaceId: string
       nowIso: string
-    }) => actionStore.beginStartWeekExecution({
+    }) => actionStore.beginExecution({
+      actionType: input.actionType,
       endpoint: input.endpoint,
       findingId: input.findingId,
       workspaceId: input.workspaceId,
@@ -305,6 +344,7 @@ function createFleetGraphRuntimeInternals(
   const finishExecutionTask = task(
     'fleetgraph.action.finish_execution',
     async (input: {
+      actionType: 'assign_owner' | 'start_week'
       appliedAt?: string
       endpoint: { method: 'POST' | 'PATCH'; path: string }
       findingId: string
@@ -313,7 +353,8 @@ function createFleetGraphRuntimeInternals(
       status: 'applied' | 'already_applied' | 'failed'
       workspaceId: string
       nowIso: string
-    }) => actionStore.finishStartWeekExecution({
+    }) => actionStore.finishExecution({
+      actionType: input.actionType,
       appliedAt: input.appliedAt ? new Date(input.appliedAt) : undefined,
       endpoint: input.endpoint,
       findingId: input.findingId,
@@ -514,7 +555,36 @@ function createFleetGraphRuntimeInternals(
         }
       }
 
+      const trackedActionType = state.selectedAction.type
+      if (trackedActionType !== 'assign_owner' && trackedActionType !== 'start_week') {
+        const result = await executeShipRestActionTask({
+          body: state.selectedAction.body,
+          method: actionMethod,
+          path: endpoint.path,
+          requestContext,
+        })
+
+        return {
+          actionOutcome: result.ok
+            ? {
+              message: buildGenericActionSuccessMessage(state.selectedAction),
+              resultStatusCode: result.status,
+              status: 'applied',
+            }
+            : {
+              message: readShipActionMessage(
+                result.body,
+                buildGenericActionFailureFallback(state.selectedAction)
+              ),
+              resultStatusCode: result.status,
+              status: 'failed',
+            },
+          path: 'execute_action',
+        }
+      }
+
       const started = await beginExecutionTask({
+        actionType: trackedActionType,
         endpoint,
         findingId: state.selectedFindingId,
         nowIso: now().toISOString(),
@@ -539,29 +609,41 @@ function createFleetGraphRuntimeInternals(
       })
       const execution = result.ok
         ? await finishExecutionTask({
+          actionType: trackedActionType,
           appliedAt: now().toISOString(),
           endpoint,
           findingId: state.selectedFindingId,
-          message: buildShipActionSuccessMessage(result.body),
+          message: buildTrackedFindingActionSuccessMessage(
+            state.selectedAction,
+            result.body
+          ),
           nowIso: now().toISOString(),
           resultStatusCode: result.status,
           status: 'applied',
           workspaceId: state.workspaceId,
         })
-        : isAlreadyActiveResult(result)
+        : trackedActionType === 'start_week' && isAlreadyActiveResult(result)
           ? await finishExecutionTask({
+            actionType: trackedActionType,
             endpoint,
             findingId: state.selectedFindingId,
-            message: 'Week was already active when this FleetGraph action was applied.',
+            message: buildTrackedFindingActionFailureMessage(
+              state.selectedAction,
+              result
+            ),
             nowIso: now().toISOString(),
             resultStatusCode: result.status,
             status: 'already_applied',
             workspaceId: state.workspaceId,
           })
           : await finishExecutionTask({
+            actionType: trackedActionType,
             endpoint,
             findingId: state.selectedFindingId,
-            message: readShipActionMessage(result.body, 'Ship could not apply the week-start action.'),
+            message: buildTrackedFindingActionFailureMessage(
+              state.selectedAction,
+              result
+            ),
             nowIso: now().toISOString(),
             resultStatusCode: result.status,
             status: 'failed',

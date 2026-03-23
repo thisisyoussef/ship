@@ -1,7 +1,8 @@
 import type { FleetGraphFinding } from './fleetgraph-findings';
 
 export function canReviewFindingActionInFleetGraph(finding: FleetGraphFinding) {
-  return finding.recommendedAction?.type === 'start_week';
+  return finding.recommendedAction?.type === 'start_week'
+    || finding.recommendedAction?.type === 'assign_owner';
 }
 
 export function formatFleetGraphTimestamp(value?: string) {
@@ -38,6 +39,19 @@ export function renderExecutionTone(finding: FleetGraphFinding) {
 }
 
 export function renderExecutionLabel(finding: FleetGraphFinding) {
+  if (finding.actionExecution?.actionType === 'assign_owner') {
+    switch (finding.actionExecution.status) {
+      case 'applied':
+        return 'Owner assigned in Ship';
+      case 'failed':
+        return 'Could not assign owner';
+      case 'pending':
+        return 'Assigning owner in Ship';
+      default:
+        return 'Suggested next step';
+    }
+  }
+
   switch (finding.actionExecution?.status) {
     case 'applied':
       return 'Started in Ship';
@@ -86,6 +100,15 @@ export function buildSnoozeNotice(snoozedUntil?: string, durationLabel = '4 hour
 }
 
 export function buildApplyNotice(finding: FleetGraphFinding) {
+  if (finding.actionExecution?.actionType === 'assign_owner') {
+    switch (finding.actionExecution.status) {
+      case 'applied':
+        return 'Sprint owner assigned in Ship. Look for Owner showing you on this page.';
+      default:
+        return null;
+    }
+  }
+
   switch (finding.actionExecution?.status) {
     case 'applied':
       return 'Week started in Ship.';

@@ -6,6 +6,7 @@ export interface FleetGraphFindingActionEndpoint {
 }
 
 export interface FleetGraphFindingAction {
+  body?: Record<string, unknown>;
   endpoint: FleetGraphFindingActionEndpoint;
   evidence: string[];
   rationale: string;
@@ -23,7 +24,7 @@ export interface FleetGraphFindingAction {
 }
 
 export interface FleetGraphFindingActionExecution {
-  actionType: 'start_week';
+  actionType: 'assign_owner' | 'start_week';
   appliedAt?: string;
   attemptCount: number;
   endpoint: FleetGraphFindingActionEndpoint;

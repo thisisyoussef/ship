@@ -19,11 +19,11 @@ function mapExecution(
   row: Record<string, unknown>
 ): FleetGraphFindingActionExecutionRecord {
   return {
-    actionType: 'start_week',
+    actionType: String(row.action_type) as FleetGraphFindingActionExecutionRecord['actionType'],
     appliedAt: parseDate(row.applied_at),
     attemptCount: Number(row.attempt_count),
     endpoint: {
-      method: String(row.endpoint_method) as 'POST',
+      method: String(row.endpoint_method) as FleetGraphFindingActionExecutionRecord['endpoint']['method'],
       path: String(row.endpoint_path),
     },
     findingId: String(row.finding_id),
@@ -38,14 +38,15 @@ function mapExecution(
 
 async function selectExecutionForUpdate(
   queryable: { query(sql: string, values?: unknown[]): Promise<unknown> },
+  actionType: FleetGraphFindingActionExecutionRecord['actionType'],
   findingId: string,
   workspaceId: string
 ) {
   const result = await queryable.query(
     `SELECT * FROM fleetgraph_finding_action_runs
-     WHERE finding_id = $1 AND workspace_id = $2
+     WHERE finding_id = $1 AND workspace_id = $2 AND action_type = $3
      FOR UPDATE`,
-    [findingId, workspaceId]
+    [findingId, workspaceId, actionType]
   ) as { rows: Record<string, unknown>[] }
 
   return result.rows[0]
@@ -55,7 +56,7 @@ export function createFleetGraphFindingActionStore(
   queryable: Queryable = defaultPool
 ): FleetGraphFindingActionStore {
   return {
-    async beginStartWeekExecution(input, now = new Date()) {
+    async beginExecution(input, now = new Date()) {
       const client = await queryable.connect()
 
       try {
@@ -72,12 +73,13 @@ export function createFleetGraphFindingActionStore(
              attempt_count,
              updated_at
            )
-           VALUES ($1, $2, 'start_week', $3, $4, 'pending', $5, 1, $6)
+           VALUES ($1, $2, $3, $4, $5, 'pending', $6, 1, $7)
            ON CONFLICT (finding_id, action_type) DO NOTHING
            RETURNING *`,
           [
             input.findingId,
             input.workspaceId,
+            input.actionType,
             input.endpoint.method,
             input.endpoint.path,
             'Applying the FleetGraph recommendation.',
@@ -95,6 +97,7 @@ export function createFleetGraphFindingActionStore(
 
         const existing = await selectExecutionForUpdate(
           client,
+          input.actionType,
           input.findingId,
           input.workspaceId
         )
@@ -128,7 +131,7 @@ export function createFleetGraphFindingActionStore(
                applied_at = NULL,
                attempt_count = attempt_count + 1,
                updated_at = $6
-           WHERE finding_id = $1 AND workspace_id = $2
+           WHERE finding_id = $1 AND workspace_id = $2 AND action_type = $7
            RETURNING *`,
           [
             input.findingId,
@@ -137,6 +140,7 @@ export function createFleetGraphFindingActionStore(
             input.endpoint.path,
             'Retrying the FleetGraph recommendation.',
             now,
+            input.actionType,
           ]
         ) as { rows: Record<string, unknown>[] }
 
@@ -153,7 +157,7 @@ export function createFleetGraphFindingActionStore(
       }
     },
 
-    async finishStartWeekExecution(input, now = new Date()) {
+    async finishExecution(input, now = new Date()) {
       const result = await queryable.query(
         `UPDATE fleetgraph_finding_action_runs
          SET endpoint_method = $3,
@@ -163,7 +167,7 @@ export function createFleetGraphFindingActionStore(
              result_status_code = $7,
              applied_at = $8,
              updated_at = $9
-         WHERE finding_id = $1 AND workspace_id = $2
+         WHERE finding_id = $1 AND workspace_id = $2 AND action_type = $10
          RETURNING *`,
         [
           input.findingId,
@@ -175,6 +179,7 @@ export function createFleetGraphFindingActionStore(
           input.resultStatusCode ?? null,
           input.appliedAt ?? null,
           now,
+          input.actionType,
         ]
       ) as { rows: Record<string, unknown>[] }
 

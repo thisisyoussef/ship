@@ -225,7 +225,7 @@ registry.registerPath({
   method: 'post',
   path: '/fleetgraph/findings/{id}/review',
   tags: ['FleetGraph'],
-  summary: 'Prepare a server-backed human review step for a FleetGraph start-week recommendation',
+  summary: 'Prepare a server-backed human review step for a FleetGraph review/apply recommendation',
   responses: {
     200: {
       description: 'The FleetGraph finding plus its resumable review payload',
@@ -236,7 +236,7 @@ registry.registerPath({
       },
     },
     400: {
-      description: 'Finding does not expose a valid start-week action',
+      description: 'Finding does not expose a valid FleetGraph review/apply action',
     },
     404: {
       description: 'FleetGraph finding not found',
@@ -252,10 +252,10 @@ registry.registerPath({
   method: 'post',
   path: '/fleetgraph/findings/{id}/apply',
   tags: ['FleetGraph'],
-  summary: 'Apply a FleetGraph start-week recommendation through the Ship REST route',
+  summary: 'Apply a FleetGraph review/apply recommendation through the Ship REST route',
   responses: {
     200: {
-      description: 'Updated FleetGraph finding after the start-week action ran',
+      description: 'Updated FleetGraph finding after the reviewed Ship action ran',
       content: {
         'application/json': {
           schema: FleetGraphFindingLifecycleResponseSchema,
@@ -263,7 +263,7 @@ registry.registerPath({
       },
     },
     400: {
-      description: 'Finding does not expose a valid start-week action',
+      description: 'Finding does not expose a valid FleetGraph review/apply action',
     },
     404: {
       description: 'FleetGraph finding not found',

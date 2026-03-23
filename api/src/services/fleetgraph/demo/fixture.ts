@@ -468,10 +468,10 @@ export async function ensureFleetGraphDemoProofLane(
   })
   const ownerGapWeekId = await ensureDemoWeek(queryable, input, projectId, {
     ownerId: null,
-    plan: 'Use the proactive FleetGraph panel to inspect a sprint-owner gap without triggering a fake apply flow.',
+    plan: 'Use the proactive FleetGraph panel to review and apply sprint ownership so the signed-in demo user becomes accountable on the page.',
     sprintNumber: input.currentSprintNumber,
     status: 'active',
-    successCriteria: 'The public demo shows a proactive sprint-owner gap with advisory-only next-step guidance.',
+    successCriteria: 'The public demo shows a proactive sprint-owner gap with a real review-and-apply path that assigns the signed-in user as owner.',
     title: FLEETGRAPH_DEMO_OWNER_GAP_WEEK_TITLE,
   })
   const unassignedIssuesWeekId = await ensureUnassignedIssuesDemoWeek(

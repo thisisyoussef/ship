@@ -13,13 +13,6 @@ This folder holds FleetGraph assignment-gap stories plus the UX, reliability, de
 7. Treat `US-616` as the issue-assignment follow-through once its dependency chain is clear.
 8. Treat `US-606`, `US-607`, `US-613`, and `US-614` as sidecar improvements, not replacements for the original assignment-gap stories.
 9. Treat `US-619` as a post-tail extension that should wait for both `US-616` and `US-618`, then reuse the finished proactive action bars in a global left-sidebar queue surface.
-
-## Active Work
-
-| ID | State | Owner | Branch | Worktree | Notes |
-| --- | --- | --- | --- | --- | --- |
-| US-619 | `in-progress` | Codex | `codex/us-619-fleetgraph-sidebar-queue` | `/Users/youss/Development/gauntlet/ship-us-619` | Story drafting and queue setup are active; implementation stays blocked on `US-616` while `US-618` finishes merge/deploy follow-through. |
-
 ## Story Sequence
 
 | ID | Title | State | Priority | Depends On |
@@ -38,4 +31,4 @@ This folder holds FleetGraph assignment-gap stories plus the UX, reliability, de
 | US-613 | FleetGraph panel gradient removal | `done` | P2 | `US-612` |
 | US-614 | FleetGraph FAB guided-actions panel convergence | `todo` | P2 | `US-613` |
 | US-616 | FleetGraph assign-issues review/apply follow-through | `todo` | P2 | `US-614` |
-| US-619 | FleetGraph left-sidebar global findings queue | `in-progress` | P2 | `US-616`, `US-618` |
+| US-619 | FleetGraph left-sidebar global findings queue | `todo` | P2 | `US-616`, `US-618` |

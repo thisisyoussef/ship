@@ -1,9 +1,6 @@
 # User Stories
 
 Use this folder as the source of truth for execution order, the master queue, and checked-in implementation scope.
-The shared merge coordination source of truth is the merge lock file exposed by `bash scripts/merge_lock.sh status`.
-
-`docs/user-stories/README.md` on `master` is the joining source of truth for parallel work. If active-work visibility only exists on an unmerged feature branch, other agents do not have the real queue yet.
 
 ## Ground Rule
 
@@ -14,29 +11,12 @@ Work should resume from the repo by reading these files, not by reconstructing p
 1. Start with `AGENTS.md`.
 2. Read `docs/CONTEXT.md`.
 3. Use this file to find the next valid story based on status and dependencies.
-4. Before choosing the next story, recommending a parallel lane, or creating a new branch, run a queue-truth preflight by comparing `master`'s checked-in queue with `git worktree list` and `git branch -vv`.
-5. If the checked-in queue is stale, land a queue correction on `master` first or record the exact blocker before giving next-step guidance.
-6. When the user asks to continue, choose the next story, or create a story, explicitly say whether another checked-in story can run in parallel right now.
-7. If a parallel lane exists, include a ready-to-send copy-paste prompt inline in chat for the recommended other agent instead of creating a prompt file.
-8. Create and switch to a fresh `codex/` branch from current `master` for that story before editing the story file or implementation.
-9. Parallel work by multiple agents is expected, so keep one concern per branch and record any sibling-branch dependency or required merge order.
-10. When a story becomes actively in flight on a parallel branch, update the queue and `Active Work` section in a way that lands on `master` promptly. If the feature branch is not ready to merge, make a small docs-only correction branch so `master` stays truthful.
-11. Open the story file and use it as the execution contract.
-12. Run the preparation phase before writing code.
-13. Run the story's validation steps.
-14. If sibling branches land first, refresh from latest `master` and rerun the story's validation steps before finalization.
-15. Before finalization, inspect the shared merge lock with `bash scripts/merge_lock.sh status`. If another branch holds it, wait, then refresh from latest `master` and rerun the story's validation steps after it releases.
-16. Claim the merge lock for the current branch with explicit wait instructions before finalization, then release it afterward or record the exact blocker if it stays held.
-17. Record outcome in the relevant checkpoint log.
-18. Finish the default GitHub flow by merging the story branch to `master` once it is current with latest `master`, unless the user explicitly pauses or an exact blocker is recorded.
-
-## Active Work
-
-Use this section to show stories that are actually in flight right now, including parallel-agent work that has not merged yet.
-
-| ID | State | Owner | Branch | Worktree | Notes |
-| --- | --- | --- | --- | --- | --- |
-| US-619 | `in-progress` | Codex | `codex/us-619-fleetgraph-sidebar-queue` | `/Users/youss/Development/gauntlet/ship-us-619` | Story drafting and queue setup are active; implementation stays blocked on `US-616` while `US-618` finishes merge/deploy follow-through. |
+4. Create and switch to a fresh `codex/` branch from current `master` for that story before editing the story file or implementation.
+5. Open the story file and use it as the execution contract.
+6. Run the preparation phase before writing code.
+7. Run the story's validation steps.
+8. Record outcome in the relevant checkpoint log.
+9. Finish the default GitHub flow by merging the story branch to `master` unless the user explicitly pauses or an exact blocker is recorded.
 
 ## Story Index
 
@@ -74,7 +54,7 @@ This phase will hold FleetGraph product and integration stories as the active pa
 | US-613 | FleetGraph panel gradient removal | `done` | P2 | `US-612` |
 | US-614 | FleetGraph FAB guided-actions panel convergence | `todo` | P2 | `US-613` |
 | US-616 | FleetGraph assign-issues review/apply follow-through | `todo` | P2 | `US-614` |
-| US-619 | FleetGraph left-sidebar global findings queue | `in-progress` | P2 | `US-616`, `US-618` |
+| US-619 | FleetGraph left-sidebar global findings queue | `todo` | P2 | `US-616`, `US-618` |
 
 ### Phase X: Harness and Workflow Evolution
 
@@ -90,6 +70,7 @@ This phase will hold FleetGraph product and integration stories as the active pa
 | US-908 | Parallel multi-agent branch workflow | `done` | P1 | `US-906` |
 | US-909 | Parallel-lane callout and agent prompt | `done` | P1 | `US-908` |
 | US-910 | Shared merge coordination lock | `done` | P1 | `US-909` |
+| US-913 | Queue-first workflow reset | `done` | P1 | `US-910` |
 
 ## Execution Order
 
@@ -124,6 +105,7 @@ This phase will hold FleetGraph product and integration stories as the active pa
 29. `US-908` makes parallel multi-agent branch work explicit by treating separate per-agent branches as the default and requiring a re-sync with latest `master` before merge when sibling branches land first.
 30. `US-909` makes continuation and story-selection responses explicitly say whether another checked-in story can run in parallel now and provide an inline copy-paste prompt for the recommended other agent when one exists.
 31. `US-910` adds a shared merge lock for finalization so only one branch claims the merge slot at a time and waiting agents get explicit branch plus wait instructions before they re-sync and merge.
+32. `US-913` removes that parallel-agent coordination layer and restores the simpler queue-first workflow while keeping the checked-in story model, branch-per-story rule, and harness validation intact.
 
 ## Files
 

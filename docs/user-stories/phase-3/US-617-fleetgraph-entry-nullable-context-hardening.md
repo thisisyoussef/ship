@@ -6,8 +6,6 @@
 - Owner: Codex
 - Depends on: `US-612`
 - Related branch: `codex/us-617-nullable-context-hardening`
-- Active worktree:
-- Parallel dependency / merge order: Independent of `US-613` and `US-615`; keep this contract-hardening work on its own branch and refresh from latest `master` if sibling stories land first.
 - Related commit/PR:
 - Target environment: `local first`, `Railway demo via merged master`
 
@@ -133,8 +131,6 @@ npx pnpm --filter @ship/api exec tsc --noEmit
 npx pnpm --filter @ship/web exec tsc --noEmit
 git diff --check
 ```
-
-If sibling branches land first before finalization, rerun this section after syncing to latest `master`.
 
 ## Deployment Handoff
 

@@ -138,8 +138,6 @@ npx pnpm --filter @ship/web exec tsc --noEmit
 git diff --check
 ```
 
-If sibling branches land first before finalization, rerun this section after syncing to latest `master`.
-
 ## Deployment Handoff
 
 1. Merge to `master`.

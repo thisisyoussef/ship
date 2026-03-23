@@ -60,6 +60,7 @@ This phase will hold FleetGraph product and integration stories as the active pa
 | US-904 | Autodeploy and test handoff rule | `done` | P1 | `US-901` |
 | US-905 | Post-merge deploy monitoring rule | `done` | P1 | `US-901` |
 | US-906 | Story branch lifecycle rule | `done` | P1 | `US-901` |
+| US-907 | Skip default browser-verification closeout | `done` | P1 | `US-904` |
 
 ## Execution Order
 
@@ -70,20 +71,21 @@ This phase will hold FleetGraph product and integration stories as the active pa
 5. `US-904` aligns closeout behavior with Railway autodeploy and requires explicit `What to test` instructions in visible-story handoffs.
 6. `US-905` makes post-merge deployment observation part of deploy-relevant story completion on auto-deployed surfaces.
 7. `US-906` makes branch-before-start and merge-on-completion explicit for every checked-in story.
-8. `US-602` completes `T601A` by routing entry-card apply through the runtime review/execute path.
-9. `US-603` closes the FleetGraph approval follow-up by making preview state-aware, refreshing the current page after apply, and darkening the result copy.
-10. `US-604` pivots the visible FleetGraph proof lane to review-tab plan validation so the current-page guided step has explicit, user-visible evidence.
-11. `US-605` adds a dedicated validation-ready demo week so the review-tab proof lane can be retested after prior validations consume the original seeded state.
-12. `US-606` makes FleetGraph chat follow-ups conversational enough to use real user prompts, but it does not replace the original `T602` assignment story.
-13. `US-607` tightens the inline FleetGraph shell so it starts collapsed, stays within the viewport, and signals proactive alerts more clearly, but it is still a sidecar polish story.
-14. `US-608` restores the original assignment-critical `T602` lane by completing the context-aware page-analysis use case as a checked-in story.
-15. `US-609` restores the original assignment-critical `T603` lane by widening FleetGraph’s proactive plumbing beyond `week_start_drift`.
-16. `US-609.5` restores the lighter FleetGraph analysis flow by handing `Check this page` into the FAB chat while leaving guided-step preview on the embedded entry card.
-17. `US-610` restores the original assignment-critical `T604` lane by shipping the sprint-owner gap use case.
-18. `US-611` restores the original assignment-critical `T605` lane by shipping the unassigned sprint issues use case.
-19. `US-612` restores the original assignment-critical `T606` lane by refreshing the workbook, traces, and audit path from shipped behavior.
-20. `US-613` removes the FleetGraph panel gradient after the assignment-critical sequence is complete, keeping the shell calmer without re-opening the core use-case work.
-21. Active product packs continue to port into `docs/user-stories/` in dependency order.
+8. `US-907` removes agent-run browser walkthroughs as a default completion requirement and prefers lighter proof paths unless the story genuinely needs visual debugging.
+9. `US-602` completes `T601A` by routing entry-card apply through the runtime review/execute path.
+10. `US-603` closes the FleetGraph approval follow-up by making preview state-aware, refreshing the current page after apply, and darkening the result copy.
+11. `US-604` pivots the visible FleetGraph proof lane to review-tab plan validation so the current-page guided step has explicit, user-visible evidence.
+12. `US-605` adds a dedicated validation-ready demo week so the review-tab proof lane can be retested after prior validations consume the original seeded state.
+13. `US-606` makes FleetGraph chat follow-ups conversational enough to use real user prompts, but it does not replace the original `T602` assignment story.
+14. `US-607` tightens the inline FleetGraph shell so it starts collapsed, stays within the viewport, and signals proactive alerts more clearly, but it is still a sidecar polish story.
+15. `US-608` restores the original assignment-critical `T602` lane by completing the context-aware page-analysis use case as a checked-in story.
+16. `US-609` restores the original assignment-critical `T603` lane by widening FleetGraph’s proactive plumbing beyond `week_start_drift`.
+17. `US-609.5` restores the lighter FleetGraph analysis flow by handing `Check this page` into the FAB chat while leaving guided-step preview on the embedded entry card.
+18. `US-610` restores the original assignment-critical `T604` lane by shipping the sprint-owner gap use case.
+19. `US-611` restores the original assignment-critical `T605` lane by shipping the unassigned sprint issues use case.
+20. `US-612` restores the original assignment-critical `T606` lane by refreshing the workbook, traces, and audit path from shipped behavior.
+21. `US-613` removes the FleetGraph panel gradient after the assignment-critical sequence is complete, keeping the shell calmer without re-opening the core use-case work.
+22. Active product packs continue to port into `docs/user-stories/` in dependency order.
 
 ## Files
 

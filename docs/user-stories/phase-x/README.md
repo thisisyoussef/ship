@@ -12,6 +12,7 @@ This folder holds stories that change the execution harness itself.
 | US-904 | Autodeploy and test handoff rule | `done` | P1 | `US-901` |
 | US-905 | Post-merge deploy monitoring rule | `done` | P1 | `US-901` |
 | US-906 | Story branch lifecycle rule | `done` | P1 | `US-901` |
+| US-907 | Skip default browser-verification closeout | `done` | P1 | `US-904` |
 
 ## Execution Notes
 

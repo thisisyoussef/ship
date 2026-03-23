@@ -37,6 +37,9 @@ Use this file as durable working memory for recurring corrections, decisions, an
 - Final handoff must say exactly what to test.
   Source: post-`US-602` correction
   Apply this by including a short `What to test` section with the exact route, interaction, and expected result instead of only pointing at a guide or proof lane.
+- Agent-side browser verification is not the default closeout path.
+  Source: post-`US-610` correction
+  Apply this by preferring seeded proof lanes, authenticated runtime or API checks, deploy monitoring, and explicit user test steps before reaching for Playwright or a manual browser walkthrough.
 - Approval-preview copy should explain why the action matters to the user, not backend mechanics.
   Source: post-`US-601` correction
   Apply this by preferring language like “the team can move forward with this week” over language like “changes persistent sprint approval state.”

@@ -28,6 +28,7 @@ Write stories that are executable, testable, and resumable from the repo alone.
 8. Add acceptance criteria and concrete local validation commands.
 9. Add deployment and user verification steps.
 10. For visible stories, create or refresh a named seeded verification entry or proof lane when the product supports one, and record it explicitly in `How To Verify`.
+11. Do not require agent-run browser verification by default; prefer seeded proof lanes, runtime or API checks, and explicit `What To Test` steps unless the story truly needs visual debugging.
 11. Update the relevant checkpoint log when the story advances or closes.
 
 ## Phase Folders

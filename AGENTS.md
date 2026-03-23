@@ -46,6 +46,8 @@ Load context in this order before making non-trivial changes:
 - If the story changes visible behavior, include a user-facing verification checklist with exact routes and expected results.
 - Final user-facing handoffs for visible behavior must include an explicit `What to test` section with the exact route, interaction, and expected visible result. Do not make the user infer the test from a linked doc alone.
 - If the story changes visible behavior and the product supports a repeatable proof lane, create or refresh a named seeded verification entry and record its exact title and route in the story, audit checklist, and any relevant inspection guide.
+- Do not make agent-run browser walkthroughs or Playwright checks the default completion gate for visible stories. Prefer local validation, seeded proof lanes, deploy monitoring, and authenticated runtime or API checks first.
+- Use browser automation only when the user explicitly asks for it or when the story specifically needs visual debugging that lighter proof paths cannot cover.
 - Do not call a story complete until `docs/DEFINITION_OF_DONE.md` is satisfied.
 
 ## Deployment Rules

@@ -123,6 +123,8 @@ Run these before handoff:
 
 ## How To Verify
 
+- Prefer the lightest reliable proof path first: local tests, seeded proof lanes, authenticated runtime or API checks, and deployment observation.
+- Only require an agent-run browser walkthrough when the story truly needs visual debugging or the user explicitly asks for it.
 - Seeded verification entry or proof lane:
 - Route or URL:
 - Interaction:

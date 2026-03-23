@@ -25,7 +25,8 @@ All items should be complete before the story is marked `done`.
 - [ ] For deploy-relevant stories on auto-deployed surfaces, the post-merge deployment was observed through completion, or an exact blocker was recorded.
 - [ ] User-facing verification steps and expected results are recorded.
 - [ ] A named seeded verification entry or proof lane is recorded for visible stories when the product supports one.
-- [ ] Actual observed verification result is recorded.
+- [ ] Actual observed runtime proof is recorded, using the lightest reliable path available.
+- [ ] Agent-run browser verification is only required when the story explicitly needs visual debugging or the user asks for it.
 
 ## Handoff
 

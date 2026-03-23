@@ -2,11 +2,11 @@
 
 ## Status
 
-- State: `in-progress`
+- State: `done`
 - Owner: Codex
 - Depends on: `US-614`, `US-617`
 - Related branch: `codex/us-623-guided-actions-overlay`
-- Related commit/PR:
+- Related commit/PR: `d4770bb`, [PR #192](https://github.com/thisisyoussef/ship/pull/192)
 - Target environment: `local first`, `Railway demo via merged master`
 
 ## Persona
@@ -141,19 +141,19 @@ Error path:
 
 ## Acceptance Criteria
 
-- [ ] AC-1: The embedded `FleetGraph entry` card is removed from document pages.
-- [ ] AC-2: Guided next-step preview/apply lives in its own bottom-left floating overlay instead of a FAB tab.
-- [ ] AC-3: The overlay automatically previews guided next-step work when a new page or tab context becomes ready.
-- [ ] AC-4: The overlay becomes visible when FleetGraph has a next step and stays visually restrained when no step is needed.
-- [ ] AC-5: The FleetGraph FAB remains available for analysis/chat without guided-actions tab state.
-- [ ] AC-6: Proof docs and verification steps describe the new surface truthfully.
+- [x] AC-1: The embedded `FleetGraph entry` card is removed from document pages.
+- [x] AC-2: Guided next-step preview/apply lives in its own bottom-left floating overlay instead of a FAB tab.
+- [x] AC-3: The overlay automatically previews guided next-step work when a new page or tab context becomes ready.
+- [x] AC-4: The overlay becomes visible when FleetGraph has a next step and stays visually restrained when no step is needed.
+- [x] AC-5: The FleetGraph FAB remains available for analysis/chat without guided-actions tab state.
+- [x] AC-6: Proof docs and verification steps describe the new surface truthfully.
 
 ## Local Validation
 
 Run these before handoff:
 
 ```bash
-npx pnpm --filter @ship/web exec vitest run src/components/FleetGraphFab.test.tsx src/components/FleetGraphGuidedActionsOverlay.test.tsx src/pages/UnifiedDocumentPage.test.tsx
+npx pnpm --filter @ship/web exec vitest run src/components/FleetGraphFab.test.tsx src/components/FleetGraphGuidedActionsOverlay.test.tsx src/components/FleetGraphPanelShell.test.tsx src/pages/UnifiedDocumentPage.test.tsx
 npx pnpm --filter @ship/web exec tsc --noEmit
 npx pnpm --filter @ship/api exec tsc --noEmit
 git diff --check
@@ -192,8 +192,16 @@ git diff --check
 
 ## Checkpoint Result
 
-- Outcome: `pending`
+- Outcome: `pass`
 - Evidence:
-  - Story opened and implementation in progress.
+  - Removed the embedded `FleetGraph entry` card from document pages and deleted its component/tests so guided next-step help no longer competes with the proactive shell.
+  - Added a dedicated bottom-left `FleetGraphGuidedActionsOverlay` that auto-previews guided next steps once per page/tab context and reuses the existing review/apply semantics.
+  - Simplified the FleetGraph FAB back to analysis/chat only and refreshed the current-page FleetGraph docs plus `US-619` queue truth to match the overlay-based surface.
+  - Local validation passed:
+    - `npx pnpm --filter @ship/web exec vitest run src/components/FleetGraphFab.test.tsx src/components/FleetGraphGuidedActionsOverlay.test.tsx src/components/FleetGraphPanelShell.test.tsx src/pages/UnifiedDocumentPage.test.tsx`
+    - `npx pnpm --filter @ship/web exec tsc --noEmit`
+    - `npx pnpm --filter @ship/api exec tsc --noEmit`
+    - `git diff --check`
+  - Deployment status: `not deployed`
 - Residual risk:
-  - Auto-preview behavior must be constrained carefully so it reacts to real page/tab changes without spamming repeated preview calls during normal rerenders.
+  - The live Railway proof still needs authenticated inspection on `FleetGraph Demo Week - Validation Ready` to confirm the auto-surfacing overlay behavior matches the seeded local path after merge.

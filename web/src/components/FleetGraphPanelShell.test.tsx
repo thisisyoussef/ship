@@ -45,14 +45,14 @@ describe('FleetGraphPanelShell', () => {
     expect(screen.getByText('FleetGraph body')).toBeInTheDocument();
   });
 
-  it('uses flat header tones instead of gradients for alert and on-demand states', () => {
+  it('uses flat header tones instead of gradients for alert and monitoring states', () => {
     const { rerender } = renderShell({ activeFindingCount: 2 });
 
     const alertButton = screen.getByRole('button', { name: /open fleetgraph panel/i });
     expect(alertButton.className).toContain('bg-amber-50');
     expect(alertButton.className).toContain('hover:bg-amber-100/80');
     expect(alertButton.className).not.toContain('bg-gradient-to-r');
-    expect(screen.getByText('Page guidance and proactive alerts').className).toContain('text-slate-950');
+    expect(screen.getByText('Proactive alerts on this page').className).toContain('text-slate-950');
 
     rerender(
       <FleetGraphPanelShell activeFindingCount={0}>
@@ -64,7 +64,7 @@ describe('FleetGraphPanelShell', () => {
     expect(calmButton.className).toContain('bg-sky-50/70');
     expect(calmButton.className).toContain('hover:bg-sky-100/80');
     expect(calmButton.className).not.toContain('bg-gradient-to-r');
-    expect(screen.getByText('Page guidance and proactive alerts').className).toContain('text-slate-950');
+    expect(screen.getByText('Proactive alerts on this page').className).toContain('text-slate-950');
   });
 
   it('caps expanded content to the visible viewport height', async () => {

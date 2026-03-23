@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useEffect, useState, Suspense } from 'react';
+import { useCallback, useMemo, useEffect, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { UnifiedEditor } from '@/components/UnifiedEditor';
@@ -16,9 +16,9 @@ import { TabBar } from '@/components/ui/TabBar';
 import { useCurrentDocument } from '@/contexts/CurrentDocumentContext';
 import { FleetGraphDebugDock } from '@/components/FleetGraphDebugDock';
 import { FleetGraphDebugSurfaceProvider } from '@/components/FleetGraphDebugSurface';
-import { FleetGraphEntryCard } from '@/components/FleetGraphEntryCard';
 import { FleetGraphFab } from '@/components/FleetGraphFab';
 import { FleetGraphFindingsPanel } from '@/components/FleetGraphFindingsPanel';
+import { FleetGraphGuidedActionsOverlay } from '@/components/FleetGraphGuidedActionsOverlay';
 import { FleetGraphPanelShell } from '@/components/FleetGraphPanelShell';
 import { useDocumentContextQuery } from '@/hooks/useDocumentContextQuery';
 import { useFleetGraphFindings } from '@/hooks/useFleetGraphFindings';
@@ -177,7 +177,6 @@ export function UnifiedDocumentPage() {
   const { showToast } = useToast();
   const { setCurrentDocument, clearCurrentDocument } = useCurrentDocument();
   const documentContextQuery = useDocumentContextQuery(id);
-  const [fleetGraphFabLaunchKey, setFleetGraphFabLaunchKey] = useState(0);
 
   // Fetch the document by ID
   const { data: document, isLoading, error } = useQuery<DocumentResponse>({
@@ -651,9 +650,6 @@ export function UnifiedDocumentPage() {
     nestedPath,
     userId: user?.id ?? null,
   });
-  const handleFleetGraphCheckCurrentContext = useCallback(() => {
-    setFleetGraphFabLaunchKey((current) => current + 1);
-  }, []);
 
   // Loading state
   if (isLoading) {
@@ -698,22 +694,18 @@ export function UnifiedDocumentPage() {
           loading={documentContextQuery.isLoading}
           ownerOptions={fleetGraphOwnerOptions}
         />
-        <FleetGraphEntryCard
-          helperText={fleetGraphEntry.helperText}
-          isActionDisabled={fleetGraphEntry.isActionDisabled}
-          onCheckCurrentContext={handleFleetGraphCheckCurrentContext}
-        />
       </FleetGraphPanelShell>
-      <FleetGraphFab
+      <FleetGraphGuidedActionsOverlay
         activeTab={activeTab || undefined}
+        entry={fleetGraphEntry.entry}
+        helperText={fleetGraphEntry.helperText}
+        isActionDisabled={fleetGraphEntry.isActionDisabled}
+        nestedPath={nestedPath}
+      />
+      <FleetGraphFab
         documentId={document.id}
         documentTitle={document.title}
         documentType={document.document_type}
-        guidedActionsDisabled={fleetGraphEntry.isActionDisabled}
-        guidedEntry={fleetGraphEntry.entry}
-        guidedHelperText={fleetGraphEntry.helperText}
-        launchRequestKey={fleetGraphFabLaunchKey}
-        nestedPath={nestedPath}
       />
       <FleetGraphDebugDock />
     </FleetGraphDebugSurfaceProvider>

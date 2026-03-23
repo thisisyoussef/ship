@@ -1,9 +1,14 @@
 import { useEffect } from 'react'
 
 import { useFleetGraphDebugSurface } from '@/components/FleetGraphDebugSurface'
-import { useFleetGraphEntry } from '@/hooks/useFleetGraphEntry'
 import { buildEntryDebugSnapshot } from '@/lib/fleetgraph-debug'
-import type { FleetGraphEntryInput } from '@/lib/fleetgraph-entry'
+import type {
+  FleetGraphApprovalEnvelope,
+  FleetGraphEntryApplyResponse,
+  FleetGraphEntryInput,
+  FleetGraphEntryResponse,
+  FleetGraphRequestedActionDraft,
+} from '@/lib/fleetgraph-entry'
 
 const buttonClassName =
   'rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-900 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50'
@@ -15,17 +20,44 @@ const sectionLabelClassName =
 interface FleetGraphGuidedActionsPanelProps {
   activeTab?: string
   entry: FleetGraphEntryInput | null
+  fleetGraph: FleetGraphGuidedActionsController
   helperText: string
   nestedPath?: string
+  showIntro?: boolean
+  showPreviewButton?: boolean
+  syncDebugEntry?: boolean
+}
+
+export interface FleetGraphGuidedActionsController {
+  actionResult: FleetGraphEntryApplyResponse | null
+  applyApproval: (
+    threadId: string,
+    approval: FleetGraphApprovalEnvelope,
+    currentDocumentId: string
+  ) => void
+  dismissApproval: () => void
+  errorMessage: string | null
+  isApplying: boolean
+  isLoading: boolean
+  previewApproval: (
+    entry: FleetGraphEntryInput,
+    requestedAction?: FleetGraphRequestedActionDraft
+  ) => void
+  reset: () => void
+  result: FleetGraphEntryResponse | undefined
+  snoozeApproval: () => void
 }
 
 export function FleetGraphGuidedActionsPanel({
   activeTab,
   entry,
+  fleetGraph,
   helperText,
   nestedPath,
+  showIntro = true,
+  showPreviewButton = true,
+  syncDebugEntry = true,
 }: FleetGraphGuidedActionsPanelProps) {
-  const fleetGraph = useFleetGraphEntry()
   const approval = fleetGraph.result?.approval
   const actionResult = fleetGraph.actionResult
   const { setEntry } = useFleetGraphDebugSurface()
@@ -44,33 +76,37 @@ export function FleetGraphGuidedActionsPanel({
       }
 
   useEffect(() => {
+    if (!syncDebugEntry) {
+      return
+    }
+
     setEntry(
       fleetGraph.result
         ? buildEntryDebugSnapshot(fleetGraph.result, activeTab, nestedPath)
         : null
     )
-  }, [activeTab, fleetGraph.result, nestedPath, setEntry])
-
-  useEffect(() => {
-    fleetGraph.reset()
-  }, [entry?.activeTab, entry?.document.id, entry?.nestedPath])
+  }, [activeTab, fleetGraph.result, nestedPath, setEntry, syncDebugEntry])
 
   return (
     <div className="space-y-4">
-      <div className="space-y-1">
-        <p className={sectionLabelClassName}>Guided actions</p>
-        <h3 className="text-sm font-semibold text-gray-900">Preview the next step</h3>
-        <p className="text-sm text-gray-600">{helperText}</p>
-      </div>
+      {showIntro ? (
+        <div className="space-y-1">
+          <p className={sectionLabelClassName}>Guided actions</p>
+          <h3 className="text-sm font-semibold text-gray-900">Preview the next step</h3>
+          <p className="text-sm text-gray-600">{helperText}</p>
+        </div>
+      ) : null}
 
-      <button
-        className={buttonClassName}
-        disabled={!entry || fleetGraph.isLoading}
-        onClick={() => entry && fleetGraph.previewApproval(entry)}
-        type="button"
-      >
-        Preview next step
-      </button>
+      {showPreviewButton ? (
+        <button
+          className={buttonClassName}
+          disabled={!entry || fleetGraph.isLoading}
+          onClick={() => entry && fleetGraph.previewApproval(entry)}
+          type="button"
+        >
+          Preview next step
+        </button>
+      ) : null}
 
       {fleetGraph.isLoading ? (
         <p className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">

@@ -44,6 +44,21 @@ export interface FleetGraphApprovalEnvelope {
   type: 'approve_project_plan' | 'approve_week_plan' | 'post_comment' | 'start_week' | 'validate_week_plan'
 }
 
+export interface FleetGraphRequestedActionDraft {
+  body?: Record<string, unknown>
+  endpoint: {
+    method: 'DELETE' | 'PATCH' | 'POST'
+    path: string
+  }
+  evidence: string[]
+  rationale: string
+  summary: string
+  targetId: string
+  targetType: 'document' | 'project' | 'sprint'
+  title: string
+  type: FleetGraphApprovalEnvelope['type']
+}
+
 export interface FleetGraphEntryActionOutcome {
   message: string
   resultStatusCode?: number
@@ -163,7 +178,7 @@ function buildRequestedAction(
   document: FleetGraphEntryDocument,
   context: DocumentContext,
   activeTab?: string
-) {
+): FleetGraphRequestedActionDraft | undefined {
   if (document.documentType === 'project') {
     if (hasApprovedPlan(document)) {
       return undefined
@@ -256,18 +271,48 @@ function buildRequestedAction(
   }
 }
 
+export function buildFleetGraphRequestedActions(
+  document: FleetGraphEntryDocument,
+  context: DocumentContext,
+  activeTab?: string
+) {
+  const requestedAction = buildRequestedAction(document, context, activeTab)
+  return requestedAction ? [requestedAction] : []
+}
+
+export function buildFleetGraphPreviewThreadId(
+  input: FleetGraphEntryInput,
+  requestedAction: FleetGraphRequestedActionDraft
+) {
+  const actionBody = requestedAction.body
+    ? sanitizeSegment(JSON.stringify(requestedAction.body))
+    : 'no-body'
+
+  return [
+    buildEntryThreadId(input),
+    sanitizeSegment(requestedAction.type),
+    sanitizeSegment(requestedAction.targetType),
+    sanitizeSegment(requestedAction.targetId),
+    sanitizeSegment(requestedAction.endpoint.method),
+    sanitizeSegment(requestedAction.endpoint.path),
+    actionBody || 'body',
+  ].join(':')
+}
+
 export function buildFleetGraphEntryPayload(
   input: FleetGraphEntryInput,
   previewApproval = false,
-  threadId?: string
+  threadId?: string,
+  requestedActionOverride?: FleetGraphRequestedActionDraft
 ) {
   if (!input.document.workspaceId) {
     throw new Error('FleetGraph needs a workspace id from the current document.')
   }
 
-  const requestedAction = previewApproval
-    ? buildRequestedAction(input.document, input.context, input.activeTab)
-    : undefined
+  const requestedAction = requestedActionOverride
+    ?? (previewApproval
+      ? buildFleetGraphRequestedActions(input.document, input.context, input.activeTab)[0]
+      : undefined)
 
   return {
     context: input.context,

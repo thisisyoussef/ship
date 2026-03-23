@@ -240,6 +240,14 @@ export function useFleetGraphEntry() {
       setActionResult(null)
       mutation.mutate({ entry, previewApproval: true })
     },
+    reset() {
+      setActionResult(null)
+      setAnalysisConversation([])
+      setAnalysisThreadId(null)
+      mutation.reset()
+      applyMutation.reset()
+      followUpMutation.reset()
+    },
     result: mutation.data,
     sendAnalysisFollowUp(message: string) {
       followUpMutation.mutate(message)

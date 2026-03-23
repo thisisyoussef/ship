@@ -71,7 +71,7 @@ Current public-demo blocker:
 20. Open the `Review` tab for `FleetGraph Demo Week - Validation Ready`.
 21. Click `Check this page` in the entry card and inspect the FAB handoff.
 22. Ask a follow-up such as `What else should I look at?` in the FAB.
-23. Click `Preview next step` in the entry card and inspect the guided-step preview state.
+23. Switch the FAB to `Guided actions`, then click `Preview next step`.
 24. Open `FleetGraph debug`.
 25. Inspect the secondary debug dock for thread history and pending interrupts.
 26. Return to `Documents`.
@@ -108,7 +108,8 @@ Current public-demo blocker:
 - On `FleetGraph Demo Week - Validation Ready`, the `Review` tab is available immediately and `Plan Validation` starts unset so FleetGraph can validate it.
 - Lifecycle controls such as `Dismiss` and `Snooze 4h` remain available in the `Quick actions` block for finding-state checks.
 - The entry card should also show a `Quick actions` section instead of an unlabeled button row.
-- The entry card starts current-page analysis, but the FAB is the canonical analysis/chat surface once `Check this page` is used.
+- The entry card should keep `Check this page` and point guided-step work toward the FAB instead of rendering `Preview next step` inline.
+- The FAB is the canonical current-page surface for both analysis/chat and guided actions on the validation-ready proof lane.
 - The main card copy should read in user terms first, with diagnostics moved behind `Open FleetGraph debug`.
 - The debug dock should show secondary details such as:
   - FleetGraph thread ids
@@ -162,7 +163,7 @@ blocked on the current public Railway findings feed.
 ## Expected FAB Page-Analysis Flow
 
 1. On `FleetGraph Demo Week - Validation Ready`, open the `Review` tab and find the `FleetGraph entry` card.
-2. Confirm the card shows a `Quick actions` section with `Check this page` and `Preview next step`.
+2. Confirm the card shows a `Quick actions` section with `Check this page` and copy that points guided actions into the FAB.
 3. Click `Check this page`.
 4. Confirm the floating FleetGraph FAB opens immediately.
 5. Confirm the FAB begins the page analysis instead of leaving the entry card to render an inline chat transcript.
@@ -173,29 +174,30 @@ blocked on the current public Railway findings feed.
 10. Confirm diagnostics remain secondary under `Open FleetGraph debug`.
 11. Failure signal: the FAB does not open, no analysis appears there, the entry card still renders competing inline chat, or the second answer repeats the first without advancing.
 
-## Expected Entry-Card Preview Flow
+## Expected FAB Guided-Actions Preview Flow
 
 1. On `FleetGraph Demo Week - Validation Ready`, open the `Review` tab and find the `FleetGraph entry` card.
-2. Confirm the card shows a `Quick actions` section with `Check this page` and `Preview next step`.
-3. Click `Preview next step`.
-4. Confirm the card shows `FleetGraph paused for your confirmation.`
-5. Confirm the result area shows `Current guidance` and `Review step`.
-6. Confirm the guided step is `Validate week plan`.
-7. Confirm the preview explains that the validation result is visible on this page and includes evidence about `Plan Validation` showing `Validated`.
-8. Confirm the visible options focus on user choice first, while diagnostics remain secondary under `Open FleetGraph debug`.
-9. Confirm the debug dock surfaces the entry thread and its latest checkpoint summary.
+2. Confirm the card no longer renders a `Preview next step` button inline.
+3. Open the floating FleetGraph FAB and switch to `Guided actions`.
+4. Click `Preview next step`.
+5. Confirm the FAB shows `FleetGraph paused for your confirmation.`
+6. Confirm the guided-actions panel shows `Current guidance` and `Review step`.
+7. Confirm the guided step is `Validate week plan`.
+8. Confirm the preview explains that the validation result is visible on this page and includes evidence about `Plan Validation` showing `Validated`.
+9. Confirm the visible options focus on user choice first, while diagnostics remain secondary under `Open FleetGraph debug`.
+10. Confirm the debug dock surfaces the entry thread and its latest checkpoint summary.
 
-## Expected Entry-Card Apply Flow
+## Expected FAB Guided-Actions Apply Flow
 
-1. On `FleetGraph Demo Week - Validation Ready`, open the `Review` tab and click `Preview next step`.
+1. On `FleetGraph Demo Week - Validation Ready`, open the `Review` tab, open the FAB, switch to `Guided actions`, and click `Preview next step`.
 2. Click `Apply`.
-3. Confirm the card shows a `Latest result` panel after the action finishes.
+3. Confirm the guided-actions panel shows a `Latest result` panel after the action finishes.
 4. Confirm the result headline is `Week plan validated.`
 5. Confirm the result detail explains the visible effect in Ship and points back to the page state: `Week plan marked as validated in Ship. Look for Plan Validation showing Validated on this page.`
 6. Confirm the page data refreshes after apply instead of leaving the stale preview in place.
 7. Confirm the `Plan Validation` control now shows `Validated` on the review page.
-8. Click `Preview next step` again and confirm FleetGraph does not offer the same validation step a second time.
-9. Failure signal: the card shows no inline result, the review page stays stale after the action completes, or the same validation prompt reappears immediately.
+8. Click `Preview next step` again from the FAB guided-actions panel and confirm FleetGraph does not offer the same validation step a second time.
+9. Failure signal: the FAB guided-actions panel shows no result, the review page stays stale after the action completes, or the same validation prompt reappears immediately.
 
 ## Screenshot References
 

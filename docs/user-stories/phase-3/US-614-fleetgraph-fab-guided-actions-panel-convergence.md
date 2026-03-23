@@ -2,11 +2,11 @@
 
 ## Status
 
-- State: `todo`
+- State: `done`
 - Owner: Codex
 - Depends on: `US-613`
-- Related branch:
-- Related commit/PR:
+- Related branch: `codex/us-614-fab-guided-actions-panel-convergence`
+- Related commit/PR: `0c858d8`, [PR #187](https://github.com/thisisyoussef/ship/pull/187)
 - Target environment: `local first`, `Railway demo via merged master`
 
 ## Persona
@@ -59,22 +59,38 @@ Local sources to read before writing code:
 
 Local docs/code reviewed:
 
-1. `web/src/components/FleetGraphFab.tsx`
-2. `web/src/components/FleetGraphEntryCard.tsx`
-3. `web/src/pages/UnifiedDocumentPage.tsx`
-4. `api/src/services/fleetgraph/entry/service.ts`
-5. `docs/guides/fleetgraph-demo-inspection.md`
-6. `docs/user-stories/phase-3/US-609.5-fleetgraph-fab-analysis-handoff.md`
+1. `AGENTS.md`
+2. `docs/CONTEXT.md`
+3. `docs/WORKFLOW_MEMORY.md`
+4. `docs/IMPLEMENTATION_STRATEGY.md`
+5. `docs/user-stories/README.md`
+6. `docs/user-stories/phase-3/README.md`
+7. `docs/user-stories/phase-3/US-614-fleetgraph-fab-guided-actions-panel-convergence.md`
+8. `docs/DEFINITION_OF_DONE.md`
+9. `docs/assignments/fleetgraph/README.md`
+10. `docs/assignments/fleetgraph/PRESEARCH.md`
+11. `docs/assignments/fleetgraph/FLEETGRAPH.md`
+12. `docs/guides/fleetgraph-demo-inspection.md`
+13. `docs/user-stories/phase-3/US-609.5-fleetgraph-fab-analysis-handoff.md`
+14. `.claude/CLAUDE.md`
+15. `web/src/components/FleetGraphFab.tsx`
+16. `web/src/components/FleetGraphEntryCard.tsx`
+17. `web/src/pages/UnifiedDocumentPage.tsx`
+18. `web/src/hooks/useFleetGraphEntry.ts`
+19. `web/src/hooks/useFleetGraphAnalysis.ts`
+20. `web/src/lib/fleetgraph-entry.ts`
+21. `api/src/services/fleetgraph/entry/service.ts`
 
 Expected contracts/data shapes:
 
 1. The existing guided-step preview/apply contract should stay intact unless a narrow UI adapter proves insufficient.
 2. The FAB can host analysis and guided actions as separate panels or tabs without resetting the shared page context.
-3. `Check this page` should remain the analysis path, while `Preview next step` should become the guided-actions path inside the same floating surface.
+3. `Check this page` should remain the entry-card launcher for analysis, while `Preview next step` should move into the FAB’s guided-actions panel.
+4. The page should prepare the same review-aware entry input for both surfaces so guided-step state does not split across the entry card and the FAB.
 
 Planned failing tests:
 
-1. `Preview next step` launches the FAB guided-actions panel instead of rendering inline entry-card guided state.
+1. The entry card no longer renders inline `Preview next step` and instead points guided actions into the FAB.
 2. The FAB guided-actions panel preserves the same guided-step review/apply lifecycle and visible copy users already rely on.
 3. Analysis and guided-actions paths can coexist in the FAB without duplicated state or broken thread continuity.
 
@@ -95,10 +111,10 @@ Error path:
 
 ## Preconditions
 
-- [ ] Fresh story branch is checked out before edits begin
-- [ ] Entry-card guided-step preview/apply flow is stable before the move
-- [ ] FAB analysis flow is stable before adding guided-actions convergence
-- [ ] The move can be attempted as a surface refactor before any deeper runtime changes
+- [x] Fresh story branch is checked out before edits begin
+- [x] Entry-card guided-step preview/apply flow is stable before the move
+- [x] FAB analysis flow is stable before adding guided-actions convergence
+- [x] The move can be attempted as a surface refactor before any deeper runtime changes
 
 ## TDD Plan
 
@@ -108,17 +124,17 @@ Error path:
 
 ## Step-by-step Implementation Plan
 
-1. Rehost the guided-step quick-action launcher so `Preview next step` opens the FAB guided-actions panel.
+1. Move the guided-step launcher into a dedicated FAB guided-actions panel while leaving `Check this page` as the entry-card launcher for analysis.
 2. Add a dedicated FAB guided-actions panel that reuses the current guided-step preview/apply behavior.
 3. Reduce the entry card to the minimum copy/launch affordances needed after the move.
 4. Refresh proof docs and seeded verification steps to describe the converged FAB behavior accurately.
 
 ## Acceptance Criteria
 
-- [ ] AC-1: `Preview next step` no longer depends on inline entry-card guided state and instead opens a dedicated guided-actions panel in the FleetGraph FAB.
-- [ ] AC-2: The FAB guided-actions panel preserves the same guided-step preview, review, apply, and cancel behavior the entry-card flow already provides.
-- [ ] AC-3: FAB analysis and guided actions share one current-page surface without duplicated or conflicting state.
-- [ ] AC-4: Proof docs and verification steps describe the converged FAB flow truthfully and make clear that behavior stayed the same even though the surface moved.
+- [x] AC-1: `Preview next step` no longer depends on inline entry-card guided state and instead opens a dedicated guided-actions panel in the FleetGraph FAB.
+- [x] AC-2: The FAB guided-actions panel preserves the same guided-step preview, review, apply, and cancel behavior the entry-card flow already provides.
+- [x] AC-3: FAB analysis and guided actions share one current-page surface without duplicated or conflicting state.
+- [x] AC-4: Proof docs and verification steps describe the converged FAB flow truthfully and make clear that behavior stayed the same even though the surface moved.
 
 ## Local Validation
 
@@ -129,6 +145,7 @@ npx pnpm --filter @ship/web exec vitest run src/components/FleetGraphFab.test.ts
 npx pnpm --filter @ship/api exec vitest run src/routes/fleetgraph.test.ts --config vitest.fleetgraph.config.ts
 npx pnpm --filter @ship/web exec tsc --noEmit
 npx pnpm --filter @ship/api exec tsc --noEmit
+bash scripts/check_ai_wiring.sh
 git diff --check
 ```
 
@@ -164,6 +181,18 @@ git diff --check
 
 ## Checkpoint Result
 
-- Outcome: `pending`
+- Outcome: `pass`
 - Evidence:
+  - Reworked the validation-ready page so the entry card is now a lightweight launcher while the FAB owns both `Analysis` and `Guided actions` as separate panels in one floating surface.
+  - Added a shared page-entry preparation hook so the FAB guided-actions panel receives the same review-aware FleetGraph entry input the old inline preview path relied on.
+  - Added a dedicated FAB guided-actions panel that reuses the existing FleetGraph preview/apply contract, carries review/apply state in the FAB, and keeps the debug-dock entry snapshot aligned with the moved flow.
+  - Updated the validation-ready demo guide so it now describes `Preview next step` inside the FAB guided-actions panel instead of on the entry card.
+  - Local validation passed:
+    - `npx pnpm --filter @ship/web exec vitest run src/components/FleetGraphFab.test.tsx src/components/FleetGraphEntryCard.test.tsx src/pages/UnifiedDocumentPage.test.tsx`
+    - `npx pnpm --filter @ship/api exec vitest run src/routes/fleetgraph.test.ts --config vitest.fleetgraph.config.ts`
+    - `npx pnpm --filter @ship/web exec tsc --noEmit`
+    - `npx pnpm --filter @ship/api exec tsc --noEmit`
+    - `bash scripts/check_ai_wiring.sh`
+  - Deployment status: `not deployed`
 - Residual risk:
+  - The live Railway proof lane still needs post-merge inspection to confirm the authenticated FAB tab state and guided-actions flow match the seeded validation-ready route on the deployed demo.

@@ -61,39 +61,18 @@ vi.mock('@/contexts/CurrentDocumentContext', () => ({
 
 vi.mock('@/components/FleetGraphEntryCard', () => ({
   FleetGraphEntryCard: ({
-    document,
+    helperText,
+    isActionDisabled,
     onCheckCurrentContext,
   }: {
-    document: { documentType: string; id: string; title: string; workspaceId: string }
-    onCheckCurrentContext?: (entry: unknown) => void
+    helperText: string
+    isActionDisabled?: boolean
+    onCheckCurrentContext?: () => void
   }) => (
     <div>
       <div>FleetGraph entry</div>
-      <button
-        onClick={() => onCheckCurrentContext?.({
-          activeTab: 'overview',
-          context: {
-            ancestors: [],
-            belongs_to: [],
-            breadcrumbs: [
-              {
-                id: document.id,
-                title: document.title,
-                type: document.documentType,
-              },
-            ],
-            children: [],
-            current: {
-              document_type: document.documentType,
-              id: document.id,
-              title: document.title,
-            },
-          },
-          document,
-          userId: 'user-1',
-        })}
-        type="button"
-      >
+      <div>{helperText}</div>
+      <button disabled={isActionDisabled} onClick={() => onCheckCurrentContext?.()} type="button">
         Check this page
       </button>
     </div>
@@ -107,12 +86,14 @@ vi.mock('@/components/FleetGraphFindingsPanel', () => ({
 vi.mock('@/components/FleetGraphFab', () => ({
   FleetGraphFab: ({
     documentId,
+    guidedEntry,
     launchRequestKey,
   }: {
     documentId: string
+    guidedEntry?: { document: { id: string } } | null
     launchRequestKey?: number
   }) => (
-    <div>{`FleetGraph FAB ${documentId} launch ${launchRequestKey ?? 0}`}</div>
+    <div>{`FleetGraph FAB ${documentId} launch ${launchRequestKey ?? 0} guided ${guidedEntry?.document.id ?? 'none'}`}</div>
   ),
 }));
 
@@ -128,6 +109,40 @@ vi.mock('@/hooks/useFleetGraphFindings', () => ({
   useFleetGraphFindings: () => ({
     findings: [],
     isLoading: false,
+  }),
+}));
+
+vi.mock('@/hooks/useFleetGraphPageEntryInput', () => ({
+  useFleetGraphPageEntryInput: () => ({
+    entry: {
+      activeTab: 'overview',
+      context: {
+        ancestors: [],
+        belongs_to: [],
+        breadcrumbs: [
+          {
+            id: 'sprint-1',
+            title: 'FleetGraph Demo Week - Review and Apply',
+            type: 'sprint',
+          },
+        ],
+        children: [],
+        current: {
+          document_type: 'sprint',
+          id: 'sprint-1',
+          title: 'FleetGraph Demo Week - Review and Apply',
+        },
+      },
+      document: {
+        documentType: 'sprint',
+        id: 'sprint-1',
+        title: 'FleetGraph Demo Week - Review and Apply',
+        workspaceId: 'workspace-1',
+      },
+      userId: 'user-1',
+    },
+    helperText: 'FleetGraph can review the page you are on and suggest the next step.',
+    isActionDisabled: false,
   }),
 }));
 
@@ -263,10 +278,14 @@ describe('UnifiedDocumentPage', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: /open fleetgraph panel/i }));
     expect(await screen.findByText('FleetGraph entry')).toBeInTheDocument();
-    expect(screen.getByText('FleetGraph FAB sprint-1 launch 0')).toBeInTheDocument();
+    expect(
+      screen.getByText('FleetGraph FAB sprint-1 launch 0 guided sprint-1')
+    ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Check this page' }));
 
-    expect(await screen.findByText('FleetGraph FAB sprint-1 launch 1')).toBeInTheDocument();
+    expect(
+      await screen.findByText('FleetGraph FAB sprint-1 launch 1 guided sprint-1')
+    ).toBeInTheDocument();
   });
 });

@@ -34,6 +34,6 @@ This folder holds FleetGraph assignment-gap stories plus the UX, reliability, de
 | US-621 | FleetGraph post-comment fallback preview cleanup | `done` | P1 | `US-601` |
 | US-622 | FleetGraph route-trigger enqueue and sweep bootstrap | `done` | P1 | `US-612` |
 | US-613 | FleetGraph panel gradient removal | `done` | P2 | `US-612` |
-| US-614 | FleetGraph FAB guided-actions panel convergence | `todo` | P2 | `US-613` |
+| US-614 | FleetGraph FAB guided-actions panel convergence | `done` | P2 | `US-613` |
 | US-616 | FleetGraph assign-issues review/apply follow-through | `todo` | P2 | `US-614` |
 | US-619 | FleetGraph left-sidebar global findings queue | `todo` | P2 | `US-616`, `US-618` |

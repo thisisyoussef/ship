@@ -6,7 +6,7 @@
 - Owner: Codex
 - Depends on: `US-601`
 - Related branch: `codex/us-621-post-comment-fallback-preview-cleanup`
-- Related commit/PR: `pending finalization`
+- Related commit/PR: `91c4b4c`, [PR #180](https://github.com/thisisyoussef/ship/pull/180)
 - Target environment: `local first`, `Railway demo via merged master`
 
 ## Persona

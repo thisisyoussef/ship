@@ -41,6 +41,8 @@ Write stories that are executable, testable, and resumable from the repo alone.
 17. Update the relevant checkpoint log when the story advances or closes.
 18. As soon as implementation starts, update `docs/user-stories/README.md` and the relevant phase README so the story is visibly marked `in-progress` with its current owner, branch, and worktree path when applicable.
 19. Treat those queue updates as shared coordination data, not private branch notes. Make sure the active-work visibility lands on `master` promptly, even if that requires a separate small docs-only correction before the implementation branch is ready.
+20. Before finalization, inspect the shared merge lock with `bash scripts/merge_lock.sh status`. If another branch holds it, wait, refresh from latest `master`, rerun validation, and only then continue.
+21. Claim the merge lock for the current branch with explicit wait instructions before opening or merging the PR, then release it after finalization or record the exact blocker.
 
 ## Phase Folders
 

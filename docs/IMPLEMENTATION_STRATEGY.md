@@ -48,9 +48,11 @@ Improve the repo's execution harness itself when repeated friction or drift show
 10. Write or update tests before production changes when behavior changes.
 11. Run the story's validation commands.
 12. If sibling branches merge first, refresh from latest `master`, resolve conflicts, and rerun the story's validation commands before finalization.
-13. Record deployment status, proof, and checkpoint evidence.
-14. Finish the default GitHub flow by merging the story branch back to `master` once it is current with the integration base, unless the user explicitly pauses finalization or an exact blocker is recorded.
-15. Roll evidence upward into `docs/plans/` or `docs/submissions/` only when packaging or reviewing.
+13. Before finalization, inspect the shared merge lock with `bash scripts/merge_lock.sh status`. If another branch holds it, wait for release, then refresh from latest `master` and rerun the story's validation commands.
+14. Claim the merge lock for the current branch with explicit wait instructions before finalization, and release it afterward or record the exact blocker.
+15. Record deployment status, proof, and checkpoint evidence.
+16. Finish the default GitHub flow by merging the story branch back to `master` once it is current with the integration base, unless the user explicitly pauses finalization or an exact blocker is recorded.
+17. Roll evidence upward into `docs/plans/` or `docs/submissions/` only when packaging or reviewing.
 
 ## Planning vs Packaging
 

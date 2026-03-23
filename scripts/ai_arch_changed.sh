@@ -15,11 +15,13 @@ usage() {
 # - docs/IMPLEMENTATION_STRATEGY.md
 # - docs/DEFINITION_OF_DONE.md
 # - docs/user-stories/
+# - docs/guides/merge-coordination.md
 # - docs/guides/finalization-recovery.md
+# - scripts/merge_lock.sh
 # - supporting harness scripts and IDE mirrors
 
 match_ai_arch() {
-  grep -E '^(AGENTS\.md|CLAUDE\.md|\.clauderc|\.cursorrules|\.claude/CLAUDE\.md|docs/(README\.md|CONTEXT\.md|IMPLEMENTATION_STRATEGY\.md|DEFINITION_OF_DONE\.md|guides/finalization-recovery\.md|submissions/.*|user-stories/.*)|\.husky/pre-commit|scripts/(check_ai_wiring|flight_slot|git_finalize_guard|ai_arch_changed|triage_counter|tdd_handoff)\.sh|scripts/verify_agent_contract\.py)$' || true
+  grep -E '^(AGENTS\.md|CLAUDE\.md|\.clauderc|\.cursorrules|\.claude/CLAUDE\.md|docs/(README\.md|CONTEXT\.md|IMPLEMENTATION_STRATEGY\.md|DEFINITION_OF_DONE\.md|guides/(finalization-recovery|merge-coordination)\.md|submissions/.*|user-stories/.*)|\.husky/pre-commit|scripts/(check_ai_wiring|flight_slot|git_finalize_guard|merge_lock|ai_arch_changed|triage_counter|tdd_handoff)\.sh|scripts/verify_agent_contract\.py)$' || true
 }
 
 if [[ $# -lt 1 ]]; then

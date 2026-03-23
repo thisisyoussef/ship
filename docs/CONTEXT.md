@@ -34,6 +34,7 @@ Last updated: 2026-03-22
 - Use `.claude/CLAUDE.md` for the current Ship command and architecture appendix.
 - Use `docs/WORKFLOW_MEMORY.md` for recurring corrections, durable workflow decisions, and reusable implementation patterns.
 - Use `docs/user-stories/README.md` to determine the next valid implementation story.
+- Use `bash scripts/merge_lock.sh status` for the live merge coordination source of truth; the shared merge lock file lives in the repo's git common dir so parallel worktrees see the same state.
 
 ## Open Maintenance Items
 

@@ -67,6 +67,7 @@ This phase will hold FleetGraph product and integration stories as the active pa
 | US-612 | FleetGraph assignment evidence refresh | `done` | P0 | `US-611` |
 | US-617 | FleetGraph entry nullable-context hardening | `done` | P1 | `US-612` |
 | US-615 | FleetGraph assign-owner review/apply follow-through | `done` | P1 | `US-612` |
+| US-619 | FleetGraph contract hardening sweep | `todo` | P1 | `US-617` |
 | US-618 | FleetGraph assign-owner picker follow-through | `todo` | P1 | `US-615` |
 | US-613 | FleetGraph panel gradient removal | `todo` | P2 | `US-612` |
 | US-614 | FleetGraph FAB guided-actions panel convergence | `todo` | P2 | `US-613` |
@@ -109,14 +110,15 @@ This phase will hold FleetGraph product and integration stories as the active pa
 19. `US-611` restores the original assignment-critical `T605` lane by shipping the unassigned sprint issues use case.
 20. `US-612` restores the original assignment-critical `T606` lane by refreshing the workbook, traces, and audit path from shipped behavior.
 21. `US-617` hardens the embedded FleetGraph entry contract against live nullable document-context metadata so current-page entry actions stop failing with `/api/fleetgraph/entry` `400` errors on seeded proof lanes.
-22. `US-615` turns the shipped sprint-owner-gap advisory flow into a real FleetGraph review/apply path for assigning accountability in Ship on the live owner-gap proof lane.
-23. `US-618` extends `US-615` by replacing the self-assignment shortcut with a Properties-tab-style owner picker so FleetGraph can assign the correct teammate from the review surface.
-24. `US-613` removes the FleetGraph panel gradient after the assignment-critical sequence is complete, keeping the shell calmer without re-opening the core use-case work.
-25. `US-614` moves `Preview next step` plus the guided-actions portion of FleetGraph quick actions into the FAB as a dedicated guided-actions panel, while preserving the existing review/apply flow and behavior instead of turning it into a hard graph rewrite.
-26. `US-616` turns the shipped unassigned-issues advisory flow into a real FleetGraph review/apply path for closing the sprint coordination gap once the current tail stories are complete.
-27. Active product packs continue to port into `docs/user-stories/` in dependency order.
-28. `US-908` makes parallel multi-agent branch work explicit by treating separate per-agent branches as the default and requiring a re-sync with latest `master` before merge when sibling branches land first.
-29. `US-909` makes continuation and story-selection responses explicitly say whether another checked-in story can run in parallel now and provide an inline copy-paste prompt for the recommended other agent when one exists.
+22. `US-619` follows `US-617` with a broader FleetGraph contract-boundary sweep so similar nullable, optional, or legacy-shape mismatches are found systematically instead of one failure at a time.
+23. `US-615` turns the shipped sprint-owner-gap advisory flow into a real FleetGraph review/apply path for assigning accountability in Ship on the live owner-gap proof lane.
+24. `US-618` extends `US-615` by replacing the self-assignment shortcut with a Properties-tab-style owner picker so FleetGraph can assign the correct teammate from the review surface.
+25. `US-613` removes the FleetGraph panel gradient after the assignment-critical sequence is complete, keeping the shell calmer without re-opening the core use-case work.
+26. `US-614` moves `Preview next step` plus the guided-actions portion of FleetGraph quick actions into the FAB as a dedicated guided-actions panel, while preserving the existing review/apply flow and behavior instead of turning it into a hard graph rewrite.
+27. `US-616` turns the shipped unassigned-issues advisory flow into a real FleetGraph review/apply path for closing the sprint coordination gap once the current tail stories are complete.
+28. Active product packs continue to port into `docs/user-stories/` in dependency order.
+29. `US-908` makes parallel multi-agent branch work explicit by treating separate per-agent branches as the default and requiring a re-sync with latest `master` before merge when sibling branches land first.
+30. `US-909` makes continuation and story-selection responses explicitly say whether another checked-in story can run in parallel now and provide an inline copy-paste prompt for the recommended other agent when one exists.
 
 ## Files
 

@@ -182,7 +182,7 @@ export function FleetGraphPanelShell({
                 {statusLabel}
               </span>
             </div>
-            <p className="text-sm font-semibold text-foreground">
+            <p className="text-sm font-semibold text-slate-950">
               Page guidance and proactive alerts
             </p>
             <p className="text-sm text-muted">

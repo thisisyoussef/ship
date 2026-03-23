@@ -6,8 +6,6 @@
 - Owner: Codex
 - Depends on: `US-612`
 - Related branch: `codex/us-615-assign-owner-review-apply-fresh`
-- Active worktree: `/Users/youss/Development/gauntlet/ship-us-615`
-- Parallel dependency / merge order: Refreshed from latest `master` before finalization; no remaining sibling-branch dependency is required for merge.
 - Related commit/PR: `pending finalization`
 - Target environment: `local first`, `Railway demo via merged master`
 

@@ -2,12 +2,6 @@
 
 This folder holds stories that change the execution harness itself.
 
-## Active Work
-
-| ID | State | Owner | Branch | Worktree | Notes |
-| --- | --- | --- | --- | --- | --- |
-| — | — | — | — | — | No active Phase X parallel work is currently recorded. |
-
 ## Story Sequence
 
 | ID | Title | State | Priority | Depends On |
@@ -22,11 +16,12 @@ This folder holds stories that change the execution harness itself.
 | US-908 | Parallel multi-agent branch workflow | `done` | P1 | `US-906` |
 | US-909 | Parallel-lane callout and agent prompt | `done` | P1 | `US-908` |
 | US-910 | Shared merge coordination lock | `done` | P1 | `US-909` |
+| US-913 | Queue-first workflow reset | `done` | P1 | `US-910` |
 
 ## Execution Notes
 
 1. Use `docs/user-stories/README.md` as the global status index.
 2. Harness changes must run `bash scripts/check_ai_wiring.sh`.
-3. Use `docs/guides/merge-coordination.md` plus `bash scripts/merge_lock.sh` for shared merge coordination during finalization.
-4. Keep recovery guidance in `docs/guides/finalization-recovery.md`.
-5. Record detailed harness progress in `CHECKPOINT-LOG.md`.
+3. Keep recovery guidance in `docs/guides/finalization-recovery.md`.
+4. Record detailed harness progress in `CHECKPOINT-LOG.md`.
+5. Treat `US-913` as the reset that restores the simpler queue-first workflow after the parallel-agent coordination experiment became too heavyweight.

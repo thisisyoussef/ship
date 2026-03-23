@@ -16,27 +16,9 @@ Use this file as durable working memory for recurring corrections, decisions, an
 - Story branch lifecycle is mandatory.
   Source: post-`US-905` user correction
   Meaning: before editing a story file or implementation, switch to a fresh `codex/` branch from current `master` for that story; when the story is complete, use the default finalization flow to merge it back to `master` unless the user explicitly pauses or an exact blocker is recorded.
-- Parallel branch-based work is expected.
-  Source: post-`US-907` user correction
-  Meaning: assume multiple agents may be working at the same time; each concern should start on its own fresh branch from current `master` instead of reusing a sibling branch, including harness/workflow updates.
-- Re-sync before merge when sibling branches land first.
-  Source: post-`US-907` user correction
-  Meaning: if another branch merges while your story is still in flight, refresh from latest `master`, resolve conflicts, rerun the story validation, and only then finalize.
-- Shared merge lock coordinates finalization.
-  Source: `US-910`
-  Meaning: before finalization, inspect and claim the shared merge lock with `bash scripts/merge_lock.sh`; if another branch holds it, wait for release, then refresh from latest `master`, rerun validation, and only then finalize.
-- Parallel-lane availability must be surfaced explicitly.
-  Source: post-`US-908` user correction
-  Meaning: when the user asks to continue, choose the next story, or create a story, explicitly say whether another checked-in story is unblocked for parallel work right now instead of leaving that inference implicit.
-- Active story ownership must be visible in the checked-in queue.
-  Source: post-`US-909` follow-up
-  Meaning: when a story is actually being worked on, mark it `in-progress` in the story file, root queue, and phase queue, and include the active owner, branch, and worktree path when one exists.
-- Queue truth must be reconciled before new branching or next-story guidance.
-  Source: post-`US-617`/`US-615` queue drift correction
-  Meaning: before choosing the next story, recommending a parallel lane, or creating a new branch, compare `master`'s queue against `git worktree list` and `git branch -vv`. If they disagree, land a queue correction on `master` first or record the exact blocker.
-- Copy-paste prompts for parallel agents stay in chat.
-  Source: post-`US-908` user correction
-  Meaning: when a parallel lane exists, include a ready-to-send prompt inline in the chat response for the other agent; do not create a prompt file unless the user explicitly asks.
+- Queue-first story selection is the default.
+  Source: post-`US-913` user correction
+  Meaning: use `docs/user-stories/README.md` as the shared queue, but do not require active-work tracking, queue-truth preflights, inline agent-launch prompts, or merge-lock coordination just to keep story work moving.
 - Railway demo deploys should follow the real platform path.
   Source: post-`US-602` correction
   Meaning: when the demo already auto-deploys from `master`, do not add a manual Railway deploy attempt to the default closeout flow unless the story is about deployment itself or the user explicitly asks for a manual refresh.
@@ -48,7 +30,7 @@ Use this file as durable working memory for recurring corrections, decisions, an
   Meaning: if there is a materially higher-cost or broader path, pause and confirm before taking it.
 - Keep one concern per branch.
   Source: `AGENTS.md` plus recent workflow cleanup
-  Meaning: separate harness/workflow changes from product-feature changes unless they are truly the same story, even when other agents already have branches in flight.
+  Meaning: separate harness/workflow changes from product-feature changes unless they are truly the same story.
 - Visible stories should leave behind a repeatable proof lane when the product supports one.
   Source: `US-902`
   Meaning: create or refresh a named seeded verification entry and record it in the story, audit checklist, and relevant guide.

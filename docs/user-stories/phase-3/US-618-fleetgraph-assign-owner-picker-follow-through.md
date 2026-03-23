@@ -6,8 +6,6 @@
 - Owner: Codex
 - Depends on: `US-615`
 - Related branch:
-- Active worktree:
-- Parallel dependency / merge order:
 - Related commit/PR:
 - Target environment: `local first`, `Railway demo via merged master`
 
@@ -101,8 +99,6 @@ npx pnpm --filter @ship/api exec tsc --noEmit
 npx pnpm --filter @ship/web exec tsc --noEmit
 git diff --check
 ```
-
-If sibling branches land first before finalization, rerun this section after syncing to latest `master`.
 
 ## Deployment Handoff
 

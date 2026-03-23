@@ -2,12 +2,10 @@
 
 ## Status
 
-- State: `in-progress`
-- Owner: Codex
+- State: `todo`
+- Owner:
 - Depends on: `US-616`, `US-618`
-- Related branch: `codex/us-619-fleetgraph-sidebar-queue`
-- Active worktree: `/Users/youss/Development/gauntlet/ship-us-619`
-- Parallel dependency / merge order: Story drafting and queue setup are active on the side branch; implementation and final merge remain blocked until `US-616` and `US-618` land on `master`.
+- Related branch:
 - Related commit/PR:
 - Target environment: `local first`, `Railway demo via merged master`
 
@@ -146,15 +144,12 @@ npx pnpm --filter @ship/api exec tsc --noEmit
 git diff --check
 ```
 
-If sibling branches land first before finalization, rerun this section after syncing to latest `master`.
-
 ## Deployment Handoff
 
 1. Record deployment status.
 2. Record environment and command evidence if deployed.
 3. For the Railway auto-deployed demo, verify the new `/fleetgraph` queue surface and sidebar badge after `master` updates.
 4. If the seeded multi-finding queue proof lane is blocked, record the exact blocker instead of claiming the global queue is verified.
-5. If finalization will run, claim the shared merge lock before merge and release it afterward or record the exact blocker.
 
 ## How To Verify
 
@@ -185,7 +180,6 @@ If sibling branches land first before finalization, rerun this section after syn
 
 - Outcome: `pending`
 - Evidence:
-  - Queue truth on `master` records this story as active drafting work on `codex/us-619-fleetgraph-sidebar-queue`.
   - Implementation remains blocked until `US-616` and `US-618` land on `master`.
 - Residual risk:
   - The branch must not skip its dependency gate and start product changes before the owner-picker and assign-issues action bars are both merged.

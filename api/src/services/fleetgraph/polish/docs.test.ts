@@ -14,14 +14,21 @@ function readRepoFile(relativePath: string) {
 describe('FleetGraph polish audit docs', () => {
   it('matches the current named demo targets', () => {
     const inspectionGuide = readRepoFile('docs/guides/fleetgraph-demo-inspection.md');
+    const demoScript = readRepoFile('docs/assignments/fleetgraph/DEMO_SCRIPT.md');
 
     expect(inspectionGuide).toContain('FleetGraph Demo Week - Review and Apply');
+    expect(inspectionGuide).toContain('FleetGraph Demo Week - One Story');
     expect(inspectionGuide).toContain('FleetGraph Demo Week - Unassigned Issues');
     expect(inspectionGuide).toContain('FleetGraph Demo Week - Validation Ready');
     expect(inspectionGuide).toContain('FleetGraph Demo Week - Worker Generated');
     expect(inspectionGuide).toContain('Week start drift: FleetGraph Demo Week - Review and Apply');
+    expect(inspectionGuide).toContain('Week start drift: FleetGraph Demo Week - One Story');
     expect(inspectionGuide).toContain('3 unassigned issues in FleetGraph Demo Week - Unassigned Issues');
     expect(inspectionGuide).toContain('Week start drift: FleetGraph Demo Week - Worker Generated');
+    expect(demoScript).toContain('FleetGraph Demo Week - One Story');
+    expect(demoScript).toContain('Detection -> graph -> decision -> human step -> result');
+    expect(demoScript).toContain('https://smith.langchain.com/public/d5f1a274-6f81-4c42-b8be-924791429323/r');
+    expect(demoScript).toContain('https://smith.langchain.com/public/e969f90a-ef5a-45e5-bded-9d6de7233311/r');
   });
 
   it('records the seeded-but-blocked unassigned-issues public-demo lane truthfully', () => {

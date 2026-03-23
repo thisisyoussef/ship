@@ -5,6 +5,7 @@ Source PRD: `docs/assignments/fleetgraph/FleetGraph_PRD.pdf`
 Supporting repo docs:
 - `docs/assignments/fleetgraph/APPROACH_REFERENCE.md`
 - `docs/assignments/fleetgraph/AI_COST_ANALYSIS.md`
+- `docs/assignments/fleetgraph/DEMO_SCRIPT.md`
 - `docs/assignments/fleetgraph/PRESEARCH.md`
 - `docs/assignments/fleetgraph/FLEETGRAPH.md`
 - `docs/guides/fleetgraph-deployment-readiness.md`

@@ -4,6 +4,7 @@ import { createWorkerTestDatabase } from '../worker/test-helpers.js'
 import {
   FLEETGRAPH_DEMO_OWNER_GAP_WEEK_TITLE,
   FLEETGRAPH_DEMO_PROJECT_TITLE,
+  FLEETGRAPH_DEMO_STORY_WEEK_TITLE,
   FLEETGRAPH_DEMO_UNASSIGNED_ISSUES_WEEK_TITLE,
   FLEETGRAPH_DEMO_VALIDATION_WEEK_TITLE,
   FLEETGRAPH_DEMO_WORKER_FINDING_TITLE,
@@ -23,7 +24,7 @@ describe('FleetGraph demo fixture', () => {
     await testDb?.close()
   })
 
-  it('creates seeded FleetGraph proof lanes, including owner-gap, unassigned-issues, and validation-ready weeks', async () => {
+  it('creates seeded FleetGraph proof lanes, including the final-demo story week', async () => {
     const workspaceId = '00000000-0000-4000-8000-000000000001'
     const userId = '00000000-0000-4000-8000-000000000002'
     const programId = '00000000-0000-4000-8000-000000000003'
@@ -75,6 +76,8 @@ describe('FleetGraph demo fixture', () => {
     expect(first.weekTitle).toBe(FLEETGRAPH_DEMO_WEEK_TITLE)
     expect(first.findingTitle).toContain(FLEETGRAPH_DEMO_WEEK_TITLE)
     expect(first.ownerGapWeekTitle).toBe(FLEETGRAPH_DEMO_OWNER_GAP_WEEK_TITLE)
+    expect(first.storyWeekTitle).toBe(FLEETGRAPH_DEMO_STORY_WEEK_TITLE)
+    expect(first.storyFindingTitle).toContain(FLEETGRAPH_DEMO_STORY_WEEK_TITLE)
     expect(first.unassignedIssuesWeekTitle).toBe(FLEETGRAPH_DEMO_UNASSIGNED_ISSUES_WEEK_TITLE)
     expect(first.validationWeekTitle).toBe(FLEETGRAPH_DEMO_VALIDATION_WEEK_TITLE)
     expect(first.workerWeekTitle).toBe(FLEETGRAPH_DEMO_WORKER_WEEK_TITLE)
@@ -86,7 +89,7 @@ describe('FleetGraph demo fixture', () => {
        WHERE workspace_id = $1`,
       [workspaceId]
     )
-    expect(finding.rows).toHaveLength(3)
+    expect(finding.rows).toHaveLength(4)
     expect(finding.rows).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -96,6 +99,10 @@ describe('FleetGraph demo fixture', () => {
         expect.objectContaining({
           status: 'active',
           title: `Sprint owner gap: ${FLEETGRAPH_DEMO_OWNER_GAP_WEEK_TITLE}`,
+        }),
+        expect.objectContaining({
+          status: 'active',
+          title: `Week start drift: ${FLEETGRAPH_DEMO_STORY_WEEK_TITLE}`,
         }),
         expect.objectContaining({
           status: 'active',
@@ -118,6 +125,17 @@ describe('FleetGraph demo fixture', () => {
        WHERE d.workspace_id = $2
          AND d.document_type = 'weekly_review'`,
       [first.validationWeekId, workspaceId]
+    )
+    const storyReview = await testDb.pool.query(
+      `SELECT d.title, d.properties
+       FROM documents d
+       JOIN document_associations da
+         ON da.document_id = d.id
+        AND da.related_id = $1
+        AND da.relationship_type = 'sprint'
+       WHERE d.workspace_id = $2
+         AND d.document_type = 'weekly_review'`,
+      [first.storyWeekId, workspaceId]
     )
     const queueJobs = await testDb.pool.query(
       `SELECT status, trigger, route_surface
@@ -144,6 +162,16 @@ describe('FleetGraph demo fixture', () => {
           owner_id: userId,
           plan_validated: null,
           sprint_id: first.validationWeekId,
+        },
+        title: 'Week 2 Review',
+      },
+    ])
+    expect(storyReview.rows).toEqual([
+      {
+        properties: {
+          owner_id: userId,
+          plan_validated: null,
+          sprint_id: first.storyWeekId,
         },
         title: 'Week 2 Review',
       },
@@ -212,6 +240,7 @@ describe('FleetGraph demo fixture', () => {
           FLEETGRAPH_DEMO_PROJECT_TITLE,
           FLEETGRAPH_DEMO_WEEK_TITLE,
           FLEETGRAPH_DEMO_OWNER_GAP_WEEK_TITLE,
+          FLEETGRAPH_DEMO_STORY_WEEK_TITLE,
           FLEETGRAPH_DEMO_UNASSIGNED_ISSUES_WEEK_TITLE,
           FLEETGRAPH_DEMO_VALIDATION_WEEK_TITLE,
           FLEETGRAPH_DEMO_WORKER_WEEK_TITLE,
@@ -219,10 +248,10 @@ describe('FleetGraph demo fixture', () => {
       ]
     )
 
-    expect(rerunFinding.rows).toHaveLength(3)
+    expect(rerunFinding.rows).toHaveLength(4)
     expect(actionRuns.rows).toHaveLength(0)
     expect(rerunQueueJobs.rows).toEqual([{ status: 'queued' }])
-    expect(documents.rows).toHaveLength(6)
+    expect(documents.rows).toHaveLength(7)
     expect(
       documents.rows.find((row) => row.title === FLEETGRAPH_DEMO_WEEK_TITLE)?.properties
     ).toMatchObject({
@@ -237,6 +266,13 @@ describe('FleetGraph demo fixture', () => {
       project_id: first.projectId,
       sprint_number: 2,
       status: 'active',
+    })
+    expect(
+      documents.rows.find((row) => row.title === FLEETGRAPH_DEMO_STORY_WEEK_TITLE)?.properties
+    ).toMatchObject({
+      project_id: first.projectId,
+      sprint_number: 2,
+      status: 'planning',
     })
     expect(
       documents.rows.find((row) => row.title === FLEETGRAPH_DEMO_VALIDATION_WEEK_TITLE)?.properties
@@ -275,6 +311,17 @@ describe('FleetGraph demo fixture', () => {
          AND d.document_type = 'weekly_review'`,
       [first.validationWeekId, workspaceId]
     )
+    const rerunStoryReview = await testDb.pool.query(
+      `SELECT d.properties
+       FROM documents d
+       JOIN document_associations da
+         ON da.document_id = d.id
+        AND da.related_id = $1
+        AND da.relationship_type = 'sprint'
+       WHERE d.workspace_id = $2
+         AND d.document_type = 'weekly_review'`,
+      [first.storyWeekId, workspaceId]
+    )
     expect(workerFinding.rows).toHaveLength(0)
     expect(rerunValidationReview.rows).toEqual([
       {
@@ -282,6 +329,15 @@ describe('FleetGraph demo fixture', () => {
           owner_id: userId,
           plan_validated: null,
           sprint_id: first.validationWeekId,
+        },
+      },
+    ])
+    expect(rerunStoryReview.rows).toEqual([
+      {
+        properties: {
+          owner_id: userId,
+          plan_validated: null,
+          sprint_id: first.storyWeekId,
         },
       },
     ])

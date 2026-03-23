@@ -83,6 +83,7 @@ Error path:
 
 ## Preconditions
 
+- [ ] Queue-truth preflight was run against `master` using `git worktree list` and `git branch -vv`
 - [ ] Fresh story branch is checked out from current `master` before edits begin
 - [ ] Any sibling-branch dependency or required merge order is recorded
 - [ ] If this story is active in parallel, the queue/Active Work visibility has landed on `master` or is being shipped as a separate docs-only correction now

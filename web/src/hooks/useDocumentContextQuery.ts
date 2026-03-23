@@ -22,14 +22,14 @@ export interface BelongsToItem {
   id: string;
   title: string;
   document_type: string;
-  color?: string;
+  color?: string | null;
 }
 
 export interface DocumentContext {
   current: ContextDocument & {
-    program_id?: string;
-    program_name?: string;
-    program_color?: string;
+    program_id?: string | null;
+    program_name?: string | null;
+    program_color?: string | null;
   };
   ancestors: ContextDocument[];
   children: (ContextDocument & { child_count: number })[];

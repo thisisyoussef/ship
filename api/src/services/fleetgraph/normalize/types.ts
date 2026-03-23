@@ -33,6 +33,10 @@ const ROUTE_SURFACES = [
 
 const nonEmptyString = z.string().min(1)
 const optionalNullableString = nonEmptyString.nullable().optional()
+const optionalNormalizedString = z.preprocess(
+  (value) => (value === null ? undefined : value),
+  nonEmptyString.optional()
+)
 
 function toInteger(value: unknown) {
   if (value === null) {
@@ -47,10 +51,10 @@ function toInteger(value: unknown) {
 }
 
 export const RawBelongsToEntrySchema = z.object({
-  color: nonEmptyString.optional(),
-  document_type: nonEmptyString.optional(),
+  color: optionalNormalizedString,
+  document_type: optionalNormalizedString,
   id: nonEmptyString,
-  title: nonEmptyString.optional(),
+  title: optionalNormalizedString,
   type: z.enum(SHIP_RELATIONSHIP_TYPES),
 }).strict()
 

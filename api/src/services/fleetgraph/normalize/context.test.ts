@@ -156,4 +156,73 @@ describe('createShipContextEnvelope', () => {
     expect(envelope.current.relationships.programId).toBeUndefined()
     expect(envelope.current.title).toBe('Untitled')
   })
+
+  it('normalizes nullable belongs_to metadata from live document context payloads', () => {
+    const envelope = createShipContextEnvelope({
+      context: {
+        ancestors: [],
+        belongs_to: [
+          {
+            color: null,
+            document_type: 'project',
+            id: 'project-1',
+            title: 'Project Beta',
+            type: 'project',
+          },
+          {
+            color: null,
+            document_type: 'program',
+            id: 'program-1',
+            title: 'Program Alpha',
+            type: 'program',
+          },
+        ],
+        breadcrumbs: [
+          { id: 'project-1', title: 'Project Beta', type: 'project' },
+          { id: 'issue-1', title: 'Current issue', type: 'issue' },
+        ],
+        children: [],
+        current: {
+          document_type: 'issue',
+          id: 'issue-1',
+          title: 'Current issue',
+        },
+      },
+      route: {
+        nestedPath: [],
+        surface: 'document-page',
+      },
+      trigger: {
+        documentId: 'issue-1',
+        documentType: 'issue',
+        mode: 'on_demand',
+        threadId: 'thread-issue-1',
+        trigger: 'document-context',
+        workspaceId: 'workspace-123',
+      },
+    })
+
+    expect(envelope.current.relationships).toEqual({
+      parentId: undefined,
+      programId: 'program-1',
+      projectId: 'project-1',
+      sprintId: undefined,
+    })
+    expect(envelope.current.canonicalAssociations).toEqual([
+      {
+        color: undefined,
+        documentType: 'project',
+        id: 'project-1',
+        title: 'Project Beta',
+        type: 'project',
+      },
+      {
+        color: undefined,
+        documentType: 'program',
+        id: 'program-1',
+        title: 'Program Alpha',
+        type: 'program',
+      },
+    ])
+  })
 })

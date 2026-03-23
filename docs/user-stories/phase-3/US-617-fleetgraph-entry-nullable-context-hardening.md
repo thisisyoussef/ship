@@ -2,10 +2,11 @@
 
 ## Status
 
-- State: `todo`
+- State: `done`
 - Owner: Codex
 - Depends on: `US-612`
-- Related branch: `codex/us-617-fleetgraph-entry-null-context-story`
+- Related branch: `codex/us-617-nullable-context-hardening`
+- Active worktree:
 - Parallel dependency / merge order: Independent of `US-613` and `US-615`; keep this contract-hardening work on its own branch and refresh from latest `master` if sibling stories land first.
 - Related commit/PR:
 - Target environment: `local first`, `Railway demo via merged master`
@@ -167,6 +168,13 @@ If sibling branches land first before finalization, rerun this section after syn
 
 ## Checkpoint Result
 
-- Outcome: `pending`
+- Outcome: `done`
 - Evidence:
+  - `npx pnpm --filter @ship/api exec vitest run src/routes/fleetgraph.test.ts --config vitest.fleetgraph.config.ts`
+  - `npx pnpm --filter @ship/api exec vitest run src/services/fleetgraph/normalize/context.test.ts --config vitest.fleetgraph.config.ts`
+  - `npx pnpm --filter @ship/web exec vitest run src/hooks/useFleetGraphEntry.test.tsx src/components/FleetGraphEntryCard.test.tsx src/lib/fleetgraph-entry.test.ts`
+  - `npx pnpm --filter @ship/api exec tsc --noEmit`
+  - `npx pnpm --filter @ship/web exec tsc --noEmit`
+  - `git diff --check`
 - Residual risk:
+  - This hardening covers nullable current-page association metadata at the FleetGraph contract boundary, but the live proof lane still needs post-merge inspection on Railway to confirm the seeded page no longer surfaces the inline mutation error.

@@ -8,6 +8,7 @@ import {
 } from '../worker/keys.js'
 import { buildWeekStartFindingDraft } from '../proactive/week-start-drift.js'
 import { buildSprintNoOwnerFindingDraft } from '../proactive/sprint-no-owner.js'
+import { buildUnassignedIssuesFindingDraft } from '../proactive/unassigned-issues.js'
 import type { WeekStartDriftCandidate } from '../proactive/types.js'
 import {
   FLEETGRAPH_DEMO_FINDING_SUMMARY,
@@ -15,6 +16,8 @@ import {
   FLEETGRAPH_DEMO_OWNER_GAP_WEEK_TITLE,
   FLEETGRAPH_DEMO_PROJECT_TITLE,
   FLEETGRAPH_DEMO_THREAD_PREFIX,
+  FLEETGRAPH_DEMO_UNASSIGNED_ISSUES_FINDING_SUMMARY,
+  FLEETGRAPH_DEMO_UNASSIGNED_ISSUES_WEEK_TITLE,
   FLEETGRAPH_DEMO_VALIDATION_WEEK_TITLE,
   FLEETGRAPH_DEMO_WORKER_FINDING_TITLE,
   FLEETGRAPH_DEMO_WORKER_WEEK_TITLE,
@@ -41,6 +44,9 @@ export interface FleetGraphDemoFixtureResult {
   ownerGapWeekTitle: string
   projectId: string
   projectTitle: string
+  unassignedIssuesFindingTitle: string
+  unassignedIssuesWeekId: string
+  unassignedIssuesWeekTitle: string
   validationWeekId: string
   validationWeekTitle: string
   workerFindingTitle: string
@@ -56,6 +62,13 @@ interface DemoWeekInput {
   sprintNumber: number
   status: 'active' | 'completed' | 'planning'
   successCriteria: string
+  title: string
+}
+
+interface DemoIssueInput {
+  assigneeId: string | null
+  priority: 'high' | 'low' | 'medium'
+  state: 'backlog' | 'in_progress' | 'open'
   title: string
 }
 
@@ -184,6 +197,118 @@ async function ensureDemoWeek(
   const weekId = inserted.rows[0]!.id
   await ensureAssociation(queryable, weekId, projectId, 'project')
   await ensureAssociation(queryable, weekId, input.programId, 'program')
+  return weekId
+}
+
+async function getNextIssueTicketNumber(
+  queryable: Queryable,
+  workspaceId: string
+) {
+  const result = await queryable.query(
+    `SELECT COALESCE(MAX(ticket_number), 0) + 1 AS next_ticket
+     FROM documents
+     WHERE workspace_id = $1
+       AND document_type = 'issue'`,
+    [workspaceId]
+  ) as { rows: Array<{ next_ticket: number }> }
+
+  return result.rows[0]?.next_ticket ?? 1
+}
+
+async function ensureDemoIssue(
+  queryable: Queryable,
+  input: FleetGraphDemoFixtureInput,
+  projectId: string,
+  weekId: string,
+  issue: DemoIssueInput
+) {
+  const existing = await queryable.query(
+    `SELECT d.id
+     FROM documents d
+     JOIN document_associations da
+       ON da.document_id = d.id
+      AND da.related_id = $3
+      AND da.relationship_type = 'sprint'
+     WHERE d.workspace_id = $1
+       AND d.document_type = 'issue'
+       AND d.title = $2`,
+    [input.workspaceId, issue.title, weekId]
+  ) as { rows: Array<{ id: string }> }
+
+  const properties = {
+    assignee_id: issue.assigneeId,
+    priority: issue.priority,
+    source: 'internal',
+    state: issue.state,
+  }
+
+  if (existing.rows[0]?.id) {
+    await queryable.query(
+      `UPDATE documents
+       SET properties = $3::jsonb,
+           updated_at = now()
+       WHERE id = $1 AND workspace_id = $2`,
+      [existing.rows[0].id, input.workspaceId, JSON.stringify(properties)]
+    )
+    await ensureAssociation(queryable, existing.rows[0].id, weekId, 'sprint')
+    await ensureAssociation(queryable, existing.rows[0].id, projectId, 'project')
+    await ensureAssociation(queryable, existing.rows[0].id, input.programId, 'program')
+    return existing.rows[0].id
+  }
+
+  const inserted = await queryable.query(
+    `INSERT INTO documents (
+       workspace_id,
+       document_type,
+       title,
+       properties,
+       ticket_number,
+       created_by,
+       visibility
+     )
+     VALUES ($1, 'issue', $2, $3::jsonb, $4, $5, 'workspace')
+     RETURNING id`,
+    [
+      input.workspaceId,
+      issue.title,
+      JSON.stringify(properties),
+      await getNextIssueTicketNumber(queryable, input.workspaceId),
+      input.ownerUserId,
+    ]
+  ) as { rows: Array<{ id: string }> }
+
+  const issueId = inserted.rows[0]!.id
+  await ensureAssociation(queryable, issueId, weekId, 'sprint')
+  await ensureAssociation(queryable, issueId, projectId, 'project')
+  await ensureAssociation(queryable, issueId, input.programId, 'program')
+  return issueId
+}
+
+async function ensureUnassignedIssuesDemoWeek(
+  queryable: Queryable,
+  input: FleetGraphDemoFixtureInput,
+  projectId: string
+) {
+  const weekId = await ensureDemoWeek(queryable, input, projectId, {
+    plan: 'Inspect a proactive FleetGraph finding that calls out a meaningful cluster of unassigned sprint issues.',
+    sprintNumber: input.currentSprintNumber,
+    status: 'active',
+    successCriteria: 'The public demo shows an advisory unassigned-issues finding with clear count and sprint context.',
+    title: FLEETGRAPH_DEMO_UNASSIGNED_ISSUES_WEEK_TITLE,
+  })
+
+  const issues: DemoIssueInput[] = [
+    { assigneeId: null, priority: 'high', state: 'open', title: `${FLEETGRAPH_DEMO_UNASSIGNED_ISSUES_WEEK_TITLE} Issue 1` },
+    { assigneeId: null, priority: 'medium', state: 'open', title: `${FLEETGRAPH_DEMO_UNASSIGNED_ISSUES_WEEK_TITLE} Issue 2` },
+    { assigneeId: null, priority: 'medium', state: 'open', title: `${FLEETGRAPH_DEMO_UNASSIGNED_ISSUES_WEEK_TITLE} Issue 3` },
+    { assigneeId: input.ownerUserId, priority: 'high', state: 'in_progress', title: `${FLEETGRAPH_DEMO_UNASSIGNED_ISSUES_WEEK_TITLE} Issue 4` },
+    { assigneeId: input.ownerUserId, priority: 'low', state: 'backlog', title: `${FLEETGRAPH_DEMO_UNASSIGNED_ISSUES_WEEK_TITLE} Issue 5` },
+  ]
+
+  for (const issue of issues) {
+    await ensureDemoIssue(queryable, input, projectId, weekId, issue)
+  }
+
   return weekId
 }
 
@@ -349,6 +474,11 @@ export async function ensureFleetGraphDemoProofLane(
     successCriteria: 'The public demo shows a proactive sprint-owner gap with advisory-only next-step guidance.',
     title: FLEETGRAPH_DEMO_OWNER_GAP_WEEK_TITLE,
   })
+  const unassignedIssuesWeekId = await ensureUnassignedIssuesDemoWeek(
+    queryable,
+    input,
+    projectId
+  )
   const workerWeekId = await ensureDemoWeek(queryable, input, projectId, {
     plan: 'Let the deployed FleetGraph worker generate this finding through the real proactive path.',
     sprintNumber: input.currentSprintNumber,
@@ -409,9 +539,33 @@ export async function ensureFleetGraphDemoProofLane(
     input.workspaceId,
     FLEETGRAPH_DEMO_OWNER_GAP_FINDING_SUMMARY
   )
+  const unassignedIssuesDraft = buildUnassignedIssuesFindingDraft(
+    {
+      startDate,
+      totalCount: 5,
+      unassignedCount: 3,
+      week: {
+        id: unassignedIssuesWeekId,
+        issue_count: 5,
+        name: FLEETGRAPH_DEMO_UNASSIGNED_ISSUES_WEEK_TITLE,
+        owner: {
+          email: input.ownerEmail,
+          id: input.ownerUserId,
+          name: input.ownerName,
+        },
+        program_name: input.programName,
+        sprint_number: input.currentSprintNumber,
+        status: 'active',
+        workspace_sprint_start_date: input.workspaceSprintStartDate,
+      },
+    },
+    input.workspaceId,
+    FLEETGRAPH_DEMO_UNASSIGNED_ISSUES_FINDING_SUMMARY
+  )
   const workerFindingKey = `week-start-drift:${input.workspaceId}:${workerWeekId}`
   await resetFindingByKey(queryable, findingStore, draft.findingKey)
   await resetFindingByKey(queryable, findingStore, ownerGapDraft.findingKey)
+  await resetFindingByKey(queryable, findingStore, unassignedIssuesDraft.findingKey)
   await resetFindingByKey(queryable, findingStore, workerFindingKey)
   await resetWorkerDemoProofLane(queryable, input.workspaceId)
 
@@ -457,6 +611,27 @@ export async function ensureFleetGraphDemoProofLane(
     title: ownerGapDraft.title,
     workspaceId: input.workspaceId,
   }, now)
+  await findingStore.upsertFinding({
+    dedupeKey: `demo:${unassignedIssuesDraft.findingKey}`,
+    documentId: unassignedIssuesWeekId,
+    documentType: 'sprint',
+    evidence: unassignedIssuesDraft.evidence,
+    findingKey: unassignedIssuesDraft.findingKey,
+    findingType: 'unassigned_sprint_issues',
+    metadata: {
+      ...unassignedIssuesDraft.metadata,
+      demoFixture: true,
+      inspectionProjectTitle: FLEETGRAPH_DEMO_PROJECT_TITLE,
+      inspectionWeekTitle: FLEETGRAPH_DEMO_UNASSIGNED_ISSUES_WEEK_TITLE,
+      preserveDemoLane: true,
+      proofLane: 'seeded-unassigned-issues',
+    },
+    recommendedAction: unassignedIssuesDraft.recommendedAction,
+    summary: unassignedIssuesDraft.summary,
+    threadId: `${FLEETGRAPH_DEMO_THREAD_PREFIX}:${input.workspaceId}:${unassignedIssuesWeekId}`,
+    title: unassignedIssuesDraft.title,
+    workspaceId: input.workspaceId,
+  }, now)
   await workerStore.enqueue(
     {
       dedupeKey: buildFleetGraphDedupeKey({
@@ -486,6 +661,9 @@ export async function ensureFleetGraphDemoProofLane(
     ownerGapWeekTitle: FLEETGRAPH_DEMO_OWNER_GAP_WEEK_TITLE,
     projectId,
     projectTitle: FLEETGRAPH_DEMO_PROJECT_TITLE,
+    unassignedIssuesFindingTitle: unassignedIssuesDraft.title,
+    unassignedIssuesWeekId,
+    unassignedIssuesWeekTitle: FLEETGRAPH_DEMO_UNASSIGNED_ISSUES_WEEK_TITLE,
     validationWeekId,
     validationWeekTitle: FLEETGRAPH_DEMO_VALIDATION_WEEK_TITLE,
     workerFindingTitle: FLEETGRAPH_DEMO_WORKER_FINDING_TITLE,

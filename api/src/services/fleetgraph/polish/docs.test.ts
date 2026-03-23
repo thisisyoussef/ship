@@ -16,9 +16,11 @@ describe('FleetGraph polish audit docs', () => {
     const inspectionGuide = readRepoFile('docs/guides/fleetgraph-demo-inspection.md');
 
     expect(inspectionGuide).toContain('FleetGraph Demo Week - Review and Apply');
+    expect(inspectionGuide).toContain('FleetGraph Demo Week - Unassigned Issues');
     expect(inspectionGuide).toContain('FleetGraph Demo Week - Validation Ready');
     expect(inspectionGuide).toContain('FleetGraph Demo Week - Worker Generated');
     expect(inspectionGuide).toContain('Week start drift: FleetGraph Demo Week - Review and Apply');
+    expect(inspectionGuide).toContain('3 unassigned issues in FleetGraph Demo Week - Unassigned Issues');
     expect(inspectionGuide).toContain('Week start drift: FleetGraph Demo Week - Worker Generated');
   });
 

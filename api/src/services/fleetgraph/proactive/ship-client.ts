@@ -10,22 +10,32 @@ import {
 const ShipIssueDocumentSchema = z.object({
   id: z.string().min(1),
   title: z.string(),
+  assignee_id: z.string().nullable().optional(),
+  state: z.string().optional(),
+  status: z.string().optional(),
   properties: z.object({
     assignee_id: z.string().nullable().optional(),
+    state: z.string().optional(),
     status: z.string().optional(),
   }).passthrough().optional(),
 }).passthrough()
 
-const ShipSprintIssuesRawSchema = z.object({
-  documents: z.array(ShipIssueDocumentSchema),
-}).passthrough()
+const ShipSprintIssuesRawSchema = z.union([
+  z.array(ShipIssueDocumentSchema),
+  z.object({
+    documents: z.array(ShipIssueDocumentSchema),
+  }).passthrough(),
+])
 
-function parseSprintIssuesResponse(raw: z.infer<typeof ShipSprintIssuesRawSchema>): ShipSprintIssuesResponse {
+function parseSprintIssuesResponse(
+  raw: z.infer<typeof ShipSprintIssuesRawSchema>
+): ShipSprintIssuesResponse {
+  const documents = Array.isArray(raw) ? raw : raw.documents
   return {
-    issues: raw.documents.map((doc) => ({
-      assignee_id: doc.properties?.assignee_id ?? null,
+    issues: documents.map((doc) => ({
+      assignee_id: doc.assignee_id ?? doc.properties?.assignee_id ?? null,
       id: doc.id,
-      status: doc.properties?.status ?? 'open',
+      status: doc.state ?? doc.status ?? doc.properties?.state ?? doc.properties?.status ?? 'open',
       title: doc.title,
     })),
   }
@@ -176,7 +186,7 @@ export function createFleetGraphShipApiClient(
     async listSprintIssues(sprintId: string, requestContext?: ShipRestRequestContext) {
       const url = buildReadUrl(
         config,
-        `/api/documents?document_type=issue&sprint_id=${encodeURIComponent(sprintId)}`,
+        `/api/weeks/${encodeURIComponent(sprintId)}/issues`,
         requestContext
       )
       const response = await fetchFn(url, {

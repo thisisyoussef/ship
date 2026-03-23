@@ -331,6 +331,75 @@ describe('FleetGraphFindingsPanel', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('renders unassigned-issues guidance as advisory-only with clear count context', async () => {
+    vi.mocked(apiGet).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        findings: [
+          {
+            dedupeKey: 'dedupe-3',
+            documentId: SPRINT_ID,
+            documentType: 'sprint',
+            evidence: [
+              '3 of 5 issues in this sprint have no assignee.',
+              'Sprint 8 is active and started on 2026-03-17.',
+              'Leaving them unassigned makes it harder for the team to coordinate execution.',
+            ],
+            findingKey: 'unassigned-issues:workspace-1:sprint-8',
+            findingType: 'unassigned_sprint_issues',
+            id: 'finding-3',
+            metadata: {
+              sprintNumber: 8,
+              totalCount: 5,
+              unassignedCount: 3,
+            },
+            recommendedAction: {
+              endpoint: {
+                method: 'PATCH',
+                path: `/api/documents/${SPRINT_ID}`,
+              },
+              evidence: ['3 of 5 issues in this sprint have no assignee.'],
+              rationale: 'FleetGraph can surface the coordination gap, but assignment should remain a human decision in Ship.',
+              summary: 'Assign the unassigned sprint issues or make an explicit call to leave them unassigned.',
+              targetId: SPRINT_ID,
+              targetType: 'sprint',
+              title: 'Assign sprint issues',
+              type: 'assign_issues',
+            },
+            status: 'active',
+            summary: 'Sprint 8 has several unassigned issues that need an ownership decision.',
+            threadId: 'fleetgraph:workspace-1:scheduled-sweep',
+            title: '3 unassigned issues in Sprint 8',
+            updatedAt: '2026-03-17T12:05:00.000Z',
+            workspaceId: 'workspace-1',
+          },
+        ],
+      }),
+    } as Response);
+
+    render(
+      <FleetGraphFindingsPanel
+        context={createContext()}
+        currentDocumentId={DOCUMENT_ID}
+      />,
+      { wrapper: createWrapper() }
+    );
+
+    expect(await screen.findByText('3 unassigned issues in Sprint 8')).toBeInTheDocument();
+    expect(screen.getByText('Assign sprint issues')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Assign the unassigned sprint issues or make an explicit call to leave them unassigned.'
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Review and apply' })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Start week in Ship' })
+    ).not.toBeInTheDocument();
+  });
+
   it('waits for confirmed dismiss success before showing the lifecycle notice', async () => {
     const dismissDeferred = createDeferred<Response>();
     vi.mocked(apiGet).mockResolvedValue({

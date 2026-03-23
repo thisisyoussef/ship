@@ -88,4 +88,57 @@ describe('FleetGraph Ship API client', () => {
       })
     )
   })
+
+  it('reads sprint issues from the Ship week-issues endpoint and normalizes assignee state', async () => {
+    const fetchFn = vi.fn(async () => new Response(JSON.stringify([
+      {
+        assignee_id: null,
+        id: 'issue-1',
+        priority: 'high',
+        state: 'open',
+        title: 'Unassigned issue',
+      },
+      {
+        assignee_id: 'user-2',
+        id: 'issue-2',
+        priority: 'medium',
+        state: 'in_progress',
+        title: 'Assigned issue',
+      },
+    ])))
+    const client = createFleetGraphShipApiClient(
+      {
+        baseUrl: 'https://ship-demo-production.up.railway.app',
+        token: 'token',
+      },
+      { fetchFn }
+    )
+
+    await expect(client.listSprintIssues('week-1')).resolves.toEqual({
+      issues: [
+        {
+          assignee_id: null,
+          id: 'issue-1',
+          status: 'open',
+          title: 'Unassigned issue',
+        },
+        {
+          assignee_id: 'user-2',
+          id: 'issue-2',
+          status: 'in_progress',
+          title: 'Assigned issue',
+        },
+      ],
+    })
+
+    expect(fetchFn).toHaveBeenCalledWith(
+      'https://ship-demo-production.up.railway.app/api/weeks/week-1/issues',
+      expect.objectContaining({
+        headers: {
+          Authorization: 'Bearer token',
+        },
+        method: 'GET',
+      })
+    )
+  })
 })

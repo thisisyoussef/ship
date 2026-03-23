@@ -628,13 +628,23 @@ describe('FleetGraph routes', () => {
         summary: 'Sprint 8 needs a named owner.',
         title: 'Sprint owner gap: Sprint 8',
       }),
+      makeFinding({
+        dedupeKey: 'dedupe-3',
+        documentId: SPRINT_ID,
+        evidence: ['3 of 5 issues in Sprint 8 still have no assignee.'],
+        findingKey: `unassigned-issues:workspace:${SPRINT_ID}`,
+        findingType: 'unassigned_sprint_issues',
+        id: 'finding-3',
+        summary: 'Sprint 8 has several unassigned issues.',
+        title: '3 unassigned issues in Sprint 8',
+      }),
     ])
 
     const response = await request(app)
       .get(`/api/fleetgraph/findings?documentIds=${DOCUMENT_ID},${SPRINT_ID}`)
 
     expect(response.status).toBe(200)
-    expect(response.body.findings).toHaveLength(2)
+    expect(response.body.findings).toHaveLength(3)
     expect(response.body.findings).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -647,6 +657,12 @@ describe('FleetGraph routes', () => {
           findingType: 'sprint_no_owner',
           status: 'active',
           title: 'Sprint owner gap: Sprint 8',
+        }),
+        expect.objectContaining({
+          documentId: SPRINT_ID,
+          findingType: 'unassigned_sprint_issues',
+          status: 'active',
+          title: '3 unassigned issues in Sprint 8',
         }),
       ])
     )

@@ -34,6 +34,30 @@ interface ShipWeeksResponse {
   workspace_sprint_start_date: string
 }
 
+function shouldPreserveDemoFinding(metadata: Record<string, unknown> | undefined) {
+  return metadata?.preserveDemoLane === true
+}
+
+function excludePreservedDemoWeeks(
+  weeks: ShipWeeksResponse,
+  activeFindings: Awaited<ReturnType<FleetGraphFindingStore['listActiveFindings']>>
+) {
+  const preservedWeekIds = new Set(
+    activeFindings
+      .filter((finding) => shouldPreserveDemoFinding(finding.metadata))
+      .map((finding) => finding.documentId)
+  )
+
+  if (preservedWeekIds.size === 0) {
+    return weeks
+  }
+
+  return {
+    ...weeks,
+    weeks: weeks.weeks.filter((week) => !preservedWeekIds.has(week.id)),
+  }
+}
+
 function buildSummaryPrompt(candidate: UnassignedIssuesCandidate) {
   return JSON.stringify({
     startDate: candidate.startDate.toISOString().slice(0, 10),
@@ -130,7 +154,9 @@ export function createUnassignedIssuesScenarioRunner(
 
     if (!activeSprint) {
       const staleFindings = activeFindings.filter(
-        (finding) => finding.findingType === 'unassigned_sprint_issues'
+        (finding) =>
+          finding.findingType === 'unassigned_sprint_issues'
+          && !shouldPreserveDemoFinding(finding.metadata)
       )
       await Promise.all(
         staleFindings.map((finding) =>
@@ -144,7 +170,11 @@ export function createUnassignedIssuesScenarioRunner(
     }
 
     const issues = await listSprintIssuesTask(activeSprint.id)
-    const candidate = selectUnassignedIssuesCandidate(weeks as ShipWeeksResponse, issues, now)
+    const candidate = selectUnassignedIssuesCandidate(
+      excludePreservedDemoWeeks(weeks as ShipWeeksResponse, activeFindings),
+      issues,
+      now
+    )
 
     const candidateKey = candidate
       ? buildUnassignedIssuesFindingKey(state.workspaceId, candidate.week.id)
@@ -153,6 +183,7 @@ export function createUnassignedIssuesScenarioRunner(
     const staleFindings = activeFindings.filter((finding) =>
       finding.findingType === 'unassigned_sprint_issues'
       && finding.findingKey !== candidateKey
+      && !shouldPreserveDemoFinding(finding.metadata)
     )
 
     await Promise.all(
@@ -225,4 +256,3 @@ function findActiveSprint(
 
   return eligible[0] ?? null
 }
-

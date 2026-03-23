@@ -182,6 +182,100 @@ describe('FleetGraph finding action service', () => {
     )
   })
 
+  it('creates a fresh owner-review thread when an older generic owner thread is still pending', async () => {
+    const finding = makeFinding({
+      evidence: ['No sprint owner is assigned right now.'],
+      findingKey: 'sprint-no-owner:workspace-1:sprint-1',
+      findingType: 'sprint_no_owner',
+      recommendedAction: {
+        endpoint: {
+          method: 'PATCH',
+          path: '/api/documents/11111111-1111-4111-8111-111111111111',
+        },
+        evidence: ['No sprint owner is assigned right now.'],
+        rationale: 'Assigning accountability should stay a human-reviewed action.',
+        summary: 'Name a sprint owner so someone is accountable for coordination and follow-through.',
+        targetId: '11111111-1111-4111-8111-111111111111',
+        targetType: 'sprint',
+        title: 'Assign sprint owner',
+        type: 'assign_owner',
+      },
+      summary: 'Sprint 1 needs a named owner before work coordination slips.',
+      title: 'Sprint owner gap',
+    })
+    const genericOwnerThreadId = [
+      'fleetgraph',
+      finding.workspaceId,
+      'finding-review',
+      finding.id,
+      'assign-owner',
+    ].join(':')
+    const selectedOwnerId = '33333333-3333-4333-8333-333333333333'
+    const runtime = {
+      getCheckpointHistory: vi.fn(),
+      getPendingInterrupts: vi.fn(async (threadId: string) => (
+        threadId === genericOwnerThreadId
+          ? [{ taskName: 'approval_interrupt' }]
+          : []
+      )),
+      getState: vi.fn(),
+      invoke: vi.fn(async (input: { threadId: string }) => ({
+        branch: 'approval_required',
+        candidateCount: 1,
+        checkpointNamespace: 'fleetgraph',
+        contextKind: 'finding_review',
+        mode: 'on_demand',
+        outcome: 'approval_required',
+        path: ['resolve_trigger_context', 'select_scenarios', 'approval_interrupt'],
+        routeSurface: 'document-page',
+        scenarioResults: [],
+        threadId: input.threadId,
+        trigger: 'human-review',
+        workspaceId: 'workspace-1',
+        approvalRequired: true,
+      })),
+      invokeRaw: vi.fn(),
+      resume: vi.fn(),
+      checkpointer: {} as never,
+      checkpointerKind: 'memory',
+    }
+    const service = createFleetGraphFindingActionService({
+      actionStore: {
+        beginExecution: vi.fn(),
+        finishExecution: vi.fn(),
+        listExecutionsForFindings: vi.fn(async () => []),
+      },
+      findingStore: {
+        dismissFinding: vi.fn(),
+        getFindingById: vi.fn(async () => finding),
+        getFindingByKey: vi.fn(),
+        listActiveFindings: vi.fn(async () => []),
+        resolveFinding: vi.fn(),
+        snoozeFinding: vi.fn(),
+        upsertFinding: vi.fn(),
+      },
+      runtime: runtime as never,
+    })
+
+    const result = await service.reviewFinding({
+      actorUserId: '99999999-9999-4999-8999-999999999999',
+      findingId: finding.id,
+      ownerId: selectedOwnerId,
+      workspaceId: 'workspace-1',
+    })
+
+    expect(runtime.invoke).toHaveBeenCalledWith(expect.objectContaining({
+      requestedAction: expect.objectContaining({
+        body: {
+          owner_id: selectedOwnerId,
+        },
+      }),
+      threadId: expect.stringContaining(selectedOwnerId),
+    }))
+    expect(result.review.threadId).toContain(selectedOwnerId)
+    expect(result.review.threadId).not.toBe(genericOwnerThreadId)
+  })
+
   it('resumes an approved assign-owner review with the current request context', async () => {
     const finding = makeFinding()
     const ownerFinding = {
@@ -298,5 +392,148 @@ describe('FleetGraph finding action service', () => {
     )
     expect(runtime.invoke).not.toHaveBeenCalled()
     expect(result.actionExecution?.status).toBe('applied')
+  })
+
+  it('resumes the latest owner-scoped review thread when apply follows a changed owner selection', async () => {
+    const finding = makeFinding({
+      evidence: ['No sprint owner is assigned right now.'],
+      findingKey: 'sprint-no-owner:workspace-1:sprint-1',
+      findingType: 'sprint_no_owner',
+      recommendedAction: {
+        endpoint: {
+          method: 'PATCH',
+          path: '/api/documents/11111111-1111-4111-8111-111111111111',
+        },
+        evidence: ['No sprint owner is assigned right now.'],
+        rationale: 'Assigning accountability should stay a human-reviewed action.',
+        summary: 'Name a sprint owner so someone is accountable for coordination and follow-through.',
+        targetId: '11111111-1111-4111-8111-111111111111',
+        targetType: 'sprint',
+        title: 'Assign sprint owner',
+        type: 'assign_owner',
+      },
+      summary: 'Sprint 1 needs a named owner before work coordination slips.',
+      title: 'Sprint owner gap',
+    })
+    const genericOwnerThreadId = [
+      'fleetgraph',
+      finding.workspaceId,
+      'finding-review',
+      finding.id,
+      'assign-owner',
+    ].join(':')
+    const selectedOwnerId = '33333333-3333-4333-8333-333333333333'
+    const runtime = {
+      getCheckpointHistory: vi.fn(),
+      getPendingInterrupts: vi.fn(async (threadId: string) => (
+        threadId === genericOwnerThreadId
+          ? [{ taskName: 'approval_interrupt' }]
+          : []
+      )),
+      getState: vi.fn(),
+      invoke: vi.fn(async (input: { threadId: string }) => ({
+        branch: 'approval_required',
+        candidateCount: 1,
+        checkpointNamespace: 'fleetgraph',
+        contextKind: 'finding_review',
+        mode: 'on_demand',
+        outcome: 'approval_required',
+        path: ['resolve_trigger_context', 'select_scenarios', 'approval_interrupt'],
+        routeSurface: 'document-page',
+        scenarioResults: [],
+        threadId: input.threadId,
+        trigger: 'human-review',
+        workspaceId: 'workspace-1',
+        approvalRequired: true,
+      })),
+      invokeRaw: vi.fn(),
+      resume: vi.fn(async () => ({
+        actionOutcome: {
+          message: 'Sprint owner assigned in Ship. Look for Owner showing the person you selected on this page.',
+          resultStatusCode: 200,
+          status: 'applied',
+        },
+        branch: 'approval_required',
+        candidateCount: 1,
+        checkpointNamespace: 'fleetgraph',
+        contextKind: 'finding_review',
+        mode: 'on_demand',
+        outcome: 'approval_required',
+        path: ['resolve_trigger_context', 'approval_interrupt', 'execute_action'],
+        routeSurface: 'document-page',
+        scenarioResults: [],
+        threadId: 'fleetgraph:workspace-1:finding-review',
+        trigger: 'human-review',
+        workspaceId: 'workspace-1',
+        approvalRequired: true,
+      })),
+      checkpointer: {} as never,
+      checkpointerKind: 'memory',
+    }
+
+    const service = createFleetGraphFindingActionService({
+      actionStore: {
+        beginExecution: vi.fn(),
+        finishExecution: vi.fn(),
+        listExecutionsForFindings: vi.fn(async () => [{
+          actionType: 'assign_owner' as const,
+          appliedAt: new Date('2026-03-17T12:05:00.000Z'),
+          attemptCount: 1,
+          endpoint: {
+            method: 'PATCH' as const,
+            path: '/api/documents/11111111-1111-4111-8111-111111111111',
+          },
+          findingId: finding.id,
+          message: 'Sprint owner assigned in Ship. Look for Owner showing the person you selected on this page.',
+          resultStatusCode: 200,
+          status: 'applied' as const,
+          updatedAt: new Date('2026-03-17T12:05:00.000Z'),
+        }]),
+      },
+      findingStore: {
+        dismissFinding: vi.fn(),
+        getFindingById: vi.fn(async () => finding),
+        getFindingByKey: vi.fn(),
+        listActiveFindings: vi.fn(async () => []),
+        resolveFinding: vi.fn(async () => finding),
+        snoozeFinding: vi.fn(),
+        upsertFinding: vi.fn(),
+      },
+      runtime: runtime as never,
+    })
+
+    const request = {
+      get(name: string) {
+        if (name === 'host') {
+          return 'localhost:3000'
+        }
+        return undefined
+      },
+      header() {
+        return undefined
+      },
+      protocol: 'http',
+    } as const
+
+    await service.applyFinding({
+      actorUserId: '99999999-9999-4999-8999-999999999999',
+      findingId: finding.id,
+      ownerId: selectedOwnerId,
+      request: request as never,
+      workspaceId: 'workspace-1',
+    })
+
+    expect(runtime.invoke).toHaveBeenCalledWith(expect.objectContaining({
+      threadId: expect.stringContaining(selectedOwnerId),
+    }))
+    expect(runtime.resume).toHaveBeenCalledWith(
+      expect.stringContaining(selectedOwnerId),
+      'approved',
+      expect.objectContaining({
+        fleetgraphActionRequestContext: expect.objectContaining({
+          baseUrl: 'http://localhost:3000',
+        }),
+      })
+    )
   })
 })

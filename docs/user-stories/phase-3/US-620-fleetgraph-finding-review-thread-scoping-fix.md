@@ -2,11 +2,11 @@
 
 ## Status
 
-- State: `todo`
+- State: `done`
 - Owner: Codex
 - Depends on: `US-618`
-- Related branch:
-- Related commit/PR:
+- Related branch: `codex/us-620-finding-review-thread-scoping-fix`
+- Related commit/PR: `0d40756`, [PR #179](https://github.com/thisisyoussef/ship/pull/179)
 - Target environment: `local first`, `Railway demo via merged master`
 
 ## Persona
@@ -57,17 +57,34 @@ Local sources to read before writing code:
 
 Local docs/code reviewed:
 
-1. `api/src/services/fleetgraph/actions/service.ts`
-2. `api/src/services/fleetgraph/actions/service.test.ts`
-3. `api/src/routes/fleetgraph.test.ts`
-4. `web/src/components/FleetGraphFindingsPanel.tsx`
-5. `web/src/components/FleetGraphFindingsPanel.test.tsx`
+1. `AGENTS.md`
+2. `docs/CONTEXT.md`
+3. `docs/WORKFLOW_MEMORY.md`
+4. `docs/IMPLEMENTATION_STRATEGY.md`
+5. `docs/user-stories/README.md`
+6. `docs/user-stories/phase-3/README.md`
+7. `docs/user-stories/phase-3/US-620-fleetgraph-finding-review-thread-scoping-fix.md`
+8. `docs/DEFINITION_OF_DONE.md`
+9. `docs/assignments/fleetgraph/README.md`
+10. `docs/assignments/fleetgraph/PRESEARCH.md`
+11. `docs/assignments/fleetgraph/FLEETGRAPH.md`
+12. `.claude/CLAUDE.md`
+13. `api/src/services/fleetgraph/actions/service.ts`
+14. `api/src/services/fleetgraph/actions/service.test.ts`
+15. `api/src/routes/fleetgraph.ts`
+16. `api/src/routes/fleetgraph.test.ts`
+17. `api/src/services/fleetgraph/graph/runtime.ts`
+18. `api/src/services/fleetgraph/graph/finding-action-review.ts`
+19. `api/src/services/fleetgraph/graph/types.ts`
+20. `api/src/services/fleetgraph/contracts/actions.ts`
+21. `web/src/components/FleetGraphFindingsPanel.tsx`
+22. `web/src/components/FleetGraphFindingsPanel.test.tsx`
 
 Expected contracts/data shapes:
 
-1. The current finding-review thread key is derived from finding identity plus action type, not the selected owner or latest review variant.
-2. `ensurePendingReview` reuses any existing interrupt on that thread, so stale review state can survive after a user changes owner selection.
-3. The fix should keep start-week review reuse intact while preventing owner-picker flows from resuming the wrong pending action.
+1. The current finding-review thread key is derived from finding identity plus action type, so owner-gap review threads can collide even when the selected owner changes.
+2. `ensurePendingReview` reuses any existing interrupt on that thread, and the runtime resumes the `selectedAction` stored inside the reused checkpoint.
+3. The fix should narrow `assign_owner` thread scoping to the selected owner while leaving `start_week` review/apply reuse unchanged.
 
 Planned failing tests:
 
@@ -91,9 +108,9 @@ Error path:
 
 ## Preconditions
 
-- [ ] Fresh story branch is checked out from current `master` before edits begin
-- [ ] The owner-picker review/apply flow from `US-618` is current repo truth
-- [ ] Local FleetGraph API and web tests run in this shell
+- [x] Fresh story branch is checked out from current `master` before edits begin
+- [x] The owner-picker review/apply flow from `US-618` is current repo truth
+- [x] Local FleetGraph API and web tests run in this shell
 
 ## TDD Plan
 
@@ -110,10 +127,10 @@ Error path:
 
 ## Acceptance Criteria
 
-- [ ] AC-1: Changing owner selection before confirmation no longer reuses stale review-thread state.
-- [ ] AC-2: Applying an owner-gap finding always uses the latest reviewed owner selection.
-- [ ] AC-3: Existing start-week review/apply behavior stays intact.
-- [ ] AC-4: Backend and visible-surface regressions cover the stale-thread bug.
+- [x] AC-1: Changing owner selection before confirmation no longer reuses stale review-thread state.
+- [x] AC-2: Applying an owner-gap finding always uses the latest reviewed owner selection.
+- [x] AC-3: Existing start-week review/apply behavior stays intact.
+- [x] AC-4: Backend and visible-surface regressions cover the stale-thread bug.
 
 ## Local Validation
 
@@ -160,6 +177,17 @@ git diff --check
 
 ## Checkpoint Result
 
-- Outcome: `pending`
+- Outcome: `pass`
 - Evidence:
+  - Narrowed FleetGraph owner-gap review thread IDs so `assign_owner` review/apply threads are scoped to the selected `owner_id`, while `start_week` stays on the existing shared thread key.
+  - Added backend regressions that simulate an older generic owner-review thread and prove FleetGraph now invokes and resumes a fresh owner-scoped review thread for the latest selection.
+  - Added visible-surface regression coverage that switches owners during review and verifies the apply path uses the latest selected owner label and payload.
+  - Local validation passed:
+    - `npx pnpm --filter @ship/api exec vitest run src/services/fleetgraph/actions/service.test.ts src/routes/fleetgraph.test.ts --config vitest.fleetgraph.config.ts`
+    - `npx pnpm --filter @ship/web exec vitest run src/components/FleetGraphFindingsPanel.test.tsx`
+    - `npx pnpm --filter @ship/api exec tsc --noEmit`
+    - `npx pnpm --filter @ship/web exec tsc --noEmit`
+    - `git diff --check`
+  - Deployment status: `not deployed`
 - Residual risk:
+  - Live Railway proof still depends on merge-to-`master` auto-deploy plus direct inspection of `FleetGraph Demo Week - Owner Gap` to confirm the selected-owner proof lane reflects the latest reviewed owner on the sanctioned demo surface.

@@ -28,6 +28,7 @@ interface LocalNotice {
 
 interface ReviewState {
   findingId: string | null;
+  isReviewLoading: boolean;
   openedAt: number | null;
   review: FleetGraphFindingReview | null;
   selectedOwnerId: string | null;
@@ -52,6 +53,7 @@ export function FleetGraphFindingsPanel({
   const { setFindings } = useFleetGraphDebugSurface();
   const [reviewState, setReviewState] = useState<ReviewState>({
     findingId: null,
+    isReviewLoading: false,
     openedAt: null,
     review: null,
     selectedOwnerId: null,
@@ -107,7 +109,13 @@ export function FleetGraphFindingsPanel({
       await findings.dismissFinding(findingId);
       setReviewState((current) =>
         current.findingId === findingId
-          ? { findingId: null, openedAt: null, review: null, selectedOwnerId: null }
+          ? {
+              findingId: null,
+              isReviewLoading: false,
+              openedAt: null,
+              review: null,
+              selectedOwnerId: null,
+            }
           : current
       );
       setLocalNotice({
@@ -131,7 +139,13 @@ export function FleetGraphFindingsPanel({
       const response = await findings.snoozeFinding(findingId, snoozeInput);
       setReviewState((current) =>
         current.findingId === findingId
-          ? { findingId: null, openedAt: null, review: null, selectedOwnerId: null }
+          ? {
+              findingId: null,
+              isReviewLoading: false,
+              openedAt: null,
+              review: null,
+              selectedOwnerId: null,
+            }
           : current
       );
       setLocalNotice({
@@ -173,7 +187,13 @@ export function FleetGraphFindingsPanel({
         findingId,
         selectedOwnerId ? { ownerId: selectedOwnerId } : undefined
       );
-      setReviewState({ findingId: null, openedAt: null, review: null, selectedOwnerId: null });
+      setReviewState({
+        findingId: null,
+        isReviewLoading: false,
+        openedAt: null,
+        review: null,
+        selectedOwnerId: null,
+      });
 
       const message = finding?.recommendedAction?.type === 'assign_owner'
         && selectedOwnerLabel
@@ -200,6 +220,7 @@ export function FleetGraphFindingsPanel({
     if (finding?.recommendedAction?.type === 'assign_owner') {
       setReviewState({
         findingId,
+        isReviewLoading: false,
         openedAt: Date.now(),
         review: null,
         selectedOwnerId: null,
@@ -211,6 +232,7 @@ export function FleetGraphFindingsPanel({
       const response = await findings.reviewFinding(findingId);
       setReviewState({
         findingId,
+        isReviewLoading: false,
         openedAt: Date.now(),
         review: response.review,
         selectedOwnerId: null,
@@ -226,7 +248,12 @@ export function FleetGraphFindingsPanel({
     findings.resetActionState();
     setReviewState((current) =>
       current.findingId === findingId
-        ? { ...current, review: null, selectedOwnerId: ownerId }
+        ? {
+            ...current,
+            isReviewLoading: ownerId !== null,
+            review: null,
+            selectedOwnerId: ownerId,
+          }
         : current
     );
 
@@ -243,11 +270,22 @@ export function FleetGraphFindingsPanel({
 
         return {
           ...current,
+          isReviewLoading: false,
           review: response.review,
         };
       });
     } catch (error) {
       console.error('FleetGraph review failed:', error);
+      setReviewState((current) => {
+        if (current.findingId !== findingId || current.selectedOwnerId !== ownerId) {
+          return current;
+        }
+
+        return {
+          ...current,
+          isReviewLoading: false,
+        };
+      });
       // The hook surfaces the friendly error message.
     }
   }
@@ -319,10 +357,12 @@ export function FleetGraphFindingsPanel({
               }}
               onCancelReview={() => setReviewState({
                 findingId: null,
+                isReviewLoading: false,
                 openedAt: null,
                 review: null,
                 selectedOwnerId: null,
               })}
+              isReviewLoading={reviewState.findingId === finding.id ? reviewState.isReviewLoading : false}
               ownerOptions={ownerOptions}
               review={reviewState.findingId === finding.id ? reviewState.review : null}
               selectedOwnerId={reviewState.findingId === finding.id ? reviewState.selectedOwnerId : null}

@@ -37,7 +37,8 @@ import { getAuthContext } from './route-helpers.js'
 
 type RouterType = ReturnType<typeof Router>
 
-const FleetGraphFindingOwnerSelectionSchema = z.object({
+const FleetGraphFindingActionSelectionSchema = z.object({
+  assigneeId: z.string().uuid().optional(),
   ownerId: z.string().uuid().optional(),
 }).strict()
 
@@ -341,8 +342,9 @@ export function createFleetGraphRouter(
     }
 
     try {
-      const body = FleetGraphFindingOwnerSelectionSchema.parse(req.body ?? {})
+      const body = FleetGraphFindingActionSelectionSchema.parse(req.body ?? {})
       const response = await actionService.reviewFinding({
+        assigneeId: body.assigneeId,
         actorUserId: auth.userId,
         findingId: String(req.params.id),
         ownerId: body.ownerId,
@@ -421,8 +423,9 @@ export function createFleetGraphRouter(
     }
 
     try {
-      const body = FleetGraphFindingOwnerSelectionSchema.parse(req.body ?? {})
+      const body = FleetGraphFindingActionSelectionSchema.parse(req.body ?? {})
       const finding = await actionService.applyFinding({
+        assigneeId: body.assigneeId,
         actorUserId: auth.userId,
         findingId: String(req.params.id),
         ownerId: body.ownerId,

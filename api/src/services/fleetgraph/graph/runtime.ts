@@ -220,6 +220,10 @@ function buildTrackedFindingActionSuccessMessage(
     return 'Sprint owner assigned in Ship. Look for Owner showing the person you selected on this page.'
   }
 
+  if (action?.type === 'assign_issues') {
+    return 'Sprint issues assigned in Ship. Look for Assignee showing the person you selected on the sprint issues on this page.'
+  }
+
   return buildGenericActionSuccessMessage(action)
 }
 
@@ -329,7 +333,7 @@ function createFleetGraphRuntimeInternals(
   const beginExecutionTask = task(
     'fleetgraph.action.begin_execution',
     async (input: {
-      actionType: 'assign_owner' | 'start_week'
+      actionType: 'assign_issues' | 'assign_owner' | 'start_week'
       endpoint: { method: 'POST' | 'PATCH'; path: string }
       findingId: string
       workspaceId: string
@@ -344,7 +348,7 @@ function createFleetGraphRuntimeInternals(
   const finishExecutionTask = task(
     'fleetgraph.action.finish_execution',
     async (input: {
-      actionType: 'assign_owner' | 'start_week'
+      actionType: 'assign_issues' | 'assign_owner' | 'start_week'
       appliedAt?: string
       endpoint: { method: 'POST' | 'PATCH'; path: string }
       findingId: string
@@ -556,7 +560,11 @@ function createFleetGraphRuntimeInternals(
       }
 
       const trackedActionType = state.selectedAction.type
-      if (trackedActionType !== 'assign_owner' && trackedActionType !== 'start_week') {
+      if (
+        trackedActionType !== 'assign_issues'
+        && trackedActionType !== 'assign_owner'
+        && trackedActionType !== 'start_week'
+      ) {
         const result = await executeShipRestActionTask({
           body: state.selectedAction.body,
           method: actionMethod,

@@ -66,11 +66,12 @@ async function dismissFleetGraphFinding(id: string) {
   return response.json() as Promise<FleetGraphFindingLifecycleResponse>;
 }
 
-interface FleetGraphFindingOwnerSelectionInput {
+interface FleetGraphFindingActionSelectionInput {
+  assigneeId?: string;
   ownerId?: string;
 }
 
-async function applyFleetGraphFinding(id: string, input?: FleetGraphFindingOwnerSelectionInput) {
+async function applyFleetGraphFinding(id: string, input?: FleetGraphFindingActionSelectionInput) {
   const response = input
     ? await apiPost(`/api/fleetgraph/findings/${id}/apply`, input)
     : await apiPost(`/api/fleetgraph/findings/${id}/apply`);
@@ -89,7 +90,7 @@ async function applyFleetGraphFinding(id: string, input?: FleetGraphFindingOwner
   return response.json() as Promise<FleetGraphFindingLifecycleResponse>;
 }
 
-async function reviewFleetGraphFinding(id: string, input?: FleetGraphFindingOwnerSelectionInput) {
+async function reviewFleetGraphFinding(id: string, input?: FleetGraphFindingActionSelectionInput) {
   const response = input
     ? await apiPost(`/api/fleetgraph/findings/${id}/review`, input)
     : await apiPost(`/api/fleetgraph/findings/${id}/review`);
@@ -149,7 +150,7 @@ export function useFleetGraphFindings(documentIds: string[]) {
   });
 
   const applyMutation = useMutation({
-    mutationFn: ({ id, input }: { id: string; input?: FleetGraphFindingOwnerSelectionInput }) =>
+    mutationFn: ({ id, input }: { id: string; input?: FleetGraphFindingActionSelectionInput }) =>
       applyFleetGraphFinding(id, input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
@@ -159,7 +160,7 @@ export function useFleetGraphFindings(documentIds: string[]) {
   });
 
   const reviewMutation = useMutation({
-    mutationFn: ({ id, input }: { id: string; input?: FleetGraphFindingOwnerSelectionInput }) =>
+    mutationFn: ({ id, input }: { id: string; input?: FleetGraphFindingActionSelectionInput }) =>
       reviewFleetGraphFinding(id, input),
   });
 
@@ -172,7 +173,7 @@ export function useFleetGraphFindings(documentIds: string[]) {
   });
 
   return {
-    async applyFinding(id: string, input?: FleetGraphFindingOwnerSelectionInput) {
+    async applyFinding(id: string, input?: FleetGraphFindingActionSelectionInput) {
       return applyMutation.mutateAsync({ id, input });
     },
     actionErrorMessage:
@@ -198,7 +199,7 @@ export function useFleetGraphFindings(documentIds: string[]) {
       dismissMutation.reset();
       snoozeMutation.reset();
     },
-    async reviewFinding(id: string, input?: FleetGraphFindingOwnerSelectionInput) {
+    async reviewFinding(id: string, input?: FleetGraphFindingActionSelectionInput) {
       return reviewMutation.mutateAsync({ id, input });
     },
     async refetchFindings() {

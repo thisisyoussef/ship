@@ -16,6 +16,7 @@ interface ShipWeeksResponse {
 export type WeekSummary = z.infer<typeof ShipWeekSummarySchema>
 
 export interface UnassignedIssuesCandidate {
+  issueIds: string[]
   startDate: Date
   totalCount: number
   unassignedCount: number
@@ -60,13 +61,15 @@ export function selectUnassignedIssuesCandidate(
   const { startDate, week } = first
 
   const totalCount = issues.issues.length
-  const unassignedCount = issues.issues.filter((issue) => issue.assignee_id === null).length
+  const unassignedIssues = issues.issues.filter((issue) => issue.assignee_id === null)
+  const unassignedCount = unassignedIssues.length
 
   if (unassignedCount < 3) {
     return null
   }
 
   return {
+    issueIds: unassignedIssues.map((issue) => issue.id),
     startDate,
     totalCount,
     unassignedCount,
@@ -91,6 +94,7 @@ export function buildUnassignedIssuesFindingDraft(
     evidence,
     findingKey: buildUnassignedIssuesFindingKey(workspaceId, candidate.week.id),
     metadata: {
+      issueIds: candidate.issueIds,
       sprintNumber: candidate.week.sprint_number,
       startDate: candidate.startDate.toISOString(),
       totalCount: candidate.totalCount,
@@ -115,12 +119,15 @@ function buildUnassignedIssuesRecommendedAction(
   evidence: string[]
 ): FleetGraphRequestedAction {
   return {
+    body: {
+      issue_ids: candidate.issueIds,
+    },
     endpoint: {
-      method: 'PATCH',
-      path: `/api/documents/${candidate.week.id}`,
+      method: 'POST',
+      path: '/api/issues/bulk',
     },
     evidence,
-    rationale: 'FleetGraph can surface the coordination gap, but assignment should remain a human decision in Ship.',
+    rationale: 'Assignment should remain a human-reviewed action in Ship.',
     summary: 'Assign the unassigned sprint issues or make an explicit call to leave them unassigned.',
     targetId: candidate.week.id,
     targetType: 'sprint',

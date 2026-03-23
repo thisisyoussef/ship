@@ -69,6 +69,29 @@ describe('fleetgraph findings presenter', () => {
     expect(canReviewFindingActionInFleetGraph(finding)).toBe(true);
   });
 
+  it('treats assign-issues findings as reviewable in FleetGraph', () => {
+    const finding = makeFinding({
+      recommendedAction: {
+        body: {
+          issue_ids: ['issue-1', 'issue-2', 'issue-3'],
+        },
+        endpoint: {
+          method: 'POST',
+          path: '/api/issues/bulk',
+        },
+        evidence: ['3 of 5 issues in this sprint have no assignee.'],
+        rationale: 'Assignment should remain a human-reviewed action in Ship.',
+        summary: 'Assign the unassigned sprint issues or make an explicit call to leave them unassigned.',
+        targetId: 'sprint-1',
+        targetType: 'sprint',
+        title: 'Assign sprint issues',
+        type: 'assign_issues',
+      },
+    });
+
+    expect(canReviewFindingActionInFleetGraph(finding)).toBe(true);
+  });
+
   it('shows assign-owner execution labels after apply succeeds', () => {
     const finding = makeFinding({
       actionExecution: {
@@ -86,5 +109,24 @@ describe('fleetgraph findings presenter', () => {
     });
 
     expect(renderExecutionLabel(finding)).toBe('Owner assigned in Ship');
+  });
+
+  it('shows assign-issues execution labels after apply succeeds', () => {
+    const finding = makeFinding({
+      actionExecution: {
+        actionType: 'assign_issues',
+        attemptCount: 1,
+        endpoint: {
+          method: 'POST',
+          path: '/api/issues/bulk',
+        },
+        findingId: 'finding-1',
+        message: 'Sprint issues assigned in Ship. Look for Assignee showing the person you selected on the sprint issues on this page.',
+        status: 'applied',
+        updatedAt: '2026-03-17T12:05:00.000Z',
+      },
+    });
+
+    expect(renderExecutionLabel(finding)).toBe('Issues assigned in Ship');
   });
 });

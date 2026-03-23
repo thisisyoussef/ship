@@ -40,7 +40,14 @@ function createShipClientMock() {
     fetchChildren: vi.fn(async () => []),
     fetchDocument: vi.fn(async () => ({})),
     fetchMembers: vi.fn(async () => []),
-    listSprintIssues: vi.fn(async () => ({ issues: [] })),
+    listSprintIssues: vi.fn<(sprintId: string) => Promise<{
+      issues: Array<{
+        assignee_id: string | null
+        id: string
+        status: string
+        title: string
+      }>
+    }>>(async () => ({ issues: [] })),
     listWeeks: vi.fn(async () => ({
       weeks: [],
       workspace_sprint_start_date: '2026-03-10T00:00:00.000Z',
@@ -360,6 +367,129 @@ describe('createFleetGraphRuntime', () => {
         findingKey: 'unassigned-issues:workspace-123:week-9',
         findingType: 'unassigned_sprint_issues',
         summary: 'Sprint 9 has several unassigned issues, so ownership is still unclear for this week.',
+      }),
+      expect.any(Date)
+    )
+  })
+
+  it('keeps checking later started weeks when the first active week does not have enough unassigned issues', async () => {
+    const upsertFinding = vi.fn(async (input) => ({
+      dedupeKey: input.dedupeKey,
+      documentId: input.documentId,
+      documentType: input.documentType,
+      evidence: input.evidence,
+      findingKey: input.findingKey,
+      findingType: input.findingType,
+      id: 'finding-unassigned-later-week',
+      metadata: input.metadata ?? {},
+      recommendedAction: input.recommendedAction,
+      status: 'active' as const,
+      summary: input.summary,
+      threadId: input.threadId,
+      title: input.title,
+      tracePublicUrl: input.tracePublicUrl,
+      traceRunId: input.traceRunId,
+      updatedAt: new Date('2026-03-17T12:00:00.000Z'),
+      workspaceId: input.workspaceId,
+    }))
+    const findingStore = {
+      ...createFindingStoreMock(),
+      listActiveFindings: vi.fn(async () => []),
+      upsertFinding,
+    }
+    const shipClient = createShipClientMock()
+    shipClient.listWeeks.mockResolvedValue({
+      weeks: [
+        {
+          id: 'week-older',
+          issue_count: 2,
+          name: 'Sprint 1',
+          owner: {
+            id: 'owner-1',
+            name: 'Dev User',
+          },
+          sprint_number: 1,
+          status: 'active',
+          workspace_sprint_start_date: '2026-03-10T00:00:00.000Z',
+        },
+        {
+          id: 'week-target',
+          issue_count: 4,
+          name: 'Sprint 2',
+          owner: {
+            id: 'owner-2',
+            name: 'PM User',
+          },
+          sprint_number: 2,
+          status: 'active',
+          workspace_sprint_start_date: '2026-03-10T00:00:00.000Z',
+        },
+      ],
+      workspace_sprint_start_date: '2026-03-10T00:00:00.000Z',
+    } as Awaited<ReturnType<typeof shipClient.listWeeks>>)
+    shipClient.listSprintIssues.mockImplementation(async (sprintId: string) => {
+      if (sprintId === 'week-older') {
+        return {
+          issues: [
+            { assignee_id: null, id: 'issue-1', status: 'open', title: 'Issue 1' },
+            { assignee_id: 'user-2', id: 'issue-2', status: 'open', title: 'Issue 2' },
+          ],
+        }
+      }
+
+      return {
+        issues: [
+          { assignee_id: null, id: 'issue-3', status: 'open', title: 'Issue 3' },
+          { assignee_id: null, id: 'issue-4', status: 'open', title: 'Issue 4' },
+          { assignee_id: null, id: 'issue-5', status: 'open', title: 'Issue 5' },
+          { assignee_id: 'user-6', id: 'issue-6', status: 'open', title: 'Issue 6' },
+        ],
+      }
+    })
+    const generate = vi.fn(async () => ({
+      model: 'gpt-5-mini',
+      provider: 'openai' as const,
+      text: 'Sprint 2 has multiple unassigned issues, so the team still lacks clear ownership on several tasks.',
+    }))
+
+    const runtime = createFleetGraphRuntime({
+      actionStore: createActionStoreMock(),
+      checkpointer: new MemorySaver(),
+      findingStore,
+      llmAdapter: {
+        generate,
+        model: 'gpt-5-mini',
+        provider: 'openai',
+      },
+      shipClient,
+      tracingSettings: {
+        enabled: false,
+        flushTimeoutMs: 1000,
+        projectName: 'ship-fleetgraph',
+        sharePublicTraces: false,
+      },
+    })
+
+    const response = await runtime.invoke({
+      contextKind: 'proactive',
+      mode: 'proactive',
+      threadId: 'thread-unassigned-issues-later-week',
+      trigger: 'scheduled-sweep',
+      workspaceId: 'workspace-123',
+    })
+
+    expect(response).toMatchObject({
+      branch: 'reasoned',
+      outcome: 'advisory',
+      selectedScenario: 'unassigned_sprint_issues',
+    })
+    expect(shipClient.listSprintIssues).toHaveBeenNthCalledWith(1, 'week-older')
+    expect(shipClient.listSprintIssues).toHaveBeenNthCalledWith(2, 'week-target')
+    expect(upsertFinding).toHaveBeenCalledWith(
+      expect.objectContaining({
+        documentId: 'week-target',
+        findingKey: 'unassigned-issues:workspace-123:week-target',
+        findingType: 'unassigned_sprint_issues',
       }),
       expect.any(Date)
     )

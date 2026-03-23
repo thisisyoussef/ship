@@ -1,3 +1,4 @@
+import type { ComboboxOption } from '@/components/ui/Combobox';
 import { useEffect, useRef, useState } from 'react';
 
 import { FleetGraphFindingCard } from '@/components/FleetGraphFindingCard';
@@ -17,6 +18,7 @@ interface FleetGraphFindingsPanelProps {
   context?: DocumentContext;
   currentDocumentId: string;
   loading?: boolean;
+  ownerOptions?: ComboboxOption[];
 }
 
 interface LocalNotice {
@@ -28,6 +30,7 @@ interface ReviewState {
   findingId: string | null;
   openedAt: number | null;
   review: FleetGraphFindingReview | null;
+  selectedOwnerId: string | null;
 }
 
 const REVIEW_GESTURE_GUARD_MS = 450;
@@ -42,6 +45,7 @@ export function FleetGraphFindingsPanel({
   context,
   currentDocumentId,
   loading = false,
+  ownerOptions = [],
 }: FleetGraphFindingsPanelProps) {
   const documentIds = buildFleetGraphFindingDocumentIds(currentDocumentId, context);
   const findings = useFleetGraphFindings(documentIds);
@@ -50,6 +54,7 @@ export function FleetGraphFindingsPanel({
     findingId: null,
     openedAt: null,
     review: null,
+    selectedOwnerId: null,
   });
   const [localNotice, setLocalNotice] = useState<LocalNotice | null>(null);
   const snoozeRefreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -102,7 +107,7 @@ export function FleetGraphFindingsPanel({
       await findings.dismissFinding(findingId);
       setReviewState((current) =>
         current.findingId === findingId
-          ? { findingId: null, openedAt: null, review: null }
+          ? { findingId: null, openedAt: null, review: null, selectedOwnerId: null }
           : current
       );
       setLocalNotice({
@@ -126,7 +131,7 @@ export function FleetGraphFindingsPanel({
       const response = await findings.snoozeFinding(findingId, snoozeInput);
       setReviewState((current) =>
         current.findingId === findingId
-          ? { findingId: null, openedAt: null, review: null }
+          ? { findingId: null, openedAt: null, review: null, selectedOwnerId: null }
           : current
       );
       setLocalNotice({
@@ -144,6 +149,14 @@ export function FleetGraphFindingsPanel({
   }
 
   async function handleApply(findingId: string) {
+    const finding = findings.findings.find((entry) => entry.id === findingId);
+    const selectedOwnerId = reviewState.findingId === findingId
+      ? reviewState.selectedOwnerId
+      : null;
+    const selectedOwnerLabel = selectedOwnerId
+      ? ownerOptions.find((option) => option.value === selectedOwnerId)?.label ?? null
+      : null;
+
     if (
       reviewState.findingId === findingId
       && reviewState.openedAt !== null
@@ -156,10 +169,17 @@ export function FleetGraphFindingsPanel({
     findings.resetActionState();
 
     try {
-      const response = await findings.applyFinding(findingId);
-      setReviewState({ findingId: null, openedAt: null, review: null });
+      const response = await findings.applyFinding(
+        findingId,
+        selectedOwnerId ? { ownerId: selectedOwnerId } : undefined
+      );
+      setReviewState({ findingId: null, openedAt: null, review: null, selectedOwnerId: null });
 
-      const message = buildApplyNotice(response.finding);
+      const message = finding?.recommendedAction?.type === 'assign_owner'
+        && selectedOwnerLabel
+        && response.finding.actionExecution?.status === 'applied'
+        ? `Sprint owner assigned in Ship. Look for Owner showing ${selectedOwnerLabel} on this page.`
+        : buildApplyNotice(response.finding);
       if (message) {
         setLocalNotice({
           message,
@@ -176,12 +196,55 @@ export function FleetGraphFindingsPanel({
     setLocalNotice(null);
     findings.resetActionState();
 
+    const finding = findings.findings.find((entry) => entry.id === findingId);
+    if (finding?.recommendedAction?.type === 'assign_owner') {
+      setReviewState({
+        findingId,
+        openedAt: Date.now(),
+        review: null,
+        selectedOwnerId: null,
+      });
+      return;
+    }
+
     try {
       const response = await findings.reviewFinding(findingId);
       setReviewState({
         findingId,
         openedAt: Date.now(),
         review: response.review,
+        selectedOwnerId: null,
+      });
+    } catch (error) {
+      console.error('FleetGraph review failed:', error);
+      // The hook surfaces the friendly error message.
+    }
+  }
+
+  async function handleOwnerChange(findingId: string, ownerId: string | null) {
+    setLocalNotice(null);
+    findings.resetActionState();
+    setReviewState((current) =>
+      current.findingId === findingId
+        ? { ...current, review: null, selectedOwnerId: ownerId }
+        : current
+    );
+
+    if (!ownerId) {
+      return;
+    }
+
+    try {
+      const response = await findings.reviewFinding(findingId, { ownerId });
+      setReviewState((current) => {
+        if (current.findingId !== findingId || current.selectedOwnerId !== ownerId) {
+          return current;
+        }
+
+        return {
+          ...current,
+          review: response.review,
+        };
       });
     } catch (error) {
       console.error('FleetGraph review failed:', error);
@@ -245,14 +308,24 @@ export function FleetGraphFindingsPanel({
               onDismiss={(findingId) => {
                 void handleDismiss(findingId);
               }}
+              onOwnerChange={(value) => {
+                void handleOwnerChange(finding.id, value);
+              }}
               onReview={(findingId) => {
                 void handleReview(findingId);
               }}
               onSnooze={(findingId, preset) => {
                 void handleSnooze(findingId, preset);
               }}
-              onCancelReview={() => setReviewState({ findingId: null, openedAt: null, review: null })}
+              onCancelReview={() => setReviewState({
+                findingId: null,
+                openedAt: null,
+                review: null,
+                selectedOwnerId: null,
+              })}
+              ownerOptions={ownerOptions}
               review={reviewState.findingId === finding.id ? reviewState.review : null}
+              selectedOwnerId={reviewState.findingId === finding.id ? reviewState.selectedOwnerId : null}
             />
           ))}
         </div>

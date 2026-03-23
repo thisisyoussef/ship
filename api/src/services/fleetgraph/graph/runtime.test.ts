@@ -842,14 +842,14 @@ describe('createFleetGraphRuntime', () => {
     expect(actionStore.finishExecution).toHaveBeenCalledWith(
       expect.objectContaining({
         actionType: 'assign_owner',
-        message: 'Sprint owner assigned in Ship. Look for Owner showing you on this page.',
+        message: 'Sprint owner assigned in Ship. Look for Owner showing the person you selected on this page.',
         resultStatusCode: 200,
         status: 'applied',
       }),
       expect.any(Date)
     )
     expect(resumed.actionOutcome).toMatchObject({
-      message: 'Sprint owner assigned in Ship. Look for Owner showing you on this page.',
+      message: 'Sprint owner assigned in Ship. Look for Owner showing the person you selected on this page.',
       status: 'applied',
     })
   })

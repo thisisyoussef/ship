@@ -114,7 +114,7 @@ describe('FleetGraph finding action store', () => {
       actionType: 'assign_owner',
       endpoint: first.execution.endpoint,
       findingId: finding.id,
-      message: 'Sprint owner assigned in Ship. Look for Owner showing you on this page.',
+      message: 'Sprint owner assigned in Ship. Look for Owner showing the person you selected on this page.',
       resultStatusCode: 200,
       status: 'applied',
       workspaceId: 'workspace-1',

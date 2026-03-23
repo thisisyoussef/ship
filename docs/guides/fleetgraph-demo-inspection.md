@@ -128,13 +128,15 @@ Current public-demo blocker:
 4. Confirm the evidence mentions that nobody is accountable for coordinating the sprint right now.
 5. Confirm the suggested next step is `Assign sprint owner`.
 6. Click `Review and apply`.
-7. Confirm the inline review explains that FleetGraph will assign the signed-in user as sprint owner.
-8. Confirm `Cancel` and `Assign owner in Ship` are both visible.
-9. Apply the action.
-10. Confirm the page refreshes and the `Owner` field now shows the signed-in demo user.
-11. Confirm the owner-gap finding disappears instead of resurfacing immediately.
-12. Confirm lifecycle controls such as `Dismiss` and `Snooze 4h` were available before apply.
-13. Failure signal: the owner-gap page has no finding, the review does not say who will be assigned, the page never shows an owner, or the same finding remains after apply.
+7. Confirm the inline review shows a searchable `Sprint owner` picker and that `Assign owner in Ship` stays disabled until you choose someone.
+8. Choose a person other than the signed-in demo user.
+9. Confirm the review explains that FleetGraph will assign the selected person as sprint owner.
+10. Confirm `Cancel` and `Assign owner in Ship` are both visible.
+11. Apply the action.
+12. Confirm the page refreshes and the `Owner` field now shows the person you selected.
+13. Confirm the owner-gap finding disappears instead of resurfacing immediately.
+14. Confirm lifecycle controls such as `Dismiss` and `Snooze 4h` were available before apply.
+15. Failure signal: the owner-gap page has no finding, the picker is missing, the chosen owner is ignored, the page never shows the selected owner, or the same finding remains after apply.
 
 ## Expected Unassigned-Issues Flow When The Public Demo Feed Is Fresh
 

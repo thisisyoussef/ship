@@ -94,7 +94,7 @@ describe('FleetGraph finding action service', () => {
     expect(result.review.confirmLabel).toBe('Start week in Ship')
   })
 
-  it('builds an explicit self-assignment review for owner-gap findings', async () => {
+  it('builds a selected-owner review for owner-gap findings', async () => {
     const finding = makeFinding({
       evidence: ['No sprint owner is assigned right now.'],
       findingKey: 'sprint-no-owner:workspace-1:sprint-1',
@@ -160,22 +160,25 @@ describe('FleetGraph finding action service', () => {
     const result = await service.reviewFinding({
       actorUserId: '99999999-9999-4999-8999-999999999999',
       findingId: finding.id,
+      ownerId: '22222222-2222-4222-8222-222222222222',
       workspaceId: 'workspace-1',
     })
 
     expect(runtime.invoke).toHaveBeenCalledWith(expect.objectContaining({
       requestedAction: expect.objectContaining({
         body: {
-          owner_id: '99999999-9999-4999-8999-999999999999',
+          owner_id: '22222222-2222-4222-8222-222222222222',
         },
         type: 'assign_owner',
       }),
       threadId: expect.stringContaining('assign-owner'),
     }))
     expect(result.review.confirmLabel).toBe('Assign owner in Ship')
-    expect(result.review.summary).toContain('you')
+    expect(result.review.summary).toBe(
+      'FleetGraph will assign the person you selected in Ship so someone is explicitly accountable for coordination and follow-through.'
+    )
     expect(result.review.evidence).toContain(
-      'FleetGraph will assign this sprint to you because you are applying the owner-fix action from this page.'
+      'FleetGraph will assign the person you selected in Ship when you confirm.'
     )
   })
 
@@ -245,7 +248,7 @@ describe('FleetGraph finding action service', () => {
             path: '/api/documents/11111111-1111-4111-8111-111111111111',
           },
           findingId: ownerFinding.id,
-          message: 'Sprint owner assigned in Ship. Look for Owner showing you on this page.',
+          message: 'Sprint owner assigned in Ship. Look for Owner showing the person you selected on this page.',
           resultStatusCode: 200,
           status: 'applied' as const,
           updatedAt: new Date('2026-03-17T12:05:00.000Z'),
@@ -279,6 +282,7 @@ describe('FleetGraph finding action service', () => {
     const result = await service.applyFinding({
       actorUserId: '99999999-9999-4999-8999-999999999999',
       findingId: finding.id,
+      ownerId: '22222222-2222-4222-8222-222222222222',
       request: request as never,
       workspaceId: 'workspace-1',
     })

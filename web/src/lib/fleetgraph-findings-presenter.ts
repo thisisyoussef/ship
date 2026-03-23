@@ -103,7 +103,7 @@ export function buildApplyNotice(finding: FleetGraphFinding) {
   if (finding.actionExecution?.actionType === 'assign_owner') {
     switch (finding.actionExecution.status) {
       case 'applied':
-        return 'Sprint owner assigned in Ship. Look for Owner showing you on this page.';
+        return 'Sprint owner assigned in Ship. Look for Owner showing the person you selected on this page.';
       default:
         return null;
     }

@@ -79,7 +79,7 @@ describe('fleetgraph findings presenter', () => {
           path: '/api/documents/sprint-1',
         },
         findingId: 'finding-1',
-        message: 'Sprint owner assigned in Ship. Look for Owner showing you on this page.',
+        message: 'Sprint owner assigned in Ship. Look for Owner showing the person you selected on this page.',
         status: 'applied',
         updatedAt: '2026-03-17T12:05:00.000Z',
       },

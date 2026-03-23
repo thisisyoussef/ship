@@ -807,9 +807,9 @@ describe('FleetGraph routes', () => {
         confirmLabel: 'Assign owner in Ship',
         evidence: [
           'No sprint owner is assigned right now.',
-          'FleetGraph will assign this sprint to you because you are applying the owner-fix action from this page.',
+          'FleetGraph will assign the person you selected in Ship when you confirm.',
         ],
-        summary: 'FleetGraph will assign this sprint to you in Ship so someone is explicitly accountable for coordination and follow-through.',
+        summary: 'FleetGraph will assign the person you selected in Ship so someone is explicitly accountable for coordination and follow-through.',
         threadId: 'fleetgraph:workspace-1:finding-review:finding-owner-gap:assign-owner',
         title: 'Confirm before assigning sprint owner',
       },
@@ -817,8 +817,17 @@ describe('FleetGraph routes', () => {
 
     const response = await request(app)
       .post('/api/fleetgraph/findings/finding-owner-gap/review')
+      .send({
+        ownerId: '22222222-2222-4222-8222-222222222222',
+      })
 
     expect(response.status).toBe(200)
+    expect(reviewFinding).toHaveBeenCalledWith({
+      actorUserId: '11111111-1111-4111-8111-111111111111',
+      findingId: 'finding-owner-gap',
+      ownerId: '22222222-2222-4222-8222-222222222222',
+      workspaceId: '22222222-2222-4222-8222-222222222222',
+    })
     expect(response.body.review).toMatchObject({
       confirmLabel: 'Assign owner in Ship',
       title: 'Confirm before assigning sprint owner',
@@ -835,7 +844,7 @@ describe('FleetGraph routes', () => {
         path: `/api/documents/${SPRINT_ID}`,
       },
       findingId: 'finding-owner-gap',
-      message: 'Sprint owner assigned in Ship. Look for Owner showing you on this page.',
+      message: 'Sprint owner assigned in Ship. Look for Owner showing the person you selected on this page.',
       resultStatusCode: 200,
       status: 'applied',
       updatedAt: new Date('2026-03-17T12:05:00.000Z'),
@@ -867,11 +876,15 @@ describe('FleetGraph routes', () => {
     const response = await request(app)
       .post('/api/fleetgraph/findings/finding-owner-gap/apply')
       .set('x-csrf-token', 'csrf-token')
+      .send({
+        ownerId: '22222222-2222-4222-8222-222222222222',
+      })
 
     expect(response.status).toBe(200)
     expect(applyFinding).toHaveBeenCalledWith({
       actorUserId: '11111111-1111-4111-8111-111111111111',
       findingId: 'finding-owner-gap',
+      ownerId: '22222222-2222-4222-8222-222222222222',
       request: expect.any(Object),
       workspaceId: '22222222-2222-4222-8222-222222222222',
     })

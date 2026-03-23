@@ -17,6 +17,18 @@ import { FleetGraphFindingsPanel } from './FleetGraphFindingsPanel';
 
 const DOCUMENT_ID = '33333333-3333-4333-8333-333333333333';
 const SPRINT_ID = '55555555-5555-4555-8555-555555555555';
+const OWNER_OPTIONS = [
+  {
+    description: 'taylor@example.com',
+    label: 'Taylor Jenkins',
+    value: '22222222-2222-4222-8222-222222222222',
+  },
+  {
+    description: 'sam@example.com',
+    label: 'Sam Rivera',
+    value: '33333333-3333-4333-8333-333333333333',
+  },
+];
 
 function createWrapper() {
   const queryClient = new QueryClient({
@@ -380,8 +392,11 @@ describe('FleetGraphFindingsPanel', () => {
         ],
       }),
     } as Response);
-    vi.mocked(apiPost).mockImplementation(async (path) => {
+    vi.mocked(apiPost).mockImplementation(async (path, body) => {
       if (path === '/api/fleetgraph/findings/finding-2/review') {
+        expect(body).toEqual({
+          ownerId: '22222222-2222-4222-8222-222222222222',
+        });
         return {
           ok: true,
           json: async () => ({
@@ -393,9 +408,9 @@ describe('FleetGraphFindingsPanel', () => {
               confirmLabel: 'Assign owner in Ship',
               evidence: [
                 'No sprint owner is assigned right now.',
-                'FleetGraph will assign this sprint to you because you are applying the owner-fix action from this page.',
+                'FleetGraph will assign the person you selected in Ship when you confirm.',
               ],
-              summary: 'FleetGraph will assign this sprint to you in Ship so someone is explicitly accountable for coordination and follow-through.',
+              summary: 'FleetGraph will assign the person you selected in Ship so someone is explicitly accountable for coordination and follow-through.',
               threadId: 'fleetgraph:workspace-1:finding-review:finding-2:assign-owner',
               title: 'Confirm before assigning sprint owner',
             },
@@ -403,6 +418,9 @@ describe('FleetGraphFindingsPanel', () => {
         } as Response;
       }
 
+      expect(body).toEqual({
+        ownerId: '22222222-2222-4222-8222-222222222222',
+      });
       return {
         ok: true,
         json: async () => ({
@@ -416,7 +434,7 @@ describe('FleetGraphFindingsPanel', () => {
                 path: `/api/documents/${SPRINT_ID}`,
               },
               findingId: 'finding-2',
-              message: 'Sprint owner assigned in Ship. Look for Owner showing you on this page.',
+              message: 'Sprint owner assigned in Ship. Look for Owner showing the person you selected on this page.',
               status: 'applied',
               updatedAt: '2026-03-17T12:05:00.000Z',
             },
@@ -431,6 +449,7 @@ describe('FleetGraphFindingsPanel', () => {
       <FleetGraphFindingsPanel
         context={createContext()}
         currentDocumentId={DOCUMENT_ID}
+        ownerOptions={OWNER_OPTIONS}
       />,
       { wrapper: createWrapper() }
     );
@@ -439,20 +458,32 @@ describe('FleetGraphFindingsPanel', () => {
     vi.spyOn(Date, 'now').mockImplementation(() => now);
     fireEvent.click(await screen.findByRole('button', { name: 'Review and apply' }));
 
+    fireEvent.click(screen.getByRole('combobox', { name: 'Sprint owner' }));
+    fireEvent.click(await screen.findByText('Taylor Jenkins'));
+
     await waitFor(() => {
-      expect(apiPost).toHaveBeenCalledWith('/api/fleetgraph/findings/finding-2/review');
+      expect(apiPost).toHaveBeenCalledWith(
+        '/api/fleetgraph/findings/finding-2/review',
+        { ownerId: '22222222-2222-4222-8222-222222222222' }
+      );
     });
     expect(screen.getByText('Confirm before assigning sprint owner')).toBeInTheDocument();
     expect(
-      screen.getByText('FleetGraph will assign this sprint to you in Ship so someone is explicitly accountable for coordination and follow-through.')
+      screen.getByText('FleetGraph will assign the person you selected in Ship so someone is explicitly accountable for coordination and follow-through.')
     ).toBeInTheDocument();
 
     now += 500;
     fireEvent.click(screen.getByRole('button', { name: 'Assign owner in Ship' }));
 
     await waitFor(() => {
-      expect(apiPost).toHaveBeenCalledWith('/api/fleetgraph/findings/finding-2/apply');
+      expect(apiPost).toHaveBeenCalledWith(
+        '/api/fleetgraph/findings/finding-2/apply',
+        { ownerId: '22222222-2222-4222-8222-222222222222' }
+      );
     });
+    expect(
+      await screen.findByText('Sprint owner assigned in Ship. Look for Owner showing Taylor Jenkins on this page.')
+    ).toBeInTheDocument();
   });
 
   it('renders unassigned-issues guidance as advisory-only with clear count context', async () => {

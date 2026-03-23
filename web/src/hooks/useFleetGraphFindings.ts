@@ -7,9 +7,9 @@ import type {
   FleetGraphFindingReviewResponse,
 } from '@/lib/fleetgraph-findings';
 
-function buildQueryString(documentIds: string[]) {
+function buildQueryString(documentIds: string[] | null) {
   const params = new URLSearchParams();
-  if (documentIds.length > 0) {
+  if (documentIds && documentIds.length > 0) {
     params.set('documentIds', documentIds.join(','));
   }
   return params.toString();
@@ -32,7 +32,7 @@ async function readFleetGraphErrorMessage(response: Response, fallbackMessage: s
   return fallbackMessage;
 }
 
-async function fetchFleetGraphFindings(documentIds: string[]) {
+async function fetchFleetGraphFindings(documentIds: string[] | null) {
   const query = buildQueryString(documentIds);
   const response = await apiGet(`/api/fleetgraph/findings${query ? `?${query}` : ''}`);
 
@@ -131,14 +131,18 @@ async function snoozeFleetGraphFinding(id: string, input: FleetGraphSnoozeInput)
   return response.json() as Promise<FleetGraphFindingLifecycleResponse>;
 }
 
-export function useFleetGraphFindings(documentIds: string[]) {
+export function useFleetGraphFindings(documentIds: string[] | null) {
   const queryClient = useQueryClient();
-  const queryKey = ['fleetgraphFindings', ...documentIds].sort();
+  const normalizedDocumentIds = documentIds?.filter(Boolean) ?? [];
+  const isWorkspaceScope = documentIds === null;
+  const queryKey = isWorkspaceScope
+    ? ['fleetgraphFindings', 'workspace']
+    : ['fleetgraphFindings', 'documents', ...normalizedDocumentIds.slice().sort()];
 
   const query = useQuery({
     queryKey,
-    queryFn: () => fetchFleetGraphFindings(documentIds),
-    enabled: documentIds.length > 0,
+    queryFn: () => fetchFleetGraphFindings(isWorkspaceScope ? null : normalizedDocumentIds),
+    enabled: isWorkspaceScope || normalizedDocumentIds.length > 0,
     staleTime: 1000 * 30,
   });
 

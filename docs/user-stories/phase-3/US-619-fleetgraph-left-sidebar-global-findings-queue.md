@@ -2,11 +2,11 @@
 
 ## Status
 
-- State: `todo`
-- Owner:
+- State: `done`
+- Owner: Codex
 - Depends on: `US-616`, `US-618`, `US-623`
-- Related branch:
-- Related commit/PR:
+- Related branch: `codex/us-619-global-findings-queue`
+- Related commit/PR: `pending finalization`
 - Target environment: `local first`, `Railway demo via merged master`
 
 ## Persona
@@ -63,20 +63,41 @@ Local sources to read before writing code:
 
 Local docs/code reviewed:
 
-1. `web/src/pages/App.tsx`
-2. `web/src/components/FleetGraphFindingsPanel.tsx`
-3. `web/src/components/FleetGraphFindingCard.tsx`
-4. `web/src/hooks/useFleetGraphFindings.ts`
-5. `api/src/routes/fleetgraph.ts`
-6. `docs/assignments/fleetgraph/README.md`
-7. `docs/assignments/fleetgraph/FLEETGRAPH.md`
+1. `AGENTS.md`
+2. `docs/CONTEXT.md`
+3. `docs/WORKFLOW_MEMORY.md`
+4. `docs/IMPLEMENTATION_STRATEGY.md`
+5. `docs/user-stories/README.md`
+6. `docs/user-stories/phase-3/README.md`
+7. `docs/DEFINITION_OF_DONE.md`
+8. `docs/assignments/fleetgraph/README.md`
+9. `docs/assignments/fleetgraph/PRESEARCH.md`
+10. `docs/assignments/fleetgraph/FLEETGRAPH.md`
+11. `.claude/CLAUDE.md`
+12. `docs/user-stories/phase-3/US-609-fleetgraph-shared-proactive-multi-finding-plumbing.md`
+13. `docs/user-stories/phase-3/US-619-fleetgraph-left-sidebar-global-findings-queue.md`
+14. `docs/guides/fleetgraph-demo-inspection.md`
+15. `web/src/pages/App.tsx`
+16. `web/src/main.tsx`
+17. `web/src/components/DashboardSidebar.tsx`
+18. `web/src/components/FleetGraphFindingsPanel.tsx`
+19. `web/src/components/FleetGraphFindingCard.tsx`
+20. `web/src/hooks/useFleetGraphFindings.ts`
+21. `web/src/pages/UnifiedDocumentPage.tsx`
+22. `web/src/pages/UnifiedDocumentPage.test.tsx`
+23. `api/src/routes/fleetgraph.ts`
+24. `api/src/routes/fleetgraph.test.ts`
+25. `api/src/services/fleetgraph/findings/store.ts`
+26. `api/src/services/fleetgraph/findings/store.test.ts`
+27. `api/src/services/fleetgraph/demo/fixture.ts`
 
 Expected contracts/data shapes:
 
 1. The existing `/api/fleetgraph/findings` route already scopes by workspace and only narrows further when `documentIds` are present, so the global queue should prefer that shared contract before inventing a second list endpoint.
-2. `FleetGraphFindingsPanel` and `FleetGraphFindingCard` already encode the action-bar behavior this story should reuse.
-3. The app shell in `App.tsx` is the right place for the new FleetGraph sidebar mode, route, and notification badge.
-4. A seeded proof lane will need multiple simultaneously active proactive findings so the queue demonstrates a real cross-page sweep.
+2. `useFleetGraphFindings` can safely treat `documentIds: null` as an explicit workspace-wide mode while keeping document-scoped invalidation separate.
+3. `FleetGraphFindingsPanel` and `FleetGraphFindingCard` already encode the action-bar behavior this story should reuse, with only a queue-specific document-navigation affordance added on top.
+4. The app shell in `App.tsx` is the right place for the new FleetGraph sidebar mode, route, and notification badge.
+5. The existing demo fixture already seeds multiple active proactive findings across `FleetGraph Demo Week - Review and Apply`, `FleetGraph Demo Week - One Story`, `FleetGraph Demo Week - Owner Gap`, and `FleetGraph Demo Week - Unassigned Issues`, so the queue proof path can reuse those seeded findings instead of introducing a queue-only demo document.
 
 Planned failing tests:
 
@@ -103,10 +124,10 @@ Error path:
 
 ## Preconditions
 
-- [ ] Fresh story branch is checked out from current `master` before edits begin
-- [ ] `US-616` and `US-618` are merged to `master`, or their exact blocker is recorded before this story starts
-- [ ] Existing FleetGraph finding action bars are green in document-scoped surfaces before lifting them into the global queue
-- [ ] The implementation can reuse the current findings route or a narrow contract extension instead of inventing a second proactive store path
+- [x] Fresh story branch is checked out from current `master` before edits begin
+- [x] `US-616` and `US-618` are merged to `master`, or their exact blocker is recorded before this story starts
+- [x] Existing FleetGraph finding action bars are green in document-scoped surfaces before lifting them into the global queue
+- [x] The implementation can reuse the current findings route or a narrow contract extension instead of inventing a second proactive store path
 
 ## TDD Plan
 
@@ -125,20 +146,20 @@ Error path:
 
 ## Acceptance Criteria
 
-- [ ] AC-1: Ship's left sidebar exposes a dedicated FleetGraph tab or mode with a visible notification icon/badge when active proactive findings exist.
-- [ ] AC-2: The FleetGraph queue view lists active proactive findings from across the workspace instead of only the current document context.
-- [ ] AC-3: Existing finding action bars continue to support review/apply, dismiss, and snooze behavior from the global queue when the finding type allows it.
-- [ ] AC-4: Users can navigate from a queue item into the related Ship document context without losing clarity about why the finding was surfaced.
-- [ ] AC-5: Current page-local guided overlay, analysis FAB, and embedded findings surfaces remain intact.
-- [ ] AC-6: Proof-lane docs and seeded verification data describe the new global queue surface truthfully.
+- [x] AC-1: Ship's left sidebar exposes a dedicated FleetGraph tab or mode with a visible notification icon/badge when active proactive findings exist.
+- [x] AC-2: The FleetGraph queue view lists active proactive findings from across the workspace instead of only the current document context.
+- [x] AC-3: Existing finding action bars continue to support review/apply, dismiss, and snooze behavior from the global queue when the finding type allows it.
+- [x] AC-4: Users can navigate from a queue item into the related Ship document context without losing clarity about why the finding was surfaced.
+- [x] AC-5: Current page-local guided overlay, analysis FAB, and embedded findings surfaces remain intact.
+- [x] AC-6: Proof-lane docs and seeded verification data describe the new global queue surface truthfully.
 
 ## Local Validation
 
 Run these before handoff:
 
 ```bash
-npx pnpm --filter @ship/web exec vitest run src/pages/UnifiedDocumentPage.test.tsx src/components/FleetGraphFindingsPanel.test.tsx src/components/FleetGraphFindingCard.test.tsx src/pages/FleetGraphQueuePage.test.tsx
-npx pnpm --filter @ship/api exec vitest run src/routes/fleetgraph.test.ts src/services/fleetgraph/findings/store.test.ts --config vitest.fleetgraph.config.ts
+npx pnpm --filter @ship/web exec vitest run src/pages/UnifiedDocumentPage.test.tsx src/components/FleetGraphFindingsPanel.test.tsx src/components/FleetGraphFindingCard.test.tsx src/pages/FleetGraphQueuePage.test.tsx src/pages/App.test.tsx
+DATABASE_URL=postgresql://youss@localhost:5432/ship_us619_test FLEETGRAPH_WORKER_TEST_DATABASE_URL=postgresql://youss@localhost:5432/ship_us619_test npx pnpm --filter @ship/api exec vitest run src/routes/fleetgraph.test.ts src/services/fleetgraph/findings/store.test.ts --config vitest.fleetgraph.config.ts
 npx pnpm --filter @ship/web exec tsc --noEmit
 npx pnpm --filter @ship/api exec tsc --noEmit
 git diff --check
@@ -155,7 +176,7 @@ git diff --check
 
 - Prefer the lightest reliable proof path first: local tests, seeded proof lanes, authenticated runtime or API checks, and deployment observation.
 - Only require an agent-run browser walkthrough when the story truly needs visual debugging or the user explicitly asks for it.
-- Seeded verification entry or proof lane: `FleetGraph Demo Queue - Global Findings`
+- Seeded verification entry or proof lane: `/fleetgraph` queue backed by `FleetGraph Demo Week - Review and Apply`, `FleetGraph Demo Week - One Story`, `FleetGraph Demo Week - Owner Gap`, and, when the public Railway findings feed is fresh, `FleetGraph Demo Week - Unassigned Issues`
 - Route or URL: `/fleetgraph`
 - Interaction: open the FleetGraph left-sidebar tab, inspect the queue, review/apply or dismiss one finding, then open a related Ship document from another finding
 - Expected result: the queue shows multiple active proactive findings across Ship, the sidebar notification state matches the queue, and action bars still work from the global surface
@@ -165,7 +186,7 @@ git diff --check
 
 1. Open `/docs` or another route where the left sidebar is visible.
 2. Click the FleetGraph tab in the left sidebar.
-3. Confirm the queue shows multiple active findings from different Ship contexts.
+3. Confirm the queue shows multiple active findings from different Ship contexts, including the seeded `Review and Apply`, `One Story`, and `Owner Gap` weeks, plus `Unassigned Issues` when that lane is present.
 4. Use one finding's action bar and confirm the queue refreshes.
 5. Open another finding's related document and confirm Ship lands in the expected page.
 
@@ -178,8 +199,17 @@ git diff --check
 
 ## Checkpoint Result
 
-- Outcome: `pending`
+- Outcome: `pass`
 - Evidence:
-  - Implementation remains blocked until `US-616` and `US-618` land on `master`.
+  - Added a first-class FleetGraph mode in the global Ship rail with a count badge, dedicated sidebar content, and a `/fleetgraph` route that stays available from anywhere in the workspace.
+  - Extended `useFleetGraphFindings` and the shared findings panel to support an explicit workspace-wide queue mode without breaking document-scoped finding fetches or invalidation.
+  - Reused the existing proactive finding cards and action bars in the global queue, plus a queue-specific `Open related document` action that routes directly into the surfaced Ship document.
+  - Updated queue proof docs to use the existing seeded proactive demo findings instead of inventing a separate queue-only proof lane.
+  - Local validation passed:
+    - `npx pnpm --filter @ship/web exec vitest run src/pages/UnifiedDocumentPage.test.tsx src/components/FleetGraphFindingsPanel.test.tsx src/components/FleetGraphFindingCard.test.tsx src/pages/FleetGraphQueuePage.test.tsx src/pages/App.test.tsx`
+    - `DATABASE_URL=postgresql://youss@localhost:5432/ship_us619_test FLEETGRAPH_WORKER_TEST_DATABASE_URL=postgresql://youss@localhost:5432/ship_us619_test npx pnpm --filter @ship/api exec vitest run src/routes/fleetgraph.test.ts src/services/fleetgraph/findings/store.test.ts --config vitest.fleetgraph.config.ts`
+    - `npx pnpm --filter @ship/web exec tsc --noEmit`
+    - `npx pnpm --filter @ship/api exec tsc --noEmit`
+    - `git diff --check`
 - Residual risk:
-  - The branch must not skip its dependency gate and start product changes before the owner-picker and assign-issues action bars are both merged.
+  - Live Railway queue proof still needs an authenticated `/fleetgraph` inspection after `master` updates, and the public Railway findings feed may still omit the seeded `Unassigned Issues` lane even though it remains present locally and in the fixture contract.

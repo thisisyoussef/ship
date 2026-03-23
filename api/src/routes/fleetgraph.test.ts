@@ -755,6 +755,51 @@ describe('FleetGraph routes', () => {
     })
   })
 
+  it('lists active findings across the workspace when document ids are omitted', async () => {
+    listActiveFindings.mockResolvedValue([
+      makeFinding({
+        documentId: SPRINT_ID,
+        findingKey: 'sprint-no-owner:workspace-1:sprint-8',
+        findingType: 'sprint_no_owner',
+        id: 'finding-owner-gap',
+        summary: 'Sprint 8 needs a named owner before work coordination slips.',
+        title: 'Sprint owner gap: Sprint 8',
+      }),
+      makeFinding({
+        documentId: 'sprint-9',
+        findingKey: 'unassigned-issues:workspace-1:sprint-9',
+        findingType: 'unassigned_sprint_issues',
+        id: 'finding-issues-gap',
+        summary: 'Sprint 9 still has unassigned issues.',
+        title: '3 unassigned issues in Sprint 9',
+      }),
+    ])
+
+    const response = await request(app)
+      .get('/api/fleetgraph/findings')
+
+    expect(response.status).toBe(200)
+    expect(response.body.findings).toHaveLength(2)
+    expect(response.body.findings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          documentId: SPRINT_ID,
+          findingType: 'sprint_no_owner',
+          title: 'Sprint owner gap: Sprint 8',
+        }),
+        expect.objectContaining({
+          documentId: 'sprint-9',
+          findingType: 'unassigned_sprint_issues',
+          title: '3 unassigned issues in Sprint 9',
+        }),
+      ])
+    )
+    expect(listActiveFindings).toHaveBeenCalledWith({
+      documentIds: [],
+      workspaceId: '22222222-2222-4222-8222-222222222222',
+    })
+  })
+
   it('applies a start-week finding through the FleetGraph action route', async () => {
     const actionExecution: FleetGraphFindingActionExecutionRecord = {
       actionType: 'start_week',

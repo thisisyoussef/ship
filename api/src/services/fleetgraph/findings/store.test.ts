@@ -138,6 +138,43 @@ describe('FleetGraph finding store', () => {
     ])
   })
 
+  it('orders workspace-wide active findings by most recent update first', async () => {
+    const store = createFleetGraphFindingStore(testDb.pool)
+
+    await store.upsertFinding({
+      dedupeKey: 'dedupe:workspace-1:sprint-older',
+      documentId: 'sprint-older',
+      documentType: 'sprint',
+      evidence: ['Older finding'],
+      findingKey: 'week-start-drift:workspace-1:sprint-older',
+      findingType: 'week_start_drift',
+      summary: 'Older finding.',
+      threadId: 'fleetgraph:workspace-1:scheduled-sweep:sprint-older',
+      title: 'Older FleetGraph finding',
+      workspaceId: 'workspace-1',
+    }, new Date('2026-03-17T12:00:00.000Z'))
+
+    await store.upsertFinding({
+      dedupeKey: 'dedupe:workspace-1:sprint-newer',
+      documentId: 'sprint-newer',
+      documentType: 'sprint',
+      evidence: ['Newer finding'],
+      findingKey: 'sprint-no-owner:workspace-1:sprint-newer',
+      findingType: 'sprint_no_owner',
+      summary: 'Newer finding.',
+      threadId: 'fleetgraph:workspace-1:scheduled-sweep:sprint-newer',
+      title: 'Newer FleetGraph finding',
+      workspaceId: 'workspace-1',
+    }, new Date('2026-03-17T12:05:00.000Z'))
+
+    const listed = await store.listActiveFindings({ workspaceId: 'workspace-1' })
+
+    expect(listed.map((finding) => finding.documentId)).toEqual([
+      'sprint-newer',
+      'sprint-older',
+    ])
+  })
+
   it('keeps dismissed findings suppressed on later upserts', async () => {
     const store = createFleetGraphFindingStore(testDb.pool)
     const created = await store.upsertFinding({

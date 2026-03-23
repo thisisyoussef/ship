@@ -38,4 +38,4 @@ This folder holds FleetGraph assignment-gap stories plus the UX, reliability, de
 | US-614 | FleetGraph FAB guided-actions panel convergence | `done` | P2 | `US-613` |
 | US-616 | FleetGraph assign-issues review/apply follow-through | `done` | P2 | `US-614` |
 | US-623 | FleetGraph guided-actions floating overlay | `done` | P2 | `US-614`, `US-617` |
-| US-619 | FleetGraph left-sidebar global findings queue | `todo` | P2 | `US-616`, `US-618`, `US-623` |
+| US-619 | FleetGraph left-sidebar global findings queue | `done` | P2 | `US-616`, `US-618`, `US-623` |

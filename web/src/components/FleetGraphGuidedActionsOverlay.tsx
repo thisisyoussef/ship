@@ -106,6 +106,19 @@ export function FleetGraphGuidedActionsOverlay({
   isActionDisabled = false,
   nestedPath,
 }: FleetGraphGuidedActionsOverlayProps) {
+  const overlayOffsetStyle = useMemo(
+    () => ({
+      left: 'calc(var(--ship-main-left-offset, 3rem) + 1.5rem)',
+    }),
+    []
+  )
+  const overlayDialogStyle = useMemo(
+    () => ({
+      ...overlayOffsetStyle,
+      width: 'min(calc(100vw - var(--ship-main-left-offset, 3rem) - 2.5rem), 24rem)',
+    }),
+    [overlayOffsetStyle]
+  )
   const contextKey = useMemo(() => buildContextKey(entry), [entry])
   const [isOpen, setIsOpen] = useState(false)
   const [dismissedContextKey, setDismissedContextKey] = useState<string | null>(null)
@@ -159,6 +172,7 @@ export function FleetGraphGuidedActionsOverlay({
       <button
         className="fixed bottom-6 left-6 z-50 inline-flex items-center gap-2 rounded-full border border-sky-200 bg-white/95 px-4 py-2 text-sm font-medium text-slate-900 shadow-lg backdrop-blur transition-colors hover:bg-sky-50"
         onClick={() => setIsOpen(true)}
+        style={overlayOffsetStyle}
         type="button"
       >
         <span className="inline-flex h-2.5 w-2.5 rounded-full bg-amber-500" />
@@ -172,8 +186,9 @@ export function FleetGraphGuidedActionsOverlay({
   return (
     <div
       aria-label="FleetGraph guided actions"
-      className="fixed bottom-6 left-6 z-50 w-[min(calc(100vw-2rem),24rem)] rounded-[1.4rem] border border-sky-200/80 bg-white/95 shadow-[0_28px_80px_rgba(15,23,42,0.18)] backdrop-blur"
+      className="fixed bottom-6 z-50 rounded-[1.4rem] border border-sky-200/80 bg-white/95 shadow-[0_28px_80px_rgba(15,23,42,0.18)] backdrop-blur"
       role="dialog"
+      style={overlayDialogStyle}
     >
       <div className="border-b border-sky-100 px-4 py-4">
         <div className="flex items-start justify-between gap-3">

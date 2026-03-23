@@ -30,6 +30,7 @@ interface FleetGraphFindingCardProps {
   onAssigneeChange?: (value: string | null) => void;
   onCancelReview: () => void;
   onDismiss: (findingId: string) => void;
+  onOpenDocument?: (finding: FleetGraphFinding) => void;
   onOwnerChange?: (value: string | null) => void;
   onReview: (findingId: string) => void;
   onSnooze: (findingId: string, preset: '10s' | '4h') => void;
@@ -70,6 +71,7 @@ export function FleetGraphFindingCard({
   onAssigneeChange,
   onCancelReview,
   onDismiss,
+  onOpenDocument,
   onOwnerChange,
   onReview,
   onSnooze,
@@ -253,6 +255,16 @@ export function FleetGraphFindingCard({
             </p>
           </div>
           <div className="flex flex-col gap-2">
+            {onOpenDocument ? (
+              <button
+                className={buttonClassName}
+                disabled={isMutating}
+                onClick={() => onOpenDocument(finding)}
+                type="button"
+              >
+                Open related document
+              </button>
+            ) : null}
             <button
               className={buttonClassName}
               disabled={isMutating}

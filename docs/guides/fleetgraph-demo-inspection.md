@@ -21,6 +21,7 @@ Use this guide when verifying FleetGraph behavior on the sanctioned public demo.
 - Unassigned-issues proof lane: `FleetGraph Demo Week - Unassigned Issues`
 - Current-page analysis proof lane: `FleetGraph Demo Week - Validation Ready` on the `Review` tab
 - Current-page guided-step proof lane: `FleetGraph Demo Week - Validation Ready` on the `Review` tab
+- Global queue proof lane: `/fleetgraph` showing active findings for `FleetGraph Demo Week - Review and Apply`, `FleetGraph Demo Week - One Story`, `FleetGraph Demo Week - Owner Gap`, and, when the public findings feed is fresh, `FleetGraph Demo Week - Unassigned Issues`
 - Seeded HITL finding title: `Week start drift: FleetGraph Demo Week - Review and Apply`
 - Owner-gap finding title: `Sprint owner gap: FleetGraph Demo Week - Owner Gap`
 - Unassigned-issues finding title: `3 unassigned issues in FleetGraph Demo Week - Unassigned Issues`
@@ -35,6 +36,11 @@ Stable public-demo proof lanes during the March 22, 2026 audit:
 - `FleetGraph Demo Week - Owner Gap`
 - `FleetGraph Demo Week - Validation Ready`
 - `FleetGraph Demo Week - Worker Generated`
+
+Workspace queue proof path:
+
+- `/fleetgraph` should aggregate the active proactive findings from the seeded review/apply, one-story, and owner-gap lanes above, plus the unassigned-issues lane when the public Railway findings feed is fresh.
+- Treat the queue as successful if it truthfully reflects the currently active seeded findings instead of fabricating a queue-only scenario.
 
 Repo/bootstrap final-demo story lane:
 
@@ -104,9 +110,23 @@ Use this when recording the final video. It is intentionally narrower than the f
 25. Return to `Documents`.
 26. Open `FleetGraph Demo Week - Worker Generated`.
 
+## Expected Global Queue Flow
+
+1. Open any page with the global left rail visible, then click `FleetGraph`.
+2. Confirm the rail item shows a count badge when proactive findings are active.
+3. Confirm the `/fleetgraph` page heading reads `Workspace findings queue`.
+4. Confirm the queue includes active findings from multiple seeded demo lanes, including `FleetGraph Demo Week - Review and Apply`, `FleetGraph Demo Week - One Story`, and `FleetGraph Demo Week - Owner Gap`.
+5. If `FleetGraph Demo Week - Unassigned Issues` is present in the queue, treat that as the fresh-feed variant of the same proof lane.
+6. Use `Open related document` on one finding and confirm Ship lands in the corresponding document page.
+7. Use a queue action such as `Review and apply`, `Dismiss`, or `Snooze 4h` and confirm the queue refreshes afterward.
+
 ## Expected FleetGraph Surface
 
 - The `FleetGraph proactive` panel is visible near the top of the document page.
+- The global left rail should show a dedicated `FleetGraph` mode with a count badge while active proactive findings exist.
+- On `/fleetgraph`, the page heading reads `Workspace findings queue`.
+- The `/fleetgraph` queue should reuse the existing proactive finding cards and quick-action bars, plus an `Open related document` action for queue-to-document navigation.
+- The queue should show multiple active findings drawn from the seeded demo weeks instead of only the currently open page.
 - The proactive panel heading reads `Proactive findings`, even when the current proof lane only shows a week-start drift example.
 - The page scrolls as one comfortable document page instead of trapping the FleetGraph panels above a separate inner scroller.
 - On `FleetGraph Demo Week - Review and Apply`, the proactive card shows:

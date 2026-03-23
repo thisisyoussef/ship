@@ -7,7 +7,10 @@ import type { DocumentContext } from '@/hooks/useDocumentContextQuery';
 import { buildFindingDebugSnapshot } from '@/lib/fleetgraph-debug';
 import { useFleetGraphFindings } from '@/hooks/useFleetGraphFindings';
 import { buildFleetGraphFindingDocumentIds } from '@/lib/fleetgraph-findings';
-import type { FleetGraphFindingReview } from '@/lib/fleetgraph-findings';
+import type {
+  FleetGraphFinding,
+  FleetGraphFindingReview,
+} from '@/lib/fleetgraph-findings';
 import {
   buildApplyNotice,
   buildDismissNotice,
@@ -16,9 +19,14 @@ import {
 
 interface FleetGraphFindingsPanelProps {
   context?: DocumentContext;
-  currentDocumentId: string;
+  currentDocumentId?: string;
+  documentIds?: string[] | null;
+  emptyStateMessage?: string;
+  helperText?: string;
   loading?: boolean;
+  onOpenDocument?: (finding: FleetGraphFinding) => void;
   ownerOptions?: ComboboxOption[];
+  title?: string;
 }
 
 interface LocalNotice {
@@ -54,19 +62,38 @@ function noticeToneClassName(tone: LocalNotice['tone']) {
 export function FleetGraphFindingsPanel({
   context,
   currentDocumentId,
+  documentIds,
+  emptyStateMessage,
+  helperText,
   loading = false,
+  onOpenDocument,
   ownerOptions = [],
+  title = 'Proactive findings',
 }: FleetGraphFindingsPanelProps) {
-  const documentIds = buildFleetGraphFindingDocumentIds(currentDocumentId, context);
-  const findings = useFleetGraphFindings(documentIds);
+  const resolvedDocumentIds = documentIds !== undefined
+    ? documentIds
+    : currentDocumentId
+      ? buildFleetGraphFindingDocumentIds(currentDocumentId, context)
+      : [];
+  const findings = useFleetGraphFindings(resolvedDocumentIds);
   const { setFindings } = useFleetGraphDebugSurface();
   const [reviewState, setReviewState] = useState<ReviewState>(EMPTY_REVIEW_STATE);
   const [localNotice, setLocalNotice] = useState<LocalNotice | null>(null);
   const snoozeRefreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isWorkspaceScope = documentIds === null;
 
-  const helperText = loading
-    ? 'Loading the surrounding Ship context for FleetGraph.'
-    : 'FleetGraph is watching this page and related project context for anything that may need attention.';
+  const resolvedHelperText = helperText ?? (
+    loading
+      ? 'Loading the surrounding Ship context for FleetGraph.'
+      : isWorkspaceScope
+        ? 'FleetGraph is sweeping the active workspace for proactive findings so you can triage them from one queue.'
+        : 'FleetGraph is watching this page and related project context for anything that may need attention.'
+  );
+  const resolvedEmptyStateMessage = emptyStateMessage ?? (
+    isWorkspaceScope
+      ? 'No active proactive FleetGraph findings are open across this workspace right now.'
+      : 'No active proactive FleetGraph findings are attached to this Ship context right now.'
+  );
 
   useEffect(() => {
     setFindings(findings.findings.map((finding) =>
@@ -315,8 +342,8 @@ export function FleetGraphFindingsPanel({
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
             FleetGraph proactive
           </p>
-          <h2 className="text-sm font-semibold text-foreground">Proactive findings</h2>
-          <p className="text-sm text-muted">{helperText}</p>
+          <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+          <p className="text-sm text-muted">{resolvedHelperText}</p>
         </div>
       </div>
 
@@ -346,7 +373,7 @@ export function FleetGraphFindingsPanel({
 
       {!findings.isLoading && !loading && findings.findings.length === 0 ? (
         <p className="mt-3 rounded-md border border-dashed border-border px-3 py-3 text-sm text-muted">
-          No active proactive FleetGraph findings are attached to this Ship context right now.
+          {resolvedEmptyStateMessage}
         </p>
       ) : null}
 
@@ -367,6 +394,7 @@ export function FleetGraphFindingsPanel({
               onDismiss={(findingId) => {
                 void handleDismiss(findingId);
               }}
+              onOpenDocument={onOpenDocument}
               onOwnerChange={(value) => {
                 void handleReviewSelectionChange(finding.id, 'owner', value);
               }}

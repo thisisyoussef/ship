@@ -87,12 +87,21 @@ function buildActionThreadId(
   finding: FleetGraphFindingRecord,
   action: ReviewableFindingAction
 ) {
+  const actionScope = action.type === 'assign_owner'
+    ? [
+        'assign-owner',
+        typeof action.body?.owner_id === 'string'
+          ? action.body.owner_id.replaceAll(':', '-')
+          : 'selected-owner',
+      ].join(':')
+    : 'start-week'
+
   return [
     'fleetgraph',
     finding.workspaceId,
     'finding-review',
     finding.id,
-    action.type === 'assign_owner' ? 'assign-owner' : 'start-week',
+    actionScope,
   ].join(':')
 }
 

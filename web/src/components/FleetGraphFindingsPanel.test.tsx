@@ -486,6 +486,153 @@ describe('FleetGraphFindingsPanel', () => {
     ).toBeInTheDocument();
   });
 
+  it('applies the latest selected owner when review context changes before confirmation', async () => {
+    vi.mocked(apiGet).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        findings: [
+          {
+            dedupeKey: 'dedupe-2',
+            documentId: SPRINT_ID,
+            documentType: 'sprint',
+            evidence: [
+              'No sprint owner is assigned right now.',
+              'No one is accountable for coordinating this sprint yet.',
+            ],
+            findingKey: 'sprint-no-owner:workspace-1:sprint-8',
+            findingType: 'sprint_no_owner',
+            id: 'finding-2',
+            metadata: {
+              sprintNumber: 8,
+              statusReason: 'no_owner',
+            },
+            recommendedAction: {
+              body: {
+                owner_id: '11111111-1111-4111-8111-111111111111',
+              },
+              endpoint: {
+                method: 'PATCH',
+                path: `/api/documents/${SPRINT_ID}`,
+              },
+              evidence: ['No sprint owner is assigned right now.'],
+              rationale: 'Assigning accountability should stay a human-reviewed action.',
+              summary: 'Assign yourself as sprint owner so someone is accountable for coordination and follow-through.',
+              targetId: SPRINT_ID,
+              targetType: 'sprint',
+              title: 'Assign sprint owner',
+              type: 'assign_owner',
+            },
+            status: 'active',
+            summary: 'Sprint 8 needs a named owner before work coordination slips.',
+            threadId: 'fleetgraph:workspace-1:scheduled-sweep',
+            title: 'Sprint owner gap: Sprint 8',
+            updatedAt: '2026-03-17T12:05:00.000Z',
+            workspaceId: 'workspace-1',
+          },
+        ],
+      }),
+    } as Response);
+    vi.mocked(apiPost).mockImplementation(async (path, body) => {
+      if (path === '/api/fleetgraph/findings/finding-2/review') {
+        const ownerId = (body as { ownerId: string }).ownerId;
+        return {
+          ok: true,
+          json: async () => ({
+            finding: {
+              id: 'finding-2',
+            },
+            review: {
+              cancelLabel: 'Cancel',
+              confirmLabel: 'Assign owner in Ship',
+              evidence: [
+                'No sprint owner is assigned right now.',
+                'FleetGraph will assign the person you selected in Ship when you confirm.',
+              ],
+              summary: 'FleetGraph will assign the person you selected in Ship so someone is explicitly accountable for coordination and follow-through.',
+              threadId: `fleetgraph:workspace-1:finding-review:finding-2:assign-owner:${ownerId}`,
+              title: 'Confirm before assigning sprint owner',
+            },
+          }),
+        } as Response;
+      }
+
+      expect(body).toEqual({
+        ownerId: '33333333-3333-4333-8333-333333333333',
+      });
+      return {
+        ok: true,
+        json: async () => ({
+          finding: {
+            actionExecution: {
+              actionType: 'assign_owner',
+              appliedAt: '2026-03-17T12:05:00.000Z',
+              attemptCount: 1,
+              endpoint: {
+                method: 'PATCH',
+                path: `/api/documents/${SPRINT_ID}`,
+              },
+              findingId: 'finding-2',
+              message: 'Sprint owner assigned in Ship. Look for Owner showing the person you selected on this page.',
+              status: 'applied',
+              updatedAt: '2026-03-17T12:05:00.000Z',
+            },
+            id: 'finding-2',
+            status: 'resolved',
+          },
+        }),
+      } as Response;
+    });
+
+    render(
+      <FleetGraphFindingsPanel
+        context={createContext()}
+        currentDocumentId={DOCUMENT_ID}
+        ownerOptions={OWNER_OPTIONS}
+      />,
+      { wrapper: createWrapper() }
+    );
+
+    let now = 1_000;
+    vi.spyOn(Date, 'now').mockImplementation(() => now);
+    fireEvent.click(await screen.findByRole('button', { name: 'Review and apply' }));
+
+    fireEvent.click(screen.getByRole('combobox', { name: 'Sprint owner' }));
+    fireEvent.click(await screen.findByText('Taylor Jenkins'));
+
+    await waitFor(() => {
+      expect(apiPost).toHaveBeenNthCalledWith(
+        1,
+        '/api/fleetgraph/findings/finding-2/review',
+        { ownerId: '22222222-2222-4222-8222-222222222222' }
+      );
+    });
+
+    fireEvent.click(screen.getByRole('combobox', { name: 'Sprint owner' }));
+    fireEvent.click(await screen.findByText('Sam Rivera'));
+
+    await waitFor(() => {
+      expect(apiPost).toHaveBeenNthCalledWith(
+        2,
+        '/api/fleetgraph/findings/finding-2/review',
+        { ownerId: '33333333-3333-4333-8333-333333333333' }
+      );
+    });
+
+    now += 500;
+    fireEvent.click(screen.getByRole('button', { name: 'Assign owner in Ship' }));
+
+    await waitFor(() => {
+      expect(apiPost).toHaveBeenNthCalledWith(
+        3,
+        '/api/fleetgraph/findings/finding-2/apply',
+        { ownerId: '33333333-3333-4333-8333-333333333333' }
+      );
+    });
+    expect(
+      await screen.findByText('Sprint owner assigned in Ship. Look for Owner showing Sam Rivera on this page.')
+    ).toBeInTheDocument();
+  });
+
   it('recovers cleanly when owner review preparation fails', async () => {
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     vi.mocked(apiGet).mockResolvedValue({

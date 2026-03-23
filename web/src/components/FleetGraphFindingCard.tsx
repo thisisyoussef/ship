@@ -24,6 +24,7 @@ const sectionLabelClassName =
 interface FleetGraphFindingCardProps {
   confirming: boolean;
   finding: FleetGraphFinding;
+  isReviewLoading?: boolean;
   isMutating: boolean;
   onApply: (findingId: string) => void;
   onCancelReview: () => void;
@@ -61,6 +62,7 @@ function FindingEvidenceList({ finding }: { finding: FleetGraphFinding }) {
 export function FleetGraphFindingCard({
   confirming,
   finding,
+  isReviewLoading = false,
   isMutating,
   onApply,
   onCancelReview,
@@ -81,8 +83,11 @@ export function FleetGraphFindingCard({
       ? 'Choose the sprint owner FleetGraph should assign in Ship. Nothing changes until you confirm.'
       : 'FleetGraph thinks this week is ready to start. Nothing changes in Ship until you confirm.'
   );
-  const waitingForOwnerReview = requiresOwnerSelection && Boolean(selectedOwnerId) && review === null;
+  const waitingForOwnerReview = requiresOwnerSelection && isReviewLoading;
   const confirmDisabled = isMutating || (requiresOwnerSelection && (!selectedOwnerId || review === null));
+  const confirmLabel = review?.confirmLabel ?? (
+    requiresOwnerSelection ? 'Assign owner in Ship' : 'Start week in Ship'
+  );
 
   return (
     <article className="rounded-xl border border-border bg-muted/20 px-4 py-4 shadow-sm">
@@ -171,7 +176,7 @@ export function FleetGraphFindingCard({
                       onClick={() => onApply(finding.id)}
                       type="button"
                     >
-                      {review?.confirmLabel ?? 'Start week in Ship'}
+                      {confirmLabel}
                     </button>
                   </div>
                 </div>

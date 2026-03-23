@@ -15,6 +15,23 @@ function buildQueryString(documentIds: string[]) {
   return params.toString();
 }
 
+async function readFleetGraphErrorMessage(response: Response, fallbackMessage: string) {
+  const contentType = response.headers.get('content-type') ?? '';
+
+  try {
+    if (contentType.includes('application/json')) {
+      const data = await response.json() as { error?: string };
+      if (typeof data.error === 'string' && data.error.trim().length > 0) {
+        return data.error;
+      }
+    }
+  } catch {
+    // Fall back to the default friendly message below.
+  }
+
+  return fallbackMessage;
+}
+
 async function fetchFleetGraphFindings(documentIds: string[]) {
   const query = buildQueryString(documentIds);
   const response = await apiGet(`/api/fleetgraph/findings${query ? `?${query}` : ''}`);
@@ -36,7 +53,10 @@ async function dismissFleetGraphFinding(id: string) {
   const response = await apiPost(`/api/fleetgraph/findings/${id}/dismiss`);
   if (!response.ok) {
     const error = new Error(
-      'FleetGraph could not hide this finding right now. Nothing changed.'
+      await readFleetGraphErrorMessage(
+        response,
+        'FleetGraph could not hide this finding right now. Nothing changed.'
+      )
     ) as Error & {
       status?: number;
     };
@@ -56,7 +76,10 @@ async function applyFleetGraphFinding(id: string, input?: FleetGraphFindingOwner
     : await apiPost(`/api/fleetgraph/findings/${id}/apply`);
   if (!response.ok) {
     const error = new Error(
-      'FleetGraph could not complete that Ship action right now. Nothing changed in Ship.'
+      await readFleetGraphErrorMessage(
+        response,
+        'FleetGraph could not complete that Ship action right now. Nothing changed in Ship.'
+      )
     ) as Error & {
       status?: number;
     };
@@ -72,7 +95,10 @@ async function reviewFleetGraphFinding(id: string, input?: FleetGraphFindingOwne
     : await apiPost(`/api/fleetgraph/findings/${id}/review`);
   if (!response.ok) {
     const error = new Error(
-      'FleetGraph could not prepare that review right now. Nothing changed in Ship.'
+      await readFleetGraphErrorMessage(
+        response,
+        'FleetGraph could not prepare that review right now. Nothing changed in Ship.'
+      )
     ) as Error & {
       status?: number;
     };
@@ -91,7 +117,10 @@ async function snoozeFleetGraphFinding(id: string, input: FleetGraphSnoozeInput)
   const response = await apiPost(`/api/fleetgraph/findings/${id}/snooze`, input);
   if (!response.ok) {
     const error = new Error(
-      'FleetGraph could not snooze this finding right now. Nothing changed.'
+      await readFleetGraphErrorMessage(
+        response,
+        'FleetGraph could not snooze this finding right now. Nothing changed.'
+      )
     ) as Error & {
       status?: number;
     };

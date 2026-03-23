@@ -486,6 +486,94 @@ describe('FleetGraphFindingsPanel', () => {
     ).toBeInTheDocument();
   });
 
+  it('recovers cleanly when owner review preparation fails', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.mocked(apiGet).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        findings: [
+          {
+            dedupeKey: 'dedupe-2',
+            documentId: SPRINT_ID,
+            documentType: 'sprint',
+            evidence: [
+              'No sprint owner is assigned right now.',
+              'No one is accountable for coordinating this sprint yet.',
+            ],
+            findingKey: 'sprint-no-owner:workspace-1:sprint-8',
+            findingType: 'sprint_no_owner',
+            id: 'finding-2',
+            metadata: {
+              sprintNumber: 8,
+              statusReason: 'no_owner',
+            },
+            recommendedAction: {
+              body: {
+                owner_id: '11111111-1111-4111-8111-111111111111',
+              },
+              endpoint: {
+                method: 'PATCH',
+                path: `/api/documents/${SPRINT_ID}`,
+              },
+              evidence: ['No sprint owner is assigned right now.'],
+              rationale: 'Assigning accountability should stay a human-reviewed action.',
+              summary: 'Name a sprint owner so someone is accountable for coordination and follow-through.',
+              targetId: SPRINT_ID,
+              targetType: 'sprint',
+              title: 'Assign sprint owner',
+              type: 'assign_owner',
+            },
+            status: 'active',
+            summary: 'Sprint 8 needs a named owner before work coordination slips.',
+            threadId: 'fleetgraph:workspace-1:scheduled-sweep',
+            title: 'Sprint owner gap: Sprint 8',
+            updatedAt: '2026-03-17T12:05:00.000Z',
+            workspaceId: 'workspace-1',
+          },
+        ],
+      }),
+    } as Response);
+    vi.mocked(apiPost).mockImplementation(async (path) => {
+      if (path === '/api/fleetgraph/findings/finding-2/review') {
+        return {
+          headers: new Headers({ 'content-type': 'application/json' }),
+          json: async () => ({
+            error: 'FleetGraph could not prepare review for the selected owner right now. Please try again.',
+          }),
+          ok: false,
+          status: 409,
+        } as Response;
+      }
+
+      throw new Error(`Unexpected apiPost call: ${path}`);
+    });
+
+    render(
+      <FleetGraphFindingsPanel
+        context={createContext()}
+        currentDocumentId={DOCUMENT_ID}
+        ownerOptions={OWNER_OPTIONS}
+      />,
+      { wrapper: createWrapper() }
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Review and apply' }));
+    fireEvent.click(screen.getByRole('combobox', { name: 'Sprint owner' }));
+    fireEvent.click(await screen.findByText('Taylor Jenkins'));
+
+    expect(await screen.findByText(
+      'FleetGraph could not prepare review for the selected owner right now. Please try again.'
+    )).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.queryByText('Updating review...')).not.toBeInTheDocument();
+    });
+
+    const confirmButton = screen.getByRole('button', { name: 'Assign owner in Ship' });
+    expect(confirmButton).toBeDisabled();
+    consoleErrorSpy.mockRestore();
+  });
+
   it('renders unassigned-issues guidance as advisory-only with clear count context', async () => {
     vi.mocked(apiGet).mockResolvedValue({
       ok: true,

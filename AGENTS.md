@@ -62,8 +62,9 @@ Load context in this order before making non-trivial changes:
 - Record the environment, command, and proof path when something is deployed.
 - The Railway public demo auto-deploys from `master`. Do not treat a manual post-merge Railway deploy as the default flow when the runtime change is already covered by that auto-deploy path.
 - Only run a manual Railway demo deploy when the story explicitly changes deployment plumbing, the auto-deploy path is known broken, or the user asks for a manual refresh.
-- For deploy-relevant stories that land on an auto-deployed surface, monitor the post-merge deployment after `master` updates and do not treat the story as truly complete until the deployment is observed green or an exact blocker is recorded.
-- If the post-merge deployment fails, treat that failure as part of the same story follow-through: inspect the deploy logs, fix the issue, and merge the remediation until the deployment succeeds or an external blocker is explicit.
+- For deploy-relevant stories that land on an auto-deployed surface, treat the live deployed surface as the source of truth after `master` updates.
+- Do not treat a failing GitHub Actions deploy job as a blocker by itself when the Railway demo is already syncing and the live surface reflects the merged change.
+- If the live auto-deployed surface does not pick up the merged change, treat that as part of the same story follow-through: inspect the real deploy path, fix the issue, and merge the remediation until the live surface updates or an external blocker is explicit.
 - If deployment or finalization fails, use `docs/guides/finalization-recovery.md`.
 
 ## Finalization Default

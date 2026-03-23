@@ -48,6 +48,7 @@ This phase will hold FleetGraph product and integration stories as the active pa
 | US-610 | FleetGraph sprint-owner gap | `done` | P0 | `US-609.5` |
 | US-611 | FleetGraph unassigned sprint issues | `todo` | P0 | `US-610` |
 | US-612 | FleetGraph assignment evidence refresh | `todo` | P0 | `US-611` |
+| US-615 | FleetGraph assign-owner review/apply follow-through | `todo` | P1 | `US-612` |
 | US-613 | FleetGraph panel gradient removal | `todo` | P2 | `US-612` |
 | US-614 | FleetGraph FAB guided-actions panel convergence | `todo` | P2 | `US-613` |
 
@@ -85,9 +86,10 @@ This phase will hold FleetGraph product and integration stories as the active pa
 18. `US-610` restores the original assignment-critical `T604` lane by shipping the sprint-owner gap use case.
 19. `US-611` restores the original assignment-critical `T605` lane by shipping the unassigned sprint issues use case.
 20. `US-612` restores the original assignment-critical `T606` lane by refreshing the workbook, traces, and audit path from shipped behavior.
-21. `US-613` removes the FleetGraph panel gradient after the assignment-critical sequence is complete, keeping the shell calmer without re-opening the core use-case work.
-22. `US-614` moves `Preview next step` plus the guided-actions portion of FleetGraph quick actions into the FAB as a dedicated guided-actions panel, while preserving the existing review/apply flow and behavior instead of turning it into a hard graph rewrite.
-23. Active product packs continue to port into `docs/user-stories/` in dependency order.
+21. `US-615` turns the shipped sprint-owner-gap advisory flow into a real FleetGraph review/apply path for assigning accountability in Ship once the assignment-critical lane is complete.
+22. `US-613` removes the FleetGraph panel gradient after the assignment-critical sequence is complete, keeping the shell calmer without re-opening the core use-case work.
+23. `US-614` moves `Preview next step` plus the guided-actions portion of FleetGraph quick actions into the FAB as a dedicated guided-actions panel, while preserving the existing review/apply flow and behavior instead of turning it into a hard graph rewrite.
+24. Active product packs continue to port into `docs/user-stories/` in dependency order.
 
 ## Files
 

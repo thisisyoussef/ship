@@ -30,8 +30,18 @@ Load context in this order before making non-trivial changes:
 - Use `docs/plans/` for design and implementation thinking.
 - Use `docs/submissions/` for assembled review, demo, and submission bundles.
 
+## Queue-Truth Preflight
+
+Before you choose a next story, recommend a parallel lane, or start new story work:
+
+1. Compare `master`'s checked-in queue with the actual local git state.
+2. Use `git worktree list` and `git branch -vv` as the default queue-truth check.
+3. Reconcile the `Active Work` section in `docs/user-stories/README.md` plus the relevant phase README with what is actually in flight before claiming a story is free or blocked.
+4. If the queue is stale, land a docs-only queue correction on `master` first or record the exact blocker before continuing.
+
 ## Story Rules
 
+- Run the queue-truth preflight before branching for a new story or telling the user what is available next.
 - Every new user story starts by checking out a fresh `codex/` branch from current `master` before editing the story file or implementation.
 - Parallel branch-based work by multiple agents is expected. Keep one concern per branch and do not piggyback a new concern on another in-flight branch unless the user explicitly asks for stacked work.
 - When parallel work starts or changes status, update the checked-in queue files and make sure that visibility lands on `master` promptly. Do not leave active-work ownership stranded only on the in-flight feature branch.

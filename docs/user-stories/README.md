@@ -13,17 +13,19 @@ Work should resume from the repo by reading these files, not by reconstructing p
 1. Start with `AGENTS.md`.
 2. Read `docs/CONTEXT.md`.
 3. Use this file to find the next valid story based on status and dependencies.
-4. When the user asks to continue, choose the next story, or create a story, explicitly say whether another checked-in story can run in parallel right now.
-5. If a parallel lane exists, include a ready-to-send copy-paste prompt inline in chat for the recommended other agent instead of creating a prompt file.
-6. Create and switch to a fresh `codex/` branch from current `master` for that story before editing the story file or implementation.
-7. Parallel work by multiple agents is expected, so keep one concern per branch and record any sibling-branch dependency or required merge order.
-8. When a story becomes actively in flight on a parallel branch, update the queue and `Active Work` section in a way that lands on `master` promptly. If the feature branch is not ready to merge, make a small docs-only correction branch so `master` stays truthful.
-9. Open the story file and use it as the execution contract.
-10. Run the preparation phase before writing code.
-11. Run the story's validation steps.
-12. If sibling branches land first, refresh from latest `master` and rerun the story's validation steps before finalization.
-13. Record outcome in the relevant checkpoint log.
-14. Finish the default GitHub flow by merging the story branch to `master` once it is current with latest `master`, unless the user explicitly pauses or an exact blocker is recorded.
+4. Before choosing the next story, recommending a parallel lane, or creating a new branch, run a queue-truth preflight by comparing `master`'s checked-in queue with `git worktree list` and `git branch -vv`.
+5. If the checked-in queue is stale, land a queue correction on `master` first or record the exact blocker before giving next-step guidance.
+6. When the user asks to continue, choose the next story, or create a story, explicitly say whether another checked-in story can run in parallel right now.
+7. If a parallel lane exists, include a ready-to-send copy-paste prompt inline in chat for the recommended other agent instead of creating a prompt file.
+8. Create and switch to a fresh `codex/` branch from current `master` for that story before editing the story file or implementation.
+9. Parallel work by multiple agents is expected, so keep one concern per branch and record any sibling-branch dependency or required merge order.
+10. When a story becomes actively in flight on a parallel branch, update the queue and `Active Work` section in a way that lands on `master` promptly. If the feature branch is not ready to merge, make a small docs-only correction branch so `master` stays truthful.
+11. Open the story file and use it as the execution contract.
+12. Run the preparation phase before writing code.
+13. Run the story's validation steps.
+14. If sibling branches land first, refresh from latest `master` and rerun the story's validation steps before finalization.
+15. Record outcome in the relevant checkpoint log.
+16. Finish the default GitHub flow by merging the story branch to `master` once it is current with latest `master`, unless the user explicitly pauses or an exact blocker is recorded.
 
 ## Active Work
 

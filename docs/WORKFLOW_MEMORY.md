@@ -28,6 +28,9 @@ Use this file as durable working memory for recurring corrections, decisions, an
 - Active story ownership must be visible in the checked-in queue.
   Source: post-`US-909` follow-up
   Meaning: when a story is actually being worked on, mark it `in-progress` in the story file, root queue, and phase queue, and include the active owner, branch, and worktree path when one exists.
+- Queue truth must be reconciled before new branching or next-story guidance.
+  Source: post-`US-617`/`US-615` queue drift correction
+  Meaning: before choosing the next story, recommending a parallel lane, or creating a new branch, compare `master`'s queue against `git worktree list` and `git branch -vv`. If they disagree, land a queue correction on `master` first or record the exact blocker.
 - Copy-paste prompts for parallel agents stay in chat.
   Source: post-`US-908` user correction
   Meaning: when a parallel lane exists, include a ready-to-send prompt inline in the chat response for the other agent; do not create a prompt file unless the user explicitly asks.

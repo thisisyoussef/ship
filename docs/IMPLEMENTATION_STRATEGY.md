@@ -38,18 +38,19 @@ Improve the repo's execution harness itself when repeated friction or drift show
 
 1. Start from `AGENTS.md`.
 2. Check `docs/user-stories/README.md` for the next valid story based on status and dependencies.
-3. When the user asks to continue, choose the next story, or create a story, explicitly report whether another checked-in story can run in parallel right now.
-4. If a parallel lane exists, provide a ready-to-send copy-paste prompt inline in chat for the recommended other agent instead of writing a prompt file.
-5. Create and switch to a fresh `codex/` branch from current `master` for that story before editing the story file or implementation.
-6. Treat parallel story branches as normal: keep one concern per branch and record any non-independent sibling-branch dependency or merge order in the story.
-7. Open the active story file and use it as the execution contract.
-8. Do the preparation phase before implementation.
-9. Write or update tests before production changes when behavior changes.
-10. Run the story's validation commands.
-11. If sibling branches merge first, refresh from latest `master`, resolve conflicts, and rerun the story's validation commands before finalization.
-12. Record deployment status, proof, and checkpoint evidence.
-13. Finish the default GitHub flow by merging the story branch back to `master` once it is current with the integration base, unless the user explicitly pauses finalization or an exact blocker is recorded.
-14. Roll evidence upward into `docs/plans/` or `docs/submissions/` only when packaging or reviewing.
+3. Run a queue-truth preflight before recommending next work: compare `master`'s checked-in queue with `git worktree list` and `git branch -vv`, then reconcile any drift before claiming a story is available.
+4. When the user asks to continue, choose the next story, or create a story, explicitly report whether another checked-in story can run in parallel right now.
+5. If a parallel lane exists, provide a ready-to-send copy-paste prompt inline in chat for the recommended other agent instead of writing a prompt file.
+6. Create and switch to a fresh `codex/` branch from current `master` for that story before editing the story file or implementation.
+7. Treat parallel story branches as normal: keep one concern per branch and record any non-independent sibling-branch dependency or merge order in the story.
+8. Open the active story file and use it as the execution contract.
+9. Do the preparation phase before implementation.
+10. Write or update tests before production changes when behavior changes.
+11. Run the story's validation commands.
+12. If sibling branches merge first, refresh from latest `master`, resolve conflicts, and rerun the story's validation commands before finalization.
+13. Record deployment status, proof, and checkpoint evidence.
+14. Finish the default GitHub flow by merging the story branch back to `master` once it is current with the integration base, unless the user explicitly pauses finalization or an exact blocker is recorded.
+15. Roll evidence upward into `docs/plans/` or `docs/submissions/` only when packaging or reviewing.
 
 ## Planning vs Packaging
 

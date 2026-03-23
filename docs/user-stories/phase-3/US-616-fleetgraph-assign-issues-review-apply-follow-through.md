@@ -6,7 +6,7 @@
 - Owner: Codex
 - Depends on: `US-614`
 - Related branch: `codex/us-616-assign-issues-review-apply`
-- Related commit/PR: `pending finalization`
+- Related commit/PR: `59838b4`, [PR #191](https://github.com/thisisyoussef/ship/pull/191)
 - Target environment: `local first`, `Railway demo via merged master`
 
 ## Persona

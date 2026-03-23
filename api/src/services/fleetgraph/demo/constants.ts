@@ -1,9 +1,11 @@
 export const FLEETGRAPH_DEMO_PROJECT_TITLE = 'FleetGraph Demo Project'
 export const FLEETGRAPH_DEMO_OWNER_GAP_WEEK_TITLE = 'FleetGraph Demo Week - Owner Gap'
+export const FLEETGRAPH_DEMO_UNASSIGNED_ISSUES_WEEK_TITLE = 'FleetGraph Demo Week - Unassigned Issues'
 export const FLEETGRAPH_DEMO_WEEK_TITLE = 'FleetGraph Demo Week - Review and Apply'
 export const FLEETGRAPH_DEMO_VALIDATION_WEEK_TITLE = 'FleetGraph Demo Week - Validation Ready'
 export const FLEETGRAPH_DEMO_WORKER_WEEK_TITLE = 'FleetGraph Demo Week - Worker Generated'
 export const FLEETGRAPH_DEMO_FINDING_SUMMARY = 'This demo week is still in planning even though its start window has passed.'
 export const FLEETGRAPH_DEMO_OWNER_GAP_FINDING_SUMMARY = 'This sprint has started, but nobody is explicitly accountable for driving it.'
+export const FLEETGRAPH_DEMO_UNASSIGNED_ISSUES_FINDING_SUMMARY = 'Sprint 2 has several unassigned issues that need an ownership decision.'
 export const FLEETGRAPH_DEMO_THREAD_PREFIX = 'fleetgraph:demo-proof'
 export const FLEETGRAPH_DEMO_WORKER_FINDING_TITLE = `Week start drift: ${FLEETGRAPH_DEMO_WORKER_WEEK_TITLE}`

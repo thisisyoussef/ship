@@ -256,6 +256,180 @@ describe('createFleetGraphRuntime', () => {
     )
   })
 
+  it('surfaces unassigned sprint issues as a real proactive finding when a started week has enough unassigned work', async () => {
+    const upsertFinding = vi.fn(async (input) => ({
+      dedupeKey: input.dedupeKey,
+      documentId: input.documentId,
+      documentType: input.documentType,
+      evidence: input.evidence,
+      findingKey: input.findingKey,
+      findingType: input.findingType,
+      id: 'finding-unassigned',
+      metadata: input.metadata ?? {},
+      recommendedAction: input.recommendedAction,
+      status: 'active' as const,
+      summary: input.summary,
+      threadId: input.threadId,
+      title: input.title,
+      tracePublicUrl: input.tracePublicUrl,
+      traceRunId: input.traceRunId,
+      updatedAt: new Date('2026-03-17T12:00:00.000Z'),
+      workspaceId: input.workspaceId,
+    }))
+    const findingStore = {
+      ...createFindingStoreMock(),
+      listActiveFindings: vi.fn(async () => []),
+      upsertFinding,
+    }
+    const shipClient = createShipClientMock()
+    shipClient.listWeeks.mockResolvedValue({
+      weeks: [
+        {
+          id: 'week-9',
+          issue_count: 5,
+          name: 'Sprint 9',
+          owner: {
+            id: 'owner-1',
+            name: 'Dev User',
+          },
+          sprint_number: 2,
+          status: 'active',
+          workspace_sprint_start_date: '2026-03-10T00:00:00.000Z',
+        },
+      ],
+      workspace_sprint_start_date: '2026-03-10T00:00:00.000Z',
+    } as Awaited<ReturnType<typeof shipClient.listWeeks>>)
+    shipClient.listSprintIssues.mockResolvedValue({
+      issues: [
+        { assignee_id: null, id: 'issue-1', status: 'open', title: 'Issue 1' },
+        { assignee_id: null, id: 'issue-2', status: 'open', title: 'Issue 2' },
+        { assignee_id: null, id: 'issue-3', status: 'open', title: 'Issue 3' },
+        { assignee_id: 'user-4', id: 'issue-4', status: 'open', title: 'Issue 4' },
+        { assignee_id: 'user-5', id: 'issue-5', status: 'open', title: 'Issue 5' },
+      ],
+    } as Awaited<ReturnType<typeof shipClient.listSprintIssues>>)
+    const generate = vi.fn(async () => ({
+      model: 'gpt-5-mini',
+      provider: 'openai' as const,
+      text: 'Sprint 9 has several unassigned issues, so ownership is still unclear for this week.',
+    }))
+
+    const runtime = createFleetGraphRuntime({
+      actionStore: createActionStoreMock(),
+      checkpointer: new MemorySaver(),
+      findingStore,
+      llmAdapter: {
+        generate,
+        model: 'gpt-5-mini',
+        provider: 'openai',
+      },
+      shipClient,
+      tracingSettings: {
+        enabled: false,
+        flushTimeoutMs: 1000,
+        projectName: 'ship-fleetgraph',
+        sharePublicTraces: false,
+      },
+    })
+
+    const response = await runtime.invoke({
+      contextKind: 'proactive',
+      mode: 'proactive',
+      threadId: 'thread-unassigned-issues',
+      trigger: 'scheduled-sweep',
+      workspaceId: 'workspace-123',
+    })
+
+    expect(response).toMatchObject({
+      branch: 'reasoned',
+      outcome: 'advisory',
+      selectedScenario: 'unassigned_sprint_issues',
+    })
+    expect(response.path).toEqual(expect.arrayContaining([
+      'resolve_trigger_context',
+      'select_scenarios',
+      'run_scenario:unassigned_sprint_issues',
+      'merge_candidates',
+      'score_and_rank',
+      'reason_and_deliver',
+      'persist_result',
+    ]))
+    expect(upsertFinding).toHaveBeenCalledWith(
+      expect.objectContaining({
+        documentId: 'week-9',
+        findingKey: 'unassigned-issues:workspace-123:week-9',
+        findingType: 'unassigned_sprint_issues',
+        summary: 'Sprint 9 has several unassigned issues, so ownership is still unclear for this week.',
+      }),
+      expect.any(Date)
+    )
+  })
+
+  it('preserves the seeded unassigned-issues demo finding during quiet sweeps', async () => {
+    const resolveFinding = vi.fn(async () => null)
+    const findingStore = {
+      ...createFindingStoreMock(),
+      listActiveFindings: vi.fn(async () => [
+        {
+          dedupeKey: 'dedupe-demo',
+          documentId: 'week-demo',
+          documentType: 'sprint' as const,
+          evidence: [],
+          findingKey: 'unassigned-issues:workspace-123:week-demo',
+          findingType: 'unassigned_sprint_issues' as const,
+          id: 'finding-demo',
+          metadata: {
+            preserveDemoLane: true,
+          },
+          recommendedAction: undefined,
+          status: 'active' as const,
+          summary: 'Demo finding',
+          threadId: 'thread-demo',
+          title: '3 unassigned issues in Demo Sprint',
+          updatedAt: new Date('2026-03-17T12:00:00.000Z'),
+          workspaceId: 'workspace-123',
+        },
+      ]),
+      resolveFinding,
+    }
+    const shipClient = createShipClientMock()
+    shipClient.listWeeks.mockResolvedValue({
+      weeks: [],
+      workspace_sprint_start_date: '2026-03-10T00:00:00.000Z',
+    } as Awaited<ReturnType<typeof shipClient.listWeeks>>)
+
+    const runtime = createFleetGraphRuntime({
+      actionStore: createActionStoreMock(),
+      checkpointer: new MemorySaver(),
+      findingStore,
+      llmAdapter: {
+        generate: vi.fn(),
+        model: 'gpt-5-mini',
+        provider: 'openai',
+      },
+      shipClient,
+      tracingSettings: {
+        enabled: false,
+        flushTimeoutMs: 1000,
+        projectName: 'ship-fleetgraph',
+        sharePublicTraces: false,
+      },
+    })
+
+    const response = await runtime.invoke({
+      contextKind: 'proactive',
+      mode: 'proactive',
+      threadId: 'thread-unassigned-demo-quiet',
+      trigger: 'scheduled-sweep',
+      workspaceId: 'workspace-123',
+    })
+
+    expect(response).toMatchObject({
+      branch: 'quiet',
+    })
+    expect(resolveFinding).not.toHaveBeenCalled()
+  })
+
   it('routes on-demand runs through fetch_medium → reason when page context is available', async () => {
     const llmResponse = JSON.stringify({
       analysisText: 'Everything looks healthy.',

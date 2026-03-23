@@ -2,10 +2,10 @@
 
 ## Status
 
-- State: `todo`
+- State: `done`
 - Owner: Codex
 - Depends on: `US-610`
-- Related branch:
+- Related branch: `codex/us-611-unassigned-sprint-issues`
 - Related commit/PR:
 - Target environment: `local first`, `Railway demo via merged master`
 
@@ -154,6 +154,10 @@ git diff --check
 
 ## Checkpoint Result
 
-- Outcome: `pending`
+- Outcome: `done`
 - Evidence:
+  - FleetGraph now fetches sprint issues from the real Ship week-issues endpoint, persists `unassigned_sprint_issues` findings on the shared proactive surface, and renders the case as advisory-only guidance.
+  - The demo bootstrap now seeds `FleetGraph Demo Week - Unassigned Issues` with three unassigned issues and two assigned issues plus a preserved proactive finding for repeatable public inspection.
+  - The workbook and inspection guide now treat use case `#3` as shipped instead of planned.
 - Residual risk:
+  - The Testcontainers-backed fixture test remains blocked in this shell because no local container runtime is available, so the seeded-lane DB assertions were updated but not executed here.

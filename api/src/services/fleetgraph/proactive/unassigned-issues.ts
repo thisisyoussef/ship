@@ -105,8 +105,8 @@ export function buildUnassignedIssuesFindingDraft(
 function buildUnassignedIssuesEvidence(candidate: UnassignedIssuesCandidate): string[] {
   return [
     `${candidate.unassignedCount} of ${candidate.totalCount} issues in this sprint have no assignee.`,
-    `Sprint ${candidate.week.sprint_number} started on ${candidate.startDate.toISOString().slice(0, 10)}.`,
-    'Assigning issues helps the team stay focused and accountable.',
+    `Sprint ${candidate.week.sprint_number} is ${candidate.week.status} and started on ${candidate.startDate.toISOString().slice(0, 10)}.`,
+    'Leaving them unassigned makes it harder for the team to coordinate execution.',
   ]
 }
 
@@ -120,12 +120,11 @@ function buildUnassignedIssuesRecommendedAction(
       path: `/api/documents/${candidate.week.id}`,
     },
     evidence,
-    rationale: 'Assigning sprint issues is a consequential team workflow action and should stay behind human confirmation.',
-    summary: 'Assign unassigned issues to team members.',
+    rationale: 'FleetGraph can surface the coordination gap, but assignment should remain a human decision in Ship.',
+    summary: 'Assign the unassigned sprint issues or make an explicit call to leave them unassigned.',
     targetId: candidate.week.id,
     targetType: 'sprint',
     title: 'Assign sprint issues',
     type: 'assign_issues',
   }
 }
-

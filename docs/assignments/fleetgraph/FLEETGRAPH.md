@@ -204,7 +204,7 @@ For each use case, record the triggering Ship state, the expected output, and th
 |---|------------|-----------------|------------|
 | 1 | Week is still `planning` or empty after it should be active | Week-start drift insight with week owner and missing setup details | Proactive worker path: [shared trace](https://smith.langchain.com/public/d5f1a274-6f81-4c42-b8be-924791429323/r). Approval-preview/HITL path: [shared trace](https://smith.langchain.com/public/e969f90a-ef5a-45e5-bded-9d6de7233311/r). |
 | 2 | Planning or active week has no owner assigned near its start window | Sprint-owner gap summary with week identity and accountability context | Public demo proof lane: `FleetGraph Demo Week - Owner Gap` in `docs/guides/fleetgraph-demo-inspection.md`; no public trace captured yet |
-| 3 | Planning or active week contains a meaningful cluster of unassigned issues | Unassigned-issues summary with count, sprint context, and assignment need | Planned next case; no live trace captured yet |
+| 3 | Planning or active week contains a meaningful cluster of unassigned issues | Unassigned-issues summary with count, sprint context, and assignment need | Public demo proof lane: `FleetGraph Demo Week - Unassigned Issues` in `docs/guides/fleetgraph-demo-inspection.md`; no public trace captured yet |
 | 4 | User opens a current page guided step from FleetGraph entry | Current-page action preview naming the target action, visible proof surface, and confirmation path | Current-page guided-step path shares the on-demand trace family; proof lane captured in the Tuesday MVP evidence bundle |
 | 5 | User asks for help from an issue, sprint, project, program, or weekly-doc page | Context-aware page analysis with current state, related work, and next actions | Current-page analysis now starts from FleetGraph entry and hands off into the FAB chat on the public demo proof lane; it shares the on-demand trace family, with visible verification in `docs/guides/fleetgraph-demo-inspection.md` |
 
@@ -217,6 +217,7 @@ For each use case, record the triggering Ship state, the expected output, and th
 - Named public demo inspection targets:
   - `FleetGraph Demo Week - Review and Apply`
   - `FleetGraph Demo Week - Owner Gap`
+  - `FleetGraph Demo Week - Unassigned Issues`
   - `FleetGraph Demo Week - Validation Ready`
   - `FleetGraph Demo Week - Worker Generated`
 - Screenshot artifacts:
@@ -230,9 +231,10 @@ For each use case, record the triggering Ship state, the expected output, and th
 - Tuesday MVP slice shipped:
   - one proactive week-start drift detection wired end to end
   - one human-confirmed `start week` gate routed through Ship REST
+  - one proactive unassigned-sprint-issues lane with advisory-only next-step guidance
   - one current-page review-tab validation lane with visible page-state proof
   - real Ship data on the public Railway deployment
-  - visible Ship UI proof for the seeded review/apply lane, the validation-ready review lane, and the worker-generated proactive lane
+  - visible Ship UI proof for the seeded review/apply lane, the owner-gap lane, the unassigned-issues lane, the validation-ready review lane, and the worker-generated proactive lane
 
 ## Architecture Decisions
 

@@ -2,6 +2,8 @@
 
 Use this folder as the source of truth for execution order, the master queue, and checked-in implementation scope.
 
+`docs/user-stories/README.md` on `master` is the joining source of truth for parallel work. If active-work visibility only exists on an unmerged feature branch, other agents do not have the real queue yet.
+
 ## Ground Rule
 
 Work should resume from the repo by reading these files, not by reconstructing prior chat history.
@@ -15,12 +17,13 @@ Work should resume from the repo by reading these files, not by reconstructing p
 5. If a parallel lane exists, include a ready-to-send copy-paste prompt inline in chat for the recommended other agent instead of creating a prompt file.
 6. Create and switch to a fresh `codex/` branch from current `master` for that story before editing the story file or implementation.
 7. Parallel work by multiple agents is expected, so keep one concern per branch and record any sibling-branch dependency or required merge order.
-8. Open the story file and use it as the execution contract.
-9. Run the preparation phase before writing code.
-10. Run the story's validation steps.
-11. If sibling branches land first, refresh from latest `master` and rerun the story's validation steps before finalization.
-12. Record outcome in the relevant checkpoint log.
-13. Finish the default GitHub flow by merging the story branch to `master` once it is current with latest `master`, unless the user explicitly pauses or an exact blocker is recorded.
+8. When a story becomes actively in flight on a parallel branch, update the queue and `Active Work` section in a way that lands on `master` promptly. If the feature branch is not ready to merge, make a small docs-only correction branch so `master` stays truthful.
+9. Open the story file and use it as the execution contract.
+10. Run the preparation phase before writing code.
+11. Run the story's validation steps.
+12. If sibling branches land first, refresh from latest `master` and rerun the story's validation steps before finalization.
+13. Record outcome in the relevant checkpoint log.
+14. Finish the default GitHub flow by merging the story branch to `master` once it is current with latest `master`, unless the user explicitly pauses or an exact blocker is recorded.
 
 ## Active Work
 

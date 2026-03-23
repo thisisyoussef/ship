@@ -38,6 +38,7 @@ Write stories that are executable, testable, and resumable from the repo alone.
 15. If sibling branches land first, refresh from latest `master`, rerun validation, and only then finalize the story branch.
 16. Update the relevant checkpoint log when the story advances or closes.
 17. As soon as implementation starts, update `docs/user-stories/README.md` and the relevant phase README so the story is visibly marked `in-progress` with its current owner, branch, and worktree path when applicable.
+18. Treat those queue updates as shared coordination data, not private branch notes. Make sure the active-work visibility lands on `master` promptly, even if that requires a separate small docs-only correction before the implementation branch is ready.
 
 ## Phase Folders
 

@@ -21,6 +21,7 @@ Load context in this order before making non-trivial changes:
 
 - Build by checked-in story, not by chat memory.
 - Treat `docs/user-stories/README.md` as the master queue and dependency graph.
+- Treat `docs/user-stories/README.md` on `master` as the joining source of truth for parallel story ownership and execution order.
 - Use the active story file as the execution contract for scope, prep, tests, validation, deploy, and proof.
 - Treat `master` as the shared integration trunk. Parallel story branches may be active at the same time; do not assume exclusive ownership of the repo.
 - Keep `docs/CONTEXT.md` current when live environment truth changes.
@@ -33,6 +34,7 @@ Load context in this order before making non-trivial changes:
 
 - Every new user story starts by checking out a fresh `codex/` branch from current `master` before editing the story file or implementation.
 - Parallel branch-based work by multiple agents is expected. Keep one concern per branch and do not piggyback a new concern on another in-flight branch unless the user explicitly asks for stacked work.
+- When parallel work starts or changes status, update the checked-in queue files and make sure that visibility lands on `master` promptly. Do not leave active-work ownership stranded only on the in-flight feature branch.
 - Record any sibling-branch dependency or required merge order in the active story when the work is not independent.
 - When the user asks to continue, choose the next story, or create a new story, explicitly say whether another checked-in story can run in parallel right now.
 - If a parallel lane exists, name the recommended story ID and provide a ready-to-send copy-paste prompt inline in chat for the other agent. Do not create a prompt file unless the user explicitly asks for one.
@@ -80,3 +82,4 @@ Load context in this order before making non-trivial changes:
 
 - When the same correction or review note repeats, update `AGENTS.md` or the nearest story/harness doc so the fix persists.
 - Story ownership visibility is mandatory. As soon as a checked-in story is actively being worked on, update the story file, `docs/user-stories/README.md`, and the relevant phase README to show `in-progress` plus the current owner, branch, and worktree path when applicable. Do the same when a story becomes blocked, handed off, or done.
+- If the active-work visibility change is needed before the implementation story itself is ready to merge, land that queue update on `master` as a small workflow/docs correction so other agents can join from the real shared source of truth.

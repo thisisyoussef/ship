@@ -8,7 +8,7 @@ This folder holds FleetGraph assignment-gap stories plus the UX, reliability, de
 2. Keep cross-phase status in `docs/user-stories/README.md`.
 3. Record detailed phase evidence in `CHECKPOINT-LOG.md`.
 4. Treat `US-608`, `US-609`, `US-609.5`, `US-610`, `US-611`, and `US-612` as the current FleetGraph completion sequence.
-5. Treat `US-606` and `US-607` as sidecar improvements, not replacements for the original assignment-gap stories.
+5. Treat `US-606`, `US-607`, `US-613`, and `US-614` as sidecar improvements, not replacements for the original assignment-gap stories.
 
 ## Story Sequence
 
@@ -23,3 +23,4 @@ This folder holds FleetGraph assignment-gap stories plus the UX, reliability, de
 | US-611 | FleetGraph unassigned sprint issues | `todo` | P0 | `US-610` |
 | US-612 | FleetGraph assignment evidence refresh | `todo` | P0 | `US-611` |
 | US-613 | FleetGraph panel gradient removal | `todo` | P2 | `US-612` |
+| US-614 | FleetGraph FAB guided-actions panel convergence | `todo` | P2 | `US-613` |

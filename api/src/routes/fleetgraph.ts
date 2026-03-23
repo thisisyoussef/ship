@@ -1,5 +1,5 @@
 import { Router, type Request, type Response } from 'express'
-import { ZodError } from 'zod'
+import { z, ZodError } from 'zod'
 
 import {
   buildShipRestRequestContext,
@@ -36,6 +36,10 @@ import { authMiddleware } from '../middleware/auth.js'
 import { getAuthContext } from './route-helpers.js'
 
 type RouterType = ReturnType<typeof Router>
+
+const FleetGraphFindingOwnerSelectionSchema = z.object({
+  ownerId: z.string().uuid().optional(),
+}).strict()
 
 interface FleetGraphRouterDeps {
   actionService?: ReturnType<typeof createFleetGraphFindingActionService>
@@ -337,9 +341,11 @@ export function createFleetGraphRouter(
     }
 
     try {
+      const body = FleetGraphFindingOwnerSelectionSchema.parse(req.body ?? {})
       const response = await actionService.reviewFinding({
         actorUserId: auth.userId,
         findingId: String(req.params.id),
+        ownerId: body.ownerId,
         workspaceId: auth.workspaceId,
       })
 
@@ -348,6 +354,11 @@ export function createFleetGraphRouter(
         review: serializeReview(response.review),
       })
     } catch (error) {
+      if (error instanceof ZodError) {
+        res.status(400).json({ error: error.issues[0]?.message ?? 'Invalid FleetGraph review payload' })
+        return
+      }
+
       if (error instanceof FleetGraphFindingActionError) {
         res.status(error.statusCode).json({ error: error.message })
         return
@@ -410,9 +421,11 @@ export function createFleetGraphRouter(
     }
 
     try {
+      const body = FleetGraphFindingOwnerSelectionSchema.parse(req.body ?? {})
       const finding = await actionService.applyFinding({
         actorUserId: auth.userId,
         findingId: String(req.params.id),
+        ownerId: body.ownerId,
         request: req,
         workspaceId: auth.workspaceId,
       })
@@ -421,6 +434,11 @@ export function createFleetGraphRouter(
         finding: serializeFinding(finding),
       }))
     } catch (error) {
+      if (error instanceof ZodError) {
+        res.status(400).json({ error: error.issues[0]?.message ?? 'Invalid FleetGraph apply payload' })
+        return
+      }
+
       if (error instanceof FleetGraphFindingActionError) {
         res.status(error.statusCode).json({ error: error.message })
         return

@@ -254,6 +254,11 @@ export function UnifiedDocumentPage() {
     name: m.name,
     email: m.email || '',
   })), [teamMembersData]);
+  const fleetGraphOwnerOptions = useMemo(() => teamMembers.map((member) => ({
+    description: member.email || undefined,
+    label: member.name,
+    value: member.user_id,
+  })), [teamMembers]);
 
   // Fetch programs for sidebar data
   const { data: programsData = [] } = useProgramsQuery();
@@ -673,6 +678,7 @@ export function UnifiedDocumentPage() {
           context={documentContextQuery.data}
           currentDocumentId={document.id}
           loading={documentContextQuery.isLoading}
+          ownerOptions={fleetGraphOwnerOptions}
         />
         <FleetGraphEntryCard
           activeTab={activeTab || undefined}

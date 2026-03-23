@@ -46,8 +46,14 @@ async function dismissFleetGraphFinding(id: string) {
   return response.json() as Promise<FleetGraphFindingLifecycleResponse>;
 }
 
-async function applyFleetGraphFinding(id: string) {
-  const response = await apiPost(`/api/fleetgraph/findings/${id}/apply`);
+interface FleetGraphFindingOwnerSelectionInput {
+  ownerId?: string;
+}
+
+async function applyFleetGraphFinding(id: string, input?: FleetGraphFindingOwnerSelectionInput) {
+  const response = input
+    ? await apiPost(`/api/fleetgraph/findings/${id}/apply`, input)
+    : await apiPost(`/api/fleetgraph/findings/${id}/apply`);
   if (!response.ok) {
     const error = new Error(
       'FleetGraph could not complete that Ship action right now. Nothing changed in Ship.'
@@ -60,8 +66,10 @@ async function applyFleetGraphFinding(id: string) {
   return response.json() as Promise<FleetGraphFindingLifecycleResponse>;
 }
 
-async function reviewFleetGraphFinding(id: string) {
-  const response = await apiPost(`/api/fleetgraph/findings/${id}/review`);
+async function reviewFleetGraphFinding(id: string, input?: FleetGraphFindingOwnerSelectionInput) {
+  const response = input
+    ? await apiPost(`/api/fleetgraph/findings/${id}/review`, input)
+    : await apiPost(`/api/fleetgraph/findings/${id}/review`);
   if (!response.ok) {
     const error = new Error(
       'FleetGraph could not prepare that review right now. Nothing changed in Ship.'
@@ -112,7 +120,8 @@ export function useFleetGraphFindings(documentIds: string[]) {
   });
 
   const applyMutation = useMutation({
-    mutationFn: applyFleetGraphFinding,
+    mutationFn: ({ id, input }: { id: string; input?: FleetGraphFindingOwnerSelectionInput }) =>
+      applyFleetGraphFinding(id, input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
       queryClient.invalidateQueries({ queryKey: ['document'] });
@@ -121,7 +130,8 @@ export function useFleetGraphFindings(documentIds: string[]) {
   });
 
   const reviewMutation = useMutation({
-    mutationFn: reviewFleetGraphFinding,
+    mutationFn: ({ id, input }: { id: string; input?: FleetGraphFindingOwnerSelectionInput }) =>
+      reviewFleetGraphFinding(id, input),
   });
 
   const snoozeMutation = useMutation({
@@ -133,8 +143,8 @@ export function useFleetGraphFindings(documentIds: string[]) {
   });
 
   return {
-    async applyFinding(id: string) {
-      return applyMutation.mutateAsync(id);
+    async applyFinding(id: string, input?: FleetGraphFindingOwnerSelectionInput) {
+      return applyMutation.mutateAsync({ id, input });
     },
     actionErrorMessage:
       (reviewMutation.error instanceof Error && reviewMutation.error.message)
@@ -159,8 +169,8 @@ export function useFleetGraphFindings(documentIds: string[]) {
       dismissMutation.reset();
       snoozeMutation.reset();
     },
-    async reviewFinding(id: string) {
-      return reviewMutation.mutateAsync(id);
+    async reviewFinding(id: string, input?: FleetGraphFindingOwnerSelectionInput) {
+      return reviewMutation.mutateAsync({ id, input });
     },
     async refetchFindings() {
       return query.refetch();

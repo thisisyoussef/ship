@@ -179,7 +179,7 @@ function buildGenericActionSuccessMessage(
     case 'validate_week_plan':
       return 'Week plan marked as validated in Ship. Look for Plan Validation showing Validated on this page.'
     case 'assign_owner':
-      return 'Sprint owner assigned in Ship. Look for Owner showing you on this page.'
+      return 'Sprint owner assigned in Ship. Look for Owner showing the person you selected on this page.'
     case 'assign_issues':
       return 'Assignments updated in Ship.'
     default:
@@ -217,7 +217,7 @@ function buildTrackedFindingActionSuccessMessage(
   }
 
   if (action?.type === 'assign_owner') {
-    return 'Sprint owner assigned in Ship. Look for Owner showing you on this page.'
+    return 'Sprint owner assigned in Ship. Look for Owner showing the person you selected on this page.'
   }
 
   return buildGenericActionSuccessMessage(action)

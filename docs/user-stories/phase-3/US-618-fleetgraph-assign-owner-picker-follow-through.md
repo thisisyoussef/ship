@@ -2,10 +2,12 @@
 
 ## Status
 
-- State: `in-progress`
+- State: `done`
 - Owner: Codex
 - Depends on: `US-615`
 - Related branch: `codex/us-618-owner-picker-follow-through`
+- Active worktree: `/Users/youss/Development/gauntlet/ship`
+- Parallel dependency / merge order: Queue visibility landed first on `master`; implementation refreshed from latest `master` and `US-619` remains blocked on `US-616` after this owner-picker follow-through lands.
 - Related commit/PR:
 - Target environment: `local first`, `Railway demo via merged master`
 
@@ -59,13 +61,49 @@ Local sources to read before writing code:
 
 ### Preparation Notes
 
-- Pending implementation.
+Local docs/code reviewed:
+
+1. `AGENTS.md`
+2. `docs/CONTEXT.md`
+3. `docs/WORKFLOW_MEMORY.md`
+4. `docs/IMPLEMENTATION_STRATEGY.md`
+5. `docs/user-stories/README.md`
+6. `docs/user-stories/phase-3/README.md`
+7. `docs/user-stories/phase-3/US-618-fleetgraph-assign-owner-picker-follow-through.md`
+8. `docs/DEFINITION_OF_DONE.md`
+9. `docs/assignments/fleetgraph/README.md`
+10. `docs/assignments/fleetgraph/PRESEARCH.md`
+11. `docs/assignments/fleetgraph/FLEETGRAPH.md`
+12. `.claude/CLAUDE.md`
+13. `web/src/components/sidebars/WeekSidebar.tsx`
+14. `web/src/components/ui/Combobox.tsx`
+15. `web/src/components/FleetGraphFindingCard.tsx`
+16. `web/src/components/FleetGraphFindingsPanel.tsx`
+17. `web/src/hooks/useFleetGraphFindings.ts`
+18. `web/src/hooks/useTeamMembersQuery.ts`
+19. `web/src/pages/UnifiedDocumentPage.tsx`
+20. `api/src/services/fleetgraph/actions/service.ts`
+21. `api/src/routes/fleetgraph.ts`
+22. `api/src/services/fleetgraph/graph/runtime.ts`
+23. `docs/guides/fleetgraph-demo-inspection.md`
+
+Expected contracts/data shapes:
+
+1. FleetGraph should reuse the same assignable-member list that already feeds the sprint owner combobox in the Properties sidebar.
+2. The owner-gap review/apply routes should stay backward-compatible for non-owner actions while accepting an optional selected `ownerId` for assign-owner actions.
+3. The owner-gap proof lane should show the selected owner on the page after apply and clear the proactive finding once ownership exists.
+
+Planned failing tests:
+
+1. Route/service/runtime coverage for carrying an explicit `ownerId` through FleetGraph review/apply.
+2. Proactive-panel UI coverage for the inline owner picker, disabled confirm state before selection, and selected-owner apply notice.
+3. Proof-lane copy checks so the visible Railway/demo guidance no longer implies self-assignment.
 
 ## Preconditions
 
-- [ ] `US-615` is complete and merged
-- [ ] The owner-gap proof lane is stable on the demo
-- [ ] The sprint owner dropdown behavior in the Properties sidebar is audited before implementation
+- [x] `US-615` is complete and merged
+- [x] The owner-gap proof lane is stable on the demo
+- [x] The sprint owner dropdown behavior in the Properties sidebar is audited before implementation
 
 ## TDD Plan
 
@@ -83,10 +121,10 @@ Local sources to read before writing code:
 
 ## Acceptance Criteria
 
-- [ ] AC-1: Sprint-owner-gap findings can enter a FleetGraph review/apply flow that includes a searchable owner dropdown.
-- [ ] AC-2: Applying the reviewed action assigns the selected owner in Ship rather than implicitly assigning the signed-in user.
-- [ ] AC-3: After a successful apply, the current page shows the selected owner and FleetGraph no longer resurfaces the same owner-gap finding for that sprint.
-- [ ] AC-4: The seeded proof lane and docs make the end-to-end selected-owner flow easy to test.
+- [x] AC-1: Sprint-owner-gap findings can enter a FleetGraph review/apply flow that includes a searchable owner dropdown.
+- [x] AC-2: Applying the reviewed action assigns the selected owner in Ship rather than implicitly assigning the signed-in user.
+- [x] AC-3: After a successful apply, the current page shows the selected owner and FleetGraph no longer resurfaces the same owner-gap finding for that sprint.
+- [x] AC-4: The seeded proof lane and docs make the end-to-end selected-owner flow easy to test.
 
 ## Local Validation
 
@@ -118,7 +156,7 @@ git diff --check
 
 1. Open `FleetGraph Demo Week - Owner Gap`.
 2. Open the owner-gap finding and enter review.
-3. Choose a specific owner from the dropdown instead of leaving a self-assignment default.
+3. Choose a specific owner from the dropdown.
 4. Apply the owner-assignment step through FleetGraph.
 5. Confirm the page shows the selected owner and the owner-gap finding disappears.
 
@@ -131,6 +169,18 @@ git diff --check
 
 ## Checkpoint Result
 
-- Outcome: `pending`
+- Outcome: `pass`
 - Evidence:
+  - Reused the existing assignable-member combobox pattern from the sprint Properties sidebar so FleetGraph owner-gap review now requires an explicit `Sprint owner` choice before confirmation.
+  - Extended the FleetGraph review/apply contract to carry an optional selected `ownerId`, while preserving the original no-body review/apply path for non-owner finding types.
+  - Updated the owner-gap apply notices, runtime copy, seeded demo fixture text, and demo inspection guide so the proof lane now describes selecting any teammate instead of self-assignment.
+  - Local validation passed:
+    - `npx pnpm --filter @ship/api exec vitest run src/routes/fleetgraph.test.ts src/services/fleetgraph/actions/service.test.ts src/services/fleetgraph/graph/runtime.test.ts --config vitest.fleetgraph.config.ts`
+    - `npx pnpm --filter @ship/web exec vitest run src/components/FleetGraphFindingsPanel.test.tsx src/lib/fleetgraph-findings-presenter.test.ts`
+    - `npx pnpm --filter @ship/api exec tsc --noEmit`
+    - `npx pnpm --filter @ship/web exec tsc --noEmit`
+    - `git diff --check`
+  - Additional touched-test note:
+    - `npx pnpm --filter @ship/api exec vitest run src/services/fleetgraph/actions/store.test.ts --config vitest.fleetgraph.config.ts` remains blocked in this shell because no container runtime is available for Testcontainers.
 - Residual risk:
+  - Live Railway proof still depends on merged-`master` auto-deploy and direct inspection of `FleetGraph Demo Week - Owner Gap` to confirm the selected-owner interaction on the sanctioned demo surface end to end.

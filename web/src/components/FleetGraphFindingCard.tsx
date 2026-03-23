@@ -1,3 +1,4 @@
+import { Combobox, type ComboboxOption } from '@/components/ui/Combobox';
 import type {
   FleetGraphFinding,
   FleetGraphFindingReview,
@@ -27,9 +28,12 @@ interface FleetGraphFindingCardProps {
   onApply: (findingId: string) => void;
   onCancelReview: () => void;
   onDismiss: (findingId: string) => void;
+  onOwnerChange?: (value: string | null) => void;
   onReview: (findingId: string) => void;
   onSnooze: (findingId: string, preset: '10s' | '4h') => void;
+  ownerOptions?: ComboboxOption[];
   review?: FleetGraphFindingReview | null;
+  selectedOwnerId?: string | null;
 }
 
 function FindingEvidenceList({ finding }: { finding: FleetGraphFinding }) {
@@ -61,12 +65,24 @@ export function FleetGraphFindingCard({
   onApply,
   onCancelReview,
   onDismiss,
+  onOwnerChange,
   onReview,
   onSnooze,
+  ownerOptions = [],
   review,
+  selectedOwnerId = null,
 }: FleetGraphFindingCardProps) {
   const executionLabel = finding.actionExecution ? renderExecutionLabel(finding) : null;
   const canReviewInFleetGraph = canReviewFindingActionInFleetGraph(finding);
+  const requiresOwnerSelection = finding.recommendedAction?.type === 'assign_owner';
+  const selectedOwnerOption = ownerOptions.find((option) => option.value === selectedOwnerId);
+  const reviewSummary = review?.summary ?? (
+    requiresOwnerSelection
+      ? 'Choose the sprint owner FleetGraph should assign in Ship. Nothing changes until you confirm.'
+      : 'FleetGraph thinks this week is ready to start. Nothing changes in Ship until you confirm.'
+  );
+  const waitingForOwnerReview = requiresOwnerSelection && Boolean(selectedOwnerId) && review === null;
+  const confirmDisabled = isMutating || (requiresOwnerSelection && (!selectedOwnerId || review === null));
 
   return (
     <article className="rounded-xl border border-border bg-muted/20 px-4 py-4 shadow-sm">
@@ -107,16 +123,38 @@ export function FleetGraphFindingCard({
                       {review?.title ?? 'Confirm before starting this week'}
                     </p>
                     <p className="text-sm text-slate-700">
-                      {review?.summary
-                        ?? 'FleetGraph thinks this week is ready to start. Nothing changes in Ship until you confirm.'}
+                      {reviewSummary}
                     </p>
                   </div>
+                  {requiresOwnerSelection ? (
+                    <div className="space-y-2">
+                      <p className={sectionLabelClassName}>Owner to assign</p>
+                      <Combobox
+                        allowClear={false}
+                        aria-label="Sprint owner"
+                        emptyText="No people found"
+                        onChange={(value) => onOwnerChange?.(value)}
+                        options={ownerOptions}
+                        placeholder="Choose owner"
+                        searchPlaceholder="Search people..."
+                        value={selectedOwnerId}
+                      />
+                      <p className="text-xs text-slate-700">
+                        {selectedOwnerOption
+                          ? `FleetGraph will assign ${selectedOwnerOption.label} when you confirm.`
+                          : 'Choose the sprint owner before confirming.'}
+                      </p>
+                    </div>
+                  ) : null}
                   {review?.evidence.length ? (
                     <ul className="list-disc space-y-1 pl-5 text-sm text-slate-700">
                       {review.evidence.map((item) => (
                         <li key={item}>{item}</li>
                       ))}
                     </ul>
+                  ) : null}
+                  {waitingForOwnerReview ? (
+                    <p className="text-xs text-slate-700">Updating review...</p>
                   ) : null}
                   <div className="flex flex-wrap justify-end gap-2">
                     <button
@@ -129,7 +167,7 @@ export function FleetGraphFindingCard({
                     </button>
                     <button
                       className={applyButtonClassName}
-                      disabled={isMutating}
+                      disabled={confirmDisabled}
                       onClick={() => onApply(finding.id)}
                       type="button"
                     >

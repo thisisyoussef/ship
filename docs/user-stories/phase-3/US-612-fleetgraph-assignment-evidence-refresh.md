@@ -6,7 +6,7 @@
 - Owner: Codex
 - Depends on: `US-611`
 - Related branch:
-- Related commit/PR:
+- Related commit/PR: `e8d0286`, [PR #156](https://github.com/thisisyoussef/ship/pull/156)
 - Target environment: `docs plus Railway demo verification`
 
 ## Persona

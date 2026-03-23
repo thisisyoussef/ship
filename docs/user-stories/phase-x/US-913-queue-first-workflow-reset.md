@@ -6,7 +6,7 @@
 - Owner: Codex
 - Depends on: `US-907`
 - Related branch: `codex/us-913-queue-first-workflow-reset`
-- Related commit/PR: `pending finalization`
+- Related commit/PR: `aecdf43`, [PR #172](https://github.com/thisisyoussef/ship/pull/172)
 - Target environment: `repo-only`
 
 ## Persona

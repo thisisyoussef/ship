@@ -6,7 +6,7 @@
 - Owner: Codex
 - Depends on: `US-901`
 - Related branch: `codex/workflow-autodeploy-handoff`
-- Related commit/PR: pending finalization
+- Related commit/PR: `f8d5e32`, [PR #132](https://github.com/thisisyoussef/ship/pull/132)
 - Target environment: `repo-only`
 
 ## Persona

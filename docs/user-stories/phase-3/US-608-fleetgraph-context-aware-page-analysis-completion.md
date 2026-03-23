@@ -2,11 +2,11 @@
 
 ## Status
 
-- State: `in_review`
+- State: `done`
 - Owner: Codex
 - Depends on: `US-605`
 - Related branch: `codex/fleetgraph-page-analysis-completion`
-- Related commit/PR:
+- Related commit/PR: `8a6c4c0`, [PR #143](https://github.com/thisisyoussef/ship/pull/143)
 - Target environment: `local first`, `Railway demo via merged master`
 
 ## Persona
@@ -93,9 +93,9 @@ Error path:
 
 ## Preconditions
 
-- [ ] Fresh story branch is checked out before edits begin
-- [ ] Seeded FleetGraph demo document exists for the chosen proof lane
-- [ ] FleetGraph analysis route and runtime are healthy locally
+- [x] Fresh story branch is checked out before edits begin
+- [x] Seeded FleetGraph demo document exists for the chosen proof lane
+- [x] FleetGraph analysis route and runtime are healthy locally
 
 ## TDD Plan
 
@@ -112,10 +112,10 @@ Error path:
 
 ## Acceptance Criteria
 
-- [ ] AC-1: FleetGraph has one clearly documented canonical page-analysis surface.
-- [ ] AC-2: The initial page-analysis answer is meaningfully grounded in the current page context.
-- [ ] AC-3: Follow-up turns preserve thread continuity and respond to the new user question.
-- [ ] AC-4: The completed page-analysis use case is reflected truthfully in the assignment proof docs.
+- [x] AC-1: FleetGraph has one clearly documented canonical page-analysis surface.
+- [x] AC-2: The initial page-analysis answer is meaningfully grounded in the current page context.
+- [x] AC-3: Follow-up turns preserve thread continuity and respond to the new user question.
+- [x] AC-4: The completed page-analysis use case is reflected truthfully in the assignment proof docs.
 
 ## Local Validation
 
@@ -160,10 +160,11 @@ git diff --check
 
 ## Checkpoint Result
 
-- Outcome: `implemented, pending Railway demo verification`
+- Outcome: `pass`
 - Evidence:
   - `Check this page` now returns real current-page analysis on the FleetGraph entry card instead of the old generic stub summary
   - entry-card follow-up turns stay on the same FleetGraph thread through `/api/fleetgraph/thread/:threadId/turn`
   - the floating FAB is no longer the canonical page-analysis proof lane on `UnifiedDocumentPage`
+  - historical implementation landed in `8a6c4c0` via [PR #143](https://github.com/thisisyoussef/ship/pull/143), and the shipped patch still passes `git show --check 8a6c4c0`
 - Residual risk:
-  - public-demo verification is still needed on `FleetGraph Demo Week - Validation Ready` after merge/autodeploy
+  - The current live page-analysis surface was intentionally superseded by `US-609.5` and later current-page surface work, so present-day verification should use those later stories rather than this intermediate entry-card step.

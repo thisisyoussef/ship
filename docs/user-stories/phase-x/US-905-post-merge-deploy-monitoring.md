@@ -6,7 +6,7 @@
 - Owner: Codex
 - Depends on: `US-901`
 - Related branch: `codex/workflow-post-merge-deploy-monitor`
-- Related commit/PR: pending finalization
+- Related commit/PR: `693cb3a`, [PR #134](https://github.com/thisisyoussef/ship/pull/134)
 - Target environment: `repo-only`
 
 ## Persona

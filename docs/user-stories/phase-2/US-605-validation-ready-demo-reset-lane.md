@@ -6,7 +6,7 @@
 - Owner: Codex
 - Depends on: `US-604`
 - Related branch: `codex/fleetgraph-unvalidated-demo-copy`
-- Related commit/PR:
+- Related commit/PR: `aca5270`, [PR #138](https://github.com/thisisyoussef/ship/pull/138)
 - Target environment: `Railway demo via merged master`
 
 ## Persona

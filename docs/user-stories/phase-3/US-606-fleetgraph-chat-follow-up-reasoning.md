@@ -6,7 +6,7 @@
 - Owner: Codex
 - Depends on: `US-605`
 - Related branch: `codex/fleetgraph-chat-followup-reasoning`
-- Related commit/PR:
+- Related commit/PR: `3329380`, [PR #139](https://github.com/thisisyoussef/ship/pull/139)
 - Target environment: `local first`, `Railway demo via merged master`
 
 ## Persona

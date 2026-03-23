@@ -6,7 +6,7 @@
 - Owner: Codex
 - Depends on: `US-603`
 - Related branch: `codex/fleetgraph-plan-validation-entry`
-- Related commit/PR:
+- Related commit/PR: `5f3a696`, [PR #137](https://github.com/thisisyoussef/ship/pull/137)
 - Target environment: `local first`, `Railway demo via merged master`
 
 ## Persona

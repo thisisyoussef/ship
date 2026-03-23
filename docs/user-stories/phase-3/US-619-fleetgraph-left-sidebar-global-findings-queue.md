@@ -6,7 +6,7 @@
 - Owner: Codex
 - Depends on: `US-616`, `US-618`, `US-623`
 - Related branch: `codex/us-619-global-findings-queue`
-- Related commit/PR: `pending finalization`
+- Related commit/PR: `52eb133`, [PR #196](https://github.com/thisisyoussef/ship/pull/196)
 - Target environment: `local first`, `Railway demo via merged master`
 
 ## Persona

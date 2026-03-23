@@ -2,11 +2,11 @@
 
 ## Status
 
-- State: `in_review`
+- State: `done`
 - Owner: Codex
 - Depends on: `US-608`
 - Related branch: `codex/fleetgraph-multi-finding-plumbing`
-- Related commit/PR:
+- Related commit/PR: `1b57a22`, [PR #145](https://github.com/thisisyoussef/ship/pull/145)
 - Target environment: `local first`, `Railway demo via merged master`
 
 ## Persona
@@ -91,9 +91,9 @@ Error path:
 
 ## Preconditions
 
-- [ ] Fresh story branch is checked out before edits begin
-- [ ] Existing `week_start_drift` path remains green as the reference lane
-- [ ] DB migration path is available locally
+- [x] Fresh story branch is checked out before edits begin
+- [x] Existing `week_start_drift` path remains green as the reference lane
+- [x] DB migration path is available locally
 
 ## TDD Plan
 
@@ -110,10 +110,10 @@ Error path:
 
 ## Acceptance Criteria
 
-- [ ] AC-1: Proactive finding persistence accepts more than `week_start_drift`.
-- [ ] AC-2: FleetGraph routes serialize multiple proactive finding types cleanly.
-- [ ] AC-3: The shared proactive UI no longer assumes every finding is week-start drift.
-- [ ] AC-4: The widened plumbing leaves the existing week-start proof lane intact.
+- [x] AC-1: Proactive finding persistence accepts more than `week_start_drift`.
+- [x] AC-2: FleetGraph routes serialize multiple proactive finding types cleanly.
+- [x] AC-3: The shared proactive UI no longer assumes every finding is week-start drift.
+- [x] AC-4: The widened plumbing leaves the existing week-start proof lane intact.
 
 ## Local Validation
 
@@ -156,10 +156,11 @@ git diff --check
 
 ## Checkpoint Result
 
-- Outcome: `implemented, pending Railway demo verification`
+- Outcome: `pass`
 - Evidence:
   - the proactive findings schema now accepts `sprint_no_owner` and `unassigned_sprint_issues` in addition to `week_start_drift`
   - the findings route now has mixed-type regression coverage, proving the shared serialization path stays clean
   - the visible proactive shell now uses the generic `Proactive findings` heading and frontend type unions no longer force everything into `week_start_drift`
+  - historical implementation landed in `1b57a22` via [PR #145](https://github.com/thisisyoussef/ship/pull/145), and the shipped patch still passes `git show --check 1b57a22`
 - Residual risk:
-  - the container-backed store test still needs a machine with a working container runtime; this shell can run the route suite and typechecks, but not the Testcontainers-backed persistence suite
+  - Present-day live verification for this plumbing is best covered by downstream proactive stories `US-610`, `US-611`, and `US-619`, which exercise the widened multi-finding surface on real proof lanes.

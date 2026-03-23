@@ -8,7 +8,7 @@
 - Related branch: `codex/us-618-owner-picker-follow-through`
 - Active worktree: `/Users/youss/Development/gauntlet/ship`
 - Parallel dependency / merge order: Queue visibility landed first on `master`; implementation refreshed from latest `master` and `US-619` remains blocked on `US-616` after this owner-picker follow-through lands.
-- Related commit/PR:
+- Related commit/PR: `42c756e`, [PR #174](https://github.com/thisisyoussef/ship/pull/174)
 - Target environment: `local first`, `Railway demo via merged master`
 
 ## Persona

@@ -6,7 +6,7 @@
 - Owner: Codex
 - Depends on: `US-609.5`
 - Related branch: `codex/fleetgraph-sprint-owner-gap`
-- Related commit/PR: `pending finalization`
+- Related commit/PR: `c7a3379`, [PR #148](https://github.com/thisisyoussef/ship/pull/148)
 - Target environment: `local first`, `Railway demo via merged master`
 
 ## Persona

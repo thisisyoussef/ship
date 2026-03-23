@@ -6,7 +6,7 @@
 - Owner: Codex
 - Depends on: `US-610`
 - Related branch: `codex/us-611-unassigned-sprint-issues`
-- Related commit/PR:
+- Related commit/PR: `7c3a381`, [PR #153](https://github.com/thisisyoussef/ship/pull/153)
 - Target environment: `local first`, `Railway demo via merged master`
 
 ## Persona

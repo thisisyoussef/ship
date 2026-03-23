@@ -6,7 +6,7 @@
 - Owner: Codex
 - Depends on:
 - Related branch: `codex/agents-primary-harness-reset`
-- Related commit/PR:
+- Related commit/PR: `303283f`, [PR #26](https://github.com/thisisyoussef/ship/pull/26)
 - Target environment: `repo-only`
 
 ## Persona

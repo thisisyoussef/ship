@@ -6,7 +6,7 @@
 - Owner: Codex
 - Depends on: `US-901`
 - Related branch: `codex/workflow-memory-log`
-- Related commit/PR: pending finalization
+- Related commit/PR: `c417243`, [PR #130](https://github.com/thisisyoussef/ship/pull/130)
 - Target environment: `repo-only`
 
 ## Persona

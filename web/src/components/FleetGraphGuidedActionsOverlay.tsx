@@ -1,8 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { FleetGraphGuidedActionsPanel } from '@/components/FleetGraphGuidedActionsPanel'
 import { useFleetGraphEntry } from '@/hooks/useFleetGraphEntry'
-import type { FleetGraphEntryInput } from '@/lib/fleetgraph-entry'
+import {
+  buildFleetGraphRequestedActions,
+  type FleetGraphEntryInput,
+  type FleetGraphRequestedActionDraft,
+} from '@/lib/fleetgraph-entry'
 
 interface FleetGraphGuidedActionsOverlayProps {
   activeTab?: string
@@ -24,15 +28,75 @@ function buildContextKey(entry: FleetGraphEntryInput | null) {
   ].join('::')
 }
 
-function overlayTitle(
-  approvalTitle?: string,
-  actionTitle?: string
-) {
-  if (actionTitle) {
-    return actionTitle
-  }
+interface FleetGraphGuidedActionCandidateCardProps {
+  action: FleetGraphRequestedActionDraft
+  activeTab?: string
+  contextKey: string
+  entry: FleetGraphEntryInput
+  helperText: string
+  nestedPath?: string
+  syncDebugEntry?: boolean
+}
 
-  return approvalTitle ?? 'FleetGraph found a guided next step'
+function buildCandidateKey(
+  contextKey: string,
+  action: FleetGraphRequestedActionDraft
+) {
+  return [
+    contextKey,
+    action.type,
+    action.targetType,
+    action.targetId,
+    action.endpoint.method,
+    action.endpoint.path,
+    JSON.stringify(action.body ?? null),
+  ].join('::')
+}
+
+function FleetGraphGuidedActionCandidateCard({
+  action,
+  activeTab,
+  contextKey,
+  entry,
+  helperText,
+  nestedPath,
+  syncDebugEntry = false,
+}: FleetGraphGuidedActionCandidateCardProps) {
+  const fleetGraph = useFleetGraphEntry()
+  const candidateKey = useMemo(
+    () => buildCandidateKey(contextKey, action),
+    [action, contextKey]
+  )
+
+  useEffect(() => {
+    fleetGraph.reset()
+  }, [candidateKey])
+
+  useEffect(() => {
+    fleetGraph.previewApproval(entry, action)
+  }, [candidateKey, entry, action])
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-slate-50/70 px-3 py-3">
+      <div className="mb-3 space-y-1">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+          Candidate
+        </p>
+        <h3 className="text-sm font-semibold text-slate-950">{action.title}</h3>
+        <p className="text-sm text-slate-600">{action.summary}</p>
+      </div>
+      <FleetGraphGuidedActionsPanel
+        activeTab={activeTab}
+        entry={entry}
+        fleetGraph={fleetGraph}
+        helperText={helperText}
+        nestedPath={nestedPath}
+        showIntro={false}
+        showPreviewButton={false}
+        syncDebugEntry={syncDebugEntry}
+      />
+    </div>
+  )
 }
 
 export function FleetGraphGuidedActionsOverlay({
@@ -42,35 +106,40 @@ export function FleetGraphGuidedActionsOverlay({
   isActionDisabled = false,
   nestedPath,
 }: FleetGraphGuidedActionsOverlayProps) {
-  const fleetGraph = useFleetGraphEntry()
   const contextKey = useMemo(() => buildContextKey(entry), [entry])
-  const lastAutoPreviewContextRef = useRef<string | null>(null)
   const [isOpen, setIsOpen] = useState(false)
   const [dismissedContextKey, setDismissedContextKey] = useState<string | null>(null)
+  const previewCandidates = useMemo(
+    () => entry
+      ? buildFleetGraphRequestedActions(entry.document, entry.context, entry.activeTab)
+      : [],
+    [entry]
+  )
+  const [persistedCandidates, setPersistedCandidates] = useState<FleetGraphRequestedActionDraft[]>([])
 
   useEffect(() => {
-    fleetGraph.reset()
     setIsOpen(false)
     setDismissedContextKey(null)
-  }, [contextKey])
+    setPersistedCandidates(isActionDisabled ? [] : previewCandidates)
+  }, [contextKey, isActionDisabled, previewCandidates])
 
   useEffect(() => {
-    if (!entry || !contextKey || isActionDisabled) {
+    if (!contextKey || isActionDisabled) {
       return
     }
 
-    if (lastAutoPreviewContextRef.current === contextKey) {
-      return
+    if (previewCandidates.length > 0) {
+      setPersistedCandidates(previewCandidates)
+      setIsOpen(true)
     }
+  }, [contextKey, isActionDisabled, previewCandidates])
 
-    lastAutoPreviewContextRef.current = contextKey
-    fleetGraph.previewApproval(entry)
-  }, [contextKey, entry, fleetGraph, isActionDisabled])
-
-  const hasApproval = Boolean(fleetGraph.result?.approval)
-  const hasActionResult = Boolean(fleetGraph.actionResult)
-  const hasError = Boolean(fleetGraph.errorMessage)
-  const shouldSurface = hasApproval || hasActionResult || hasError
+  const candidateCards = isActionDisabled
+    ? []
+    : persistedCandidates.length > 0
+    ? persistedCandidates
+    : previewCandidates
+  const shouldSurface = candidateCards.length > 0
   const isDismissed = dismissedContextKey === contextKey
 
   useEffect(() => {
@@ -93,7 +162,9 @@ export function FleetGraphGuidedActionsOverlay({
         type="button"
       >
         <span className="inline-flex h-2.5 w-2.5 rounded-full bg-amber-500" />
-        Open guided step
+        {candidateCards.length === 1
+          ? 'Open guided step'
+          : `Open ${candidateCards.length} guided steps`}
       </button>
     )
   }
@@ -108,16 +179,15 @@ export function FleetGraphGuidedActionsOverlay({
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">
             <span className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-sky-800">
-              Guided next step
+              Guided next steps
             </span>
             <h2 className="text-sm font-semibold text-slate-950">
-              {overlayTitle(
-                fleetGraph.result?.approval?.title,
-                fleetGraph.actionResult?.summary.title
-              )}
+              {candidateCards.length === 1
+                ? 'FleetGraph found one guided next step'
+                : `FleetGraph found ${candidateCards.length} guided next steps`}
             </h2>
             <p className="text-sm text-slate-600">
-              FleetGraph checked this page automatically and surfaced the next action worth your attention.
+              FleetGraph checked this page automatically and surfaced the actions worth your attention.
             </p>
           </div>
           <button
@@ -135,14 +205,22 @@ export function FleetGraphGuidedActionsOverlay({
       </div>
 
       <div className="max-h-[min(70vh,32rem)] overflow-y-auto px-4 py-4">
-        <FleetGraphGuidedActionsPanel
-          activeTab={activeTab}
-          entry={entry}
-          fleetGraph={fleetGraph}
-          helperText={helperText}
-          nestedPath={nestedPath}
-          showPreviewButton={false}
-        />
+        <div className="space-y-3">
+          {entry
+            ? candidateCards.map((action, index) => (
+              <FleetGraphGuidedActionCandidateCard
+                action={action}
+                activeTab={activeTab}
+                contextKey={contextKey}
+                entry={entry}
+                helperText={helperText}
+                key={buildCandidateKey(contextKey, action)}
+                nestedPath={nestedPath}
+                syncDebugEntry={index === 0}
+              />
+            ))
+            : null}
+        </div>
       </div>
     </div>
   )

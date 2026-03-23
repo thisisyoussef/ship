@@ -12,7 +12,11 @@ vi.mock('@/lib/api', async () => {
 })
 
 import { apiPost } from '@/lib/api'
-import type { FleetGraphApprovalEnvelope } from '@/lib/fleetgraph-entry'
+import type {
+  FleetGraphApprovalEnvelope,
+  FleetGraphEntryInput,
+  FleetGraphRequestedActionDraft,
+} from '@/lib/fleetgraph-entry'
 import { documentContextKeys } from './useDocumentContextQuery'
 import { documentKeys } from './useDocumentsQuery'
 import { useFleetGraphEntry } from './useFleetGraphEntry'
@@ -259,5 +263,170 @@ describe('useFleetGraphEntry', () => {
       '/api/fleetgraph/thread/fleetgraph%3Aworkspace-1%3Aentry-analysis%3Asprint-1%3Asession-1/turn',
       { message: 'What else should I look at?' }
     )
+  })
+
+  it('uses isolated preview threads for different guided candidates on the same page', async () => {
+    vi.mocked(apiPost)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          entry: {
+            current: {
+              documentType: 'sprint',
+              id: 'sprint-1',
+              title: 'Sprint 8',
+            },
+            route: {
+              activeTab: 'review',
+              nestedPath: [],
+              surface: 'document-page',
+            },
+            threadId: 'fleetgraph:workspace-1:entry:sprint-1:review:root:validate-week-plan',
+          },
+          run: {
+            branch: 'approval_required',
+            outcome: 'approval_required',
+            path: ['resolve_trigger_context', 'approval_interrupt'],
+            routeSurface: 'document-page / review',
+            threadId: 'fleetgraph:workspace-1:entry:sprint-1:review:root:validate-week-plan',
+          },
+          summary: {
+            detail: 'FleetGraph paused for your confirmation.',
+            surfaceLabel: 'document-page / review',
+            title: 'Validate the current week plan.',
+          },
+        }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          entry: {
+            current: {
+              documentType: 'sprint',
+              id: 'sprint-1',
+              title: 'Sprint 8',
+            },
+            route: {
+              activeTab: 'review',
+              nestedPath: [],
+              surface: 'document-page',
+            },
+            threadId: 'fleetgraph:workspace-1:entry:sprint-1:review:root:approve-week-plan',
+          },
+          run: {
+            branch: 'approval_required',
+            outcome: 'approval_required',
+            path: ['resolve_trigger_context', 'approval_interrupt'],
+            routeSurface: 'document-page / review',
+            threadId: 'fleetgraph:workspace-1:entry:sprint-1:review:root:approve-week-plan',
+          },
+          summary: {
+            detail: 'FleetGraph paused for your confirmation.',
+            surfaceLabel: 'document-page / review',
+            title: 'Approve the current week plan.',
+          },
+        }),
+      } as Response)
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        mutations: { retry: false },
+        queries: { retry: false },
+      },
+    })
+    const { result } = renderHook(() => useFleetGraphEntry(), {
+      wrapper: createWrapper(queryClient),
+    })
+
+    const entry: FleetGraphEntryInput = {
+      activeTab: 'review',
+      context: {
+        ancestors: [],
+        belongs_to: [],
+        breadcrumbs: [
+          {
+            id: 'sprint-1',
+            title: 'Sprint 8',
+            type: 'sprint',
+          },
+        ],
+        children: [],
+        current: {
+          document_type: 'sprint',
+          id: 'sprint-1',
+          title: 'Sprint 8',
+        },
+      },
+      document: {
+        documentType: 'sprint',
+        id: 'sprint-1',
+        title: 'Sprint 8',
+        workspaceId: 'workspace-1',
+      },
+      userId: 'user-1',
+    }
+
+    const validateAction: FleetGraphRequestedActionDraft = {
+      body: {
+        plan_validated: true,
+      },
+      endpoint: {
+        method: 'PATCH',
+        path: '/api/weeks/sprint-1/review',
+      },
+      evidence: ['The review tab already has the validation context.'],
+      rationale: 'Validate the week plan when the review looks correct.',
+      summary: 'Mark the current week plan as validated in the review.',
+      targetId: 'sprint-1',
+      targetType: 'sprint',
+      title: 'Validate week plan',
+      type: 'validate_week_plan',
+    }
+    const approveAction: FleetGraphRequestedActionDraft = {
+      endpoint: {
+        method: 'POST',
+        path: '/api/weeks/sprint-1/approve-plan',
+      },
+      evidence: ['The sprint still needs explicit plan approval.'],
+      rationale: 'Approve the week plan before the team moves forward.',
+      summary: 'Approve the current week plan.',
+      targetId: 'sprint-1',
+      targetType: 'sprint',
+      title: 'Approve week plan',
+      type: 'approve_week_plan',
+    }
+
+    await act(async () => {
+      result.current.previewApproval(entry, validateAction)
+    })
+
+    await waitFor(() => {
+      expect(apiPost).toHaveBeenCalledTimes(1)
+    })
+
+    await act(async () => {
+      result.current.previewApproval(entry, approveAction)
+    })
+
+    await waitFor(() => {
+      expect(apiPost).toHaveBeenCalledTimes(2)
+    })
+
+    const firstPayload = vi.mocked(apiPost).mock.calls[0]?.[1] as {
+      draft?: { requestedAction?: { type?: string } }
+      trigger?: { threadId?: string }
+    }
+    const secondPayload = vi.mocked(apiPost).mock.calls[1]?.[1] as {
+      draft?: { requestedAction?: { type?: string } }
+      trigger?: { threadId?: string }
+    }
+
+    expect(firstPayload.draft?.requestedAction?.type).toBe('validate_week_plan')
+    expect(secondPayload.draft?.requestedAction?.type).toBe('approve_week_plan')
+    expect(firstPayload.trigger?.threadId).toBeTruthy()
+    expect(secondPayload.trigger?.threadId).toBeTruthy()
+    expect(firstPayload.trigger?.threadId).not.toBe(secondPayload.trigger?.threadId)
+    expect(firstPayload.trigger?.threadId).toContain('validate-week-plan')
+    expect(secondPayload.trigger?.threadId).toContain('approve-week-plan')
   })
 })

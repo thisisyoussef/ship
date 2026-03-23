@@ -6,7 +6,7 @@
 - Owner: Codex
 - Depends on: `US-614`, `US-617`
 - Related branch: `codex/us-623-guided-actions-overlay`
-- Related commit/PR: `d4770bb`, [PR #192](https://github.com/thisisyoussef/ship/pull/192)
+- Related commit/PR: `pending finalization`, [PR #192](https://github.com/thisisyoussef/ship/pull/192)
 - Target environment: `local first`, `Railway demo via merged master`
 
 ## Persona
@@ -29,8 +29,9 @@ In scope:
 2. Split guided actions back out of the FAB into a dedicated bottom-left floating overlay.
 3. Reuse the existing guided-step preview, review, apply, and cancel flow in the new overlay rather than rewriting the runtime contract.
 4. Automatically preview the current page's guided next step on document or tab changes when FleetGraph entry context is ready.
-5. Surface the overlay when a new page or tab has a next step, while keeping quiet/no-step states visually minimal.
-6. Update tests, proof-lane docs, and user-facing verification copy to match the new surface truthfully.
+5. Support multiple simultaneous guided next-step candidates in the overlay instead of assuming a single shared preview card.
+6. Surface the overlay when a new page or tab has one or more next steps, while keeping quiet/no-step states visually minimal.
+7. Update tests, proof-lane docs, and user-facing verification copy to match the new surface truthfully.
 
 Out of scope:
 
@@ -57,7 +58,8 @@ Local sources to read before writing code:
 1. Read the local code and contracts listed above.
 2. Confirm the smallest safe way to reuse guided preview/apply inside a new overlay without changing backend semantics.
 3. Confirm how the overlay should auto-run once per page/tab context without spamming repeated preview requests.
-4. Write preparation notes before implementation.
+4. Confirm the narrowest safe way to preview and apply multiple guided candidates without breaking the existing single-thread apply contract.
+5. Write preparation notes before implementation.
 
 ### Preparation Notes
 
@@ -94,15 +96,18 @@ Expected contracts/data shapes:
 
 1. `useFleetGraphPageEntryInput` already provides the review-aware guided entry payload the new overlay needs.
 2. `FleetGraphGuidedActionsPanel` can stay the canonical guided preview/apply UI if we add a narrow auto-preview capability rather than rewriting the flow.
-3. `UnifiedDocumentPage` already has the document/tab/nested-path signals needed to trigger one guided preview attempt per page context.
-4. The FAB can return to an analysis-only current-page surface once guided actions move out.
+3. `UnifiedDocumentPage` already has the document/tab/nested-path signals needed to trigger guided preview attempts per page context.
+4. The existing entry/apply route remains singular per thread, so multiple guided candidates need isolated preview/apply threads rather than one shared entry state.
+5. The overlay can widen safely without changing backend semantics by deriving one requested-action draft per candidate and previewing each one with its own stable thread id.
+5. The FAB can return to an analysis-only current-page surface once guided actions move out.
 
 Planned failing tests:
 
 1. The document page no longer renders the embedded `FleetGraph entry` card after opening the FleetGraph panel.
 2. Guided actions no longer appear as a FAB tab and instead render in a separate floating overlay surface.
-3. The new overlay auto-runs guided preview for a fresh page/tab context and surfaces when a next step is available.
-4. Quiet/no-step states stay collapsed or minimal instead of stealing attention on every page load.
+3. The new overlay auto-runs guided preview for a fresh page/tab context and surfaces when one or more next steps are available.
+4. The overlay renders multiple guided candidate cards when the current page has more than one next step.
+5. Quiet/no-step states stay collapsed or minimal instead of stealing attention on every page load.
 
 ## UX Script
 
@@ -110,14 +115,15 @@ Happy path:
 
 1. User opens a seeded FleetGraph document page or switches to a new tab on that page.
 2. FleetGraph prepares the page-aware guided-entry input and automatically previews the next step once.
-3. If FleetGraph has a next step, a bottom-left overlay appears with the existing review/apply flow ready to inspect.
+3. If FleetGraph has one or more next steps, a bottom-left overlay appears with one review/apply card per candidate.
 4. The FAB remains available separately for page analysis and follow-up chat.
 
 Error path:
 
 1. Guided preview fires repeatedly or before page context is ready.
 2. The overlay opens on every page even when there is no guided action to take.
-3. The move changes review/apply semantics or leaves the user with conflicting overlay and FAB state.
+3. Multiple guided candidates fight over one shared preview thread or lose their action result state after apply.
+4. The move changes review/apply semantics or leaves the user with conflicting overlay and FAB state.
 
 ## Preconditions
 
@@ -129,7 +135,7 @@ Error path:
 ## TDD Plan
 
 1. Add failing page-level tests for removing the embedded entry card and rendering a standalone guided overlay surface.
-2. Add failing guided-overlay/FAB tests to pin the new analysis-only FAB plus auto-preview overlay behavior.
+2. Add failing guided-overlay/FAB tests to pin the new analysis-only FAB plus auto-preview overlay behavior, including the multi-candidate case.
 3. Refresh proof-lane docs and visible copy once the UI behavior is green.
 
 ## Step-by-step Implementation Plan
@@ -137,16 +143,18 @@ Error path:
 1. Remove `FleetGraphEntryCard` from the document-page shell and add a new guided overlay component that can mount beside the FAB.
 2. Rehost `FleetGraphGuidedActionsPanel` inside the new overlay and add a narrow auto-preview-on-context-change path.
 3. Simplify `FleetGraphFab` to analysis/chat only.
-4. Update tests, story/docs, and seeded inspection steps for the new bottom-left overlay experience.
+4. Split guided candidates into isolated preview/apply cards so multiple next steps can surface at once without sharing one thread.
+5. Update tests, story/docs, and seeded inspection steps for the new bottom-left overlay experience.
 
 ## Acceptance Criteria
 
 - [x] AC-1: The embedded `FleetGraph entry` card is removed from document pages.
 - [x] AC-2: Guided next-step preview/apply lives in its own bottom-left floating overlay instead of a FAB tab.
 - [x] AC-3: The overlay automatically previews guided next-step work when a new page or tab context becomes ready.
-- [x] AC-4: The overlay becomes visible when FleetGraph has a next step and stays visually restrained when no step is needed.
-- [x] AC-5: The FleetGraph FAB remains available for analysis/chat without guided-actions tab state.
-- [x] AC-6: Proof docs and verification steps describe the new surface truthfully.
+- [x] AC-4: The overlay becomes visible when FleetGraph has one or more next steps and stays visually restrained when no step is needed.
+- [x] AC-5: Multiple guided next-step candidates can render together in the overlay without sharing one preview/apply thread.
+- [x] AC-6: The FleetGraph FAB remains available for analysis/chat without guided-actions tab state.
+- [x] AC-7: Proof docs and verification steps describe the new surface truthfully.
 
 ## Local Validation
 
@@ -194,14 +202,14 @@ git diff --check
 
 - Outcome: `pass`
 - Evidence:
-  - Removed the embedded `FleetGraph entry` card from document pages and deleted its component/tests so guided next-step help no longer competes with the proactive shell.
-  - Added a dedicated bottom-left `FleetGraphGuidedActionsOverlay` that auto-previews guided next steps once per page/tab context and reuses the existing review/apply semantics.
-  - Simplified the FleetGraph FAB back to analysis/chat only and refreshed the current-page FleetGraph docs plus `US-619` queue truth to match the overlay-based surface.
+  - Removed the embedded `FleetGraph entry` card from the document page shell and kept current-page FleetGraph split into proactive findings plus an analysis-only FAB.
+  - Moved guided next-step preview/apply into a dedicated bottom-left floating overlay that auto-surfaces when a fresh page or tab context has one or more guided candidates.
+  - Added per-candidate requested-action handling so the overlay can host multiple guided next-step cards at once while keeping each preview/apply flow on its own isolated FleetGraph thread id.
+  - Added focused regressions for the overlay multi-candidate path and the isolated thread-id contract used by `useFleetGraphEntry`.
   - Local validation passed:
-    - `npx pnpm --filter @ship/web exec vitest run src/components/FleetGraphFab.test.tsx src/components/FleetGraphGuidedActionsOverlay.test.tsx src/components/FleetGraphPanelShell.test.tsx src/pages/UnifiedDocumentPage.test.tsx`
+    - `npx pnpm --filter @ship/web exec vitest run src/components/FleetGraphFab.test.tsx src/components/FleetGraphGuidedActionsOverlay.test.tsx src/components/FleetGraphPanelShell.test.tsx src/pages/UnifiedDocumentPage.test.tsx src/hooks/useFleetGraphEntry.test.tsx src/lib/fleetgraph-entry.test.ts`
     - `npx pnpm --filter @ship/web exec tsc --noEmit`
     - `npx pnpm --filter @ship/api exec tsc --noEmit`
     - `git diff --check`
-  - Deployment status: `not deployed`
 - Residual risk:
-  - The live Railway proof still needs authenticated inspection on `FleetGraph Demo Week - Validation Ready` to confirm the auto-surfacing overlay behavior matches the seeded local path after merge.
+  - Live Railway proof still needs post-merge inspection on `FleetGraph Demo Week - Validation Ready` to confirm the authenticated overlay surfaces correctly on the sanctioned demo lane after `master` updates.

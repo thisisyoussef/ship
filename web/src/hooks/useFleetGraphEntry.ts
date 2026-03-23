@@ -6,10 +6,12 @@ import {
   type FleetGraphEntryAnalysisFinding,
   buildFleetGraphEntryPayload,
   buildFleetGraphNoPreviewResponse,
+  buildFleetGraphPreviewThreadId,
   type FleetGraphEntryApplyResponse,
   type FleetGraphApprovalEnvelope,
   type FleetGraphEntryInput,
   type FleetGraphEntryResponse,
+  type FleetGraphRequestedActionDraft,
 } from '@/lib/fleetgraph-entry'
 import { documentContextKeys } from './useDocumentContextQuery'
 import { documentKeys } from './useDocumentsQuery'
@@ -49,12 +51,14 @@ export function useFleetGraphEntry() {
     mutationFn: async (input: {
       entry: FleetGraphEntryInput
       previewApproval: boolean
+      requestedAction?: FleetGraphRequestedActionDraft
       threadId?: string
     }) => {
       const payload = buildFleetGraphEntryPayload(
         input.entry,
         input.previewApproval,
-        input.threadId
+        input.threadId,
+        input.requestedAction
       )
 
       if (input.previewApproval && !payload.draft?.requestedAction) {
@@ -236,9 +240,19 @@ export function useFleetGraphEntry() {
     isApplying: applyMutation.isPending,
     isLoading: mutation.isPending,
     isResponding: followUpMutation.isPending,
-    previewApproval(entry: FleetGraphEntryInput) {
+    previewApproval(
+      entry: FleetGraphEntryInput,
+      requestedAction?: FleetGraphRequestedActionDraft
+    ) {
       setActionResult(null)
-      mutation.mutate({ entry, previewApproval: true })
+      mutation.mutate({
+        entry,
+        previewApproval: true,
+        requestedAction,
+        threadId: requestedAction
+          ? buildFleetGraphPreviewThreadId(entry, requestedAction)
+          : undefined,
+      })
     },
     reset() {
       setActionResult(null)

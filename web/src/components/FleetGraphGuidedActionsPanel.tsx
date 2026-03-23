@@ -7,6 +7,7 @@ import type {
   FleetGraphEntryApplyResponse,
   FleetGraphEntryInput,
   FleetGraphEntryResponse,
+  FleetGraphRequestedActionDraft,
 } from '@/lib/fleetgraph-entry'
 
 const buttonClassName =
@@ -22,7 +23,9 @@ interface FleetGraphGuidedActionsPanelProps {
   fleetGraph: FleetGraphGuidedActionsController
   helperText: string
   nestedPath?: string
+  showIntro?: boolean
   showPreviewButton?: boolean
+  syncDebugEntry?: boolean
 }
 
 export interface FleetGraphGuidedActionsController {
@@ -36,7 +39,10 @@ export interface FleetGraphGuidedActionsController {
   errorMessage: string | null
   isApplying: boolean
   isLoading: boolean
-  previewApproval: (entry: FleetGraphEntryInput) => void
+  previewApproval: (
+    entry: FleetGraphEntryInput,
+    requestedAction?: FleetGraphRequestedActionDraft
+  ) => void
   reset: () => void
   result: FleetGraphEntryResponse | undefined
   snoozeApproval: () => void
@@ -48,7 +54,9 @@ export function FleetGraphGuidedActionsPanel({
   fleetGraph,
   helperText,
   nestedPath,
+  showIntro = true,
   showPreviewButton = true,
+  syncDebugEntry = true,
 }: FleetGraphGuidedActionsPanelProps) {
   const approval = fleetGraph.result?.approval
   const actionResult = fleetGraph.actionResult
@@ -68,20 +76,26 @@ export function FleetGraphGuidedActionsPanel({
       }
 
   useEffect(() => {
+    if (!syncDebugEntry) {
+      return
+    }
+
     setEntry(
       fleetGraph.result
         ? buildEntryDebugSnapshot(fleetGraph.result, activeTab, nestedPath)
         : null
     )
-  }, [activeTab, fleetGraph.result, nestedPath, setEntry])
+  }, [activeTab, fleetGraph.result, nestedPath, setEntry, syncDebugEntry])
 
   return (
     <div className="space-y-4">
-      <div className="space-y-1">
-        <p className={sectionLabelClassName}>Guided actions</p>
-        <h3 className="text-sm font-semibold text-gray-900">Preview the next step</h3>
-        <p className="text-sm text-gray-600">{helperText}</p>
-      </div>
+      {showIntro ? (
+        <div className="space-y-1">
+          <p className={sectionLabelClassName}>Guided actions</p>
+          <h3 className="text-sm font-semibold text-gray-900">Preview the next step</h3>
+          <p className="text-sm text-gray-600">{helperText}</p>
+        </div>
+      ) : null}
 
       {showPreviewButton ? (
         <button

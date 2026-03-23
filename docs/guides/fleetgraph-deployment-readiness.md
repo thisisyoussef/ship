@@ -76,6 +76,7 @@ For the named UI proof target and demo-user flow, use `docs/guides/fleetgraph-de
 ## Current Public-Demo Baseline
 
 - The Railway public demo now exposes a fully ready `GET /api/fleetgraph/ready` when called with the service token.
+- API startup now re-registers active workspace sweep schedules, so the live worker-generated lane is no longer limited to demo-fixture-only sweep setup.
 - The deploy proof lane should allow demo login plus `GET /api/fleetgraph/findings` returning both:
   - the seeded HITL lane `Week start drift: FleetGraph Demo Week - Review and Apply`
   - the live worker-generated lane `Week start drift: FleetGraph Demo Week - Worker Generated`

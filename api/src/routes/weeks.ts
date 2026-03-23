@@ -12,6 +12,7 @@ import { logDocumentChange, getLatestDocumentFieldHistory } from '../utils/docum
 import { broadcastToUser } from '../collaboration/index.js';
 import { extractText } from '../utils/document-content.js';
 import { listCacheInvalidationMiddleware } from '../services/list-response-cache.js';
+import { safelyEnqueueFleetGraphDocumentMutation } from '../services/fleetgraph/worker/integration.js';
 import type { WeekProperties } from '@ship/shared';
 import {
   getAuthContext,
@@ -1122,6 +1123,13 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
       );
     }
 
+    await safelyEnqueueFleetGraphDocumentMutation({
+      actorId: userId,
+      documentId: sprintId,
+      documentType: 'sprint',
+      workspaceId,
+    });
+
     res.status(201).json({
       id: result.rows[0].id,
       name: result.rows[0].title,
@@ -1327,6 +1335,13 @@ router.patch('/:id', authMiddleware, async (req: Request<IdParams>, res: Respons
       [id]
     );
 
+    await safelyEnqueueFleetGraphDocumentMutation({
+      actorId: userId,
+      documentId: id,
+      documentType: 'sprint',
+      workspaceId,
+    });
+
     res.json(extractSprintFromRow(result.rows[0]));
   } catch (err) {
     console.error('Update sprint error:', err);
@@ -1434,6 +1449,13 @@ router.post('/:id/start', authMiddleware, async (req: Request<IdParams>, res: Re
     );
 
     const sprint = extractSprintFromRow(result.rows[0]);
+
+    await safelyEnqueueFleetGraphDocumentMutation({
+      actorId: userId,
+      documentId: id,
+      documentType: 'sprint',
+      workspaceId,
+    });
 
     res.json({
       ...sprint,

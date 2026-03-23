@@ -10,6 +10,7 @@ import {
   getFirstQueryValue,
   listCacheInvalidationMiddleware,
 } from '../services/list-response-cache.js';
+import { safelyEnqueueFleetGraphDocumentMutation } from '../services/fleetgraph/worker/integration.js';
 import { extractHypothesisFromContent, extractSuccessCriteriaFromContent, extractVisionFromContent, extractGoalsFromContent, checkDocumentCompleteness } from '../utils/extractHypothesis.js';
 import { loadContentFromYjsState } from '../utils/yjsConverter.js';
 
@@ -603,6 +604,13 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
       broadcastToUser(req.userId!, 'accountability:updated', { documentId: newDoc.id, documentType: document_type });
     }
 
+    await safelyEnqueueFleetGraphDocumentMutation({
+      actorId: String(req.userId),
+      documentId: String(newDoc.id),
+      documentType: String(document_type),
+      workspaceId: String(req.workspaceId),
+    });
+
     res.status(201).json(newDoc);
   } catch (err) {
     await client.query('ROLLBACK');
@@ -1071,6 +1079,15 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
     // Flatten properties for backwards compatibility (match GET endpoint format)
     const updatedDoc = result.rows[0];
     const props = updatedDoc.properties || {};
+
+    await safelyEnqueueFleetGraphDocumentMutation({
+      actorId: userId,
+      documentId: id,
+      documentType: typeof updatedDoc.document_type === 'string'
+        ? updatedDoc.document_type
+        : existing.document_type,
+      workspaceId,
+    });
 
     // Get owner details for projects (owner_id is a user_id, lookup person document by user_id)
     // Return user_id as id so PersonCombobox can match correctly

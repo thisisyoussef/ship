@@ -10,26 +10,52 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
 export async function createWorkerTestDatabase() {
-  const container = await new PostgreSqlContainer('postgres:15')
-    .withDatabase('ship_test')
-    .withUsername('test')
-    .withPassword('test')
-    .start()
+  try {
+    const container = await new PostgreSqlContainer('postgres:15')
+      .withDatabase('ship_test')
+      .withUsername('test')
+      .withPassword('test')
+      .start()
 
-  const pool = new Pool({
-    connectionString: container.getConnectionUri(),
-  })
+    const pool = new Pool({
+      connectionString: container.getConnectionUri(),
+    })
 
-  await applyDatabaseSchema(pool, {
-    baseDir: join(__dirname, '../../../db'),
-    bootstrapFromSchema: true,
-  })
+    await applyDatabaseSchema(pool, {
+      baseDir: join(__dirname, '../../../db'),
+      bootstrapFromSchema: true,
+    })
 
-  return {
-    async close() {
-      await pool.end()
-      await container.stop()
-    },
-    pool,
+    return {
+      async close() {
+        await pool.end()
+        await container.stop()
+      },
+      pool,
+    }
+  } catch (error) {
+    const fallbackConnectionString =
+      process.env.FLEETGRAPH_WORKER_TEST_DATABASE_URL
+      ?? process.env.DATABASE_URL
+
+    if (!fallbackConnectionString) {
+      throw error
+    }
+
+    const pool = new Pool({
+      connectionString: fallbackConnectionString,
+    })
+
+    await applyDatabaseSchema(pool, {
+      baseDir: join(__dirname, '../../../db'),
+      bootstrapFromSchema: true,
+    })
+
+    return {
+      async close() {
+        await pool.end()
+      },
+      pool,
+    }
   }
 }

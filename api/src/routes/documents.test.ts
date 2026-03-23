@@ -4,6 +4,12 @@ import crypto from 'crypto'
 import { createApp } from '../app.js'
 import { pool } from '../db/client.js'
 
+async function clearFleetGraphWorkerState(workspaceId: string) {
+  await pool.query('DELETE FROM fleetgraph_queue_jobs WHERE workspace_id = $1', [workspaceId])
+  await pool.query('DELETE FROM fleetgraph_dedupe_ledger WHERE workspace_id = $1', [workspaceId])
+  await pool.query('DELETE FROM fleetgraph_sweep_schedules WHERE workspace_id = $1', [workspaceId])
+}
+
 describe('Documents API - PATCH with Issue Fields', () => {
   const app = createApp()
   const testRunId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
@@ -80,6 +86,8 @@ describe('Documents API - PATCH with Issue Fields', () => {
   })
 
   beforeEach(async () => {
+    await clearFleetGraphWorkerState(testWorkspaceId)
+
     // Clean up issues from previous tests (keep the sprint)
     await pool.query(`DELETE FROM documents WHERE workspace_id = $1 AND document_type = 'issue'`, [testWorkspaceId])
 
@@ -193,6 +201,33 @@ describe('Documents API - PATCH with Issue Fields', () => {
       expect(response.body.properties.priority).toBe('urgent')
       expect(response.body.properties.estimate).toBe(8)
       expect(response.body.properties.assignee_id).toBe(testUserId)
+    })
+
+    it('enqueues FleetGraph work when a document-backed issue changes', async () => {
+      const response = await request(app)
+        .patch(`/api/documents/${testIssueId}`)
+        .set('Cookie', sessionCookie)
+        .set('x-csrf-token', csrfToken)
+        .send({ state: 'in_progress' })
+
+      expect(response.status).toBe(200)
+
+      const queueResult = await pool.query(
+        `SELECT document_id, document_type, route_surface, trigger, workspace_id
+         FROM fleetgraph_queue_jobs
+         WHERE workspace_id = $1
+         ORDER BY created_at DESC
+         LIMIT 1`,
+        [testWorkspaceId]
+      )
+
+      expect(queueResult.rows[0]).toMatchObject({
+        document_id: testIssueId,
+        document_type: 'issue',
+        route_surface: 'issue-write',
+        trigger: 'event',
+        workspace_id: testWorkspaceId,
+      })
     })
   })
 })

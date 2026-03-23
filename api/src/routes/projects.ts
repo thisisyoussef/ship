@@ -15,6 +15,7 @@ import { checkDocumentCompleteness } from '../utils/extractHypothesis.js';
 import { logDocumentChange, getLatestDocumentFieldHistory } from '../utils/document-crud.js';
 import { broadcastToUser } from '../collaboration/index.js';
 import { listCacheInvalidationMiddleware } from '../services/list-response-cache.js';
+import { safelyEnqueueFleetGraphDocumentMutation } from '../services/fleetgraph/worker/integration.js';
 import {
   ensureUuidId,
   getAuthContext,
@@ -818,6 +819,13 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
       }
     }
 
+    await safelyEnqueueFleetGraphDocumentMutation({
+      actorId: userId,
+      documentId: createdProject.id,
+      documentType: 'project',
+      workspaceId,
+    });
+
     res.status(201).json({
       ...extractProjectFromRow({ ...createdProject, program_id: program_id || null, inferred_status: 'backlog' }),
       sprint_count: 0,
@@ -1097,6 +1105,13 @@ router.patch('/:id', authMiddleware, async (req: Request<IdParams>, res: Respons
       res.status(404).json({ error: 'Project not found' });
       return;
     }
+
+    await safelyEnqueueFleetGraphDocumentMutation({
+      actorId: userId,
+      documentId: id,
+      documentType: 'project',
+      workspaceId,
+    });
 
     res.json(extractProjectFromRow(updatedProject));
   } catch (err) {
@@ -1790,6 +1805,13 @@ router.post('/:id/sprints', authMiddleware, async (req: Request<IdParams>, res: 
         [sprint.id, project.program_id]
       );
     }
+
+    await safelyEnqueueFleetGraphDocumentMutation({
+      actorId: userId,
+      documentId: sprint.id,
+      documentType: 'sprint',
+      workspaceId,
+    });
 
     res.status(201).json({
       id: sprint.id,

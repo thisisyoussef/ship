@@ -4,6 +4,10 @@ import { pool } from '../db/client.js';
 import { authMiddleware, workspaceAdminMiddleware } from '../middleware/auth.js';
 import { ERROR_CODES, HTTP_STATUS } from '@ship/shared';
 import { logAuditEvent } from '../services/audit.js';
+import {
+  safelyEnqueueFleetGraphWorkspaceMutation,
+  safelyRegisterFleetGraphWorkspaceSweep,
+} from '../services/fleetgraph/worker/integration.js';
 
 const router: RouterType = Router();
 
@@ -218,6 +222,8 @@ router.post('/:id/switch', authMiddleware, async (req: Request, res: Response): 
       req,
     });
 
+    await safelyRegisterFleetGraphWorkspaceSweep(workspaceId);
+
     res.json({
       success: true,
       data: { workspaceId },
@@ -394,6 +400,12 @@ router.post('/:id/members', authMiddleware, workspaceAdminMiddleware, async (req
       req,
     });
 
+    await safelyEnqueueFleetGraphWorkspaceMutation({
+      actorId: req.userId,
+      routeSurface: 'workspace-write',
+      workspaceId,
+    });
+
     res.status(HTTP_STATUS.CREATED).json({
       success: true,
       data: {
@@ -493,6 +505,12 @@ router.patch('/:id/members/:userId', authMiddleware, workspaceAdminMiddleware, a
       resourceId: userId,
       details: { newRole: role },
       req,
+    });
+
+    await safelyEnqueueFleetGraphWorkspaceMutation({
+      actorId: req.userId,
+      routeSurface: 'workspace-write',
+      workspaceId,
     });
 
     res.json({
@@ -595,6 +613,12 @@ router.delete('/:id/members/:userId', authMiddleware, workspaceAdminMiddleware, 
       req,
     });
 
+    await safelyEnqueueFleetGraphWorkspaceMutation({
+      actorId: req.userId,
+      routeSurface: 'workspace-write',
+      workspaceId,
+    });
+
     res.json({ success: true });
   } catch (error) {
     console.error('Remove member error:', error);
@@ -675,6 +699,12 @@ router.post('/:id/members/:userId/restore', authMiddleware, workspaceAdminMiddle
       resourceType: 'user',
       resourceId: userId,
       req,
+    });
+
+    await safelyEnqueueFleetGraphWorkspaceMutation({
+      actorId: req.userId,
+      routeSurface: 'workspace-write',
+      workspaceId,
     });
 
     res.json({ success: true });
@@ -866,6 +896,12 @@ router.post('/:id/invites', authMiddleware, workspaceAdminMiddleware, async (req
         req,
       });
 
+      await safelyEnqueueFleetGraphWorkspaceMutation({
+        actorId: req.userId,
+        routeSurface: 'workspace-write',
+        workspaceId,
+      });
+
       res.status(HTTP_STATUS.CREATED).json({
         success: true,
         data: {
@@ -938,6 +974,12 @@ router.post('/:id/invites', authMiddleware, workspaceAdminMiddleware, async (req
       req,
     });
 
+    await safelyEnqueueFleetGraphWorkspaceMutation({
+      actorId: req.userId,
+      routeSurface: 'workspace-write',
+      workspaceId,
+    });
+
     res.status(HTTP_STATUS.CREATED).json({
       success: true,
       data: {
@@ -1002,6 +1044,12 @@ router.delete('/:id/invites/:inviteId', authMiddleware, workspaceAdminMiddleware
       resourceType: 'invite',
       resourceId: inviteId,
       req,
+    });
+
+    await safelyEnqueueFleetGraphWorkspaceMutation({
+      actorId: req.userId,
+      routeSurface: 'workspace-write',
+      workspaceId,
     });
 
     res.json({ success: true });

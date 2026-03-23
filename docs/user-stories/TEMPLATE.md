@@ -6,6 +6,7 @@
 - Owner:
 - Depends on:
 - Related branch:
+- Parallel dependency / merge order:
 - Related commit/PR:
 - Target environment:
 
@@ -81,7 +82,8 @@ Error path:
 
 ## Preconditions
 
-- [ ] Fresh story branch is checked out before edits begin
+- [ ] Fresh story branch is checked out from current `master` before edits begin
+- [ ] Any sibling-branch dependency or required merge order is recorded
 - [ ] Services/accounts exist
 - [ ] Secrets/config are present
 - [ ] Dependencies are healthy
@@ -113,6 +115,8 @@ Run these before handoff:
 ```bash
 # lint/type/test/build commands for this story
 ```
+
+If sibling branches land first before finalization, rerun this section after syncing to latest `master`.
 
 ## Deployment Handoff
 

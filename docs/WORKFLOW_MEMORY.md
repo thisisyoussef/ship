@@ -15,7 +15,13 @@ Use this file as durable working memory for recurring corrections, decisions, an
   Meaning: once requested work is complete, finish the GitHub flow automatically unless the user explicitly asks to pause or use a different merge path.
 - Story branch lifecycle is mandatory.
   Source: post-`US-905` user correction
-  Meaning: before editing a story file or implementation, switch to a fresh `codex/` branch for that story; when the story is complete, use the default finalization flow to merge it back to `master` unless the user explicitly pauses or an exact blocker is recorded.
+  Meaning: before editing a story file or implementation, switch to a fresh `codex/` branch from current `master` for that story; when the story is complete, use the default finalization flow to merge it back to `master` unless the user explicitly pauses or an exact blocker is recorded.
+- Parallel branch-based work is expected.
+  Source: post-`US-907` user correction
+  Meaning: assume multiple agents may be working at the same time; each concern should start on its own fresh branch from current `master` instead of reusing a sibling branch, including harness/workflow updates.
+- Re-sync before merge when sibling branches land first.
+  Source: post-`US-907` user correction
+  Meaning: if another branch merges while your story is still in flight, refresh from latest `master`, resolve conflicts, rerun the story validation, and only then finalize.
 - Railway demo deploys should follow the real platform path.
   Source: post-`US-602` correction
   Meaning: when the demo already auto-deploys from `master`, do not add a manual Railway deploy attempt to the default closeout flow unless the story is about deployment itself or the user explicitly asks for a manual refresh.
@@ -27,7 +33,7 @@ Use this file as durable working memory for recurring corrections, decisions, an
   Meaning: if there is a materially higher-cost or broader path, pause and confirm before taking it.
 - Keep one concern per branch.
   Source: `AGENTS.md` plus recent workflow cleanup
-  Meaning: separate harness/workflow changes from product-feature changes unless they are truly the same story.
+  Meaning: separate harness/workflow changes from product-feature changes unless they are truly the same story, even when other agents already have branches in flight.
 - Visible stories should leave behind a repeatable proof lane when the product supports one.
   Source: `US-902`
   Meaning: create or refresh a named seeded verification entry and record it in the story, audit checklist, and relevant guide.

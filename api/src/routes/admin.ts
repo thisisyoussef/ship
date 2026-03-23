@@ -4,6 +4,7 @@ import { pool } from '../db/client.js';
 import { authMiddleware, superAdminMiddleware } from '../middleware/auth.js';
 import { ERROR_CODES, HTTP_STATUS } from '@ship/shared';
 import { logAuditEvent } from '../services/audit.js';
+import { safelyRegisterFleetGraphWorkspaceSweep } from '../services/fleetgraph/worker/integration.js';
 
 const router: RouterType = Router();
 
@@ -136,6 +137,8 @@ router.post('/workspaces', async (req: Request, res: Response): Promise<void> =>
       details: { name },
       req,
     });
+
+    await safelyRegisterFleetGraphWorkspaceSweep(workspace.id);
 
     res.status(HTTP_STATUS.CREATED).json({
       success: true,

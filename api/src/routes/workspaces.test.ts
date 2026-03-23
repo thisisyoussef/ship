@@ -4,6 +4,12 @@ import crypto from 'crypto'
 import { createApp } from '../app.js'
 import { pool } from '../db/client.js'
 
+async function clearFleetGraphWorkerState(workspaceId: string) {
+  await pool.query('DELETE FROM fleetgraph_queue_jobs WHERE workspace_id = $1', [workspaceId])
+  await pool.query('DELETE FROM fleetgraph_dedupe_ledger WHERE workspace_id = $1', [workspaceId])
+  await pool.query('DELETE FROM fleetgraph_sweep_schedules WHERE workspace_id = $1', [workspaceId])
+}
+
 describe('Workspaces API', () => {
   const app = createApp()
   // Use unique identifiers to avoid conflicts between concurrent test runs
@@ -149,6 +155,8 @@ describe('Workspaces API', () => {
 
   describe('POST /api/workspaces/:id/switch', () => {
     it('should switch to a workspace user is member of', async () => {
+      await clearFleetGraphWorkerState(testWorkspaceId)
+
       const response = await request(app)
         .post(`/api/workspaces/${testWorkspaceId}/switch`)
         .set('Cookie', sessionCookie)
@@ -157,6 +165,16 @@ describe('Workspaces API', () => {
       expect(response.status).toBe(200)
       expect(response.body.success).toBe(true)
       expect(response.body.data.workspaceId).toBe(testWorkspaceId)
+
+      const sweepResult = await pool.query(
+        `SELECT workspace_id
+         FROM fleetgraph_sweep_schedules
+         WHERE workspace_id = $1`,
+        [testWorkspaceId]
+      )
+
+      expect(sweepResult.rows).toHaveLength(1)
+      expect(sweepResult.rows[0].workspace_id).toBe(testWorkspaceId)
     })
 
     it('should return 403 when switching to workspace user is not member of', async () => {
@@ -480,6 +498,17 @@ describe('Admin API', () => {
       expect(response.body.success).toBe(true)
       expect(response.body.data.workspace).toHaveProperty('id')
       expect(response.body.data.workspace).toHaveProperty('name', 'Admin Created Workspace')
+
+      const createdWorkspaceId = response.body.data.workspace.id
+      const sweepResult = await pool.query(
+        `SELECT workspace_id
+         FROM fleetgraph_sweep_schedules
+         WHERE workspace_id = $1`,
+        [createdWorkspaceId]
+      )
+
+      expect(sweepResult.rows).toHaveLength(1)
+      expect(sweepResult.rows[0].workspace_id).toBe(createdWorkspaceId)
     })
 
     it('should return 403 for non-super-admin', async () => {

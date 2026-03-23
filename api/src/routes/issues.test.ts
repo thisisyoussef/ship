@@ -4,6 +4,12 @@ import crypto from 'crypto'
 import { createApp } from '../app.js'
 import { pool } from '../db/client.js'
 
+async function clearFleetGraphWorkerState(workspaceId: string) {
+  await pool.query('DELETE FROM fleetgraph_queue_jobs WHERE workspace_id = $1', [workspaceId])
+  await pool.query('DELETE FROM fleetgraph_dedupe_ledger WHERE workspace_id = $1', [workspaceId])
+  await pool.query('DELETE FROM fleetgraph_sweep_schedules WHERE workspace_id = $1', [workspaceId])
+}
+
 describe('Issues API', () => {
   const app = createApp()
   const testRunId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
@@ -248,6 +254,8 @@ describe('Issues API', () => {
 
   describe('POST /api/issues', () => {
     it('should create a new issue', async () => {
+      await clearFleetGraphWorkerState(testWorkspaceId)
+
       const res = await request(app)
         .post('/api/issues')
         .set('Cookie', sessionCookie)
@@ -264,6 +272,23 @@ describe('Issues API', () => {
       expect(res.body.state).toBe('backlog')
       expect(res.body.priority).toBe('medium')
       expect(res.body.belongs_to).toBeInstanceOf(Array)
+
+      const queueResult = await pool.query(
+        `SELECT document_id, document_type, route_surface, trigger, workspace_id
+         FROM fleetgraph_queue_jobs
+         WHERE workspace_id = $1
+         ORDER BY created_at DESC
+         LIMIT 1`,
+        [testWorkspaceId]
+      )
+
+      expect(queueResult.rows[0]).toMatchObject({
+        document_id: res.body.id,
+        document_type: 'issue',
+        route_surface: 'issue-write',
+        trigger: 'event',
+        workspace_id: testWorkspaceId,
+      })
     })
 
     it('should create issue with optional fields', async () => {
@@ -547,6 +572,56 @@ describe('Issues API', () => {
 
       expect(res.status).toBe(200)
       expect(res.body.state).toBe('done')
+    })
+  })
+
+  describe('POST /api/issues/bulk', () => {
+    it('enqueues workspace FleetGraph work for bulk issue updates', async () => {
+      await clearFleetGraphWorkerState(testWorkspaceId)
+
+      const firstIssue = await pool.query(
+        `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by, properties)
+         VALUES ($1, 'issue', 'Bulk Issue 1', 'workspace', $2, $3)
+         RETURNING id`,
+        [testWorkspaceId, testUserId, JSON.stringify({ state: 'backlog', priority: 'medium' })]
+      )
+      const secondIssue = await pool.query(
+        `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by, properties)
+         VALUES ($1, 'issue', 'Bulk Issue 2', 'workspace', $2, $3)
+         RETURNING id`,
+        [testWorkspaceId, testUserId, JSON.stringify({ state: 'backlog', priority: 'medium' })]
+      )
+
+      const res = await request(app)
+        .post('/api/issues/bulk')
+        .set('Cookie', sessionCookie)
+        .set('x-csrf-token', csrfToken)
+        .send({
+          action: 'update',
+          ids: [firstIssue.rows[0].id, secondIssue.rows[0].id],
+          updates: {
+            state: 'in_progress',
+          },
+        })
+
+      expect(res.status).toBe(200)
+
+      const queueResult = await pool.query(
+        `SELECT document_id, document_type, route_surface, trigger, workspace_id
+         FROM fleetgraph_queue_jobs
+         WHERE workspace_id = $1
+         ORDER BY created_at DESC
+         LIMIT 1`,
+        [testWorkspaceId]
+      )
+
+      expect(queueResult.rows[0]).toMatchObject({
+        document_id: null,
+        document_type: null,
+        route_surface: 'issue-write',
+        trigger: 'event',
+        workspace_id: testWorkspaceId,
+      })
     })
   })
 })

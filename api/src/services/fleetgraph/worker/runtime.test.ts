@@ -10,6 +10,7 @@ import {
 
 import type { FleetGraphState } from '../graph/types.js'
 import { resolveFleetGraphWorkerSettings } from './config.js'
+import { createFleetGraphWorkerIntegration } from './integration.js'
 import { createFleetGraphWorkerRuntime } from './runtime.js'
 import { createFleetGraphWorkerStore } from './store.js'
 import { createWorkerTestDatabase } from './test-helpers.js'
@@ -216,5 +217,68 @@ describe('FleetGraph worker runtime', () => {
       lastOutcome: 'quiet',
       workspaceId: 'workspace-123',
     })
+  })
+
+  it('registers sweep schedules for active workspaces during bootstrap', async () => {
+    const fixedNow = new Date('2026-03-16T12:00:00.000Z')
+    const activeWorkspaceOne = await testDb.pool.query(
+      `INSERT INTO workspaces (name)
+       VALUES ('FleetGraph Worker Bootstrap A')
+       RETURNING id`
+    )
+    const archivedWorkspace = await testDb.pool.query(
+      `INSERT INTO workspaces (name, archived_at)
+       VALUES ('FleetGraph Worker Bootstrap Archived', NOW())
+       RETURNING id`
+    )
+    const activeWorkspaceTwo = await testDb.pool.query(
+      `INSERT INTO workspaces (name)
+       VALUES ('FleetGraph Worker Bootstrap B')
+       RETURNING id`
+    )
+
+    const workspaceIds = [
+      activeWorkspaceOne.rows[0]?.id,
+      archivedWorkspace.rows[0]?.id,
+      activeWorkspaceTwo.rows[0]?.id,
+    ].filter((id): id is string => typeof id === 'string')
+
+    try {
+      const integration = createFleetGraphWorkerIntegration({
+        now: () => fixedNow,
+        queryable: testDb.pool,
+        settings: resolveFleetGraphWorkerSettings(),
+        store: createFleetGraphWorkerStore(testDb.pool),
+      })
+
+      const result = await integration.registerActiveWorkspaceSweeps(fixedNow)
+      expect(result).toEqual({
+        registered: 2,
+        workspaceIds: [
+          activeWorkspaceOne.rows[0]!.id,
+          activeWorkspaceTwo.rows[0]!.id,
+        ],
+      })
+
+      const schedules = await testDb.pool.query(
+        `SELECT workspace_id, next_sweep_at
+         FROM fleetgraph_sweep_schedules
+         ORDER BY workspace_id ASC`
+      )
+
+      expect(schedules.rows.map((row) => row.workspace_id).sort()).toEqual([
+        activeWorkspaceOne.rows[0]!.id,
+        activeWorkspaceTwo.rows[0]!.id,
+      ].sort())
+      expect(
+        schedules.rows.every((row) => new Date(row.next_sweep_at).toISOString() === fixedNow.toISOString())
+      ).toBe(true)
+    } finally {
+      await testDb.pool.query(
+        `DELETE FROM workspaces
+         WHERE id = ANY($1::uuid[])`,
+        [workspaceIds]
+      )
+    }
   })
 })

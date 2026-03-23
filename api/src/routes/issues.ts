@@ -30,6 +30,10 @@ import {
   type WeekId,
   isIssueId,
 } from './route-helpers.js';
+import {
+  safelyEnqueueFleetGraphDocumentMutation,
+  safelyEnqueueFleetGraphWorkspaceMutation,
+} from '../services/fleetgraph/worker/integration.js';
 
 type RouterType = ReturnType<typeof Router>;
 const router: RouterType = Router();
@@ -922,6 +926,14 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
       }
     }
 
+    await safelyEnqueueFleetGraphDocumentMutation({
+      actorId: userId,
+      documentId: newIssueId,
+      documentType: 'issue',
+      routeSurface: 'issue-write',
+      workspaceId,
+    });
+
     // Get the belongs_to associations with display info
     const belongsToResult = await getBelongsToAssociations(newIssueId);
 
@@ -1247,6 +1259,14 @@ router.patch('/:id', authMiddleware, async (req: Request<IdParams>, res: Respons
     await client.query('COMMIT');
 
     // Post-commit operations (non-transactional)
+
+    await safelyEnqueueFleetGraphDocumentMutation({
+      actorId: userId,
+      documentId: id,
+      documentType: 'issue',
+      routeSurface: 'issue-write',
+      workspaceId,
+    });
 
     // Check if a NEW sprint association was added and this is the first issue in that sprint
     if (belongsToChanged) {
@@ -1614,6 +1634,12 @@ router.post('/bulk', authMiddleware, async (req: Request, res: Response) => {
     }
 
     await client.query('COMMIT');
+
+    await safelyEnqueueFleetGraphWorkspaceMutation({
+      actorId: userId,
+      routeSurface: 'issue-write',
+      workspaceId,
+    });
 
     // Map results to issue format
     const updated = result.rows.map((row: IssueRow) => {

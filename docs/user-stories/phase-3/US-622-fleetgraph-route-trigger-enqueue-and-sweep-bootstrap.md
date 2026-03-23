@@ -2,11 +2,11 @@
 
 ## Status
 
-- State: `todo`
+- State: `done`
 - Owner: Codex
 - Depends on: `US-612`
-- Related branch:
-- Related commit/PR:
+- Related branch: `codex/us-622-route-trigger-enqueue-sweep-bootstrap`
+- Related commit/PR: `eafca18`, [PR #182](https://github.com/thisisyoussef/ship/pull/182)
 - Target environment: `local first`, `Railway demo via merged master`
 
 ## Persona
@@ -65,23 +65,45 @@ Local sources to read before writing code:
 
 Local docs/code reviewed:
 
-1. `docs/assignments/fleetgraph/FLEETGRAPH.md`
-2. `api/src/services/fleetgraph/worker/runtime.ts`
-3. `api/src/services/fleetgraph/worker/hooks.ts`
-4. `api/src/index.ts`
-5. `api/src/services/fleetgraph/demo/fixture.ts`
+1. `AGENTS.md`
+2. `docs/CONTEXT.md`
+3. `docs/WORKFLOW_MEMORY.md`
+4. `docs/IMPLEMENTATION_STRATEGY.md`
+5. `docs/user-stories/README.md`
+6. `docs/user-stories/phase-3/README.md`
+7. `docs/user-stories/phase-3/US-622-fleetgraph-route-trigger-enqueue-and-sweep-bootstrap.md`
+8. `docs/DEFINITION_OF_DONE.md`
+9. `docs/assignments/fleetgraph/README.md`
+10. `docs/assignments/fleetgraph/PRESEARCH.md`
+11. `docs/assignments/fleetgraph/FLEETGRAPH.md`
+12. `docs/guides/fleetgraph-demo-inspection.md`
+13. `.claude/CLAUDE.md`
+14. `api/src/services/fleetgraph/worker/runtime.ts`
+15. `api/src/services/fleetgraph/worker/hooks.ts`
+16. `api/src/services/fleetgraph/worker/store.ts`
+17. `api/src/services/fleetgraph/worker/runtime.test.ts`
+18. `api/src/index.ts`
+19. `api/src/routes/documents.ts`
+20. `api/src/routes/issues.ts`
+21. `api/src/routes/projects.ts`
+22. `api/src/routes/weeks.ts`
+23. `api/src/routes/workspaces.ts`
+24. `api/src/routes/admin.ts`
+25. `api/src/routes/setup.ts`
+26. `api/src/services/fleetgraph/demo/fixture.ts`
 
 Expected contracts/data shapes:
 
-1. `createFleetGraphDirtyContextHooks` already knows how to enqueue document and workspace mutations, but those helpers are not currently wired into real Ship routes.
-2. `registerWorkspaceSweep` exists on the worker runtime/store, but current non-demo app bootstrap does not appear to seed or refresh real workspace sweep schedules.
-3. The final wiring should preserve dedupe semantics and avoid turning every write route into noisy duplicate worker work.
+1. `createFleetGraphDirtyContextHooks` already knows how to enqueue document and workspace mutations, but the live Ship routes were not yet calling those helpers.
+2. `registerWorkspaceSweep` already exists on the worker store/runtime, but API startup only relied on demo fixture setup instead of re-registering real active workspaces.
+3. The narrowest safe route surfaces are coarse document/workspace write buckets such as `issue-write`, `project-write`, `week-write`, and `workspace-write`, so the worker dedupe ledger can still coalesce noisy repeats.
+4. Route-trigger enqueue should stay best-effort after the product write succeeds, so FleetGraph failures do not turn a normal Ship mutation into a user-facing 500.
 
 Planned failing tests:
 
-1. A high-signal Ship write route enqueues FleetGraph dirty context through the shared hook.
-2. Live bootstrap or workspace lifecycle registration creates the expected sweep schedule without relying on demo fixture setup.
-3. The worker-generated proof lane can be reset and observed through the real worker path after the wiring lands.
+1. Worker bootstrap registers sweep schedules for real non-archived workspaces without relying on the demo fixture.
+2. High-signal Ship write routes enqueue FleetGraph dirty context into `fleetgraph_queue_jobs` through the shared worker integration helper.
+3. Worker-facing docs and proof-lane notes describe the live API bootstrap + watched-write path truthfully instead of implying demo-only sweep registration.
 
 ## UX Script
 
@@ -99,9 +121,9 @@ Error path:
 
 ## Preconditions
 
-- [ ] Fresh story branch is checked out from current `master` before edits begin
-- [ ] The existing worker substrate and proactive scenarios are current repo truth
-- [ ] Local API route and FleetGraph worker tests run in this shell
+- [x] Fresh story branch is checked out from current `master` before edits begin
+- [x] The existing worker substrate and proactive scenarios are current repo truth
+- [x] Local API route and FleetGraph worker tests run in this shell
 
 ## TDD Plan
 
@@ -118,18 +140,18 @@ Error path:
 
 ## Acceptance Criteria
 
-- [ ] AC-1: Chosen high-signal Ship write routes enqueue FleetGraph dirty context through the shared worker hooks.
-- [ ] AC-2: Live app/bootstrap flow registers sweep schedules for real workspaces without relying on demo fixture setup.
-- [ ] AC-3: Worker dedupe and retry behavior remain intact after the route/bootstrap wiring.
-- [ ] AC-4: The worker-generated proof lane and related docs reflect the real worker path truthfully.
+- [x] AC-1: Chosen high-signal Ship write routes enqueue FleetGraph dirty context through the shared worker hooks.
+- [x] AC-2: Live app/bootstrap flow registers sweep schedules for real workspaces without relying on demo fixture setup.
+- [x] AC-3: Worker dedupe and retry behavior remain intact after the route/bootstrap wiring.
+- [x] AC-4: The worker-generated proof lane and related docs reflect the real worker path truthfully.
 
 ## Local Validation
 
 Run these before handoff:
 
 ```bash
-pnpm --filter @ship/api exec vitest run src/services/fleetgraph/worker/runtime.test.ts --config vitest.fleetgraph.config.ts
-pnpm --filter @ship/api exec vitest run src/routes/documents.test.ts src/routes/issues.test.ts src/routes/projects.test.ts src/routes/weeks.test.ts src/routes/workspaces.test.ts
+DATABASE_URL=postgresql://youss@localhost:5432/ship_us622_test FLEETGRAPH_WORKER_TEST_DATABASE_URL=postgresql://youss@localhost:5432/ship_us622_test pnpm --filter @ship/api exec vitest run src/services/fleetgraph/worker/runtime.test.ts --config vitest.fleetgraph.config.ts
+DATABASE_URL=postgresql://youss@localhost:5432/ship_us622_test pnpm --filter @ship/api exec vitest run src/routes/documents.test.ts src/routes/issues.test.ts src/routes/projects.test.ts src/routes/weeks.test.ts src/routes/workspaces.test.ts
 pnpm --filter @ship/api exec tsc --noEmit
 git diff --check
 ```
@@ -166,6 +188,17 @@ git diff --check
 
 ## Checkpoint Result
 
-- Outcome: `pending`
+- Outcome: `pass`
 - Evidence:
+  - Added a shared FleetGraph worker integration helper that wraps the existing dirty-context hooks/store, resolves coarse route surfaces, and can re-register active workspace sweeps on API startup.
+  - API startup now re-registers real active workspace sweep schedules, and workspace lifecycle touchpoints register new schedules without relying on demo fixture setup alone.
+  - High-signal document, issue, project, week, and workspace write routes now enqueue best-effort FleetGraph worker jobs after the underlying Ship mutation succeeds.
+  - Added regressions for active-workspace sweep bootstrap, document/issue/week/workspace queue inserts on real routes, and mocked project-route enqueue handoff.
+  - Updated the worker-generated demo/deploy docs so they describe live startup sweep registration plus watched write-route enqueue as the real regeneration path.
+  - Local validation passed:
+    - `DATABASE_URL=postgresql://youss@localhost:5432/ship_us622_test FLEETGRAPH_WORKER_TEST_DATABASE_URL=postgresql://youss@localhost:5432/ship_us622_test npx pnpm --filter @ship/api exec vitest run src/services/fleetgraph/worker/runtime.test.ts --config vitest.fleetgraph.config.ts`
+    - `DATABASE_URL=postgresql://youss@localhost:5432/ship_us622_test npx pnpm --filter @ship/api exec vitest run src/routes/documents.test.ts src/routes/issues.test.ts src/routes/projects.test.ts src/routes/weeks.test.ts src/routes/workspaces.test.ts`
+    - `npx pnpm --filter @ship/api exec tsc --noEmit`
+  - Deployment status: `not deployed`
 - Residual risk:
+  - The live Railway worker-generated proof lane still needs post-merge observation to confirm the deployed API startup path and the dedicated worker lane stay in sync after the next `master` update.

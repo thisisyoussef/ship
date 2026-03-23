@@ -23,6 +23,15 @@ async function main() {
     }
   }
 
+  const { getFleetGraphWorkerIntegration } = await import(
+    './services/fleetgraph/worker/integration.js'
+  );
+  const fleetGraphBootstrap = await getFleetGraphWorkerIntegration()
+    .registerActiveWorkspaceSweeps();
+  console.log(
+    `FleetGraph registered workspace sweeps for ${fleetGraphBootstrap.registered} active workspace(s)`
+  );
+
   // Now import app after secrets are loaded
   const { createApp } = await import('./app.js');
   const { setupCollaboration } = await import('./collaboration/index.js');

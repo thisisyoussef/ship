@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import { pool } from '../db/client.js';
 import { ERROR_CODES, HTTP_STATUS } from '@ship/shared';
 import { WELCOME_DOCUMENT_TITLE, WELCOME_DOCUMENT_CONTENT } from '../db/welcomeDocument.js';
+import { safelyRegisterFleetGraphWorkspaceSweep } from '../services/fleetgraph/worker/integration.js';
 
 const router: RouterType = Router();
 
@@ -115,6 +116,8 @@ router.post('/initialize', async (req: Request, res: Response): Promise<void> =>
        VALUES ($1, 'wiki', $2, $3, $4)`,
       [workspaceId, WELCOME_DOCUMENT_TITLE, JSON.stringify(WELCOME_DOCUMENT_CONTENT), user.id]
     );
+
+    await safelyRegisterFleetGraphWorkspaceSweep(workspaceId);
 
     console.log(`Initial setup complete: ${email} is now super admin`);
 

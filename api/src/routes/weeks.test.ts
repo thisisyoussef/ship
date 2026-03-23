@@ -4,6 +4,12 @@ import crypto from 'crypto'
 import { createApp } from '../app.js'
 import { pool } from '../db/client.js'
 
+async function clearFleetGraphWorkerState(workspaceId: string) {
+  await pool.query('DELETE FROM fleetgraph_queue_jobs WHERE workspace_id = $1', [workspaceId])
+  await pool.query('DELETE FROM fleetgraph_dedupe_ledger WHERE workspace_id = $1', [workspaceId])
+  await pool.query('DELETE FROM fleetgraph_sweep_schedules WHERE workspace_id = $1', [workspaceId])
+}
+
 describe('Sprints API', () => {
   const app = createApp()
   const testRunId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
@@ -183,6 +189,8 @@ describe('Sprints API', () => {
 
   describe('POST /api/weeks', () => {
     it('should create a new sprint', async () => {
+      await clearFleetGraphWorkerState(testWorkspaceId)
+
       const res = await request(app)
         .post('/api/weeks')
         .set('Cookie', sessionCookie)
@@ -197,6 +205,23 @@ describe('Sprints API', () => {
       expect(res.body.id).toBeDefined()
       expect(res.body.name).toBe('New Test Sprint')
       expect(res.body.program_id).toBe(testProgramId)
+
+      const queueResult = await pool.query(
+        `SELECT document_id, document_type, route_surface, trigger, workspace_id
+         FROM fleetgraph_queue_jobs
+         WHERE workspace_id = $1
+         ORDER BY created_at DESC
+         LIMIT 1`,
+        [testWorkspaceId]
+      )
+
+      expect(queueResult.rows[0]).toMatchObject({
+        document_id: res.body.id,
+        document_type: 'sprint',
+        route_surface: 'week-write',
+        trigger: 'event',
+        workspace_id: testWorkspaceId,
+      })
     })
 
     it('should create sprint with dates', async () => {

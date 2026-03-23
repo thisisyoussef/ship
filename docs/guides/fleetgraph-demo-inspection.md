@@ -34,6 +34,11 @@ Stable public-demo proof lanes during the March 22, 2026 audit:
 - `FleetGraph Demo Week - Validation Ready`
 - `FleetGraph Demo Week - Worker Generated`
 
+Worker-generated lane contract:
+
+- `FleetGraph Demo Week - Worker Generated` should now regenerate through the same live worker path as the rest of Ship: active workspace sweeps are re-registered on API startup and watched write routes can enqueue fresh proactive work.
+- The demo reset still clears this lane and nudges one immediate worker job, but the lane should no longer depend on demo-only sweep registration to stay alive after the app restarts.
+
 Current public-demo blocker:
 
 - `FleetGraph Demo Week - Unassigned Issues` is seeded in repo but blocked on
@@ -217,6 +222,10 @@ blocked on the current public Railway findings feed.
 - In repo/bootstrap contract, it should also clear the worker-generated lane and
   enqueue one fresh proactive worker job so the deployed worker can re-create
   that finding on the next refresh.
+- In live app/runtime contract, API startup should also re-register active
+  workspace sweep schedules, and watched Ship write routes should be able to
+  enqueue fresh worker jobs for the same workspace without rerunning demo
+  setup.
 - In repo/bootstrap contract, it should reset `FleetGraph Demo Week - Validation
   Ready` back to an `active` week with a linked weekly review whose `Plan
   Validation` state is unset.

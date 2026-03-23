@@ -26,10 +26,15 @@ vi.mock('../services/list-response-cache.js', () => ({
   listCacheInvalidationMiddleware: vi.fn((req, res, next) => next()),
 }));
 
+vi.mock('../services/fleetgraph/worker/integration.js', () => ({
+  safelyEnqueueFleetGraphDocumentMutation: vi.fn().mockResolvedValue(undefined),
+}));
+
 import { pool } from '../db/client.js';
 import express from 'express';
 import request from 'supertest';
 import projectsRouter from './projects.js';
+import { safelyEnqueueFleetGraphDocumentMutation } from '../services/fleetgraph/worker/integration.js';
 
 const TEST_PROJECT_ID = '33333333-3333-4333-8333-333333333333';
 const SECOND_PROJECT_ID = '55555555-5555-4555-8555-555555555555';
@@ -41,6 +46,8 @@ describe('Projects API', () => {
   beforeEach(() => {
     // Reset all mocks completely (including queued mockResolvedValueOnce)
     vi.mocked(pool.query).mockReset();
+    vi.mocked(safelyEnqueueFleetGraphDocumentMutation).mockReset();
+    vi.mocked(safelyEnqueueFleetGraphDocumentMutation).mockResolvedValue(undefined);
     app = express();
     app.use(express.json());
     app.use('/api/projects', projectsRouter);
@@ -188,6 +195,12 @@ describe('Projects API', () => {
       expect(res.body.ease).toBe(5);
       expect(res.body.ice_score).toBe(60); // 4 * 3 * 5
       expect(res.body.owner.id).toBe(ownerId);
+      expect(safelyEnqueueFleetGraphDocumentMutation).toHaveBeenCalledWith({
+        actorId: '11111111-1111-4111-8111-111111111111',
+        documentId: TEST_PROJECT_ID,
+        documentType: 'project',
+        workspaceId: '22222222-2222-4222-8222-222222222222',
+      });
     });
 
     it('uses null ICE values when not provided', async () => {
@@ -300,6 +313,12 @@ describe('Projects API', () => {
       expect(res.body.impact).toBe(5);
       expect(res.body.confidence).toBe(4);
       expect(res.body.ice_score).toBe(60); // 5 * 4 * 3
+      expect(safelyEnqueueFleetGraphDocumentMutation).toHaveBeenCalledWith({
+        actorId: '11111111-1111-4111-8111-111111111111',
+        documentId: TEST_PROJECT_ID,
+        documentType: 'project',
+        workspaceId: '22222222-2222-4222-8222-222222222222',
+      });
     });
 
     it('returns 404 for non-existent project', async () => {

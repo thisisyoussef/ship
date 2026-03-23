@@ -69,25 +69,51 @@ FleetGraph is a project-intelligence agent for Ship. Its job is to notice meanin
 
 ## Graph Diagram
 
+The diagram below mirrors the compiled runtime in `api/src/services/fleetgraph/graph/runtime.ts`, including the proactive fan-out, the on-demand fetch/reason loop, and the approval interrupt path.
+
 ```mermaid
 flowchart TD
-  A["START"] --> B["resolve_trigger_context"]
-  B --> C["select_scenarios"]
-  C --> D["run_scenario via Send fan-out"]
-  D --> E["merge_candidates"]
-  E --> F["score_and_rank"]
-  F -->|quiet| G["quiet_exit"]
-  F -->|advisory| H["reason_and_deliver"]
-  F -->|action| I["approval_interrupt"]
-  F -->|fallback| J["fallback"]
-  G --> K["persist_result"]
-  H --> K
-  I -->|resume approved| L["execute_action"]
-  I -->|resume dismissed| M["persist_action_outcome"]
-  L --> M
-  K --> N["END"]
-  M --> N
-  J --> N
+  start(["START"]) --> rtc["resolve_trigger_context"]
+  rtc --> sel["select_scenarios"]
+  sel --> mode{"contextKind / mode / requestedAction?"}
+
+  mode -->|proactive| proactive["week_start_drift<br/>sprint_no_owner<br/>unassigned_sprint_issues"]
+  mode -->|finding_review| review["finding_action_review"]
+  mode -->|entry + requestedAction| entryAction["entry_requested_action"]
+  mode -->|entry + on_demand + no requestedAction| analysis["on_demand_analysis"]
+  mode -->|entry + other mode + no requestedAction| entryCheck["entry_context_check"]
+
+  proactive -->|Send fan-out per scenario| run["run_scenario"]
+  review --> run
+  entryAction --> run
+  analysis --> run
+  entryCheck --> run
+
+  run --> merge["merge_candidates"]
+  merge --> rank["score_and_rank"]
+
+  rank -->|no score > 0| quiet["quiet_exit"]
+  rank -->|fallback| fallback["fallback"]
+  rank -->|approval_required| interrupt["approval_interrupt"]
+  rank -->|reasoned non-analysis| deliver["reason_and_deliver"]
+  rank -->|reasoned on-demand analysis| fetchMedium["fetch_medium"]
+
+  fetchMedium --> reason["reason"]
+  reason -->|needsDeeperContext = true| fetchDeep["fetch_deep"]
+  fetchDeep --> reason
+  reason -->|needsDeeperContext = false| persist["persist_result"]
+
+  quiet --> persist
+  deliver --> persist
+
+  interrupt -->|selectedAction missing| fallback
+  interrupt -->|approved| execute["execute_action"]
+  interrupt -->|dismissed / not approved| actionPersist["persist_action_outcome"]
+  execute --> actionPersist
+
+  persist --> done(["END"])
+  actionPersist --> done
+  fallback --> done
 ```
 
 ### Node types
@@ -101,12 +127,17 @@ flowchart TD
   - `week_start_drift`
   - `sprint_no_owner`
   - `unassigned_sprint_issues`
+  - `on_demand_analysis`
   - `entry_context_check`
   - `entry_requested_action`
   - `finding_action_review`
 - Merge/rank nodes:
   - `merge_candidates`
   - `score_and_rank`
+- On-demand fetch/reason nodes:
+  - `fetch_medium`
+  - `reason`
+  - `fetch_deep`
 - Delivery nodes:
   - `quiet_exit`
   - `reason_and_deliver`
@@ -121,21 +152,32 @@ flowchart TD
 
 ### Edges
 
-- `resolve_trigger_context -> select_scenarios`
-- `select_scenarios -> run_scenario` uses LangGraph `Send` fan-out for the chosen scenario family
+- `START -> resolve_trigger_context -> select_scenarios`
+- `select_scenarios -> run_scenario` uses LangGraph `Send` fan-out after choosing:
+  - proactive mode -> `week_start_drift`, `sprint_no_owner`, `unassigned_sprint_issues`
+  - `finding_review` context -> `finding_action_review`
+  - entry with `requestedAction` -> `entry_requested_action`
+  - entry with on-demand page analysis -> `on_demand_analysis`
+  - entry without requested action in other modes -> `entry_context_check`
 - `run_scenario -> merge_candidates -> score_and_rank`
 - `score_and_rank -> quiet_exit -> persist_result` when no candidate survives thresholds
-- `score_and_rank -> reason_and_deliver -> persist_result` for read-only/advisory output
-- `score_and_rank -> approval_interrupt` for consequential actions
-- `approval_interrupt -> execute_action -> persist_action_outcome` only after explicit `resume(approved)`
-- `approval_interrupt -> persist_action_outcome` when the human dismisses the action
-- any unrecoverable graph-side failure -> `fallback`
+- `score_and_rank -> reason_and_deliver -> persist_result` for reasoned non-analysis branches
+- `score_and_rank -> fetch_medium -> reason` for `on_demand_analysis`
+- `reason -> fetch_deep -> reason` while the model asks for deeper context
+- `reason -> persist_result` once deeper context is no longer needed
+- `score_and_rank -> approval_interrupt` for approval-required branches
+- `approval_interrupt -> execute_action -> persist_action_outcome` after explicit `resume(approved)`
+- `approval_interrupt -> persist_action_outcome` when the review is dismissed or not approved
+- `approval_interrupt -> fallback` if no actionable selection is present
+- `fallback -> END`, `persist_result -> END`, and `persist_action_outcome -> END`
 
 ### Branching conditions
 
 - `quiet`: scenario fan-out produced no candidate with a positive score
-- `reasoned`: a scenario produced advisory output that can be surfaced without a mutation
+- `reasoned`: a scenario produced output that can continue without an immediate Ship mutation
+- `reasoned + on_demand_analysis`: the graph enters the fetch/reason loop instead of delivering immediately
 - `approval_required`: a scenario produced a consequential action and the graph paused in `approval_interrupt`
+- `needsDeeperContext = true`: the reason node loops through `fetch_deep` before reasoning again
 - `fallback`: the graph could not safely continue because required evidence or execution preconditions failed
 
 ## Use Cases

@@ -182,6 +182,11 @@ describe('FleetGraphGuidedActionsOverlay', () => {
     expect(
       screen.getByRole('dialog', { name: /fleetgraph guided actions/i })
     ).toBeInTheDocument()
+    expect(
+      screen.getByRole('dialog', { name: /fleetgraph guided actions/i })
+    ).toHaveStyle({
+      left: 'calc(var(--ship-main-left-offset, 3rem) + 1.5rem)',
+    })
     expect(screen.getAllByText('Validate week plan')).toHaveLength(2)
 
     rerender(

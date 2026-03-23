@@ -30,19 +30,31 @@ import { useToast } from '@/components/ui/Toast';
 import { Tooltip, TooltipProvider } from '@/components/ui/Tooltip';
 import { VISIBILITY_OPTIONS } from '@/lib/contextMenuActions';
 import { DashboardSidebar } from '@/components/DashboardSidebar';
+import { FleetGraphSidebar } from '@/components/FleetGraphSidebar';
 import { ContextTreeNav } from '@/components/ContextTreeNav';
 import { ProjectSetupWizard, ProjectSetupData } from '@/components/ProjectSetupWizard';
 import { SelectionPersistenceProvider } from '@/contexts/SelectionPersistenceContext';
 import { ActionItemsModal } from '@/components/ActionItemsModal';
 import { AccountabilityBanner } from '@/components/AccountabilityBanner';
 import { ProjectContextSidebar } from '@/components/sidebars/ProjectContextSidebar';
+import { useFleetGraphFindings } from '@/hooks/useFleetGraphFindings';
 import {
   ActionItemsModalOpenReason,
   shouldAutoOpenActionItemsModal,
   shouldCloseAutoOpenedActionItemsModal,
 } from '@/lib/actionItemsModal';
 
-type Mode = 'docs' | 'issues' | 'projects' | 'programs' | 'sprints' | 'team' | 'settings' | 'dashboard' | 'project-context';
+type Mode =
+  | 'docs'
+  | 'fleetgraph'
+  | 'issues'
+  | 'projects'
+  | 'programs'
+  | 'sprints'
+  | 'team'
+  | 'settings'
+  | 'dashboard'
+  | 'project-context';
 
 export function AppLayout() {
   const { user, logout, isSuperAdmin, impersonating, endImpersonation } = useAuth();
@@ -85,6 +97,8 @@ export function AppLayout() {
   const { data: actionItemsData } = useActionItemsQuery();
   const hasActionItems = (actionItemsData?.items?.length ?? 0) > 0;
   const queryClient = useQueryClient();
+  const fleetGraphQueue = useFleetGraphFindings(null);
+  const fleetGraphActiveCount = fleetGraphQueue.findings.length;
 
   // Celebration state for when user completes an accountability item
   const [isCelebrating, setIsCelebrating] = useState(false);
@@ -180,6 +194,7 @@ export function AppLayout() {
   // Determine active mode from path or document type
   const getActiveMode = (): Mode => {
     if (location.pathname.startsWith('/dashboard') || location.pathname.startsWith('/my-week')) return 'dashboard';
+    if (location.pathname.startsWith('/fleetgraph')) return 'fleetgraph';
     // For /documents/:id routes, use document type from context
     if (location.pathname.startsWith('/documents/')) {
       if (currentDocumentType === 'wiki') return 'docs';
@@ -212,6 +227,13 @@ export function AppLayout() {
   const isWeeklyDoc = currentDocumentType === 'weekly_plan' || currentDocumentType === 'weekly_retro';
   const isStandup = currentDocumentType === 'standup';
   const hideLeftSidebar = isMyWeekPage || isWeeklyDoc || isStandup;
+  const appShellStyle = useMemo(
+    () => ({
+      ['--ship-main-left-offset' as string]:
+        leftSidebarCollapsed || hideLeftSidebar ? '3rem' : '17rem',
+    }),
+    [hideLeftSidebar, leftSidebarCollapsed]
+  )
   const actionItemsModalVisible = actionItemsModalOpen && !shouldCloseAutoOpenedActionItemsModal({
     openReason: actionItemsModalOpenReason,
     pathname: location.pathname,
@@ -238,6 +260,7 @@ export function AppLayout() {
     switch (mode) {
       case 'dashboard': navigate('/my-week'); break;
       case 'docs': navigate('/docs'); break;
+      case 'fleetgraph': navigate('/fleetgraph'); break;
       case 'issues': navigate('/issues'); break;
       case 'projects': navigate('/projects'); break;
       case 'programs': navigate('/programs'); break;
@@ -293,7 +316,7 @@ export function AppLayout() {
   return (
     <TooltipProvider delayDuration={300}>
     <SelectionPersistenceProvider>
-    <div className="flex h-screen flex-col overflow-hidden bg-background">
+    <div className="flex h-screen flex-col overflow-hidden bg-background" style={appShellStyle}>
       {/* Skip link for keyboard/screen reader users - Section 508 compliance */}
       <a
         href="#main-content"
@@ -403,6 +426,13 @@ export function AppLayout() {
               onClick={() => handleModeClick('docs')}
             />
             <RailIcon
+              badgeCount={fleetGraphActiveCount}
+              icon={<FleetGraphIcon />}
+              label="FleetGraph"
+              active={activeMode === 'fleetgraph'}
+              onClick={() => handleModeClick('fleetgraph')}
+            />
+            <RailIcon
               icon={<ProgramsIcon />}
               label="Programs"
               active={activeMode === 'programs'}
@@ -468,6 +498,7 @@ export function AppLayout() {
               <h2 className="text-sm font-medium text-foreground m-0">
                 {activeMode === 'dashboard' && 'Dashboard'}
                 {activeMode === 'docs' && 'Docs'}
+                {activeMode === 'fleetgraph' && 'FleetGraph'}
                 {activeMode === 'issues' && 'Issues'}
                 {activeMode === 'projects' && 'Projects'}
                 {activeMode === 'programs' && 'Programs'}
@@ -530,6 +561,9 @@ export function AppLayout() {
                   activeId={activeDocumentId}
                   onSelect={(id) => navigate(`/documents/${id}`)}
                 />
+              )}
+              {activeMode === 'fleetgraph' && (
+                <FleetGraphSidebar activeFindingCount={fleetGraphActiveCount} />
               )}
               {activeMode === 'issues' && (
                 <IssuesSidebar
@@ -618,7 +652,23 @@ export function AppLayout() {
   );
 }
 
-function RailIcon({ icon, label, active, onClick, showBadge }: { icon: React.ReactNode; label: string; active: boolean; onClick: () => void; showBadge?: boolean }) {
+function RailIcon({
+  badgeCount,
+  icon,
+  label,
+  active,
+  onClick,
+  showBadge,
+}: {
+  badgeCount?: number;
+  icon: React.ReactNode;
+  label: string;
+  active: boolean;
+  onClick: () => void;
+  showBadge?: boolean;
+}) {
+  const showCountBadge = typeof badgeCount === 'number' && badgeCount > 0;
+
   return (
     <Tooltip content={label} side="right">
       <button
@@ -630,9 +680,13 @@ function RailIcon({ icon, label, active, onClick, showBadge }: { icon: React.Rea
         aria-label={label}
       >
         {icon}
-        {showBadge && (
+        {showCountBadge ? (
+          <span className="absolute right-0 top-0 inline-flex min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-semibold leading-4 text-white">
+            {badgeCount! > 9 ? '9+' : badgeCount}
+          </span>
+        ) : showBadge ? (
           <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-orange-500" />
-        )}
+        ) : null}
       </button>
     </Tooltip>
   );
@@ -1819,6 +1873,22 @@ function DocsIcon() {
   return (
     <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    </svg>
+  );
+}
+
+function FleetGraphIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path
+        d="M6 18h.01M12 6h.01M18 12h.01M7.5 16.5l3-7M13.5 7.5l3 3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+      />
+      <circle cx="6" cy="18" r="2.25" strokeWidth={1.5} />
+      <circle cx="12" cy="6" r="2.25" strokeWidth={1.5} />
+      <circle cx="18" cy="12" r="2.25" strokeWidth={1.5} />
     </svg>
   );
 }

@@ -47,6 +47,9 @@ const WorkspaceSettingsPage = lazyPage(async () => ({
 const ConvertedDocumentsPage = lazyPage(async () => ({
   default: (await import('@/pages/ConvertedDocuments')).ConvertedDocumentsPage,
 }));
+const FleetGraphQueuePage = lazyPage(async () => ({
+  default: (await import('@/pages/FleetGraphQueuePage')).FleetGraphQueuePage,
+}));
 const UnifiedDocumentPage = lazyPage(async () => ({
   default: (await import('@/pages/UnifiedDocumentPage')).UnifiedDocumentPage,
 }));
@@ -251,6 +254,7 @@ function AppRoutes() {
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="my-week" element={<MyWeekPage />} />
         <Route path="docs" element={<DocumentsPage />} />
+        <Route path="fleetgraph" element={<FleetGraphQueuePage />} />
         <Route path="docs/:id" element={<DocumentRedirect />} />
         <Route path="documents/:id/*" element={<UnifiedDocumentPage />} />
         <Route path="issues" element={<IssuesPage />} />

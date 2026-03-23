@@ -17,6 +17,18 @@ The video should prove that FleetGraph:
 - stays useful on demand from the current page
 - leaves a visible result in Ship after apply
 
+## Hook
+
+Use this as the cold open before you start clicking:
+
+"What if your project tool could catch a slipped sprint on its own, show you the exact graph run that found it, and still refuse to change anything until a human approves it? That is the whole story of this FleetGraph demo."
+
+## Intro
+
+Use this immediately after the hook:
+
+"I’m not going to tour every feature one by one. I’m going to follow one sprint from proactive detection to visible result, and I’ll show the same proof chain the whole way through: what the agent noticed, what path the graph took, what it proposed, where the human stepped in, and what changed in Ship afterward."
+
 ## Demo Story Lane
 
 - URL: `https://ship-demo-production.up.railway.app`
@@ -37,7 +49,15 @@ The video should prove that FleetGraph:
 
 ## Script
 
-### 1. Set up the story
+### 1. Cold open and frame the story
+
+**[Open on the `FleetGraph Demo Week - One Story` page with the proactive finding already visible]**
+
+"What if your project tool could catch a slipped sprint on its own, show you the exact graph run that found it, and still refuse to change anything until a human approves it? That is the whole story of this FleetGraph demo."
+
+"I’m not going to tour every feature one by one. I’m going to follow one sprint from proactive detection to visible result, and I’ll show the same proof chain the whole way through: what the agent noticed, what path the graph took, what it proposed, where the human stepped in, and what changed in Ship afterward."
+
+### 2. Set up the story
 
 **[Open the public demo and log in]**
 
@@ -47,7 +67,7 @@ The video should prove that FleetGraph:
 
 "This sprint is the seeded final-demo story lane. It starts in a bad state on purpose so we can verify the whole agent loop."
 
-### 2. Show proactive detection
+### 3. Show proactive detection
 
 **[Point to the proactive FleetGraph panel]**
 
@@ -61,7 +81,7 @@ The video should prove that FleetGraph:
 
 "It also gives lifecycle controls like dismiss and snooze, but the important path for this story is the recommended action."
 
-### 3. Show the human gate before action
+### 4. Show the human gate before action
 
 **[Click `Review and apply`]**
 
@@ -71,7 +91,7 @@ The video should prove that FleetGraph:
 
 "The agent has done the detection and prepared the action, but Ship still waits for me to confirm or cancel."
 
-### 4. Show the graph and trace for the detection path
+### 5. Show the graph and trace for the detection path
 
 **[Switch to the proactive LangSmith trace tab]**
 
@@ -85,7 +105,7 @@ The video should prove that FleetGraph:
 
 "So we’ve now seen the detection and the graph path. Next is the human decision."
 
-### 5. Apply the proactive action and show the result
+### 6. Apply the proactive action and show the result
 
 **[Click `Start week in Ship`]**
 
@@ -95,7 +115,7 @@ The video should prove that FleetGraph:
 
 "Now the result is visible in Ship itself. The week has been started, and the original finding clears because the condition that triggered it is gone."
 
-### 6. Stay on the same sprint for on-demand mode
+### 7. Stay on the same sprint for on-demand mode
 
 **[Switch to the `Review` tab on the same sprint]**
 
@@ -105,7 +125,7 @@ The video should prove that FleetGraph:
 
 "This entry card is the on-demand doorway. It is grounded in the current page, the current tab, and the review state for this sprint."
 
-### 7. Show current-page analysis
+### 8. Show current-page analysis
 
 **[Click `Check this page`]**
 
@@ -119,7 +139,7 @@ The video should prove that FleetGraph:
 
 "And because it keeps the same thread, I can ask a follow-up without losing that page context."
 
-### 8. Show guided next step on the same page
+### 9. Show guided next step on the same page
 
 **[In the FAB, switch to `Guided actions` and click `Preview next step`]**
 
@@ -129,7 +149,7 @@ The video should prove that FleetGraph:
 
 "In this case, it proposes validating the week plan, and it tells me exactly where I’ll see the result on the current page."
 
-### 9. Show the graph and trace for the approval preview path
+### 10. Show the graph and trace for the approval preview path
 
 **[Switch to the approval-preview LangSmith trace tab]**
 
@@ -139,7 +159,7 @@ The video should prove that FleetGraph:
 
 "The graph pauses for confirmation instead of acting on its own, which is the same safety boundary we saw in proactive mode."
 
-### 10. Apply the guided action and show the final visible result
+### 11. Apply the guided action and show the final visible result
 
 **[Return to Ship and click `Apply`]**
 
@@ -149,7 +169,7 @@ The video should prove that FleetGraph:
 
 "Now FleetGraph shows the action result, and the page itself updates. `Plan Validation` now shows `Validated`, so the reviewer can see the outcome directly in Ship."
 
-### 11. Wrap up
+### 12. Wrap up
 
 **[Stay on the updated review page]**
 

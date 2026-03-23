@@ -17,7 +17,7 @@ This folder holds FleetGraph assignment-gap stories plus the UX, reliability, de
 
 | ID | State | Owner | Branch | Worktree | Notes |
 | --- | --- | --- | --- | --- | --- |
-| — | — | — | — | — | No active Phase 3 parallel work is currently recorded. |
+| US-613 | `in-progress` | Codex | `codex/us-613-panel-gradient-removal` | `/Users/youss/Development/gauntlet/ship-us-613` | Flattening the FleetGraph panel header background while preserving alert-state signaling. |
 
 ## Story Sequence
 
@@ -34,6 +34,6 @@ This folder holds FleetGraph assignment-gap stories plus the UX, reliability, de
 | US-617 | FleetGraph entry nullable-context hardening | `done` | P1 | `US-612` |
 | US-615 | FleetGraph assign-owner review/apply follow-through | `done` | P1 | `US-612` |
 | US-618 | FleetGraph assign-owner picker follow-through | `todo` | P1 | `US-615` |
-| US-613 | FleetGraph panel gradient removal | `todo` | P2 | `US-612` |
+| US-613 | FleetGraph panel gradient removal | `in-progress` | P2 | `US-612` |
 | US-614 | FleetGraph FAB guided-actions panel convergence | `todo` | P2 | `US-613` |
 | US-616 | FleetGraph assign-issues review/apply follow-through | `todo` | P2 | `US-614` |

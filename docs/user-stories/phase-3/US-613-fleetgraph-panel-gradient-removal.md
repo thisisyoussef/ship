@@ -2,10 +2,12 @@
 
 ## Status
 
-- State: `todo`
+- State: `in-progress`
 - Owner: Codex
 - Depends on: `US-612`
-- Related branch:
+- Related branch: `codex/us-613-panel-gradient-removal`
+- Active worktree: `/Users/youss/Development/gauntlet/ship-us-613`
+- Parallel dependency / merge order: Independent sidecar FleetGraph polish story; no sibling merge dependency is currently required.
 - Related commit/PR:
 - Target environment: `local first`, `Railway demo via merged master`
 
@@ -53,13 +55,29 @@ Local sources to read before writing code:
 
 Local docs/code reviewed:
 
-1. `web/src/components/FleetGraphPanelShell.tsx`
-2. `web/src/components/FleetGraphPanelShell.test.tsx`
+1. `AGENTS.md`
+2. `docs/CONTEXT.md`
+3. `docs/WORKFLOW_MEMORY.md`
+4. `docs/IMPLEMENTATION_STRATEGY.md`
+5. `docs/user-stories/README.md`
+6. `docs/user-stories/phase-3/README.md`
+7. `docs/user-stories/phase-3/US-613-fleetgraph-panel-gradient-removal.md`
+8. `docs/DEFINITION_OF_DONE.md`
+9. `docs/assignments/fleetgraph/README.md`
+10. `docs/assignments/fleetgraph/PRESEARCH.md`
+11. `docs/assignments/fleetgraph/FLEETGRAPH.md`
+12. `.claude/CLAUDE.md`
+13. `docs/guides/fleetgraph-demo-inspection.md`
+14. `web/src/components/FleetGraphPanelShell.tsx`
+15. `web/src/components/FleetGraphPanelShell.test.tsx`
+16. `web/src/pages/UnifiedDocumentPage.tsx`
+17. `web/src/pages/UnifiedDocumentPage.test.tsx`
 
 Expected contracts/data shapes:
 
 1. The open/close button remains the single clickable shell header.
 2. Alert-state differentiation still depends on `activeFindingCount > 0`.
+3. The only gradient treatment lives on the shell header button, while the surrounding FleetGraph alert and info surfaces already use flat amber/sky tones.
 
 Planned failing tests:
 

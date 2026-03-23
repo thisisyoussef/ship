@@ -135,8 +135,8 @@ export function FleetGraphPanelShell({
         className={[
           'group flex w-full items-start justify-between gap-4 px-4 py-3 text-left transition-colors',
           hasAlerts
-            ? 'bg-gradient-to-r from-amber-50 via-background to-sky-50 hover:from-amber-100/70 hover:to-sky-100/70'
-            : 'bg-gradient-to-r from-sky-50/80 via-background to-background hover:from-sky-100/70 hover:to-background',
+            ? 'bg-amber-50 hover:bg-amber-100/80'
+            : 'bg-sky-50/70 hover:bg-sky-100/80',
         ].join(' ')}
         onClick={() => setExpanded((current) => !current)}
         type="button"

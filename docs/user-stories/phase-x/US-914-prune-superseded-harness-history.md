@@ -6,7 +6,7 @@
 - Owner: Codex
 - Depends on: `US-913`
 - Related branch: `codex/us-914-prune-harness-history`
-- Related commit/PR: `pending finalization`
+- Related commit/PR: `9909a6f`, [PR #176](https://github.com/thisisyoussef/ship/pull/176)
 - Target environment: `repo-only`
 
 ## Persona

@@ -6,7 +6,7 @@
 - Owner: Codex
 - Depends on: `US-612`
 - Related branch: `codex/us-617-nullable-context-hardening`
-- Related commit/PR:
+- Related commit/PR: `586d880`, [PR #163](https://github.com/thisisyoussef/ship/pull/163)
 - Target environment: `local first`, `Railway demo via merged master`
 
 ## Persona

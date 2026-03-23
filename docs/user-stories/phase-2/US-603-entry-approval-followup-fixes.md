@@ -6,7 +6,7 @@
 - Owner: Codex
 - Depends on: `US-602`
 - Related branch: `codex/fleetgraph-entry-apply-followup`
-- Related commit/PR:
+- Related commit/PR: `620b3ed`, [PR #135](https://github.com/thisisyoussef/ship/pull/135)
 - Target environment: `local first`, `Railway demo via merged master`
 
 ## Persona

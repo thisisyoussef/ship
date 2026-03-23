@@ -6,7 +6,7 @@
 - Owner: Codex
 - Depends on: `US-601`
 - Related branch: `codex/fleetgraph-t601a-runtime-apply`
-- Related commit/PR:
+- Related commit/PR: `d74039e`, [PR #131](https://github.com/thisisyoussef/ship/pull/131)
 - Target environment: `local first`, `Railway demo if needed for visual verification`
 
 ## Persona

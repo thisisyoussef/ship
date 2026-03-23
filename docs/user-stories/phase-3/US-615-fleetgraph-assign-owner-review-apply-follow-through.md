@@ -6,7 +6,7 @@
 - Owner: Codex
 - Depends on: `US-612`
 - Related branch: `codex/us-615-assign-owner-review-apply-fresh`
-- Related commit/PR: `pending finalization`
+- Related commit/PR: `f1007fb`, [PR #161](https://github.com/thisisyoussef/ship/pull/161)
 - Target environment: `local first`, `Railway demo via merged master`
 
 ## Persona

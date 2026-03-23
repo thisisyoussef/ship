@@ -6,7 +6,7 @@
 - Owner: Codex
 - Depends on: `US-901`
 - Related branch: `codex/fleetgraph-seeded-verification-rule`
-- Related commit/PR: pending finalization
+- Related commit/PR: `f7b8e38`, [PR #128](https://github.com/thisisyoussef/ship/pull/128)
 - Target environment: `repo-only`
 
 ## Persona

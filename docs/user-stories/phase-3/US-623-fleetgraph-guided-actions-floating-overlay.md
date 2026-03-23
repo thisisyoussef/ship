@@ -6,7 +6,7 @@
 - Owner: Codex
 - Depends on: `US-614`, `US-617`
 - Related branch: `codex/us-623-guided-actions-overlay`
-- Related commit/PR: `pending finalization`, [PR #192](https://github.com/thisisyoussef/ship/pull/192)
+- Related commit/PR: `eef9d31`, [PR #192](https://github.com/thisisyoussef/ship/pull/192)
 - Target environment: `local first`, `Railway demo via merged master`
 
 ## Persona

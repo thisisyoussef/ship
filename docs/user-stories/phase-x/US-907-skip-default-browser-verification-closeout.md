@@ -6,7 +6,7 @@
 - Owner: Codex
 - Depends on: `US-904`
 - Related branch: `codex/remove-browser-step-workflow`
-- Related commit/PR: pending finalization
+- Related commit/PR: `e33c67d`, [PR #149](https://github.com/thisisyoussef/ship/pull/149)
 - Target environment: `repo-only`
 
 ## Persona

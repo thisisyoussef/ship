@@ -6,7 +6,7 @@
 - Owner: Codex
 - Depends on: `US-901`
 - Related branch: `codex/story-branch-lifecycle-rule`
-- Related commit/PR: pending finalization
+- Related commit/PR: `8ddec6a`, [PR #140](https://github.com/thisisyoussef/ship/pull/140)
 - Target environment: `repo-only`
 
 ## Persona

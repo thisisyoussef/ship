@@ -51,7 +51,7 @@ This phase will hold FleetGraph product and integration stories as the active pa
 | US-609.5 | FleetGraph FAB analysis handoff | `done` | P1 | `US-609` |
 | US-610 | FleetGraph sprint-owner gap | `done` | P0 | `US-609.5` |
 | US-611 | FleetGraph unassigned sprint issues | `done` | P0 | `US-610` |
-| US-612 | FleetGraph assignment evidence refresh | `todo` | P0 | `US-611` |
+| US-612 | FleetGraph assignment evidence refresh | `done` | P0 | `US-611` |
 | US-615 | FleetGraph assign-owner review/apply follow-through | `todo` | P1 | `US-612` |
 | US-613 | FleetGraph panel gradient removal | `todo` | P2 | `US-612` |
 | US-614 | FleetGraph FAB guided-actions panel convergence | `todo` | P2 | `US-613` |

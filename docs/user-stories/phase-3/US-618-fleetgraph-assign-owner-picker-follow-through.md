@@ -2,10 +2,10 @@
 
 ## Status
 
-- State: `todo`
+- State: `in-progress`
 - Owner: Codex
 - Depends on: `US-615`
-- Related branch:
+- Related branch: `codex/us-618-owner-picker-follow-through`
 - Related commit/PR:
 - Target environment: `local first`, `Railway demo via merged master`
 

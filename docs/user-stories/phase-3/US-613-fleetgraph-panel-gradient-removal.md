@@ -8,7 +8,7 @@
 - Related branch: `codex/us-613-panel-gradient-removal`
 - Active worktree: `/Users/youss/Development/gauntlet/ship-us-613`
 - Parallel dependency / merge order: Refreshed from latest `master` before finalization after `US-911` landed; no remaining sibling-branch dependency is required for merge.
-- Related commit/PR: `4a76596`, [PR #168](https://github.com/thisisyoussef/ship/pull/168)
+- Related commit/PR: implementation `4a76596`, [PR #168](https://github.com/thisisyoussef/ship/pull/168), merged to `master` as `560b7d2`
 - Target environment: `local first`, `Railway demo via merged master`
 
 ## Persona
@@ -168,6 +168,10 @@ git diff --check
     - `npx pnpm --filter @ship/web exec vitest run src/components/FleetGraphPanelShell.test.tsx src/pages/UnifiedDocumentPage.test.tsx`
     - `npx pnpm --filter @ship/web exec tsc --noEmit`
     - `git diff --check`
-  - Deployment status: `not deployed` from this branch; Railway demo verification is pending merged-`master` auto-deploy.
+  - Deployment status: `deployed`
+  - Environment and proof path: Railway demo auto-deploy from merged `master` commit `560b7d2`, observed on March 22, 2026.
+  - Live runtime proof:
+    - `Documents` -> `FleetGraph Demo Week - Validation Ready` -> `Review` shows the calmer flat non-alert shell header with `On-demand guidance ready`.
+    - `Documents` -> `FleetGraph Demo Week - Owner Gap` shows a distinct flat amber alert header with `1 proactive alert`, confirming alert-state signaling still stands out without the gradient.
 - Residual risk:
-  - The live Railway demo still needs a quick visual check on `FleetGraph Demo Week - Validation Ready` after merge to confirm the flatter shell feels right in the seeded proof lane.
+  - The story now has live proof on both a calm lane and an alert lane; remaining risk is limited to future visual drift from broader theme changes outside this shell.

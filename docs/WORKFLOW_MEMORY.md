@@ -22,6 +22,12 @@ Use this file as durable working memory for recurring corrections, decisions, an
 - Re-sync before merge when sibling branches land first.
   Source: post-`US-907` user correction
   Meaning: if another branch merges while your story is still in flight, refresh from latest `master`, resolve conflicts, rerun the story validation, and only then finalize.
+- Parallel-lane availability must be surfaced explicitly.
+  Source: post-`US-908` user correction
+  Meaning: when the user asks to continue, choose the next story, or create a story, explicitly say whether another checked-in story is unblocked for parallel work right now instead of leaving that inference implicit.
+- Copy-paste prompts for parallel agents stay in chat.
+  Source: post-`US-908` user correction
+  Meaning: when a parallel lane exists, include a ready-to-send prompt inline in the chat response for the other agent; do not create a prompt file unless the user explicitly asks.
 - Railway demo deploys should follow the real platform path.
   Source: post-`US-602` correction
   Meaning: when the demo already auto-deploys from `master`, do not add a manual Railway deploy attempt to the default closeout flow unless the story is about deployment itself or the user explicitly asks for a manual refresh.

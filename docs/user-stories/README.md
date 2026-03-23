@@ -11,14 +11,16 @@ Work should resume from the repo by reading these files, not by reconstructing p
 1. Start with `AGENTS.md`.
 2. Read `docs/CONTEXT.md`.
 3. Use this file to find the next valid story based on status and dependencies.
-4. Create and switch to a fresh `codex/` branch from current `master` for that story before editing the story file or implementation.
-5. Parallel work by multiple agents is expected, so keep one concern per branch and record any sibling-branch dependency or required merge order.
-6. Open the story file and use it as the execution contract.
-7. Run the preparation phase before writing code.
-8. Run the story's validation steps.
-9. If sibling branches land first, refresh from latest `master` and rerun the story's validation steps before finalization.
-10. Record outcome in the relevant checkpoint log.
-11. Finish the default GitHub flow by merging the story branch to `master` once it is current with latest `master`, unless the user explicitly pauses or an exact blocker is recorded.
+4. When the user asks to continue, choose the next story, or create a story, explicitly say whether another checked-in story can run in parallel right now.
+5. If a parallel lane exists, include a ready-to-send copy-paste prompt inline in chat for the recommended other agent instead of creating a prompt file.
+6. Create and switch to a fresh `codex/` branch from current `master` for that story before editing the story file or implementation.
+7. Parallel work by multiple agents is expected, so keep one concern per branch and record any sibling-branch dependency or required merge order.
+8. Open the story file and use it as the execution contract.
+9. Run the preparation phase before writing code.
+10. Run the story's validation steps.
+11. If sibling branches land first, refresh from latest `master` and rerun the story's validation steps before finalization.
+12. Record outcome in the relevant checkpoint log.
+13. Finish the default GitHub flow by merging the story branch to `master` once it is current with latest `master`, unless the user explicitly pauses or an exact blocker is recorded.
 
 ## Story Index
 
@@ -66,6 +68,7 @@ This phase will hold FleetGraph product and integration stories as the active pa
 | US-906 | Story branch lifecycle rule | `done` | P1 | `US-901` |
 | US-907 | Skip default browser-verification closeout | `done` | P1 | `US-904` |
 | US-908 | Parallel multi-agent branch workflow | `done` | P1 | `US-906` |
+| US-909 | Parallel-lane callout and agent prompt | `done` | P1 | `US-908` |
 
 ## Execution Order
 
@@ -94,6 +97,7 @@ This phase will hold FleetGraph product and integration stories as the active pa
 23. `US-614` moves `Preview next step` plus the guided-actions portion of FleetGraph quick actions into the FAB as a dedicated guided-actions panel, while preserving the existing review/apply flow and behavior instead of turning it into a hard graph rewrite.
 24. Active product packs continue to port into `docs/user-stories/` in dependency order.
 25. `US-908` makes parallel multi-agent branch work explicit by treating separate per-agent branches as the default and requiring a re-sync with latest `master` before merge when sibling branches land first.
+26. `US-909` makes continuation and story-selection responses explicitly say whether another checked-in story can run in parallel now and provide an inline copy-paste prompt for the recommended other agent when one exists.
 
 ## Files
 

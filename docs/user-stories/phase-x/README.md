@@ -14,6 +14,7 @@ This folder holds stories that change the execution harness itself.
 | US-906 | Story branch lifecycle rule | `done` | P1 | `US-901` |
 | US-907 | Skip default browser-verification closeout | `done` | P1 | `US-904` |
 | US-908 | Parallel multi-agent branch workflow | `done` | P1 | `US-906` |
+| US-909 | Parallel-lane callout and agent prompt | `done` | P1 | `US-908` |
 
 ## Execution Notes
 

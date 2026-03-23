@@ -35,4 +35,5 @@ All items should be complete before the story is marked `done`.
 - [ ] Residual risks or follow-ups are documented.
 - [ ] The user-facing audit checklist is concrete enough to run without code context.
 - [ ] The final user-facing handoff includes an explicit `What to test` section when behavior changed visibly.
+- [ ] If next-step guidance was given, it explicitly states whether another checked-in story can run in parallel now; when one exists, it includes a copy-paste prompt inline in chat instead of writing a file.
 - [ ] If finalization or deployment failed, the recovery path is recorded.

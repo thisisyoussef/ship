@@ -1,5 +1,6 @@
 {
   "capturedAt": "2026-03-17T12:36:53Z",
+  "lastAuditedOn": "2026-03-22",
   "publicDemoUrl": "https://ship-demo-production.up.railway.app",
   "readiness": {
     "httpStatus": "200"
@@ -9,9 +10,26 @@
       "documentId": "77ae8e61-144a-4e05-a83a-f090eddb8caf",
       "findingTitle": "Week start drift: FleetGraph Demo Week - Review and Apply"
     },
+    "ownerGap": {
+      "documentTitle": "FleetGraph Demo Week - Owner Gap",
+      "findingTitle": "Sprint owner gap: FleetGraph Demo Week - Owner Gap",
+      "status": "stable_public_demo"
+    },
+    "validationReady": {
+      "documentTitle": "FleetGraph Demo Week - Validation Ready",
+      "proofSurface": "FleetGraph entry on the review tab",
+      "status": "stable_public_demo"
+    },
     "workerGenerated": {
       "documentId": "a1e33dd0-7bef-4a97-817e-f0eb1bde5343",
-      "findingTitle": "Week start drift: FleetGraph Demo Week - Worker Generated"
+      "findingTitle": "Week start drift: FleetGraph Demo Week - Worker Generated",
+      "status": "stable_public_demo"
+    },
+    "unassignedIssues": {
+      "documentTitle": "FleetGraph Demo Week - Unassigned Issues",
+      "findingTitle": "3 unassigned issues in FleetGraph Demo Week - Unassigned Issues",
+      "status": "blocked_public_demo_feed_stale",
+      "notes": "Seeded in repo but blocked on the current public Railway findings feed during the March 22, 2026 assignment audit."
     }
   },
   "traces": {
@@ -24,5 +42,17 @@
       "runId": "019cfbcc-919b-7510-9c84-9b72267c1382",
       "publicUrl": "https://smith.langchain.com/public/e969f90a-ef5a-45e5-bded-9d6de7233311/r"
     }
+  },
+  "assignmentAudit": {
+    "stablePublicDemoLanes": [
+      "reviewAndApply",
+      "ownerGap",
+      "validationReady",
+      "workerGenerated"
+    ],
+    "blockedPublicDemoLanes": [
+      "unassignedIssues"
+    ],
+    "notes": "The unassigned-issues lane is implemented and seeded, but it is seeded in repo and blocked on the current public Railway findings feed."
   }
 }

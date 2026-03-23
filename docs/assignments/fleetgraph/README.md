@@ -78,6 +78,10 @@ All items are required to pass:
 - Demo inspection guide: `docs/guides/fleetgraph-demo-inspection.md`
 - Final evidence bundle: `docs/evidence/fleetgraph-mvp-evidence.json` and `docs/evidence/fleetgraph-mvp-evidence.md`
 - Submission workbook: `docs/assignments/fleetgraph/FLEETGRAPH.md`
+- Current assignment note: the evidence bundle distinguishes stable public-demo
+  proof lanes from the one known blocker, where `FleetGraph Demo Week -
+  Unassigned Issues` is seeded in repo but blocked on the current public Railway
+  findings feed
 - Post-MVP feedback pack: `docs/specs/fleetgraph/FLEETGRAPH-FEEDBACK-PHASE/`
 - Post-feedback polish pack audit: `docs/specs/fleetgraph/FLEETGRAPH-POLISH-PHASE/user-audit-checklist.md`
 - Round-two feedback pack: `docs/specs/fleetgraph/FLEETGRAPH-FEEDBACK-ROUND2-PHASE/`

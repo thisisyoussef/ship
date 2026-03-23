@@ -24,6 +24,21 @@ describe('FleetGraph polish audit docs', () => {
     expect(inspectionGuide).toContain('Week start drift: FleetGraph Demo Week - Worker Generated');
   });
 
+  it('records the seeded-but-blocked unassigned-issues public-demo lane truthfully', () => {
+    const inspectionGuide = readRepoFile('docs/guides/fleetgraph-demo-inspection.md');
+    const workbook = readRepoFile('docs/assignments/fleetgraph/FLEETGRAPH.md');
+    const evidenceBundle = readRepoFile('docs/evidence/fleetgraph-mvp-evidence.md');
+    const auditChecklist = readRepoFile(
+      'docs/specs/fleetgraph/FLEETGRAPH-ASSIGNMENT-COMPLETION-PHASE/user-audit-checklist.md'
+    );
+
+    for (const file of [inspectionGuide, workbook, evidenceBundle, auditChecklist]) {
+      expect(file.replace(/\s+/g, ' ')).toContain(
+        'seeded in repo but blocked on the current public Railway findings feed'
+      );
+    }
+  });
+
   it('matches the polished live UI path', () => {
     const inspectionGuide = readRepoFile('docs/guides/fleetgraph-demo-inspection.md');
     const auditChecklist = readRepoFile(

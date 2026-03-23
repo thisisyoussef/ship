@@ -2,7 +2,7 @@
 
 ## Status
 
-- State: `todo`
+- State: `done`
 - Owner: Codex
 - Depends on: `US-611`
 - Related branch:
@@ -117,7 +117,7 @@ Error path:
 Run these before handoff:
 
 ```bash
-pnpm --filter @ship/api exec vitest run src/services/fleetgraph/polish/docs.test.ts --config vitest.fleetgraph.config.ts
+npx pnpm --filter @ship/api exec vitest run src/services/fleetgraph/polish/docs.test.ts --config vitest.fleetgraph.config.ts
 git diff --check
 ```
 
@@ -132,24 +132,39 @@ git diff --check
 - Seeded verification entry or proof lane: final pack-level FleetGraph audit checklist
 - Route or URL: public Railway demo plus the workbook and demo inspection guide
 - Interaction: follow the final audit checklist end to end
-- Expected result: the docs and live surfaces agree on all five workbook use cases
+- Expected result: the docs and live surfaces agree on the stable public-demo
+  lanes, and the unassigned-issues lane is explicitly recorded as a seeded but
+  currently blocked public-demo proof lane
 - Failure signal: stale workbook wording, broken trace links, or mismatched proof instructions
 
 ## User Checkpoint Test
 
 1. Open the workbook and demo inspection guide.
 2. Follow the final FleetGraph audit path.
-3. Confirm each workbook use case has a visible product/evidence mapping.
+3. Confirm each workbook use case has a visible product/evidence mapping, even
+   when one lane is represented by an explicit blocked-state note instead of a
+   live Railway finding.
 
 ## What To Test
 
 - Route or URL: workbook, demo inspection guide, and public Railway demo
 - Interaction: run the final audit path from docs to live product
-- Expected visible result: docs, traces, and live surfaces agree on the completed FleetGraph assignment slice
+- Expected visible result: docs, traces, and live surfaces agree on the stable
+  proof lanes, and the unassigned-issues lane is called out as seeded in repo
+  but blocked on the current public Railway findings feed
 - Failure signal: stale docs, missing traces, or proof lanes that no longer match the product
 
 ## Checkpoint Result
 
-- Outcome: `pending`
+- Outcome: `done`
 - Evidence:
+  - Workbook, README references, demo inspection guide, and evidence bundle now
+    distinguish stable public-demo proof lanes from the seeded-but-blocked
+    unassigned-issues lane.
+  - `docs/evidence/fleetgraph-mvp-evidence.json` now records the assignment
+    audit state in machine-readable form.
+  - `api/src/services/fleetgraph/polish/docs.test.ts` now guards the blocked
+    public-demo note so the docs cannot drift back into overstating live proof.
 - Residual risk:
+  - The current public Railway demo still needs a future seed/feed refresh
+    before the unassigned-issues lane becomes publicly inspectable again.

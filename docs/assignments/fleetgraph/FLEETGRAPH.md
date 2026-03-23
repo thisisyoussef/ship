@@ -37,13 +37,13 @@ FleetGraph is a Ship-specific workflow agent, not a general chatbot. In the curr
 - Any branch that reaches `approval_interrupt`.
 - Current surfaced review/apply actions such as starting a week, assigning a sprint owner, approving a project plan, approving a week plan, and validating a week plan.
 - Applying a proactive finding through `/api/fleetgraph/findings/:id/apply` or applying an entry approval thread through `/api/fleetgraph/entry/apply`.
-- FleetGraph never mutates Ship during proactive advisory runs, `Check this page`, or `Preview next step` until a user explicitly confirms.
+- FleetGraph never mutates Ship during proactive advisory runs, page-analysis runs, or guided-step previews until a user explicitly confirms.
 
 ### Who it notifies and when
 
 - This repo does not implement email, Slack, or push delivery; FleetGraph notifies by surfacing UI state inside Ship.
 - Proactive findings appear in the `FleetGraphFindingsPanel` when the current document, or one of its `belongs_to` parents, matches the finding query for that page.
-- On-demand guidance appears only for the current-page viewer, either in the entry card or in the FAB after the user asks FleetGraph to analyze the page.
+- On-demand guidance appears only for the current-page viewer: analysis lives in the FAB, and guided next-step previews surface in a separate bottom-left floating overlay when the current page or tab has an actionable next step.
 - In practice that means PM-facing sprint, project, and weekly-plan viewers see proactive drift findings, while the person already on the page gets analysis and guided-step previews.
 
 ### How current-view context shapes on-demand mode
@@ -51,8 +51,8 @@ FleetGraph is a Ship-specific workflow agent, not a general chatbot. In the curr
 - FleetGraph is embedded in `UnifiedDocumentPage`, not on a standalone chat page
 - It keys entry threads by workspace, document, active tab, and nested path, so a review-tab thread is distinct from the same document’s default-tab thread.
 - It receives `context.current`, `ancestors`, `breadcrumbs`, `children`, `belongs_to`, `workspaceId`, `documentId`, `documentType`, `activeTab`, `nestedPath`, and `surface` from the current view.
-- `Preview next step` can build page-native approval drafts from the current surface, such as project-plan approval, week-plan approval, or week-plan validation on a sprint review tab.
-- `Check this page` uses the same current-view envelope but hands the analysis off into the FAB conversation so follow-up turns stay grounded in the current page.
+- Guided next-step preview can build page-native approval drafts from the current surface, such as project-plan approval, week-plan approval, or week-plan validation on a sprint review tab.
+- Page analysis uses the same current-view envelope but stays in the FAB conversation so follow-up turns remain grounded in the current page.
 
 ## Graph Diagram
 

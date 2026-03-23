@@ -1,26 +1,18 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { FleetGraphGuidedActionsPanel } from '@/components/FleetGraphGuidedActionsPanel'
 import {
   useFleetGraphAnalysis,
   type ConversationEntry,
   type FleetGraphFinding,
 } from '@/hooks/useFleetGraphAnalysis'
-import type { FleetGraphEntryInput } from '@/lib/fleetgraph-entry'
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                             */
 /* ------------------------------------------------------------------ */
 
 interface FleetGraphFabProps {
-  activeTab?: string
   documentId: string
   documentTitle: string
   documentType: string
-  guidedActionsDisabled?: boolean
-  guidedEntry: FleetGraphEntryInput | null
-  guidedHelperText: string
-  launchRequestKey?: number
-  nestedPath?: string
 }
 
 /* ------------------------------------------------------------------ */
@@ -106,17 +98,10 @@ function ConversationMessage({
 /* ------------------------------------------------------------------ */
 
 export function FleetGraphFab({
-  activeTab,
   documentId,
   documentTitle,
   documentType,
-  guidedActionsDisabled = false,
-  guidedEntry,
-  guidedHelperText,
-  launchRequestKey,
-  nestedPath,
 }: FleetGraphFabProps) {
-  const [activePanel, setActivePanel] = useState<'analysis' | 'guided-actions'>('analysis')
   const [isOpen, setIsOpen] = useState(false)
   const [input, setInput] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -126,13 +111,11 @@ export function FleetGraphFab({
     conversation,
     isAnalyzing,
     isResponding,
-    reset,
     sendMessage,
   } = useFleetGraphAnalysis()
 
   // Auto-analyze when opening on a new document
   const lastAnalyzedRef = useRef<string | null>(null)
-  const lastLaunchRequestKeyRef = useRef<number>(0)
 
   useEffect(() => {
     if (isOpen && documentId && lastAnalyzedRef.current !== documentId) {
@@ -140,19 +123,6 @@ export function FleetGraphFab({
       analyze(documentId, documentType, documentTitle)
     }
   }, [isOpen, documentId, documentType, documentTitle, analyze])
-
-  useEffect(() => {
-    if (!launchRequestKey || launchRequestKey === lastLaunchRequestKeyRef.current) {
-      return
-    }
-
-    lastLaunchRequestKeyRef.current = launchRequestKey
-    lastAnalyzedRef.current = documentId
-    setActivePanel('analysis')
-    setIsOpen(true)
-    reset()
-    analyze(documentId, documentType, documentTitle)
-  }, [analyze, documentId, documentTitle, documentType, launchRequestKey, reset])
 
   // Auto-scroll on new messages
   useEffect(() => {
@@ -209,96 +179,62 @@ export function FleetGraphFab({
               <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path d="M13 10V3L4 14h7v7l9-11h-7z" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} />
               </svg>
-              <span className="text-sm font-semibold text-gray-900">FleetGraph</span>
+              <span className="text-sm font-semibold text-gray-900">FleetGraph analysis</span>
               <span className="text-xs text-gray-500 ml-auto">
                 {documentType}: {documentTitle}
               </span>
             </div>
-            <div className="mt-3 flex gap-2">
-              <button
-                aria-pressed={activePanel === 'analysis'}
-                className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
-                  activePanel === 'analysis'
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-100'
-                }`}
-                onClick={() => setActivePanel('analysis')}
-                type="button"
-              >
-                Analysis
-              </button>
-              <button
-                aria-pressed={activePanel === 'guided-actions'}
-                className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
-                  activePanel === 'guided-actions'
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-100'
-                }`}
-                onClick={() => setActivePanel('guided-actions')}
-                type="button"
-              >
-                Guided actions
-              </button>
-            </div>
+            <p className="mt-3 text-xs text-gray-500">
+              Ask FleetGraph to review this page and follow up in the same analysis thread.
+            </p>
           </div>
 
           {/* Content */}
-          {activePanel === 'analysis' ? (
-            <>
-              <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
-                {isAnalyzing && conversation.length === 0 && (
-                  <div className="flex items-center gap-2 text-sm text-gray-500">
-                    <div className="w-4 h-4 border-2 border-indigo-300 border-t-indigo-600 rounded-full animate-spin" />
-                    Analyzing {documentType}...
-                  </div>
-                )}
-
-                {conversation.map((entry, idx) => (
-                  <ConversationMessage
-                    key={idx}
-                    entry={entry}
-                  />
-                ))}
-
-                {isResponding && (
-                  <div className="flex items-center gap-2 text-sm text-gray-500">
-                    <div className="w-3 h-3 border-2 border-indigo-300 border-t-indigo-600 rounded-full animate-spin" />
-                    Thinking...
-                  </div>
-                )}
-              </div>
-
-              {/* Chat input */}
-              <form className="px-4 py-3 border-t border-gray-200" onSubmit={handleSubmit}>
-                <div className="flex gap-2">
-                  <input
-                    className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm text-black caret-black placeholder:text-gray-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    disabled={isAnalyzing || isResponding}
-                    onChange={(e) => setInput(e.target.value)}
-                    placeholder="Ask a follow-up..."
-                    type="text"
-                    value={input}
-                  />
-                  <button
-                    className="px-3 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    disabled={!input.trim() || isAnalyzing || isResponding}
-                    type="submit"
-                  >
-                    Send
-                  </button>
+          <>
+            <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
+              {isAnalyzing && conversation.length === 0 && (
+                <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <div className="w-4 h-4 border-2 border-indigo-300 border-t-indigo-600 rounded-full animate-spin" />
+                  Analyzing {documentType}...
                 </div>
-              </form>
-            </>
-          ) : (
-            <div className="flex-1 overflow-y-auto p-4">
-              <FleetGraphGuidedActionsPanel
-                activeTab={activeTab}
-                entry={guidedActionsDisabled ? null : guidedEntry}
-                helperText={guidedHelperText}
-                nestedPath={nestedPath}
-              />
+              )}
+
+              {conversation.map((entry, idx) => (
+                <ConversationMessage
+                  key={idx}
+                  entry={entry}
+                />
+              ))}
+
+              {isResponding && (
+                <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <div className="w-3 h-3 border-2 border-indigo-300 border-t-indigo-600 rounded-full animate-spin" />
+                  Thinking...
+                </div>
+              )}
             </div>
-          )}
+
+            {/* Chat input */}
+            <form className="px-4 py-3 border-t border-gray-200" onSubmit={handleSubmit}>
+              <div className="flex gap-2">
+                <input
+                  className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm text-black caret-black placeholder:text-gray-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  disabled={isAnalyzing || isResponding}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Ask a follow-up..."
+                  type="text"
+                  value={input}
+                />
+                <button
+                  className="px-3 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  disabled={!input.trim() || isAnalyzing || isResponding}
+                  type="submit"
+                >
+                  Send
+                </button>
+              </div>
+            </form>
+          </>
         </div>
       )}
     </>

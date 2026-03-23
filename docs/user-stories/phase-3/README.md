@@ -12,8 +12,9 @@ This folder holds FleetGraph assignment-gap stories plus the UX, reliability, de
 6. Treat `US-618` as the owner-picker follow-through on top of `US-615`, so FleetGraph can choose the actual sprint owner instead of forcing self-assignment.
 7. Treat `US-616` as the issue-assignment follow-through once its dependency chain is clear.
 8. Treat `US-606`, `US-607`, `US-613`, and `US-614` as sidecar improvements, not replacements for the original assignment-gap stories.
-9. Treat `US-619` as a post-tail extension that should wait for both `US-616` and `US-618`, then reuse the finished proactive action bars in a global left-sidebar queue surface.
+9. Treat `US-619` as a post-tail extension that should wait for `US-616`, `US-618`, and `US-623`, then reuse the finished proactive action bars while complementing the analysis FAB plus guided overlay current-page surfaces.
 10. Treat `US-620`, `US-621`, and `US-622` as shipped-surface hardening stories that should land before the remaining P2 UI tail work.
+11. Treat `US-623` as the current-page guided-surface refactor that removes the embedded entry card and splits guided next-step help into its own floating overlay ahead of the global queue work.
 
 ## Story Sequence
 
@@ -36,4 +37,5 @@ This folder holds FleetGraph assignment-gap stories plus the UX, reliability, de
 | US-613 | FleetGraph panel gradient removal | `done` | P2 | `US-612` |
 | US-614 | FleetGraph FAB guided-actions panel convergence | `done` | P2 | `US-613` |
 | US-616 | FleetGraph assign-issues review/apply follow-through | `done` | P2 | `US-614` |
-| US-619 | FleetGraph left-sidebar global findings queue | `todo` | P2 | `US-616`, `US-618` |
+| US-623 | FleetGraph guided-actions floating overlay | `in-progress` | P2 | `US-614`, `US-617` |
+| US-619 | FleetGraph left-sidebar global findings queue | `todo` | P2 | `US-616`, `US-618`, `US-623` |

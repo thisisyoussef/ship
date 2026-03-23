@@ -124,7 +124,7 @@ export function FleetGraphPanelShell({
     ? 'Checking page context'
     : hasAlerts
       ? `${activeFindingCount} proactive ${activeFindingCount === 1 ? 'alert' : 'alerts'}`
-      : 'On-demand guidance ready';
+      : 'Monitoring this page';
 
   return (
     <section className="border-b border-border bg-background">
@@ -183,10 +183,10 @@ export function FleetGraphPanelShell({
               </span>
             </div>
             <p className="text-sm font-semibold text-slate-950">
-              Page guidance and proactive alerts
+              Proactive alerts on this page
             </p>
             <p className="text-sm text-muted">
-              Open FleetGraph to review the current page, preview the next guided step, and check nearby proactive signals without losing the rest of the document view.
+              Open FleetGraph to inspect nearby proactive signals without losing the rest of the document view. Guided next steps appear separately when FleetGraph finds one for the current page.
             </p>
           </div>
         </div>

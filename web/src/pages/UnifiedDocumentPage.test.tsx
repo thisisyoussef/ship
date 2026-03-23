@@ -59,41 +59,29 @@ vi.mock('@/contexts/CurrentDocumentContext', () => ({
   }),
 }));
 
-vi.mock('@/components/FleetGraphEntryCard', () => ({
-  FleetGraphEntryCard: ({
-    helperText,
-    isActionDisabled,
-    onCheckCurrentContext,
-  }: {
-    helperText: string
-    isActionDisabled?: boolean
-    onCheckCurrentContext?: () => void
-  }) => (
-    <div>
-      <div>FleetGraph entry</div>
-      <div>{helperText}</div>
-      <button disabled={isActionDisabled} onClick={() => onCheckCurrentContext?.()} type="button">
-        Check this page
-      </button>
-    </div>
-  ),
-}));
-
 vi.mock('@/components/FleetGraphFindingsPanel', () => ({
   FleetGraphFindingsPanel: () => <div>FleetGraph proactive</div>,
+}));
+
+vi.mock('@/components/FleetGraphGuidedActionsOverlay', () => ({
+  FleetGraphGuidedActionsOverlay: ({
+    entry,
+    isActionDisabled,
+  }: {
+    entry?: { document: { id: string } } | null
+    isActionDisabled?: boolean
+  }) => (
+    <div>{`FleetGraph guided overlay ${entry?.document.id ?? 'none'} ${isActionDisabled ? 'disabled' : 'ready'}`}</div>
+  ),
 }));
 
 vi.mock('@/components/FleetGraphFab', () => ({
   FleetGraphFab: ({
     documentId,
-    guidedEntry,
-    launchRequestKey,
   }: {
     documentId: string
-    guidedEntry?: { document: { id: string } } | null
-    launchRequestKey?: number
   }) => (
-    <div>{`FleetGraph FAB ${documentId} launch ${launchRequestKey ?? 0} guided ${guidedEntry?.document.id ?? 'none'}`}</div>
+    <div>{`FleetGraph FAB ${documentId} analysis`}</div>
   ),
 }));
 
@@ -224,11 +212,9 @@ describe('UnifiedDocumentPage', () => {
 
     expect(await screen.findByTestId('fleetgraph-document-page-shell')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /open fleetgraph panel/i })).toBeInTheDocument();
+    expect(screen.getByText('FleetGraph guided overlay sprint-1 ready')).toBeInTheDocument();
+    expect(screen.getByText('FleetGraph FAB sprint-1 analysis')).toBeInTheDocument();
     expect(screen.queryByText('FleetGraph entry')).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: /open fleetgraph panel/i }));
-
-    expect(await screen.findByText('FleetGraph entry')).toBeInTheDocument();
   });
 
   it('keeps the FleetGraph week route in a page-level scroll shell', async () => {
@@ -257,7 +243,7 @@ describe('UnifiedDocumentPage', () => {
     expect(tabContent).not.toHaveClass('overflow-hidden');
   });
 
-  it('routes Check this page through the FAB handoff on document pages', async () => {
+  it('keeps the guided overlay separate from the analysis FAB on document pages', async () => {
     vi.mocked(apiGet).mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -276,16 +262,8 @@ describe('UnifiedDocumentPage', () => {
       wrapper: createWrapper('/documents/sprint-1'),
     });
 
-    fireEvent.click(await screen.findByRole('button', { name: /open fleetgraph panel/i }));
-    expect(await screen.findByText('FleetGraph entry')).toBeInTheDocument();
-    expect(
-      screen.getByText('FleetGraph FAB sprint-1 launch 0 guided sprint-1')
-    ).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Check this page' }));
-
-    expect(
-      await screen.findByText('FleetGraph FAB sprint-1 launch 1 guided sprint-1')
-    ).toBeInTheDocument();
+    expect(await screen.findByText('FleetGraph guided overlay sprint-1 ready')).toBeInTheDocument();
+    expect(screen.getByText('FleetGraph FAB sprint-1 analysis')).toBeInTheDocument();
+    expect(screen.queryByText('FleetGraph entry')).not.toBeInTheDocument();
   });
 });

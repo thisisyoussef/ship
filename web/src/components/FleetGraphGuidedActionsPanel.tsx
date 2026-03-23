@@ -1,9 +1,13 @@
 import { useEffect } from 'react'
 
 import { useFleetGraphDebugSurface } from '@/components/FleetGraphDebugSurface'
-import { useFleetGraphEntry } from '@/hooks/useFleetGraphEntry'
 import { buildEntryDebugSnapshot } from '@/lib/fleetgraph-debug'
-import type { FleetGraphEntryInput } from '@/lib/fleetgraph-entry'
+import type {
+  FleetGraphApprovalEnvelope,
+  FleetGraphEntryApplyResponse,
+  FleetGraphEntryInput,
+  FleetGraphEntryResponse,
+} from '@/lib/fleetgraph-entry'
 
 const buttonClassName =
   'rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-900 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50'
@@ -15,17 +19,37 @@ const sectionLabelClassName =
 interface FleetGraphGuidedActionsPanelProps {
   activeTab?: string
   entry: FleetGraphEntryInput | null
+  fleetGraph: FleetGraphGuidedActionsController
   helperText: string
   nestedPath?: string
+  showPreviewButton?: boolean
+}
+
+export interface FleetGraphGuidedActionsController {
+  actionResult: FleetGraphEntryApplyResponse | null
+  applyApproval: (
+    threadId: string,
+    approval: FleetGraphApprovalEnvelope,
+    currentDocumentId: string
+  ) => void
+  dismissApproval: () => void
+  errorMessage: string | null
+  isApplying: boolean
+  isLoading: boolean
+  previewApproval: (entry: FleetGraphEntryInput) => void
+  reset: () => void
+  result: FleetGraphEntryResponse | undefined
+  snoozeApproval: () => void
 }
 
 export function FleetGraphGuidedActionsPanel({
   activeTab,
   entry,
+  fleetGraph,
   helperText,
   nestedPath,
+  showPreviewButton = true,
 }: FleetGraphGuidedActionsPanelProps) {
-  const fleetGraph = useFleetGraphEntry()
   const approval = fleetGraph.result?.approval
   const actionResult = fleetGraph.actionResult
   const { setEntry } = useFleetGraphDebugSurface()
@@ -51,10 +75,6 @@ export function FleetGraphGuidedActionsPanel({
     )
   }, [activeTab, fleetGraph.result, nestedPath, setEntry])
 
-  useEffect(() => {
-    fleetGraph.reset()
-  }, [entry?.activeTab, entry?.document.id, entry?.nestedPath])
-
   return (
     <div className="space-y-4">
       <div className="space-y-1">
@@ -63,14 +83,16 @@ export function FleetGraphGuidedActionsPanel({
         <p className="text-sm text-gray-600">{helperText}</p>
       </div>
 
-      <button
-        className={buttonClassName}
-        disabled={!entry || fleetGraph.isLoading}
-        onClick={() => entry && fleetGraph.previewApproval(entry)}
-        type="button"
-      >
-        Preview next step
-      </button>
+      {showPreviewButton ? (
+        <button
+          className={buttonClassName}
+          disabled={!entry || fleetGraph.isLoading}
+          onClick={() => entry && fleetGraph.previewApproval(entry)}
+          type="button"
+        >
+          Preview next step
+        </button>
+      ) : null}
 
       {fleetGraph.isLoading ? (
         <p className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">

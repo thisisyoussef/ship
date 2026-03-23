@@ -121,19 +121,19 @@ Use this immediately after the hook:
 
 "The important part is that I’m still on the same sprint. FleetGraph now uses the current view as on-demand context instead of starting a disconnected chat."
 
-**[Point to the entry card]**
+**[Point to the bottom-left guided overlay]**
 
-"This entry card is the on-demand doorway. It is grounded in the current page, the current tab, and the review state for this sprint."
+"FleetGraph checks the new page context automatically. When there is a meaningful next step, it surfaces that guidance in a floating overlay without making me hunt for it."
 
 ### 8. Show current-page analysis
 
-**[Click `Check this page`]**
+**[Wait for the overlay to surface `Validate week plan`]**
 
-"When I ask FleetGraph to check this page, it analyzes the current review tab in context. It can see the document I’m on, the route surface, and the related review state."
+"Here the next guided action is already ready. FleetGraph can see the document I’m on, the route surface, and the related review state, so it previews the consequential next step immediately."
 
-**[Wait for the FAB analysis to appear]**
+**[Open the FAB]**
 
-"This is not a generic chatbot answer. It is analysis tied to this exact sprint review."
+"The FAB is now the separate analysis surface. This is not a generic chatbot answer. It is analysis tied to this exact sprint review."
 
 **[Ask a short follow-up such as `What else should I do here?`]**
 
@@ -141,9 +141,9 @@ Use this immediately after the hook:
 
 ### 9. Show guided next step on the same page
 
-**[In the FAB, switch to `Guided actions` and click `Preview next step`]**
+**[Return attention to the overlay]**
 
-"Now FleetGraph turns that page context into a guided next step. It previews the next consequential action before it executes anything."
+"The guided step is separate from the chat now. FleetGraph surfaced it automatically when the page became relevant, but it still pauses before it executes anything."
 
 **[Point to `Validate week plan`]**
 
@@ -165,9 +165,9 @@ Use this immediately after the hook:
 
 "I’ll approve this guided step too."
 
-**[Wait for the FAB result and the page refresh]**
+**[Wait for the overlay result and the page refresh]**
 
-"Now FleetGraph shows the action result, and the page itself updates. `Plan Validation` now shows `Validated`, so the reviewer can see the outcome directly in Ship."
+"Now FleetGraph shows the action result in the overlay, and the page itself updates. `Plan Validation` now shows `Validated`, so the reviewer can see the outcome directly in Ship."
 
 ### 12. Wrap up
 

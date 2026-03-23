@@ -4,7 +4,7 @@
 
 - State: `todo`
 - Owner:
-- Depends on: `US-616`, `US-618`
+- Depends on: `US-616`, `US-618`, `US-623`
 - Related branch:
 - Related commit/PR:
 - Target environment: `local first`, `Railway demo via merged master`
@@ -34,7 +34,7 @@ In scope:
 Out of scope:
 
 1. New proactive finding types, ranking rules, or graph-scenario rewrites.
-2. Replacing the current-page FleetGraph entry, FAB, or embedded findings panel.
+2. Replacing the current-page guided overlay, analysis FAB, or embedded findings panel.
 3. Reworking Ship's global layout beyond what is needed for a new sidebar mode, badge, and queue view.
 4. Building a separate notification system outside the existing FleetGraph findings/action infrastructure.
 
@@ -44,7 +44,7 @@ Local sources to read before writing code:
 
 1. `web/src/pages/App.tsx` — global left-sidebar mode rail, routing, and badge visibility live here.
 2. `web/src/components/DashboardSidebar.tsx` — lightweight sidebar section pattern for a dedicated mode view.
-3. `web/src/pages/UnifiedDocumentPage.tsx` — current page-local FleetGraph entry and findings surfaces that this story should complement, not replace.
+3. `web/src/pages/UnifiedDocumentPage.tsx` — current page-local guided overlay, analysis FAB, and findings surfaces that this story should complement, not replace.
 4. `web/src/components/FleetGraphFindingsPanel.tsx` — existing proactive queue behavior, empty/error states, and action wiring.
 5. `web/src/components/FleetGraphFindingCard.tsx` — current review/apply/dismiss/snooze action bar UI to reuse instead of forking.
 6. `web/src/hooks/useFleetGraphFindings.ts` — findings query contract and cache invalidation shape.
@@ -129,7 +129,7 @@ Error path:
 - [ ] AC-2: The FleetGraph queue view lists active proactive findings from across the workspace instead of only the current document context.
 - [ ] AC-3: Existing finding action bars continue to support review/apply, dismiss, and snooze behavior from the global queue when the finding type allows it.
 - [ ] AC-4: Users can navigate from a queue item into the related Ship document context without losing clarity about why the finding was surfaced.
-- [ ] AC-5: Current page-local FleetGraph entry, FAB, and embedded findings surfaces remain intact.
+- [ ] AC-5: Current page-local guided overlay, analysis FAB, and embedded findings surfaces remain intact.
 - [ ] AC-6: Proof-lane docs and seeded verification data describe the new global queue surface truthfully.
 
 ## Local Validation

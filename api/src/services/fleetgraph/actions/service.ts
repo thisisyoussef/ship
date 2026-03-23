@@ -31,12 +31,14 @@ export class FleetGraphFindingActionError extends Error {
 }
 
 interface ApplyFindingActionInput {
+  actorUserId: string
   findingId: string
   request: Pick<Request, 'get' | 'header' | 'protocol'>
   workspaceId: string
 }
 
 interface ReviewFindingActionInput {
+  actorUserId: string
   findingId: string
   workspaceId: string
 }
@@ -60,6 +62,11 @@ interface FleetGraphFindingActionServiceDeps {
   runtime?: FleetGraphRuntime
 }
 
+type ReviewableFindingAction =
+  NonNullable<FleetGraphFindingRecord['recommendedAction']> & {
+    type: 'assign_owner' | 'start_week'
+  }
+
 function mapExecutions(
   findings: FleetGraphFindingRecord[],
   executions: FleetGraphFindingActionExecutionRecord[]
@@ -74,29 +81,87 @@ function mapExecutions(
   }))
 }
 
-function buildActionThreadId(finding: FleetGraphFindingRecord) {
+function buildActionThreadId(
+  finding: FleetGraphFindingRecord,
+  action: ReviewableFindingAction
+) {
   return [
     'fleetgraph',
     finding.workspaceId,
     'finding-review',
     finding.id,
-    'start-week',
+    action.type === 'assign_owner' ? 'assign-owner' : 'start-week',
   ].join(':')
 }
 
-function buildReview(finding: FleetGraphFindingRecord) {
+function buildReview(
+  finding: FleetGraphFindingRecord,
+  action: ReviewableFindingAction
+) {
+  if (action.type === 'assign_owner') {
+    return {
+      cancelLabel: 'Cancel',
+      confirmLabel: 'Assign owner in Ship',
+      evidence: [
+        ...action.evidence,
+        'FleetGraph will assign this sprint to you because you are applying the owner-fix action from this page.',
+      ],
+      summary: 'FleetGraph will assign this sprint to you in Ship so someone is explicitly accountable for coordination and follow-through.',
+      threadId: buildActionThreadId(finding, action),
+      title: 'Confirm before assigning sprint owner',
+    } satisfies FleetGraphFindingActionReview
+  }
+
   return {
     cancelLabel: 'Cancel',
     confirmLabel: 'Start week in Ship',
-    evidence: finding.recommendedAction?.evidence ?? [],
-    summary: finding.recommendedAction?.summary
-      ?? 'Review this recommendation before making a Ship change.',
-    threadId: buildActionThreadId(finding),
-    title: finding.recommendedAction?.title ?? 'Start week',
+    evidence: action.evidence,
+    summary: action.summary,
+    threadId: buildActionThreadId(finding, action),
+    title: action.title,
   } satisfies FleetGraphFindingActionReview
 }
 
-function ensureApplicableFinding(finding: FleetGraphFindingRecord | null) {
+function isReviewableFindingAction(
+  action: FleetGraphFindingRecord['recommendedAction'] | undefined
+): action is ReviewableFindingAction {
+  if (!action) {
+    return false
+  }
+
+  if (action.type === 'start_week') {
+    return action.endpoint.method === 'POST'
+  }
+
+  if (action.type === 'assign_owner') {
+    return action.endpoint.method === 'PATCH'
+  }
+
+  return false
+}
+
+function buildRequestedAction(
+  action: ReviewableFindingAction,
+  actorUserId: string
+): ReviewableFindingAction {
+  if (action.type !== 'assign_owner') {
+    return action
+  }
+
+  return {
+    ...action,
+    body: {
+      ...(action.body ?? {}),
+      owner_id: actorUserId,
+    },
+    summary: 'Assign yourself as sprint owner so someone is accountable for coordination and follow-through.',
+  }
+}
+
+function ensureApplicableFinding(
+  finding: FleetGraphFindingRecord | null,
+  actorUserId: string
+) {
   if (!finding) {
     throw new FleetGraphFindingActionError(
       'FleetGraph finding not found',
@@ -112,14 +177,17 @@ function ensureApplicableFinding(finding: FleetGraphFindingRecord | null) {
   }
 
   const action = finding.recommendedAction
-  if (!action || action.type !== 'start_week' || action.endpoint.method !== 'POST') {
+  if (!isReviewableFindingAction(action)) {
     throw new FleetGraphFindingActionError(
-      'This FleetGraph finding does not expose a valid start-week action.',
+      'This FleetGraph finding does not expose a valid FleetGraph review/apply action.',
       400
     )
   }
 
-  return finding
+  return {
+    finding,
+    requestedAction: buildRequestedAction(action, actorUserId),
+  }
 }
 
 async function hydrateFinding(
@@ -132,14 +200,23 @@ async function hydrateFinding(
     [finding.id]
   )
 
-  return mapExecutions([finding], executions)[0] as FleetGraphFindingWithExecution
+  const latestFinding = await findingStore.getFindingById(
+    finding.id,
+    finding.workspaceId
+  )
+
+  return mapExecutions(
+    [latestFinding ?? finding],
+    executions
+  )[0] as FleetGraphFindingWithExecution
 }
 
 async function ensurePendingReview(
   runtime: FleetGraphRuntime,
-  finding: FleetGraphFindingRecord
+  finding: FleetGraphFindingRecord,
+  requestedAction: ReviewableFindingAction
 ) {
-  const threadId = buildActionThreadId(finding)
+  const threadId = buildActionThreadId(finding, requestedAction)
   const pendingInterrupts = await runtime.getPendingInterrupts(threadId)
     .catch(() => [])
 
@@ -153,7 +230,7 @@ async function ensurePendingReview(
     documentType: finding.documentType,
     findingId: finding.id,
     mode: 'on_demand',
-    requestedAction: finding.recommendedAction,
+    requestedAction,
     routeSurface: 'document-page',
     threadId,
     trigger: 'human-review',
@@ -174,27 +251,29 @@ export function createFleetGraphFindingActionService(
   })
 
   return {
-    async reviewStartWeekFinding(
+    async reviewFinding(
       input: ReviewFindingActionInput
     ): Promise<{ finding: FleetGraphFindingWithExecution; review: FleetGraphFindingActionReview }> {
-      const finding = ensureApplicableFinding(
-        await findingStore.getFindingById(input.findingId, input.workspaceId)
+      const { finding, requestedAction } = ensureApplicableFinding(
+        await findingStore.getFindingById(input.findingId, input.workspaceId),
+        input.actorUserId
       )
-      await ensurePendingReview(runtime, finding)
+      await ensurePendingReview(runtime, finding, requestedAction)
 
       return {
         finding: await hydrateFinding(actionStore, findingStore, finding),
-        review: buildReview(finding),
+        review: buildReview(finding, requestedAction),
       }
     },
 
-    async applyStartWeekFinding(
+    async applyFinding(
       input: ApplyFindingActionInput
     ): Promise<FleetGraphFindingWithExecution> {
-      const finding = ensureApplicableFinding(
-        await findingStore.getFindingById(input.findingId, input.workspaceId)
+      const { finding, requestedAction } = ensureApplicableFinding(
+        await findingStore.getFindingById(input.findingId, input.workspaceId),
+        input.actorUserId
       )
-      const threadId = await ensurePendingReview(runtime, finding)
+      const threadId = await ensurePendingReview(runtime, finding, requestedAction)
 
       await runtime.resume(
         threadId,
@@ -204,11 +283,19 @@ export function createFleetGraphFindingActionService(
         }
       )
 
-      const refreshed = ensureApplicableFinding(
-        await findingStore.getFindingById(input.findingId, input.workspaceId)
-      )
+      const hydrated = await hydrateFinding(actionStore, findingStore, finding)
 
-      return hydrateFinding(actionStore, findingStore, refreshed)
+      if (
+        requestedAction.type === 'assign_owner'
+        && hydrated.actionExecution?.status === 'applied'
+      ) {
+        const resolved = await findingStore.resolveFinding(finding.findingKey)
+        if (resolved) {
+          return hydrateFinding(actionStore, findingStore, resolved)
+        }
+      }
+
+      return hydrated
     },
 
     async attachExecutions(

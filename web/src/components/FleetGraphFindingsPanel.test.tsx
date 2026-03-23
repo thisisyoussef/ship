@@ -264,7 +264,7 @@ describe('FleetGraphFindingsPanel', () => {
     expect(screen.queryByText('Week-start drift findings')).not.toBeInTheDocument();
   });
 
-  it('renders sprint-owner guidance as advisory-only instead of a fake apply flow', async () => {
+  it('renders sprint-owner guidance with the shared review-and-apply affordance', async () => {
     vi.mocked(apiGet).mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -285,6 +285,9 @@ describe('FleetGraphFindingsPanel', () => {
               statusReason: 'no_owner',
             },
             recommendedAction: {
+              body: {
+                owner_id: '11111111-1111-4111-8111-111111111111',
+              },
               endpoint: {
                 method: 'PATCH',
                 path: `/api/documents/${SPRINT_ID}`,
@@ -324,11 +327,132 @@ describe('FleetGraphFindingsPanel', () => {
       )
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: 'Review and apply' })
-    ).not.toBeInTheDocument();
-    expect(
       screen.queryByRole('button', { name: 'Start week in Ship' })
     ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Review and apply' })
+    ).toBeInTheDocument();
+  });
+
+  it('reviews and applies owner-gap actions through the shared finding flow', async () => {
+    vi.mocked(apiGet).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        findings: [
+          {
+            dedupeKey: 'dedupe-2',
+            documentId: SPRINT_ID,
+            documentType: 'sprint',
+            evidence: [
+              'No sprint owner is assigned right now.',
+              'No one is accountable for coordinating this sprint yet.',
+            ],
+            findingKey: 'sprint-no-owner:workspace-1:sprint-8',
+            findingType: 'sprint_no_owner',
+            id: 'finding-2',
+            metadata: {
+              sprintNumber: 8,
+              statusReason: 'no_owner',
+            },
+            recommendedAction: {
+              body: {
+                owner_id: '11111111-1111-4111-8111-111111111111',
+              },
+              endpoint: {
+                method: 'PATCH',
+                path: `/api/documents/${SPRINT_ID}`,
+              },
+              evidence: ['No sprint owner is assigned right now.'],
+              rationale: 'Assigning accountability should stay a human-reviewed action.',
+              summary: 'Assign yourself as sprint owner so someone is accountable for coordination and follow-through.',
+              targetId: SPRINT_ID,
+              targetType: 'sprint',
+              title: 'Assign sprint owner',
+              type: 'assign_owner',
+            },
+            status: 'active',
+            summary: 'Sprint 8 needs a named owner before work coordination slips.',
+            threadId: 'fleetgraph:workspace-1:scheduled-sweep',
+            title: 'Sprint owner gap: Sprint 8',
+            updatedAt: '2026-03-17T12:05:00.000Z',
+            workspaceId: 'workspace-1',
+          },
+        ],
+      }),
+    } as Response);
+    vi.mocked(apiPost).mockImplementation(async (path) => {
+      if (path === '/api/fleetgraph/findings/finding-2/review') {
+        return {
+          ok: true,
+          json: async () => ({
+            finding: {
+              id: 'finding-2',
+            },
+            review: {
+              cancelLabel: 'Cancel',
+              confirmLabel: 'Assign owner in Ship',
+              evidence: [
+                'No sprint owner is assigned right now.',
+                'FleetGraph will assign this sprint to you because you are applying the owner-fix action from this page.',
+              ],
+              summary: 'FleetGraph will assign this sprint to you in Ship so someone is explicitly accountable for coordination and follow-through.',
+              threadId: 'fleetgraph:workspace-1:finding-review:finding-2:assign-owner',
+              title: 'Confirm before assigning sprint owner',
+            },
+          }),
+        } as Response;
+      }
+
+      return {
+        ok: true,
+        json: async () => ({
+          finding: {
+            actionExecution: {
+              actionType: 'assign_owner',
+              appliedAt: '2026-03-17T12:05:00.000Z',
+              attemptCount: 1,
+              endpoint: {
+                method: 'PATCH',
+                path: `/api/documents/${SPRINT_ID}`,
+              },
+              findingId: 'finding-2',
+              message: 'Sprint owner assigned in Ship. Look for Owner showing you on this page.',
+              status: 'applied',
+              updatedAt: '2026-03-17T12:05:00.000Z',
+            },
+            id: 'finding-2',
+            status: 'resolved',
+          },
+        }),
+      } as Response;
+    });
+
+    render(
+      <FleetGraphFindingsPanel
+        context={createContext()}
+        currentDocumentId={DOCUMENT_ID}
+      />,
+      { wrapper: createWrapper() }
+    );
+
+    let now = 1_000;
+    vi.spyOn(Date, 'now').mockImplementation(() => now);
+    fireEvent.click(await screen.findByRole('button', { name: 'Review and apply' }));
+
+    await waitFor(() => {
+      expect(apiPost).toHaveBeenCalledWith('/api/fleetgraph/findings/finding-2/review');
+    });
+    expect(screen.getByText('Confirm before assigning sprint owner')).toBeInTheDocument();
+    expect(
+      screen.getByText('FleetGraph will assign this sprint to you in Ship so someone is explicitly accountable for coordination and follow-through.')
+    ).toBeInTheDocument();
+
+    now += 500;
+    fireEvent.click(screen.getByRole('button', { name: 'Assign owner in Ship' }));
+
+    await waitFor(() => {
+      expect(apiPost).toHaveBeenCalledWith('/api/fleetgraph/findings/finding-2/apply');
+    });
   });
 
   it('renders unassigned-issues guidance as advisory-only with clear count context', async () => {

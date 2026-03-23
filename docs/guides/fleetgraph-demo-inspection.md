@@ -54,22 +54,23 @@ Current public-demo blocker:
 10. Return to `Documents`.
 11. Open `FleetGraph Demo Week - Owner Gap`.
 12. Inspect the proactive FleetGraph card and confirm the owner-gap finding is visible.
-13. Confirm the suggested next step is advisory-only and does not expose `Review and apply`.
-14. Return to `Documents`.
-15. If `FleetGraph Demo Week - Unassigned Issues` is visible with its titled
+13. Confirm the suggested next step offers `Review and apply`.
+14. Click `Review and apply`, inspect the owner-assignment review state, then apply it when you are ready to verify the real path.
+15. Return to `Documents`.
+16. If `FleetGraph Demo Week - Unassigned Issues` is visible with its titled
     finding, inspect it as the fifth workbook lane.
-16. If that finding is missing, treat it as the known blocked public-demo lane
+17. If that finding is missing, treat it as the known blocked public-demo lane
     recorded in `docs/evidence/fleetgraph-mvp-evidence.md`.
-17. Return to `Documents`.
-18. Open `FleetGraph Demo Week - Validation Ready`.
-19. Open the `Review` tab for `FleetGraph Demo Week - Validation Ready`.
-20. Click `Check this page` in the entry card and inspect the FAB handoff.
-21. Ask a follow-up such as `What else should I look at?` in the FAB.
-22. Click `Preview next step` in the entry card and inspect the guided-step preview state.
-23. Open `FleetGraph debug`.
-24. Inspect the secondary debug dock for thread history and pending interrupts.
-25. Return to `Documents`.
-26. Open `FleetGraph Demo Week - Worker Generated`.
+18. Return to `Documents`.
+19. Open `FleetGraph Demo Week - Validation Ready`.
+20. Open the `Review` tab for `FleetGraph Demo Week - Validation Ready`.
+21. Click `Check this page` in the entry card and inspect the FAB handoff.
+22. Ask a follow-up such as `What else should I look at?` in the FAB.
+23. Click `Preview next step` in the entry card and inspect the guided-step preview state.
+24. Open `FleetGraph debug`.
+25. Inspect the secondary debug dock for thread history and pending interrupts.
+26. Return to `Documents`.
+27. Open `FleetGraph Demo Week - Worker Generated`.
 
 ## Expected FleetGraph Surface
 
@@ -86,9 +87,9 @@ Current public-demo blocker:
 - On `FleetGraph Demo Week - Owner Gap`, the proactive card shows:
   - `Sprint owner gap: FleetGraph Demo Week - Owner Gap`
   - accountability-focused evidence about the missing owner
-  - `Assign sprint owner` as advisory guidance only
+  - `Assign sprint owner` with a real `Review and apply` path
   - `Quick actions` with `Dismiss` and snooze controls
-  - no `Review and apply` button
+  - `Review and apply`
 - On `FleetGraph Demo Week - Unassigned Issues`, the proactive card shows:
   - `3 unassigned issues in FleetGraph Demo Week - Unassigned Issues`
   - count/context evidence about the unassigned work cluster
@@ -126,9 +127,14 @@ Current public-demo blocker:
 3. Confirm the summary explains the missing owner in user/accountability terms.
 4. Confirm the evidence mentions that nobody is accountable for coordinating the sprint right now.
 5. Confirm the suggested next step is `Assign sprint owner`.
-6. Confirm FleetGraph does not show `Review and apply` or any other fake mutation control for this case.
-7. Confirm lifecycle controls such as `Dismiss` and `Snooze 4h` still work.
-8. Failure signal: the owner-gap page has no finding, the copy is empty/system-shaped, or FleetGraph offers a broken apply path for owner assignment.
+6. Click `Review and apply`.
+7. Confirm the inline review explains that FleetGraph will assign the signed-in user as sprint owner.
+8. Confirm `Cancel` and `Assign owner in Ship` are both visible.
+9. Apply the action.
+10. Confirm the page refreshes and the `Owner` field now shows the signed-in demo user.
+11. Confirm the owner-gap finding disappears instead of resurfacing immediately.
+12. Confirm lifecycle controls such as `Dismiss` and `Snooze 4h` were available before apply.
+13. Failure signal: the owner-gap page has no finding, the review does not say who will be assigned, the page never shows an owner, or the same finding remains after apply.
 
 ## Expected Unassigned-Issues Flow When The Public Demo Feed Is Fresh
 

@@ -7,6 +7,15 @@ import {
 
 const nonEmptyString = z.string().min(1)
 
+export const FLEETGRAPH_TRACKED_FINDING_ACTION_TYPES = [
+  'assign_owner',
+  'start_week',
+] as const
+
+export const FleetGraphTrackedFindingActionTypeSchema = z.enum(
+  FLEETGRAPH_TRACKED_FINDING_ACTION_TYPES
+)
+
 export const FLEETGRAPH_FINDING_ACTION_STATUSES = [
   'pending',
   'applied',
@@ -19,7 +28,7 @@ export const FleetGraphFindingActionStatusSchema = z.enum(
 )
 
 export const FleetGraphFindingActionExecutionSchema = z.object({
-  actionType: z.literal('start_week'),
+  actionType: FleetGraphTrackedFindingActionTypeSchema,
   appliedAt: z.string().datetime().optional(),
   attemptCount: z.number().int().positive(),
   endpoint: FleetGraphActionEndpointSchema,
@@ -31,7 +40,7 @@ export const FleetGraphFindingActionExecutionSchema = z.object({
 }).strict()
 
 export interface FleetGraphFindingActionExecutionRecord {
-  actionType: 'start_week'
+  actionType: z.infer<typeof FleetGraphTrackedFindingActionTypeSchema>
   appliedAt?: Date
   attemptCount: number
   endpoint: Pick<FleetGraphRequestedAction['endpoint'], 'method' | 'path'>
@@ -43,6 +52,7 @@ export interface FleetGraphFindingActionExecutionRecord {
 }
 
 export interface BeginFindingActionExecutionInput {
+  actionType: z.infer<typeof FleetGraphTrackedFindingActionTypeSchema>
   endpoint: Pick<FleetGraphRequestedAction['endpoint'], 'method' | 'path'>
   findingId: string
   workspaceId: string
@@ -62,11 +72,11 @@ export interface BeginFindingActionExecutionResult {
 }
 
 export interface FleetGraphFindingActionStore {
-  beginStartWeekExecution(
+  beginExecution(
     input: BeginFindingActionExecutionInput,
     now?: Date
   ): Promise<BeginFindingActionExecutionResult>
-  finishStartWeekExecution(
+  finishExecution(
     input: FinishFindingActionExecutionInput,
     now?: Date
   ): Promise<FleetGraphFindingActionExecutionRecord>

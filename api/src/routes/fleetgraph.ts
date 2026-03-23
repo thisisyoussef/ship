@@ -337,7 +337,8 @@ export function createFleetGraphRouter(
     }
 
     try {
-      const response = await actionService.reviewStartWeekFinding({
+      const response = await actionService.reviewFinding({
+        actorUserId: auth.userId,
         findingId: String(req.params.id),
         workspaceId: auth.workspaceId,
       })
@@ -409,7 +410,8 @@ export function createFleetGraphRouter(
     }
 
     try {
-      const finding = await actionService.applyStartWeekFinding({
+      const finding = await actionService.applyFinding({
+        actorUserId: auth.userId,
         findingId: String(req.params.id),
         request: req,
         workspaceId: auth.workspaceId,

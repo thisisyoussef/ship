@@ -67,8 +67,8 @@ describe('FleetGraph finding action service', () => {
     }
     const service = createFleetGraphFindingActionService({
       actionStore: {
-        beginStartWeekExecution: vi.fn(),
-        finishStartWeekExecution: vi.fn(),
+        beginExecution: vi.fn(),
+        finishExecution: vi.fn(),
         listExecutionsForFindings: vi.fn(async () => []),
       },
       findingStore: {
@@ -83,7 +83,8 @@ describe('FleetGraph finding action service', () => {
       runtime: runtime as never,
     })
 
-    const result = await service.reviewStartWeekFinding({
+    const result = await service.reviewFinding({
+      actorUserId: '99999999-9999-4999-8999-999999999999',
       findingId: finding.id,
       workspaceId: 'workspace-1',
     })
@@ -93,8 +94,114 @@ describe('FleetGraph finding action service', () => {
     expect(result.review.confirmLabel).toBe('Start week in Ship')
   })
 
-  it('resumes an approved review with the current request context', async () => {
+  it('builds an explicit self-assignment review for owner-gap findings', async () => {
+    const finding = makeFinding({
+      evidence: ['No sprint owner is assigned right now.'],
+      findingKey: 'sprint-no-owner:workspace-1:sprint-1',
+      findingType: 'sprint_no_owner',
+      recommendedAction: {
+        endpoint: {
+          method: 'PATCH',
+          path: '/api/documents/11111111-1111-4111-8111-111111111111',
+        },
+        evidence: ['No sprint owner is assigned right now.'],
+        rationale: 'Assigning accountability should stay a human-reviewed action.',
+        summary: 'Name a sprint owner so someone is accountable for coordination and follow-through.',
+        targetId: '11111111-1111-4111-8111-111111111111',
+        targetType: 'sprint',
+        title: 'Assign sprint owner',
+        type: 'assign_owner',
+      },
+      summary: 'Sprint 1 needs a named owner before work coordination slips.',
+      title: 'Sprint owner gap',
+    })
+    const runtime = {
+      getCheckpointHistory: vi.fn(),
+      getPendingInterrupts: vi.fn(async () => []),
+      getState: vi.fn(),
+      invoke: vi.fn(async () => ({
+        branch: 'approval_required',
+        candidateCount: 1,
+        checkpointNamespace: 'fleetgraph',
+        contextKind: 'finding_review',
+        mode: 'on_demand',
+        outcome: 'approval_required',
+        path: ['resolve_trigger_context', 'select_scenarios', 'approval_interrupt'],
+        routeSurface: 'document-page',
+        scenarioResults: [],
+        threadId: 'fleetgraph:workspace-1:finding-review',
+        trigger: 'human-review',
+        workspaceId: 'workspace-1',
+        approvalRequired: true,
+      })),
+      invokeRaw: vi.fn(),
+      resume: vi.fn(),
+      checkpointer: {} as never,
+      checkpointerKind: 'memory',
+    }
+    const service = createFleetGraphFindingActionService({
+      actionStore: {
+        beginExecution: vi.fn(),
+        finishExecution: vi.fn(),
+        listExecutionsForFindings: vi.fn(async () => []),
+      },
+      findingStore: {
+        dismissFinding: vi.fn(),
+        getFindingById: vi.fn(async () => finding),
+        getFindingByKey: vi.fn(),
+        listActiveFindings: vi.fn(async () => []),
+        resolveFinding: vi.fn(),
+        snoozeFinding: vi.fn(),
+        upsertFinding: vi.fn(),
+      },
+      runtime: runtime as never,
+    })
+
+    const result = await service.reviewFinding({
+      actorUserId: '99999999-9999-4999-8999-999999999999',
+      findingId: finding.id,
+      workspaceId: 'workspace-1',
+    })
+
+    expect(runtime.invoke).toHaveBeenCalledWith(expect.objectContaining({
+      requestedAction: expect.objectContaining({
+        body: {
+          owner_id: '99999999-9999-4999-8999-999999999999',
+        },
+        type: 'assign_owner',
+      }),
+      threadId: expect.stringContaining('assign-owner'),
+    }))
+    expect(result.review.confirmLabel).toBe('Assign owner in Ship')
+    expect(result.review.summary).toContain('you')
+    expect(result.review.evidence).toContain(
+      'FleetGraph will assign this sprint to you because you are applying the owner-fix action from this page.'
+    )
+  })
+
+  it('resumes an approved assign-owner review with the current request context', async () => {
     const finding = makeFinding()
+    const ownerFinding = {
+      ...finding,
+      evidence: ['No sprint owner is assigned right now.'],
+      findingKey: 'sprint-no-owner:workspace-1:sprint-1',
+      findingType: 'sprint_no_owner' as const,
+      recommendedAction: {
+        endpoint: {
+          method: 'PATCH' as const,
+          path: '/api/documents/11111111-1111-4111-8111-111111111111',
+        },
+        evidence: ['No sprint owner is assigned right now.'],
+        rationale: 'Assigning accountability should stay a human-reviewed action.',
+        summary: 'Name a sprint owner so someone is accountable for coordination and follow-through.',
+        targetId: '11111111-1111-4111-8111-111111111111',
+        targetType: 'sprint' as const,
+        title: 'Assign sprint owner',
+        type: 'assign_owner' as const,
+      },
+      summary: 'Sprint 1 needs a named owner before work coordination slips.',
+      title: 'Sprint owner gap',
+    }
     const runtime = {
       getCheckpointHistory: vi.fn(),
       getPendingInterrupts: vi.fn(async () => [{ taskName: 'approval_interrupt' }]),
@@ -127,18 +234,18 @@ describe('FleetGraph finding action service', () => {
 
     const service = createFleetGraphFindingActionService({
       actionStore: {
-        beginStartWeekExecution: vi.fn(),
-        finishStartWeekExecution: vi.fn(),
+        beginExecution: vi.fn(),
+        finishExecution: vi.fn(),
         listExecutionsForFindings: vi.fn(async () => [{
-          actionType: 'start_week' as const,
+          actionType: 'assign_owner' as const,
           appliedAt: new Date('2026-03-17T12:05:00.000Z'),
           attemptCount: 1,
           endpoint: {
-            method: 'POST' as const,
-            path: '/api/weeks/11111111-1111-4111-8111-111111111111/start',
+            method: 'PATCH' as const,
+            path: '/api/documents/11111111-1111-4111-8111-111111111111',
           },
-          findingId: finding.id,
-          message: 'Week started successfully with 3 scoped issues.',
+          findingId: ownerFinding.id,
+          message: 'Sprint owner assigned in Ship. Look for Owner showing you on this page.',
           resultStatusCode: 200,
           status: 'applied' as const,
           updatedAt: new Date('2026-03-17T12:05:00.000Z'),
@@ -146,7 +253,7 @@ describe('FleetGraph finding action service', () => {
       },
       findingStore: {
         dismissFinding: vi.fn(),
-        getFindingById: vi.fn(async () => finding),
+        getFindingById: vi.fn(async () => ownerFinding),
         getFindingByKey: vi.fn(),
         listActiveFindings: vi.fn(async () => []),
         resolveFinding: vi.fn(),
@@ -169,7 +276,8 @@ describe('FleetGraph finding action service', () => {
       protocol: 'http',
     } as const
 
-    const result = await service.applyStartWeekFinding({
+    const result = await service.applyFinding({
+      actorUserId: '99999999-9999-4999-8999-999999999999',
       findingId: finding.id,
       request: request as never,
       workspaceId: 'workspace-1',
@@ -184,6 +292,7 @@ describe('FleetGraph finding action service', () => {
         }),
       })
     )
+    expect(runtime.invoke).not.toHaveBeenCalled()
     expect(result.actionExecution?.status).toBe('applied')
   })
 })

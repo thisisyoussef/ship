@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildFindingSummary,
+  canReviewFindingActionInFleetGraph,
   renderExecutionLabel,
 } from '@/lib/fleetgraph-findings-presenter';
 import type { FleetGraphFinding } from '@/lib/fleetgraph-findings';
@@ -43,5 +44,47 @@ describe('fleetgraph findings presenter', () => {
 
   it('keeps execution labels generic when no Ship write has run', () => {
     expect(renderExecutionLabel(makeFinding())).toBe('Suggested next step');
+  });
+
+  it('treats assign-owner findings as reviewable in FleetGraph', () => {
+    const finding = makeFinding({
+      recommendedAction: {
+        body: {
+          owner_id: 'user-1',
+        },
+        endpoint: {
+          method: 'PATCH',
+          path: '/api/documents/sprint-1',
+        },
+        evidence: ['No sprint owner is assigned right now.'],
+        rationale: 'Assigning accountability should stay a human-reviewed action.',
+        summary: 'Assign yourself as sprint owner so someone is accountable for coordination and follow-through.',
+        targetId: 'sprint-1',
+        targetType: 'sprint',
+        title: 'Assign sprint owner',
+        type: 'assign_owner',
+      },
+    });
+
+    expect(canReviewFindingActionInFleetGraph(finding)).toBe(true);
+  });
+
+  it('shows assign-owner execution labels after apply succeeds', () => {
+    const finding = makeFinding({
+      actionExecution: {
+        actionType: 'assign_owner',
+        attemptCount: 1,
+        endpoint: {
+          method: 'PATCH',
+          path: '/api/documents/sprint-1',
+        },
+        findingId: 'finding-1',
+        message: 'Sprint owner assigned in Ship. Look for Owner showing you on this page.',
+        status: 'applied',
+        updatedAt: '2026-03-17T12:05:00.000Z',
+      },
+    });
+
+    expect(renderExecutionLabel(finding)).toBe('Owner assigned in Ship');
   });
 });

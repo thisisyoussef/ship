@@ -57,9 +57,9 @@ function createShipClientMock() {
 
 function createActionStoreMock(): FleetGraphFindingActionStore {
   return {
-    beginStartWeekExecution: vi.fn(async (input) => ({
+    beginExecution: vi.fn(async (input) => ({
       execution: {
-        actionType: 'start_week' as const,
+        actionType: input.actionType,
         attemptCount: 1,
         endpoint: input.endpoint,
         findingId: input.findingId,
@@ -69,8 +69,8 @@ function createActionStoreMock(): FleetGraphFindingActionStore {
       },
       shouldExecute: true,
     })),
-    finishStartWeekExecution: vi.fn(async (input) => ({
-      actionType: 'start_week' as const,
+    finishExecution: vi.fn(async (input) => ({
+      actionType: input.actionType,
       appliedAt: input.appliedAt,
       attemptCount: 1,
       endpoint: input.endpoint,
@@ -751,5 +751,106 @@ describe('createFleetGraphRuntime', () => {
     expect(generate).toHaveBeenLastCalledWith(expect.objectContaining({
       input: expect.stringContaining('## User Question\nWhat else should I look at?'),
     }))
+  })
+
+  it('executes tracked assign-owner reviews through the runtime-mediated PATCH path', async () => {
+    const actionStore = createActionStoreMock()
+    const executeShipRestAction = vi.fn(async () => ({
+      body: {
+        owner_id: 'user-123',
+      },
+      ok: true,
+      status: 200,
+    }))
+    const runtime = createFleetGraphRuntime({
+      actionStore,
+      checkpointer: new MemorySaver(),
+      executeShipRestAction,
+      findingStore: createFindingStoreMock(),
+      llmAdapter: {
+        generate: vi.fn(),
+        model: 'gpt-5-mini',
+        provider: 'openai',
+      },
+      shipClient: createShipClientMock(),
+      tracingSettings: {
+        enabled: false,
+        flushTimeoutMs: 1000,
+        projectName: 'ship-fleetgraph',
+        sharePublicTraces: false,
+      },
+    })
+
+    await runtime.invoke({
+      contextKind: 'finding_review',
+      documentId: 'week-8',
+      documentType: 'sprint',
+      findingId: 'finding-owner-gap',
+      mode: 'on_demand',
+      requestedAction: {
+        body: {
+          owner_id: 'user-123',
+        },
+        endpoint: {
+          method: 'PATCH',
+          path: '/api/documents/week-8',
+        },
+        evidence: ['No sprint owner is assigned right now.'],
+        rationale: 'Assigning accountability should stay a human-reviewed action.',
+        summary: 'Assign yourself as sprint owner so someone is accountable for coordination.',
+        targetId: 'week-8',
+        targetType: 'sprint',
+        title: 'Assign sprint owner',
+        type: 'assign_owner',
+      },
+      routeSurface: 'document-page',
+      threadId: 'thread-assign-owner',
+      trigger: 'human-review',
+      workspaceId: 'workspace-123',
+    })
+
+    const resumed = await runtime.resume(
+      'thread-assign-owner',
+      'approved',
+      {
+        fleetgraphActionRequestContext: {
+          baseUrl: 'http://localhost:3000',
+        },
+      }
+    )
+
+    expect(executeShipRestAction).toHaveBeenCalledWith(
+      '/api/documents/week-8',
+      {
+        baseUrl: 'http://localhost:3000',
+      },
+      'PATCH',
+      {
+        owner_id: 'user-123',
+      }
+    )
+    expect(actionStore.beginExecution).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionType: 'assign_owner',
+        endpoint: {
+          method: 'PATCH',
+          path: '/api/documents/week-8',
+        },
+      }),
+      expect.any(Date)
+    )
+    expect(actionStore.finishExecution).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionType: 'assign_owner',
+        message: 'Sprint owner assigned in Ship. Look for Owner showing you on this page.',
+        resultStatusCode: 200,
+        status: 'applied',
+      }),
+      expect.any(Date)
+    )
+    expect(resumed.actionOutcome).toMatchObject({
+      message: 'Sprint owner assigned in Ship. Look for Owner showing you on this page.',
+      status: 'applied',
+    })
   })
 })

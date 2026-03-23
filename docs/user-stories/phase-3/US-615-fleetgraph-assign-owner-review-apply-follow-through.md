@@ -2,13 +2,13 @@
 
 ## Status
 
-- State: `in-progress`
-- Owner: `parallel agent (user-assigned)`
+- State: `done`
+- Owner: Codex
 - Depends on: `US-612`
 - Related branch: `codex/us-615-assign-owner-review-apply-fresh`
 - Active worktree: `/Users/youss/Development/gauntlet/ship-us-615`
-- Parallel dependency / merge order: Independent of `US-617` and `US-613`, but refresh from latest `master` before finalization if sibling stories land first.
-- Related commit/PR:
+- Parallel dependency / merge order: Refreshed from latest `master` before finalization; no remaining sibling-branch dependency is required for merge.
+- Related commit/PR: `pending finalization`
 - Target environment: `local first`, `Railway demo via merged master`
 
 ## Persona
@@ -60,13 +60,15 @@ Local sources to read before writing code:
 
 ### Preparation Notes
 
-- Pending implementation.
+- Smallest safe owner-assignment write: reuse Ship's existing `PATCH /api/documents/:id` mutation and keep it behind FleetGraph runtime-mediated apply.
+- Target owner rule for this story: assign the authenticated user who clicks `Assign owner in Ship`, and say that explicitly in the review copy.
+- Visible proof lane: `FleetGraph Demo Week - Owner Gap` should show the signed-in user in `Owner` after apply, and the owner-gap finding should disappear on refresh.
 
 ## Preconditions
 
-- [ ] `US-612` is complete and the assignment-critical workbook lane is closed honestly
-- [ ] A stable owner-gap proof lane exists on the demo
-- [ ] The Ship owner-assignment endpoint and page refresh behavior are audited before implementation
+- [x] `US-612` is complete and the assignment-critical workbook lane is closed honestly
+- [x] A stable owner-gap proof lane exists on the demo
+- [x] The Ship owner-assignment endpoint and page refresh behavior are audited before implementation
 
 ## TDD Plan
 
@@ -84,10 +86,10 @@ Local sources to read before writing code:
 
 ## Acceptance Criteria
 
-- [ ] AC-1: Sprint-owner-gap findings can enter a real FleetGraph review/apply flow.
-- [ ] AC-2: Applying the reviewed action assigns an owner in Ship and surfaces visible proof on the current page.
-- [ ] AC-3: Once an owner is assigned, FleetGraph no longer resurfaces the same owner-gap finding for that sprint.
-- [ ] AC-4: The seeded proof lane and docs make the end-to-end apply flow easy to test.
+- [x] AC-1: Sprint-owner-gap findings can enter a real FleetGraph review/apply flow.
+- [x] AC-2: Applying the reviewed action assigns an owner in Ship and surfaces visible proof on the current page.
+- [x] AC-3: Once an owner is assigned, FleetGraph no longer resurfaces the same owner-gap finding for that sprint.
+- [x] AC-4: The seeded proof lane and docs make the end-to-end apply flow easy to test.
 
 ## Local Validation
 
@@ -111,26 +113,32 @@ git diff --check
 
 - Seeded verification entry or proof lane: `FleetGraph Demo Week - Owner Gap`
 - Route or URL: `Documents` -> `FleetGraph Demo Week - Owner Gap`
-- Interaction: open FleetGraph, review the owner-gap finding, apply the owner-assignment action, then refresh the page state
-- Expected result: the sprint owner is assigned visibly, the owner-gap finding resolves, and FleetGraph does not re-offer the same owner-gap step
+- Interaction: open FleetGraph, review the owner-gap finding, confirm the review says FleetGraph will assign the signed-in user, apply the owner-assignment action, then refresh the page state
+- Expected result: the sprint owner is assigned visibly to the signed-in user, the owner-gap finding resolves, and FleetGraph does not re-offer the same owner-gap step
 - Failure signal: the finding remains advisory-only, the write is not visible on the page, or the same gap resurfaces immediately after apply
 
 ## User Checkpoint Test
 
 1. Open `FleetGraph Demo Week - Owner Gap`.
 2. Open the owner-gap finding.
-3. Review and apply the owner-assignment step through FleetGraph.
-4. Confirm the page shows an owner and the owner-gap finding disappears.
+3. Review the owner-assignment step through FleetGraph and confirm it says the signed-in user will be assigned.
+4. Apply the owner-assignment step through FleetGraph.
+5. Confirm the page shows the signed-in user as owner and the owner-gap finding disappears.
 
 ## What To Test
 
 - Route or URL: `Documents` -> `FleetGraph Demo Week - Owner Gap`
-- Interaction: apply the FleetGraph owner-assignment step from the proactive finding
-- Expected visible result: the sprint owner becomes visible on the page and the owner-gap finding is gone
+- Interaction: click `Review and apply`, confirm the review says it will assign the signed-in user, then click `Assign owner in Ship`
+- Expected visible result: the sprint owner becomes visible on the page as the signed-in user and the owner-gap finding is gone
 - Failure signal: FleetGraph still only shows advisory text or the same finding remains after apply
 
 ## Checkpoint Result
 
-- Outcome: `pending`
+- Outcome: `implemented locally`
 - Evidence:
+  - FleetGraph now treats `assign_owner` as a real finding review/apply action instead of leaving the owner-gap card advisory-only.
+  - The apply path runs through FleetGraph runtime, writes owner assignment through Ship's existing document patch route, refreshes the current page, and resolves the owner-gap finding after a successful apply.
+  - The seeded proof lane remains `FleetGraph Demo Week - Owner Gap`, and the inspection guide now tells reviewers to confirm the review copy, owner field, and finding disappearance on the same page.
 - Residual risk:
+  - This first trustworthy path only self-assigns the authenticated user; assigning someone else still needs a separate picker or recommendation flow.
+  - Railway demo proof depends on merge-to-`master` auto-deploy, which has not been observed from this branch.

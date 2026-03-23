@@ -51,6 +51,9 @@ This phase will hold FleetGraph product and integration stories as the active pa
 | US-617 | FleetGraph entry nullable-context hardening | `done` | P1 | `US-612` |
 | US-615 | FleetGraph assign-owner review/apply follow-through | `done` | P1 | `US-612` |
 | US-618 | FleetGraph assign-owner picker follow-through | `done` | P1 | `US-615` |
+| US-620 | FleetGraph finding-review thread scoping fix | `todo` | P1 | `US-618` |
+| US-621 | FleetGraph post-comment fallback preview cleanup | `todo` | P1 | `US-601` |
+| US-622 | FleetGraph route-trigger enqueue and sweep bootstrap | `todo` | P1 | `US-612` |
 | US-613 | FleetGraph panel gradient removal | `done` | P2 | `US-612` |
 | US-614 | FleetGraph FAB guided-actions panel convergence | `todo` | P2 | `US-613` |
 | US-616 | FleetGraph assign-issues review/apply follow-through | `todo` | P2 | `US-614` |

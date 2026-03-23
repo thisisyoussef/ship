@@ -13,6 +13,8 @@ This folder holds FleetGraph assignment-gap stories plus the UX, reliability, de
 7. Treat `US-616` as the issue-assignment follow-through once its dependency chain is clear.
 8. Treat `US-606`, `US-607`, `US-613`, and `US-614` as sidecar improvements, not replacements for the original assignment-gap stories.
 9. Treat `US-619` as a post-tail extension that should wait for both `US-616` and `US-618`, then reuse the finished proactive action bars in a global left-sidebar queue surface.
+10. Treat `US-620`, `US-621`, and `US-622` as shipped-surface hardening stories that should land before the remaining P2 UI tail work.
+
 ## Story Sequence
 
 | ID | Title | State | Priority | Depends On |
@@ -28,6 +30,9 @@ This folder holds FleetGraph assignment-gap stories plus the UX, reliability, de
 | US-617 | FleetGraph entry nullable-context hardening | `done` | P1 | `US-612` |
 | US-615 | FleetGraph assign-owner review/apply follow-through | `done` | P1 | `US-612` |
 | US-618 | FleetGraph assign-owner picker follow-through | `done` | P1 | `US-615` |
+| US-620 | FleetGraph finding-review thread scoping fix | `todo` | P1 | `US-618` |
+| US-621 | FleetGraph post-comment fallback preview cleanup | `todo` | P1 | `US-601` |
+| US-622 | FleetGraph route-trigger enqueue and sweep bootstrap | `todo` | P1 | `US-612` |
 | US-613 | FleetGraph panel gradient removal | `done` | P2 | `US-612` |
 | US-614 | FleetGraph FAB guided-actions panel convergence | `todo` | P2 | `US-613` |
 | US-616 | FleetGraph assign-issues review/apply follow-through | `todo` | P2 | `US-614` |

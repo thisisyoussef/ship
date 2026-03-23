@@ -15,6 +15,8 @@ import {
   FLEETGRAPH_DEMO_OWNER_GAP_FINDING_SUMMARY,
   FLEETGRAPH_DEMO_OWNER_GAP_WEEK_TITLE,
   FLEETGRAPH_DEMO_PROJECT_TITLE,
+  FLEETGRAPH_DEMO_STORY_FINDING_SUMMARY,
+  FLEETGRAPH_DEMO_STORY_WEEK_TITLE,
   FLEETGRAPH_DEMO_THREAD_PREFIX,
   FLEETGRAPH_DEMO_UNASSIGNED_ISSUES_FINDING_SUMMARY,
   FLEETGRAPH_DEMO_UNASSIGNED_ISSUES_WEEK_TITLE,
@@ -44,6 +46,9 @@ export interface FleetGraphDemoFixtureResult {
   ownerGapWeekTitle: string
   projectId: string
   projectTitle: string
+  storyFindingTitle: string
+  storyWeekId: string
+  storyWeekTitle: string
   unassignedIssuesFindingTitle: string
   unassignedIssuesWeekId: string
   unassignedIssuesWeekTitle: string
@@ -466,6 +471,13 @@ export async function ensureFleetGraphDemoProofLane(
     successCriteria: 'The public demo shows an unvalidated review tab where FleetGraph can validate the week plan.',
     title: FLEETGRAPH_DEMO_VALIDATION_WEEK_TITLE,
   })
+  const storyWeekId = await ensureDemoWeek(queryable, input, projectId, {
+    plan: 'Start the week from the proactive FleetGraph finding, then stay on the same sprint to analyze the review tab and validate the week plan.',
+    sprintNumber: input.currentSprintNumber,
+    status: 'planning',
+    successCriteria: 'The public demo tells one continuous FleetGraph story on a single sprint: detect drift, pause for human approval, then use on-demand analysis and guided validation on the same page.',
+    title: FLEETGRAPH_DEMO_STORY_WEEK_TITLE,
+  })
   const ownerGapWeekId = await ensureDemoWeek(queryable, input, projectId, {
     ownerId: null,
     plan: 'Use the proactive FleetGraph panel to choose a sprint owner and apply it so the selected person becomes accountable on the page.',
@@ -490,6 +502,12 @@ export async function ensureFleetGraphDemoProofLane(
     queryable,
     input,
     validationWeekId,
+    input.currentSprintNumber
+  )
+  await ensureValidationReview(
+    queryable,
+    input,
+    storyWeekId,
     input.currentSprintNumber
   )
   const startDate = calculateWeekStartDate(
@@ -562,9 +580,32 @@ export async function ensureFleetGraphDemoProofLane(
     input.workspaceId,
     FLEETGRAPH_DEMO_UNASSIGNED_ISSUES_FINDING_SUMMARY
   )
+  const storyDraft = buildWeekStartFindingDraft(
+    {
+      startDate,
+      statusReason: 'planning_after_start',
+      week: {
+        id: storyWeekId,
+        issue_count: 0,
+        name: FLEETGRAPH_DEMO_STORY_WEEK_TITLE,
+        owner: {
+          email: input.ownerEmail,
+          id: input.ownerUserId,
+          name: input.ownerName,
+        },
+        program_name: input.programName,
+        sprint_number: input.currentSprintNumber,
+        status: 'planning',
+        workspace_sprint_start_date: input.workspaceSprintStartDate,
+      },
+    },
+    input.workspaceId,
+    FLEETGRAPH_DEMO_STORY_FINDING_SUMMARY
+  )
   const workerFindingKey = `week-start-drift:${input.workspaceId}:${workerWeekId}`
   await resetFindingByKey(queryable, findingStore, draft.findingKey)
   await resetFindingByKey(queryable, findingStore, ownerGapDraft.findingKey)
+  await resetFindingByKey(queryable, findingStore, storyDraft.findingKey)
   await resetFindingByKey(queryable, findingStore, unassignedIssuesDraft.findingKey)
   await resetFindingByKey(queryable, findingStore, workerFindingKey)
   await resetWorkerDemoProofLane(queryable, input.workspaceId)
@@ -609,6 +650,27 @@ export async function ensureFleetGraphDemoProofLane(
     summary: ownerGapDraft.summary,
     threadId: `${FLEETGRAPH_DEMO_THREAD_PREFIX}:${input.workspaceId}:${ownerGapWeekId}`,
     title: ownerGapDraft.title,
+    workspaceId: input.workspaceId,
+  }, now)
+  await findingStore.upsertFinding({
+    dedupeKey: `demo:${storyDraft.findingKey}`,
+    documentId: storyWeekId,
+    documentType: 'sprint',
+    evidence: storyDraft.evidence,
+    findingKey: storyDraft.findingKey,
+    findingType: 'week_start_drift',
+    metadata: {
+      ...storyDraft.metadata,
+      demoFixture: true,
+      inspectionProjectTitle: FLEETGRAPH_DEMO_PROJECT_TITLE,
+      inspectionWeekTitle: FLEETGRAPH_DEMO_STORY_WEEK_TITLE,
+      preserveDemoLane: true,
+      proofLane: 'seeded-final-demo-story',
+    },
+    recommendedAction: storyDraft.recommendedAction,
+    summary: storyDraft.summary,
+    threadId: `${FLEETGRAPH_DEMO_THREAD_PREFIX}:${input.workspaceId}:${storyWeekId}`,
+    title: storyDraft.title,
     workspaceId: input.workspaceId,
   }, now)
   await findingStore.upsertFinding({
@@ -661,6 +723,9 @@ export async function ensureFleetGraphDemoProofLane(
     ownerGapWeekTitle: FLEETGRAPH_DEMO_OWNER_GAP_WEEK_TITLE,
     projectId,
     projectTitle: FLEETGRAPH_DEMO_PROJECT_TITLE,
+    storyFindingTitle: storyDraft.title,
+    storyWeekId,
+    storyWeekTitle: FLEETGRAPH_DEMO_STORY_WEEK_TITLE,
     unassignedIssuesFindingTitle: unassignedIssuesDraft.title,
     unassignedIssuesWeekId,
     unassignedIssuesWeekTitle: FLEETGRAPH_DEMO_UNASSIGNED_ISSUES_WEEK_TITLE,

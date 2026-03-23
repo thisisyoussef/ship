@@ -11,10 +11,12 @@ Use this guide when verifying FleetGraph behavior on the sanctioned public demo.
 ## Named Inspection Targets
 
 - Project title: `FleetGraph Demo Project`
+- Final demo story week title: `FleetGraph Demo Week - One Story`
 - Seeded HITL week title: `FleetGraph Demo Week - Review and Apply`
 - Owner-gap week title: `FleetGraph Demo Week - Owner Gap`
 - Unassigned-issues week title: `FleetGraph Demo Week - Unassigned Issues`
 - Validation-ready week title: `FleetGraph Demo Week - Validation Ready`
+- Final demo story finding title: `Week start drift: FleetGraph Demo Week - One Story`
 - Sprint-owner proof lane: `FleetGraph Demo Week - Owner Gap`
 - Unassigned-issues proof lane: `FleetGraph Demo Week - Unassigned Issues`
 - Current-page analysis proof lane: `FleetGraph Demo Week - Validation Ready` on the `Review` tab
@@ -34,6 +36,10 @@ Stable public-demo proof lanes during the March 22, 2026 audit:
 - `FleetGraph Demo Week - Validation Ready`
 - `FleetGraph Demo Week - Worker Generated`
 
+Repo/bootstrap final-demo story lane:
+
+- `FleetGraph Demo Week - One Story` is the seeded single-sprint video path for the final submission. It intentionally starts with a week-start drift finding, then keeps the same sprint ready for on-demand review-tab analysis and guided validation after the week is started.
+
 Worker-generated lane contract:
 
 - `FleetGraph Demo Week - Worker Generated` should now regenerate through the same live worker path as the rest of Ship: active workspace sweeps are re-registered on API startup and watched write routes can enqueue fresh proactive work.
@@ -44,6 +50,27 @@ Current public-demo blocker:
 - `FleetGraph Demo Week - Unassigned Issues` is seeded in repo but blocked on
   the current public Railway findings feed. Treat that lane as blocked unless
   the titled finding is visibly present on the live demo.
+
+## Final Demo Story Flow
+
+Use this when recording the final video. It is intentionally narrower than the full audit flow.
+
+1. Open `FleetGraph Demo Week - One Story`.
+2. Confirm the proactive panel shows `Week start drift: FleetGraph Demo Week - One Story`.
+3. Confirm the evidence explains that the sprint is still in planning even though its start date has passed.
+4. Click `Review and apply`.
+5. Confirm nothing changes in Ship until you explicitly apply.
+6. Apply `Start week in Ship`.
+7. Confirm the page refreshes and the original drift condition is no longer the current active state.
+8. Open the `Review` tab on the same sprint.
+9. Click `Check this page`.
+10. Confirm the FAB opens and the analysis is grounded in the current review page.
+11. Ask a follow-up such as `What else should I do here?`
+12. Switch the FAB to `Guided actions`.
+13. Click `Preview next step`.
+14. Confirm the guided step is `Validate week plan`.
+15. Apply the guided step.
+16. Confirm the FAB shows the action result and `Plan Validation` updates to `Validated` on the page.
 
 ## UI Inspection Flow
 
@@ -89,6 +116,12 @@ Current public-demo blocker:
   - `Suggested next step`
   - `Quick actions`
   - `Review and apply`
+- On `FleetGraph Demo Week - One Story`, the proactive card shows:
+  - `Week start drift: FleetGraph Demo Week - One Story`
+  - evidence about the missed start date and current owner state
+  - `Review and apply`
+  - `Quick actions` with dismiss and snooze controls before apply
+  - a follow-on path where the same sprint can still use `Check this page` and `Guided actions` on the `Review` tab after the week is started
 - On `FleetGraph Demo Week - Owner Gap`, the proactive card shows:
   - `Sprint owner gap: FleetGraph Demo Week - Owner Gap`
   - accountability-focused evidence about the missing owner
@@ -214,6 +247,9 @@ blocked on the current public Railway findings feed.
 
 - In repo/bootstrap contract, re-running the demo bootstrap should reset the
   named week back to `planning`.
+- In repo/bootstrap contract, it should reset `FleetGraph Demo Week - One Story`
+  back to `planning`, recreate its week-start-drift finding, and reset its
+  linked review so `Plan Validation` is unset again.
 - In repo/bootstrap contract, it should reset `FleetGraph Demo Week - Owner Gap`
   back to an `active` sprint with no owner assigned.
 - In repo/bootstrap contract, it should reset `FleetGraph Demo Week - Unassigned

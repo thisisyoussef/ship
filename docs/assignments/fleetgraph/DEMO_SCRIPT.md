@@ -1,95 +1,182 @@
-# FleetGraph Demo Script
+# FleetGraph Final Demo Script
 
-**Duration:** 4-5 minutes
+**Duration:** 4-6 minutes
 
----
+## Goal
+
+Tell one clear story on one sprint:
+
+`Detection -> graph -> decision -> human step -> result`
+
+The video should prove that FleetGraph:
+
+- detects a real proactive problem
+- runs through an observable LangGraph path
+- proposes a concrete next step
+- pauses for human approval before mutating Ship
+- stays useful on demand from the current page
+- leaves a visible result in Ship after apply
+
+## Hook
+
+Use this as the cold open before you start clicking:
+
+"What if your project tool could catch a slipped sprint on its own, show you the exact graph run that found it, and still refuse to change anything until a human approves it? That is the whole story of this FleetGraph demo."
+
+## Intro
+
+Use this immediately after the hook:
+
+"I’m not going to tour every feature one by one. I’m going to follow one sprint from proactive detection to visible result, and I’ll show the same proof chain the whole way through: what the agent noticed, what path the graph took, what it proposed, where the human stepped in, and what changed in Ship afterward."
+
+## Demo Story Lane
+
+- URL: `https://ship-demo-production.up.railway.app`
+- Login: `dev@ship.local` / `admin123`
+- Project: `FleetGraph Demo Project`
+- Story sprint: `FleetGraph Demo Week - One Story`
+- Story finding: `Week start drift: FleetGraph Demo Week - One Story`
+- Proactive trace tab: `https://smith.langchain.com/public/d5f1a274-6f81-4c42-b8be-924791429323/r`
+- Approval-preview trace tab: `https://smith.langchain.com/public/e969f90a-ef5a-45e5-bded-9d6de7233311/r`
 
 ## Pre-Recording Checklist
 
-- [ ] LangSmith tab open with a recent FleetGraph trace
-- [ ] Logged out of Ship so you can show login
-- [ ] Active finding ready (the seed creates one automatically)
-
----
+- [ ] Log out of Ship so the video starts from a clean login.
+- [ ] Confirm `FleetGraph Demo Week - One Story` is visible in `Documents`.
+- [ ] Confirm the proactive panel on that sprint shows `Week start drift: FleetGraph Demo Week - One Story`.
+- [ ] Open both public LangSmith traces in separate tabs before recording.
+- [ ] If Railway has not picked up the new story lane yet, wait for the post-merge auto-deploy instead of improvising a different video path.
 
 ## Script
 
-**[Open browser to ship-demo-production.up.railway.app]**
+### 1. Cold open and frame the story
 
-"FleetGraph is a project intelligence agent built on LangGraph that watches your work and catches problems before they become blockers."
+**[Open on the `FleetGraph Demo Week - One Story` page with the proactive finding already visible]**
 
-**[Log in as dev@ship.local / admin123]**
+"What if your project tool could catch a slipped sprint on its own, show you the exact graph run that found it, and still refuse to change anything until a human approves it? That is the whole story of this FleetGraph demo."
 
-"When I log in, I see a floating button in the corner. That's FleetGraph - and it's already found something."
+"I’m not going to tour every feature one by one. I’m going to follow one sprint from proactive detection to visible result, and I’ll show the same proof chain the whole way through: what the agent noticed, what path the graph took, what it proposed, where the human stepped in, and what changed in Ship afterward."
 
-**[Click the FAB to open the popover]**
+### 2. Set up the story
 
-"When I open it, I see two sections. At the top - active findings. These are issues FleetGraph detected proactively by continuously monitoring my workspace."
+**[Open the public demo and log in]**
 
-**[Point to the finding]**
+"I’m going to show one FleetGraph story from detection to outcome on a single sprint, instead of touring every feature separately."
 
-"Right now it's showing a week-start drift. FleetGraph noticed this week is still marked as planning even though it started yesterday. It caught this automatically."
+**[Go to Documents and open `FleetGraph Demo Week - One Story`]**
 
-**[Read/highlight the 'Why this matters' section]**
+"This sprint is the seeded final-demo story lane. It starts in a bad state on purpose so we can verify the whole agent loop."
 
-"It tells me exactly why this matters - the week started March 16th, it's still in planning, and it shows who owns it. This isn't just an alert, it's context I can act on."
+### 3. Show proactive detection
 
-**[Point to 'Review and apply']**
+**[Point to the proactive FleetGraph panel]**
 
-"And here's the key - FleetGraph is offering to fix it. But notice what it says: 'You review this first. FleetGraph only acts after you confirm.' That's human-in-the-loop."
+"FleetGraph has already detected a real problem here: this week is still in planning even though its start date has already passed."
 
-**[Click "Review and apply"]**
+**[Read the finding title and the Why this matters evidence]**
 
-"When I click Review and Apply, I see exactly what FleetGraph wants to do - start this week. I can cancel if this isn't right, or confirm to let it execute."
+"What matters is that the agent is not just raising a generic alert. It shows the specific week, the missed start window, and the current ownership context, so I can understand why it surfaced this."
 
-**[Click Confirm]**
+**[Briefly point at quick actions]**
 
-"Once I approve, FleetGraph applies the change. The finding resolves because the problem is fixed."
+"It also gives lifecycle controls like dismiss and snooze, but the important path for this story is the recommended action."
 
-**[Stay on the FleetGraph entry card]**
+### 4. Show the human gate before action
 
-"This same entry card is also the on-demand mode. 'Help for this page' lets me ask FleetGraph to analyze whatever I'm looking at right now."
+**[Click `Review and apply`]**
 
-**[Click "Check this page"]**
+"Now FleetGraph is proposing a concrete fix: start the week in Ship. But it has not executed anything yet. This is the human-in-the-loop boundary."
 
-"When I click Check this page, FleetGraph analyzes this specific document in context - looking at its status, related issues, and anything that might need attention."
+**[Pause on the confirmation UI]**
 
-**[Wait for analysis]**
+"The agent has done the detection and prepared the action, but Ship still waits for me to confirm or cancel."
 
-"It's thinking through the page, and will surface anything relevant it finds."
+### 5. Show the graph and trace for the detection path
 
-**[Ask a follow-up]**
+**[Switch to the proactive LangSmith trace tab]**
 
-"Because it stays on the same FleetGraph thread, I can ask a follow-up without resetting the conversation."
+"Here is the graph run behind that proactive finding. This is the proof chain I want the reviewer to see: the trigger, the graph path, the finding that came out, and the proposed action."
 
-**[Switch to LangSmith tab/window - have this pre-opened]**
+**[Point out the proactive path]**
 
-"Under the hood, every FleetGraph action runs as a LangGraph workflow. Here's what that looks like."
+"This run shows the proactive branch selecting a candidate, ranking it, and preparing an approval-required outcome instead of mutating Ship automatically."
 
-**[Show the LangGraph trace in LangSmith]**
+**[Return to Ship]**
 
-"This is the actual graph that just executed. You can see each node - context gathering, analysis, decision making - and trace exactly how FleetGraph reasoned about the problem."
+"So we’ve now seen the detection and the graph path. Next is the human decision."
 
-**[Point out the graph structure]**
+### 6. Apply the proactive action and show the result
 
-"Every run is fully observable. No black box - you can see the path it took and why."
+**[Click `Start week in Ship`]**
 
-**[Wrap up]**
+"I’m approving the action."
 
-"That's FleetGraph. Proactive findings that catch drift before it becomes a problem. Human-in-the-loop gates so nothing happens without your approval. On-demand analysis when you need deeper insight. And full LangGraph observability for every decision. An agent that watches, reasons, and acts - but only when you say so."
+**[Wait for the page to refresh]**
 
----
+"Now the result is visible in Ship itself. The week has been started, and the original finding clears because the condition that triggered it is gone."
 
-## End
+### 7. Stay on the same sprint for on-demand mode
 
----
+**[Switch to the `Review` tab on the same sprint]**
 
-## Demo Environment
+"The important part is that I’m still on the same sprint. FleetGraph now uses the current view as on-demand context instead of starting a disconnected chat."
 
-- **URL:** https://ship-demo-production.up.railway.app
-- **Login:** dev@ship.local / admin123
-- **Demo Project:** FleetGraph Demo Project
-- **Demo Weeks:**
-  - FleetGraph Demo Week - Review and Apply
-  - FleetGraph Demo Week - Validation Ready
-  - FleetGraph Demo Week - Worker Generated
+**[Point to the entry card]**
+
+"This entry card is the on-demand doorway. It is grounded in the current page, the current tab, and the review state for this sprint."
+
+### 8. Show current-page analysis
+
+**[Click `Check this page`]**
+
+"When I ask FleetGraph to check this page, it analyzes the current review tab in context. It can see the document I’m on, the route surface, and the related review state."
+
+**[Wait for the FAB analysis to appear]**
+
+"This is not a generic chatbot answer. It is analysis tied to this exact sprint review."
+
+**[Ask a short follow-up such as `What else should I do here?`]**
+
+"And because it keeps the same thread, I can ask a follow-up without losing that page context."
+
+### 9. Show guided next step on the same page
+
+**[In the FAB, switch to `Guided actions` and click `Preview next step`]**
+
+"Now FleetGraph turns that page context into a guided next step. It previews the next consequential action before it executes anything."
+
+**[Point to `Validate week plan`]**
+
+"In this case, it proposes validating the week plan, and it tells me exactly where I’ll see the result on the current page."
+
+### 10. Show the graph and trace for the approval preview path
+
+**[Switch to the approval-preview LangSmith trace tab]**
+
+"This is the matching approval-preview graph path. Again, the goal is traceability: we can see how the graph reached an approval-required decision from the current page context."
+
+**[Point out that the run pauses instead of auto-applying]**
+
+"The graph pauses for confirmation instead of acting on its own, which is the same safety boundary we saw in proactive mode."
+
+### 11. Apply the guided action and show the final visible result
+
+**[Return to Ship and click `Apply`]**
+
+"I’ll approve this guided step too."
+
+**[Wait for the FAB result and the page refresh]**
+
+"Now FleetGraph shows the action result, and the page itself updates. `Plan Validation` now shows `Validated`, so the reviewer can see the outcome directly in Ship."
+
+### 12. Wrap up
+
+**[Stay on the updated review page]**
+
+"That’s the full story: FleetGraph detected a problem proactively, ran through an observable graph path, proposed a decision, paused for human approval, and then stayed useful on demand from the same sprint page until the visible result was complete."
+
+"The rest of the submission still includes the five use cases, five test cases, and their matching traces. This video is just the clearest single story that proves the system works."
+
+## Backup Note
+
+If the new story lane has not appeared on Railway yet after the merge auto-deploy, do not record around a broken state. Wait for the live demo to refresh, because this script depends on the seeded `FleetGraph Demo Week - One Story` path being present.

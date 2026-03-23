@@ -55,6 +55,7 @@ This phase will hold FleetGraph product and integration stories as the active pa
 | US-615 | FleetGraph assign-owner review/apply follow-through | `todo` | P1 | `US-612` |
 | US-613 | FleetGraph panel gradient removal | `todo` | P2 | `US-612` |
 | US-614 | FleetGraph FAB guided-actions panel convergence | `todo` | P2 | `US-613` |
+| US-616 | FleetGraph assign-issues review/apply follow-through | `todo` | P2 | `US-614` |
 
 ### Phase X: Harness and Workflow Evolution
 
@@ -95,7 +96,8 @@ This phase will hold FleetGraph product and integration stories as the active pa
 21. `US-615` turns the shipped sprint-owner-gap advisory flow into a real FleetGraph review/apply path for assigning accountability in Ship once the assignment-critical lane is complete.
 22. `US-613` removes the FleetGraph panel gradient after the assignment-critical sequence is complete, keeping the shell calmer without re-opening the core use-case work.
 23. `US-614` moves `Preview next step` plus the guided-actions portion of FleetGraph quick actions into the FAB as a dedicated guided-actions panel, while preserving the existing review/apply flow and behavior instead of turning it into a hard graph rewrite.
-24. Active product packs continue to port into `docs/user-stories/` in dependency order.
+24. `US-616` turns the shipped unassigned-issues advisory flow into a real FleetGraph review/apply path for closing the sprint coordination gap once the current tail stories are complete.
+25. Active product packs continue to port into `docs/user-stories/` in dependency order.
 25. `US-908` makes parallel multi-agent branch work explicit by treating separate per-agent branches as the default and requiring a re-sync with latest `master` before merge when sibling branches land first.
 26. `US-909` makes continuation and story-selection responses explicitly say whether another checked-in story can run in parallel now and provide an inline copy-paste prompt for the recommended other agent when one exists.
 

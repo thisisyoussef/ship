@@ -311,30 +311,38 @@ Cover:
 
 | Item | Amount |
 |------|--------|
-| Selected LLM API - input tokens | Not exposed separately by the current LangSmith payload for this repo's FleetGraph traces |
-| Selected LLM API - output tokens | Not exposed separately by the current LangSmith payload for this repo's FleetGraph traces |
+| OpenAI API - input tokens | about 5,386 input tokens in the captured Tuesday evidence window |
+| OpenAI API - output tokens | about 924 output tokens in the captured Tuesday evidence window |
 | Total invocations during development | 9 `fleetgraph.llm.generate` invocations in the captured Tuesday evidence window |
-| Total development spend | Not exposed by the current LangSmith/OpenAI integration on these traces |
+| Total development spend | about $0.0032 on `gpt-5-mini` pricing for the captured Tuesday evidence window |
 
 Observed live trace totals for the Tuesday evidence window (`2026-03-17T12:02:20Z` to `2026-03-17T12:32:47Z`):
 
 - `fleetgraph.runtime` root traces: 13
 - `fleetgraph.llm.generate` child invocations: 9
 - Total tokens recorded on child runs: 6,310
-- Trace limitation: the current payload records `total_tokens`, but not a reliable prompt/completion token split or dollar cost field for these runs
+- Average tokens per `fleetgraph.llm.generate` invocation: about 701
+- Public worker trace proof: the shared proactive trace records a single `fleetgraph.llm.generate` span with 552 total tokens on `gpt-5-mini`
+- Trace limitation: the public LangSmith run payload exposes `outputs.total_tokens`, but not populated `prompt_tokens`, `completion_tokens`, or `total_cost` fields for these runs, so the input/output split above is estimated from the same FleetGraph proactive/on-demand prompt mix used elsewhere in this workbook
 
 ### Production Cost Projections
 
 | Users | Monthly Cost |
 |-------|--------------|
-| 100 | about $18 |
-| 1,000 | about $182 |
-| 10,000 | about $1,815 |
+| 100 | about $2.34 |
+| 1,000 | about $23.43 |
+| 10,000 | about $234.27 |
 
 Assumptions:
 - Preferred default provider: OpenAI
+- Preferred default model: `gpt-5-mini`
 - Proactive runs per project per day: about 6 after debounce and thresholding
 - On-demand invocations per user per day: about 0.7
-- Average tokens per invocation: about 4,700 proactive, about 7,000 on-demand
-- Cost per run: about $0.0024 proactive, about $0.0035 on-demand
-- Estimated runs per day: scale-dependent; see presearch cost table
+- Active project assumption: about 1 project per 4 users
+- Average tokens per invocation: about 701 based on the LangSmith Tuesday evidence window
+- Cost per run: about $0.000355 using `gpt-5-mini` pricing and the same estimated 85.4% input / 14.6% output token mix
+- Estimated runs per day:
+  - 100 users: about 220
+  - 1,000 users: about 2,200
+  - 10,000 users: about 22,000
+- Clean sweeps stay deterministic and are not counted as LLM invocations

@@ -22,6 +22,9 @@ Use this file as durable working memory for recurring corrections, decisions, an
 - Re-sync before merge when sibling branches land first.
   Source: post-`US-907` user correction
   Meaning: if another branch merges while your story is still in flight, refresh from latest `master`, resolve conflicts, rerun the story validation, and only then finalize.
+- Shared merge lock coordinates finalization.
+  Source: `US-910`
+  Meaning: before finalization, inspect and claim the shared merge lock with `bash scripts/merge_lock.sh`; if another branch holds it, wait for release, then refresh from latest `master`, rerun validation, and only then finalize.
 - Parallel-lane availability must be surfaced explicitly.
   Source: post-`US-908` user correction
   Meaning: when the user asks to continue, choose the next story, or create a story, explicitly say whether another checked-in story is unblocked for parallel work right now instead of leaving that inference implicit.

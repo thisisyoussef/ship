@@ -83,6 +83,9 @@ Before you choose a next story, recommend a parallel lane, or start new story wo
 
 - Once the requested work is complete, default to the full GitHub flow automatically: commit the branch, push it, open a PR, merge it to `master`, sync local `master`, and delete the branch unless the user explicitly asks to pause finalization or use a different merge path.
 - Merge each story branch independently. Do not batch unrelated agent branches together or reuse a sibling branch just because it already exists.
+- Before finalization, inspect the shared merge lock with `bash scripts/merge_lock.sh status`. The single source of truth is the merge lock file in the repo's git common dir, as described in `docs/guides/merge-coordination.md`.
+- If another branch holds the merge lock, wait, then refresh from latest `master`, rerun validation, and only then claim the merge lock for the current branch.
+- Claim the merge lock for the current branch with explicit wait instructions before opening or merging the PR, and release it after finalization or record the exact blocker if it stays held.
 - Before opening or merging the PR, ensure the branch is current with `master`; if sibling branches landed first, rebase or merge `master`, resolve conflicts, rerun validation, then continue the default GitHub flow.
 - Treat merge-to-`master` as the default end of the story branch lifecycle; if that merge does not happen, record the exact blocker instead of silently leaving the story branch open.
 - If another in-flight branch must land first, keep this branch open only long enough to record the exact dependency, refresh from the new `master`, and complete the merge flow afterward.

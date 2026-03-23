@@ -87,6 +87,7 @@ Error path:
 - [ ] Fresh story branch is checked out from current `master` before edits begin
 - [ ] Any sibling-branch dependency or required merge order is recorded
 - [ ] If this story is active in parallel, the queue/Active Work visibility has landed on `master` or is being shipped as a separate docs-only correction now
+- [ ] If finalization will run, the shared merge lock claim/release plan is clear
 - [ ] Services/accounts exist
 - [ ] Secrets/config are present
 - [ ] Dependencies are healthy
@@ -127,6 +128,7 @@ If sibling branches land first before finalization, rerun this section after syn
 2. Record environment and command evidence if deployed.
 3. For deploy-relevant stories on auto-deployed surfaces, record how the live deployed surface will be checked and what counts as success or failure.
 4. Record the runtime proof path if blocked or not deployed.
+5. If finalization will run, claim the shared merge lock before merge and release it afterward or record the exact blocker.
 
 ## How To Verify
 

@@ -62,11 +62,11 @@ context = Path("docs/CONTEXT.md").read_text(encoding="utf-8")
 memory = Path("docs/WORKFLOW_MEMORY.md").read_text(encoding="utf-8")
 errors: list[str] = []
 
-for token in ("primary checked-in rulebook", "docs/user-stories/README.md", ".claude/CLAUDE.md", "copy-paste prompt"):
+for token in ("primary checked-in rulebook", "docs/user-stories/README.md", ".claude/CLAUDE.md", "copy-paste prompt", "merge lock"):
     if token not in agents:
         errors.append(f"AGENTS.md missing '{token}'")
 
-for token in ("AGENTS.md", "docs/WORKFLOW_MEMORY.md", "docs/user-stories/README.md", "docs/plans/", "docs/submissions/", "copy-paste prompt"):
+for token in ("AGENTS.md", "docs/WORKFLOW_MEMORY.md", "docs/user-stories/README.md", "docs/plans/", "docs/submissions/", "copy-paste prompt", "merge lock"):
     if token not in strategy:
         errors.append(f"docs/IMPLEMENTATION_STRATEGY.md missing '{token}'")
 
@@ -97,7 +97,7 @@ guide = Path("docs/user-stories/HOW_TO_CREATE_USER_STORIES.md").read_text(encodi
 done = Path("docs/DEFINITION_OF_DONE.md").read_text(encoding="utf-8")
 errors: list[str] = []
 
-for token in ("master queue", "TEMPLATE.md", "HOW_TO_CREATE_USER_STORIES.md", "CHECKPOINT-LOG.md", "phase-1/", "phase-2/", "phase-3/", "phase-x/", "copy-paste prompt"):
+for token in ("master queue", "TEMPLATE.md", "HOW_TO_CREATE_USER_STORIES.md", "CHECKPOINT-LOG.md", "phase-1/", "phase-2/", "phase-3/", "phase-x/", "copy-paste prompt", "merge lock"):
     if token not in queue:
         errors.append(f"docs/user-stories/README.md missing '{token}'")
 
@@ -105,11 +105,11 @@ for token in ("Preparation Phase", "TDD Plan", "Local Validation", "Deployment H
     if token not in template:
         errors.append(f"docs/user-stories/TEMPLATE.md missing '{token}'")
 
-for token in ("TEMPLATE.md", "docs/DEFINITION_OF_DONE.md", "Preparation Phase", "checkpoint log", "copy-paste prompt"):
+for token in ("TEMPLATE.md", "docs/DEFINITION_OF_DONE.md", "Preparation Phase", "checkpoint log", "copy-paste prompt", "merge lock"):
     if token not in guide:
         errors.append(f"docs/user-stories/HOW_TO_CREATE_USER_STORIES.md missing '{token}'")
 
-for token in ("Story scope", "Deployment status", "User-facing verification", "copy-paste prompt"):
+for token in ("Story scope", "Deployment status", "User-facing verification", "copy-paste prompt", "merge lock"):
     if token not in done:
         errors.append(f"docs/DEFINITION_OF_DONE.md missing '{token}'")
 
@@ -138,7 +138,7 @@ import sys
 
 errors: list[str] = []
 
-for rel in ("scripts/flight_slot.sh", "scripts/triage_counter.sh", "scripts/tdd_handoff.sh"):
+for rel in ("scripts/flight_slot.sh", "scripts/merge_lock.sh", "scripts/triage_counter.sh", "scripts/tdd_handoff.sh"):
     text = Path(rel).read_text(encoding="utf-8")
     if "python3 - " not in text:
         errors.append(f"{rel} must invoke python3")
@@ -146,12 +146,12 @@ for rel in ("scripts/flight_slot.sh", "scripts/triage_counter.sh", "scripts/tdd_
         errors.append(f"{rel} still invokes bare python")
 
 ai_arch = Path("scripts/ai_arch_changed.sh").read_text(encoding="utf-8")
-for token in ("docs/IMPLEMENTATION_STRATEGY.md", "docs/CONTEXT.md", "docs/DEFINITION_OF_DONE.md", "docs/user-stories/", "docs/guides/finalization-recovery.md", "CLAUDE.md"):
+for token in ("docs/IMPLEMENTATION_STRATEGY.md", "docs/CONTEXT.md", "docs/DEFINITION_OF_DONE.md", "docs/user-stories/", "docs/guides/finalization-recovery.md", "docs/guides/merge-coordination.md", "CLAUDE.md", "scripts/merge_lock"):
     if token not in ai_arch:
         errors.append(f"scripts/ai_arch_changed.sh missing '{token}'")
 
 finalize = Path("scripts/git_finalize_guard.sh").read_text(encoding="utf-8")
-for token in ("docs/guides/finalization-recovery.md", "scripts/check_ai_wiring.sh"):
+for token in ("docs/guides/finalization-recovery.md", "docs/guides/merge-coordination.md", "scripts/check_ai_wiring.sh", "scripts/merge_lock.sh"):
     if token not in finalize:
         errors.append(f"scripts/git_finalize_guard.sh missing '{token}'")
 

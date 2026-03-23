@@ -1,6 +1,7 @@
 # User Stories
 
 Use this folder as the source of truth for execution order, the master queue, and checked-in implementation scope.
+The shared merge coordination source of truth is the merge lock file exposed by `bash scripts/merge_lock.sh status`.
 
 `docs/user-stories/README.md` on `master` is the joining source of truth for parallel work. If active-work visibility only exists on an unmerged feature branch, other agents do not have the real queue yet.
 
@@ -24,8 +25,10 @@ Work should resume from the repo by reading these files, not by reconstructing p
 12. Run the preparation phase before writing code.
 13. Run the story's validation steps.
 14. If sibling branches land first, refresh from latest `master` and rerun the story's validation steps before finalization.
-15. Record outcome in the relevant checkpoint log.
-16. Finish the default GitHub flow by merging the story branch to `master` once it is current with latest `master`, unless the user explicitly pauses or an exact blocker is recorded.
+15. Before finalization, inspect the shared merge lock with `bash scripts/merge_lock.sh status`. If another branch holds it, wait, then refresh from latest `master` and rerun the story's validation steps after it releases.
+16. Claim the merge lock for the current branch with explicit wait instructions before finalization, then release it afterward or record the exact blocker if it stays held.
+17. Record outcome in the relevant checkpoint log.
+18. Finish the default GitHub flow by merging the story branch to `master` once it is current with latest `master`, unless the user explicitly pauses or an exact blocker is recorded.
 
 ## Active Work
 
@@ -86,6 +89,7 @@ This phase will hold FleetGraph product and integration stories as the active pa
 | US-907 | Skip default browser-verification closeout | `done` | P1 | `US-904` |
 | US-908 | Parallel multi-agent branch workflow | `done` | P1 | `US-906` |
 | US-909 | Parallel-lane callout and agent prompt | `done` | P1 | `US-908` |
+| US-910 | Shared merge coordination lock | `done` | P1 | `US-909` |
 
 ## Execution Order
 
@@ -119,6 +123,7 @@ This phase will hold FleetGraph product and integration stories as the active pa
 28. Active product packs continue to port into `docs/user-stories/` in dependency order.
 29. `US-908` makes parallel multi-agent branch work explicit by treating separate per-agent branches as the default and requiring a re-sync with latest `master` before merge when sibling branches land first.
 30. `US-909` makes continuation and story-selection responses explicitly say whether another checked-in story can run in parallel now and provide an inline copy-paste prompt for the recommended other agent when one exists.
+31. `US-910` adds a shared merge lock for finalization so only one branch claims the merge slot at a time and waiting agents get explicit branch plus wait instructions before they re-sync and merge.
 
 ## Files
 

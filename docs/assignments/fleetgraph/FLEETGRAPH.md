@@ -227,15 +227,17 @@ FleetGraph should use a hybrid trigger model:
 
 ## Test Cases
 
-I refreshed this table against live `ship-fleetgraph` LangSmith CLI data on March 22, 2026 and March 23, 2026 UTC. Rows 1, 4, and 5 link to shared `fleetgraph.runtime` root traces. Rows 2 and 3 link to shared scenario-level `fleetgraph.run` traces captured inside the same March 23 proactive sweep, because the root ranking still selected `week_start_drift` as the top proactive outcome for that workspace state.
+I refreshed this table against live `ship-fleetgraph` LangSmith CLI exports on March 22, 2026 and March 23, 2026 UTC. During the March 22 follow-up audit I confirmed the previously documented `https://smith.langchain.com/public/<id>/r` URLs were not valid public share links. The mistake was that I had documented a mix of raw root trace IDs and nested `fleetgraph.run` child span IDs as if they were already shared public URLs.
 
-| # | Ship State | Expected Output | Trace Link |
-|---|------------|-----------------|------------|
-| 1 | A scheduled sweep finds the earliest non-completed week whose calculated start date has passed and that week is still `planning`, or has reached its start window with `issue_count = 0`. | A persisted `week_start_drift` finding titled `Week start drift: ...`, with evidence about the passed start date, week state, and current owner state, plus a human-gated `Start week` action. | [proactive sweep root trace](https://smith.langchain.com/public/019d18d7-746e-74e8-b2c9-01ed0e002d4a/r) |
-| 2 | A scheduled sweep finds the earliest `planning` or `active` week whose calculated start date has passed and `owner === null`. | A persisted `sprint_no_owner` finding titled `Sprint owner gap: ...`, with accountability evidence and a human-gated `Assign sprint owner` action. | [sprint owner scenario trace](https://smith.langchain.com/public/019d18d7-7f06-7000-8000-03b54e455d91/r) |
-| 3 | A scheduled sweep finds an eligible `active` or `planning` week whose calculated start date has passed and at least 3 sprint issues have `assignee_id === null`. | A persisted `unassigned_sprint_issues` finding titled `{n} unassigned issues in ...`, with count/context evidence and a human-gated `Assign sprint issues` review/apply path that requires an assignee selection before execution. | [unassigned issues scenario trace](https://smith.langchain.com/public/019d18d7-81b2-7000-8000-00a127321df1/r) |
-| 4 | `POST /api/fleetgraph/entry` runs from a current document surface with `mode: on_demand`, document context present, and a validated `requestedAction` in the draft payload. | An `approval_required` preview on the entry thread, showing the requested action title, summary, evidence, and `Apply` / `Dismiss` / `Snooze` choices before any Ship mutation runs. | [approval-preview root trace](https://smith.langchain.com/public/019d18cb-c732-724f-9e62-85f95733e600/r) |
-| 5 | `POST /api/fleetgraph/entry` runs from a current document surface with `mode: on_demand`, document context present, and no `requestedAction`. | An `on_demand_analysis` run that fetches the document plus one-hop children, reasons over current page state, returns narrative analysis plus structured findings, and can request deeper context for follow-up turns. | [on-demand analysis root trace](https://smith.langchain.com/public/019d18ca-6e09-7168-859f-1381c196316b/r) |
+Per LangSmith's official trace management and SDK docs, the correct workflow is to open the root trace and use `Share` in the UI, or call `readRunSharedLink` / `shareRun`, then copy the returned public URL. Until those refreshed public links are re-published from an authenticated LangSmith session, I am recording the exact trace evidence below with the root trace IDs and the scenario span IDs that need to be shared or inspected.
+
+| # | Ship State | Expected Output | LangSmith Evidence |
+|---|------------|-----------------|--------------------|
+| 1 | A scheduled sweep finds the earliest non-completed week whose calculated start date has passed and that week is still `planning`, or has reached its start window with `issue_count = 0`. | A persisted `week_start_drift` finding titled `Week start drift: ...`, with evidence about the passed start date, week state, and current owner state, plus a human-gated `Start week` action. | Root proactive sweep trace in `ship-fleetgraph`: `019d18d7-746e-74e8-b2c9-01ed0e002d4a`. Publish the public link by sharing that root trace in LangSmith. |
+| 2 | A scheduled sweep finds the earliest `planning` or `active` week whose calculated start date has passed and `owner === null`. | A persisted `sprint_no_owner` finding titled `Sprint owner gap: ...`, with accountability evidence and a human-gated `Assign sprint owner` action. | Same proactive root trace: `019d18d7-746e-74e8-b2c9-01ed0e002d4a`. Inspect scenario span `fleetgraph.run` `019d18d7-7f06-7000-8000-03b54e455d91` under `fleetgraph.proactive.trace_sprint_no_owner`. Share the root trace, not the child span ID. |
+| 3 | A scheduled sweep finds an eligible `active` or `planning` week whose calculated start date has passed and at least 3 sprint issues have `assignee_id === null`. | A persisted `unassigned_sprint_issues` finding titled `{n} unassigned issues in ...`, with count/context evidence and a human-gated `Assign sprint issues` review/apply path that requires an assignee selection before execution. | Same proactive root trace: `019d18d7-746e-74e8-b2c9-01ed0e002d4a`. Inspect scenario span `fleetgraph.run` `019d18d7-81b2-7000-8000-00a127321df1` under `fleetgraph.proactive.trace_unassigned_sprint_issues`. Share the root trace, not the child span ID. |
+| 4 | `POST /api/fleetgraph/entry` runs from a current document surface with `mode: on_demand`, document context present, and a validated `requestedAction` in the draft payload. | An `approval_required` preview on the entry thread, showing the requested action title, summary, evidence, and `Apply` / `Dismiss` / `Snooze` choices before any Ship mutation runs. | Root approval-preview trace: `019d18cb-c732-724f-9e62-85f95733e600`. Publish the public link by sharing that root trace in LangSmith. |
+| 5 | `POST /api/fleetgraph/entry` runs from a current document surface with `mode: on_demand`, document context present, and no `requestedAction`. | An `on_demand_analysis` run that fetches the document plus one-hop children, reasons over current page state, returns narrative analysis plus structured findings, and can request deeper context for follow-up turns. | Root on-demand analysis trace: `019d18ca-6e09-7168-859f-1381c196316b`. Publish the public link by sharing that root trace in LangSmith. |
 
 ## Tuesday MVP Evidence
 
@@ -260,12 +262,13 @@ I refreshed this table against live `ship-fleetgraph` LangSmith CLI data on Marc
   - `docs/evidence/screenshots/fleetgraph-review-apply-live.png`
   - `docs/evidence/screenshots/fleetgraph-approval-preview-live.png`
   - `docs/evidence/screenshots/fleetgraph-worker-generated-live.png`
-- Shared trace links showing different execution paths, refreshed from live LangSmith CLI data on March 23, 2026 UTC:
-  - Proactive sweep root path: [worker trace](https://smith.langchain.com/public/019d18d7-746e-74e8-b2c9-01ed0e002d4a/r)
-  - Proactive sprint-owner path: [sprint owner trace](https://smith.langchain.com/public/019d18d7-7f06-7000-8000-03b54e455d91/r)
-  - Proactive unassigned-issues path: [unassigned issues trace](https://smith.langchain.com/public/019d18d7-81b2-7000-8000-00a127321df1/r)
-  - On-demand analysis path: [analysis trace](https://smith.langchain.com/public/019d18ca-6e09-7168-859f-1381c196316b/r)
-  - On-demand guided-step path: [approval-preview trace](https://smith.langchain.com/public/019d18cb-c732-724f-9e62-85f95733e600/r)
+- LangSmith trace evidence, refreshed from live CLI exports on March 23, 2026 UTC:
+  - Proactive sweep root trace ID: `019d18d7-746e-74e8-b2c9-01ed0e002d4a`
+  - Nested sprint-owner scenario span ID inside that trace: `019d18d7-7f06-7000-8000-03b54e455d91`
+  - Nested unassigned-issues scenario span ID inside that trace: `019d18d7-81b2-7000-8000-00a127321df1`
+  - On-demand analysis root trace ID: `019d18ca-6e09-7168-859f-1381c196316b`
+  - On-demand guided-step root trace ID: `019d18cb-c732-724f-9e62-85f95733e600`
+  - Correct publication workflow: open the root trace in LangSmith and use the [Share a trace](https://docs.langchain.com/langsmith/manage-trace#share-a-trace) flow, or call `readRunSharedLink` / `shareRun`, then paste the returned public URL instead of hand-building `https://smith.langchain.com/public/<id>/r`
 
 - Tuesday MVP slice shipped:
   - one proactive week-start drift detection wired end to end

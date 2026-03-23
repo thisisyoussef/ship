@@ -6,7 +6,7 @@
 - Owner: Codex
 - Depends on: `US-613`
 - Related branch: `codex/us-614-fab-guided-actions-panel-convergence`
-- Related commit/PR: `pending finalization`
+- Related commit/PR: `0c858d8`, [PR #187](https://github.com/thisisyoussef/ship/pull/187)
 - Target environment: `local first`, `Railway demo via merged master`
 
 ## Persona

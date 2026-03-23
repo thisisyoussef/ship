@@ -31,10 +31,19 @@ interface ReviewState {
   isReviewLoading: boolean;
   openedAt: number | null;
   review: FleetGraphFindingReview | null;
+  selectedAssigneeId: string | null;
   selectedOwnerId: string | null;
 }
 
 const REVIEW_GESTURE_GUARD_MS = 450;
+const EMPTY_REVIEW_STATE: ReviewState = {
+  findingId: null,
+  isReviewLoading: false,
+  openedAt: null,
+  review: null,
+  selectedAssigneeId: null,
+  selectedOwnerId: null,
+};
 
 function noticeToneClassName(tone: LocalNotice['tone']) {
   return tone === 'info'
@@ -51,13 +60,7 @@ export function FleetGraphFindingsPanel({
   const documentIds = buildFleetGraphFindingDocumentIds(currentDocumentId, context);
   const findings = useFleetGraphFindings(documentIds);
   const { setFindings } = useFleetGraphDebugSurface();
-  const [reviewState, setReviewState] = useState<ReviewState>({
-    findingId: null,
-    isReviewLoading: false,
-    openedAt: null,
-    review: null,
-    selectedOwnerId: null,
-  });
+  const [reviewState, setReviewState] = useState<ReviewState>(EMPTY_REVIEW_STATE);
   const [localNotice, setLocalNotice] = useState<LocalNotice | null>(null);
   const snoozeRefreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -109,13 +112,7 @@ export function FleetGraphFindingsPanel({
       await findings.dismissFinding(findingId);
       setReviewState((current) =>
         current.findingId === findingId
-          ? {
-              findingId: null,
-              isReviewLoading: false,
-              openedAt: null,
-              review: null,
-              selectedOwnerId: null,
-            }
+          ? EMPTY_REVIEW_STATE
           : current
       );
       setLocalNotice({
@@ -139,13 +136,7 @@ export function FleetGraphFindingsPanel({
       const response = await findings.snoozeFinding(findingId, snoozeInput);
       setReviewState((current) =>
         current.findingId === findingId
-          ? {
-              findingId: null,
-              isReviewLoading: false,
-              openedAt: null,
-              review: null,
-              selectedOwnerId: null,
-            }
+          ? EMPTY_REVIEW_STATE
           : current
       );
       setLocalNotice({
@@ -164,6 +155,12 @@ export function FleetGraphFindingsPanel({
 
   async function handleApply(findingId: string) {
     const finding = findings.findings.find((entry) => entry.id === findingId);
+    const selectedAssigneeId = reviewState.findingId === findingId
+      ? reviewState.selectedAssigneeId
+      : null;
+    const selectedAssigneeLabel = selectedAssigneeId
+      ? ownerOptions.find((option) => option.value === selectedAssigneeId)?.label ?? null
+      : null;
     const selectedOwnerId = reviewState.findingId === findingId
       ? reviewState.selectedOwnerId
       : null;
@@ -183,22 +180,22 @@ export function FleetGraphFindingsPanel({
     findings.resetActionState();
 
     try {
-      const response = await findings.applyFinding(
-        findingId,
-        selectedOwnerId ? { ownerId: selectedOwnerId } : undefined
-      );
-      setReviewState({
-        findingId: null,
-        isReviewLoading: false,
-        openedAt: null,
-        review: null,
-        selectedOwnerId: null,
-      });
+      const input = finding?.recommendedAction?.type === 'assign_owner'
+        ? (selectedOwnerId ? { ownerId: selectedOwnerId } : undefined)
+        : finding?.recommendedAction?.type === 'assign_issues'
+          ? (selectedAssigneeId ? { assigneeId: selectedAssigneeId } : undefined)
+          : undefined;
+      const response = await findings.applyFinding(findingId, input);
+      setReviewState(EMPTY_REVIEW_STATE);
 
       const message = finding?.recommendedAction?.type === 'assign_owner'
         && selectedOwnerLabel
         && response.finding.actionExecution?.status === 'applied'
         ? `Sprint owner assigned in Ship. Look for Owner showing ${selectedOwnerLabel} on this page.`
+        : finding?.recommendedAction?.type === 'assign_issues'
+          && selectedAssigneeLabel
+          && response.finding.actionExecution?.status === 'applied'
+          ? `Sprint issues assigned in Ship. Look for Assignee showing ${selectedAssigneeLabel} on the sprint issues on this page.`
         : buildApplyNotice(response.finding);
       if (message) {
         setLocalNotice({
@@ -217,12 +214,16 @@ export function FleetGraphFindingsPanel({
     findings.resetActionState();
 
     const finding = findings.findings.find((entry) => entry.id === findingId);
-    if (finding?.recommendedAction?.type === 'assign_owner') {
+    if (
+      finding?.recommendedAction?.type === 'assign_owner'
+      || finding?.recommendedAction?.type === 'assign_issues'
+    ) {
       setReviewState({
         findingId,
         isReviewLoading: false,
         openedAt: Date.now(),
         review: null,
+        selectedAssigneeId: null,
         selectedOwnerId: null,
       });
       return;
@@ -235,6 +236,7 @@ export function FleetGraphFindingsPanel({
         isReviewLoading: false,
         openedAt: Date.now(),
         review: response.review,
+        selectedAssigneeId: null,
         selectedOwnerId: null,
       });
     } catch (error) {
@@ -243,28 +245,41 @@ export function FleetGraphFindingsPanel({
     }
   }
 
-  async function handleOwnerChange(findingId: string, ownerId: string | null) {
+  async function handleReviewSelectionChange(
+    findingId: string,
+    selectionType: 'assignee' | 'owner',
+    value: string | null
+  ) {
     setLocalNotice(null);
     findings.resetActionState();
     setReviewState((current) =>
       current.findingId === findingId
         ? {
             ...current,
-            isReviewLoading: ownerId !== null,
+            isReviewLoading: value !== null,
             review: null,
-            selectedOwnerId: ownerId,
+            selectedAssigneeId: selectionType === 'assignee' ? value : null,
+            selectedOwnerId: selectionType === 'owner' ? value : null,
           }
         : current
     );
 
-    if (!ownerId) {
+    if (!value) {
       return;
     }
 
     try {
-      const response = await findings.reviewFinding(findingId, { ownerId });
+      const response = await findings.reviewFinding(
+        findingId,
+        selectionType === 'assignee'
+          ? { assigneeId: value }
+          : { ownerId: value }
+      );
       setReviewState((current) => {
-        if (current.findingId !== findingId || current.selectedOwnerId !== ownerId) {
+        const selectionStillMatches = selectionType === 'assignee'
+          ? current.selectedAssigneeId === value
+          : current.selectedOwnerId === value;
+        if (current.findingId !== findingId || !selectionStillMatches) {
           return current;
         }
 
@@ -277,7 +292,10 @@ export function FleetGraphFindingsPanel({
     } catch (error) {
       console.error('FleetGraph review failed:', error);
       setReviewState((current) => {
-        if (current.findingId !== findingId || current.selectedOwnerId !== ownerId) {
+        const selectionStillMatches = selectionType === 'assignee'
+          ? current.selectedAssigneeId === value
+          : current.selectedOwnerId === value;
+        if (current.findingId !== findingId || !selectionStillMatches) {
           return current;
         }
 
@@ -343,11 +361,14 @@ export function FleetGraphFindingsPanel({
               onApply={(findingId) => {
                 void handleApply(findingId);
               }}
+              onAssigneeChange={(value) => {
+                void handleReviewSelectionChange(finding.id, 'assignee', value);
+              }}
               onDismiss={(findingId) => {
                 void handleDismiss(findingId);
               }}
               onOwnerChange={(value) => {
-                void handleOwnerChange(finding.id, value);
+                void handleReviewSelectionChange(finding.id, 'owner', value);
               }}
               onReview={(findingId) => {
                 void handleReview(findingId);
@@ -355,16 +376,11 @@ export function FleetGraphFindingsPanel({
               onSnooze={(findingId, preset) => {
                 void handleSnooze(findingId, preset);
               }}
-              onCancelReview={() => setReviewState({
-                findingId: null,
-                isReviewLoading: false,
-                openedAt: null,
-                review: null,
-                selectedOwnerId: null,
-              })}
+              onCancelReview={() => setReviewState(EMPTY_REVIEW_STATE)}
               isReviewLoading={reviewState.findingId === finding.id ? reviewState.isReviewLoading : false}
               ownerOptions={ownerOptions}
               review={reviewState.findingId === finding.id ? reviewState.review : null}
+              selectedAssigneeId={reviewState.findingId === finding.id ? reviewState.selectedAssigneeId : null}
               selectedOwnerId={reviewState.findingId === finding.id ? reviewState.selectedOwnerId : null}
             />
           ))}

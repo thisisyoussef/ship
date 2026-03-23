@@ -8,6 +8,7 @@ import {
 const nonEmptyString = z.string().min(1)
 
 export const FLEETGRAPH_TRACKED_FINDING_ACTION_TYPES = [
+  'assign_issues',
   'assign_owner',
   'start_week',
 ] as const

@@ -2,6 +2,7 @@ import type { FleetGraphFinding } from './fleetgraph-findings';
 
 export function canReviewFindingActionInFleetGraph(finding: FleetGraphFinding) {
   return finding.recommendedAction?.type === 'start_week'
+    || finding.recommendedAction?.type === 'assign_issues'
     || finding.recommendedAction?.type === 'assign_owner';
 }
 
@@ -39,6 +40,19 @@ export function renderExecutionTone(finding: FleetGraphFinding) {
 }
 
 export function renderExecutionLabel(finding: FleetGraphFinding) {
+  if (finding.actionExecution?.actionType === 'assign_issues') {
+    switch (finding.actionExecution.status) {
+      case 'applied':
+        return 'Issues assigned in Ship';
+      case 'failed':
+        return 'Could not assign issues';
+      case 'pending':
+        return 'Assigning issues in Ship';
+      default:
+        return 'Suggested next step';
+    }
+  }
+
   if (finding.actionExecution?.actionType === 'assign_owner') {
     switch (finding.actionExecution.status) {
       case 'applied':
@@ -100,6 +114,15 @@ export function buildSnoozeNotice(snoozedUntil?: string, durationLabel = '4 hour
 }
 
 export function buildApplyNotice(finding: FleetGraphFinding) {
+  if (finding.actionExecution?.actionType === 'assign_issues') {
+    switch (finding.actionExecution.status) {
+      case 'applied':
+        return 'Sprint issues assigned in Ship. Look for Assignee showing the person you selected on the sprint issues on this page.';
+      default:
+        return null;
+    }
+  }
+
   if (finding.actionExecution?.actionType === 'assign_owner') {
     switch (finding.actionExecution.status) {
       case 'applied':

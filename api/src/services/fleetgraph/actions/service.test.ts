@@ -276,6 +276,125 @@ describe('FleetGraph finding action service', () => {
     expect(result.review.threadId).not.toBe(genericOwnerThreadId)
   })
 
+  it('builds a selected-assignee review for unassigned-issues findings', async () => {
+    const assigneeId = '22222222-2222-4222-8222-222222222222'
+    const finding = makeFinding({
+      evidence: ['3 of 5 issues in this sprint have no assignee.'],
+      findingKey: 'unassigned-issues:workspace-1:sprint-1',
+      findingType: 'unassigned_sprint_issues',
+      metadata: {
+        issueIds: [
+          '44444444-4444-4444-8444-444444444444',
+          '55555555-5555-4555-8555-555555555555',
+          '66666666-6666-4666-8666-666666666666',
+        ],
+        sprintNumber: 1,
+        totalCount: 5,
+        unassignedCount: 3,
+      },
+      recommendedAction: {
+        body: {
+          issue_ids: [
+            '44444444-4444-4444-8444-444444444444',
+            '55555555-5555-4555-8555-555555555555',
+            '66666666-6666-4666-8666-666666666666',
+          ],
+        },
+        endpoint: {
+          method: 'POST',
+          path: '/api/issues/bulk',
+        },
+        evidence: ['3 of 5 issues in this sprint have no assignee.'],
+        rationale: 'Assignment should remain a human-reviewed action in Ship.',
+        summary: 'Assign the unassigned sprint issues or make an explicit call to leave them unassigned.',
+        targetId: '11111111-1111-4111-8111-111111111111',
+        targetType: 'sprint',
+        title: 'Assign sprint issues',
+        type: 'assign_issues',
+      },
+      summary: 'Sprint 1 has several unassigned issues that need an ownership decision.',
+      title: '3 unassigned issues in Sprint 1',
+    })
+    const runtime = {
+      getCheckpointHistory: vi.fn(),
+      getPendingInterrupts: vi.fn(async () => []),
+      getState: vi.fn(),
+      invoke: vi.fn(async () => ({
+        branch: 'approval_required',
+        candidateCount: 1,
+        checkpointNamespace: 'fleetgraph',
+        contextKind: 'finding_review',
+        mode: 'on_demand',
+        outcome: 'approval_required',
+        path: ['resolve_trigger_context', 'select_scenarios', 'approval_interrupt'],
+        routeSurface: 'document-page',
+        scenarioResults: [],
+        threadId: 'fleetgraph:workspace-1:finding-review',
+        trigger: 'human-review',
+        workspaceId: 'workspace-1',
+        approvalRequired: true,
+      })),
+      invokeRaw: vi.fn(),
+      resume: vi.fn(),
+      checkpointer: {} as never,
+      checkpointerKind: 'memory',
+    }
+    const service = createFleetGraphFindingActionService({
+      actionStore: {
+        beginExecution: vi.fn(),
+        finishExecution: vi.fn(),
+        listExecutionsForFindings: vi.fn(async () => []),
+      },
+      findingStore: {
+        dismissFinding: vi.fn(),
+        getFindingById: vi.fn(async () => finding),
+        getFindingByKey: vi.fn(),
+        listActiveFindings: vi.fn(async () => []),
+        resolveFinding: vi.fn(),
+        snoozeFinding: vi.fn(),
+        upsertFinding: vi.fn(),
+      },
+      runtime: runtime as never,
+    })
+
+    const result = await service.reviewFinding({
+      actorUserId: '99999999-9999-4999-8999-999999999999',
+      assigneeId,
+      findingId: finding.id,
+      workspaceId: 'workspace-1',
+    })
+
+    expect(runtime.invoke).toHaveBeenCalledWith(expect.objectContaining({
+      requestedAction: expect.objectContaining({
+        body: {
+          action: 'update',
+          ids: [
+            '44444444-4444-4444-8444-444444444444',
+            '55555555-5555-4555-8555-555555555555',
+            '66666666-6666-4666-8666-666666666666',
+          ],
+          issue_ids: [
+            '44444444-4444-4444-8444-444444444444',
+            '55555555-5555-4555-8555-555555555555',
+            '66666666-6666-4666-8666-666666666666',
+          ],
+          updates: {
+            assignee_id: assigneeId,
+          },
+        },
+        type: 'assign_issues',
+      }),
+      threadId: expect.stringContaining(assigneeId),
+    }))
+    expect(result.review.confirmLabel).toBe('Assign issues in Ship')
+    expect(result.review.summary).toBe(
+      'FleetGraph will assign the currently unassigned sprint issues to the person you selected in Ship so execution has a clear owner.'
+    )
+    expect(result.review.evidence).toContain(
+      'FleetGraph will assign the currently unassigned sprint issues to the person you selected in Ship when you confirm.'
+    )
+  })
+
   it('resumes an approved assign-owner review with the current request context', async () => {
     const finding = makeFinding()
     const ownerFinding = {
@@ -535,5 +654,150 @@ describe('FleetGraph finding action service', () => {
         }),
       })
     )
+  })
+
+  it('resolves unassigned-issues findings after a successful apply', async () => {
+    const assigneeId = '22222222-2222-4222-8222-222222222222'
+    const finding = makeFinding({
+      evidence: ['3 of 5 issues in this sprint have no assignee.'],
+      findingKey: 'unassigned-issues:workspace-1:sprint-1',
+      findingType: 'unassigned_sprint_issues',
+      metadata: {
+        issueIds: [
+          '44444444-4444-4444-8444-444444444444',
+          '55555555-5555-4555-8555-555555555555',
+          '66666666-6666-4666-8666-666666666666',
+        ],
+        sprintNumber: 1,
+        totalCount: 5,
+        unassignedCount: 3,
+      },
+      recommendedAction: {
+        body: {
+          issue_ids: [
+            '44444444-4444-4444-8444-444444444444',
+            '55555555-5555-4555-8555-555555555555',
+            '66666666-6666-4666-8666-666666666666',
+          ],
+        },
+        endpoint: {
+          method: 'POST',
+          path: '/api/issues/bulk',
+        },
+        evidence: ['3 of 5 issues in this sprint have no assignee.'],
+        rationale: 'Assignment should remain a human-reviewed action in Ship.',
+        summary: 'Assign the unassigned sprint issues or make an explicit call to leave them unassigned.',
+        targetId: '11111111-1111-4111-8111-111111111111',
+        targetType: 'sprint',
+        title: 'Assign sprint issues',
+        type: 'assign_issues',
+      },
+      summary: 'Sprint 1 has several unassigned issues that need an ownership decision.',
+      title: '3 unassigned issues in Sprint 1',
+    })
+    const resolvedFinding = {
+      ...finding,
+      status: 'resolved' as const,
+    }
+    const runtime = {
+      getCheckpointHistory: vi.fn(),
+      getPendingInterrupts: vi.fn(async () => [{ taskName: 'approval_interrupt' }]),
+      getState: vi.fn(),
+      invoke: vi.fn(),
+      invokeRaw: vi.fn(),
+      resume: vi.fn(async () => ({
+        actionOutcome: {
+          message: 'Sprint issues assigned in Ship. Look for Assignee showing the person you selected on the sprint issues on this page.',
+          resultStatusCode: 200,
+          status: 'applied',
+        },
+        branch: 'approval_required',
+        candidateCount: 1,
+        checkpointNamespace: 'fleetgraph',
+        contextKind: 'finding_review',
+        mode: 'on_demand',
+        outcome: 'approval_required',
+        path: ['resolve_trigger_context', 'approval_interrupt', 'execute_action'],
+        routeSurface: 'document-page',
+        scenarioResults: [],
+        threadId: 'fleetgraph:workspace-1:finding-review',
+        trigger: 'human-review',
+        workspaceId: 'workspace-1',
+        approvalRequired: true,
+      })),
+      checkpointer: {} as never,
+      checkpointerKind: 'memory',
+    }
+    const getFindingById = vi.fn()
+      .mockResolvedValueOnce(finding)
+      .mockResolvedValueOnce(finding)
+      .mockResolvedValueOnce(resolvedFinding)
+
+    const resolveFinding = vi.fn(async () => resolvedFinding)
+    const service = createFleetGraphFindingActionService({
+      actionStore: {
+        beginExecution: vi.fn(),
+        finishExecution: vi.fn(),
+        listExecutionsForFindings: vi.fn(async () => [{
+          actionType: 'assign_issues' as const,
+          appliedAt: new Date('2026-03-17T12:05:00.000Z'),
+          attemptCount: 1,
+          endpoint: {
+            method: 'POST' as const,
+            path: '/api/issues/bulk',
+          },
+          findingId: finding.id,
+          message: 'Sprint issues assigned in Ship. Look for Assignee showing the person you selected on the sprint issues on this page.',
+          resultStatusCode: 200,
+          status: 'applied' as const,
+          updatedAt: new Date('2026-03-17T12:05:00.000Z'),
+        }]),
+      },
+      findingStore: {
+        dismissFinding: vi.fn(),
+        getFindingById,
+        getFindingByKey: vi.fn(),
+        listActiveFindings: vi.fn(async () => []),
+        resolveFinding,
+        snoozeFinding: vi.fn(),
+        upsertFinding: vi.fn(),
+      },
+      runtime: runtime as never,
+    })
+
+    const request = {
+      get(name: string) {
+        if (name === 'host') {
+          return 'localhost:3000'
+        }
+        return undefined
+      },
+      header() {
+        return undefined
+      },
+      protocol: 'http',
+    } as const
+
+    const result = await service.applyFinding({
+      actorUserId: '99999999-9999-4999-8999-999999999999',
+      assigneeId,
+      findingId: finding.id,
+      request: request as never,
+      workspaceId: 'workspace-1',
+    })
+
+    expect(runtime.resume).toHaveBeenCalledWith(
+      expect.stringContaining(assigneeId),
+      'approved',
+      expect.objectContaining({
+        fleetgraphActionRequestContext: expect.objectContaining({
+          baseUrl: 'http://localhost:3000',
+        }),
+      })
+    )
+    expect(resolveFinding).toHaveBeenCalledWith(finding.findingKey)
+    expect(result.status).toBe('resolved')
+    expect(result.actionExecution?.actionType).toBe('assign_issues')
+    expect(result.actionExecution?.status).toBe('applied')
   })
 })

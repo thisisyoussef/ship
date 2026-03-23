@@ -298,7 +298,7 @@ async function ensureUnassignedIssuesDemoWeek(
     plan: 'Inspect a proactive FleetGraph finding that calls out a meaningful cluster of unassigned sprint issues.',
     sprintNumber: input.currentSprintNumber,
     status: 'active',
-    successCriteria: 'The public demo shows an advisory unassigned-issues finding with clear count and sprint context.',
+    successCriteria: 'The public demo shows a proactive unassigned-issues finding with a real review-and-apply path that assigns the selected assignee on the page.',
     title: FLEETGRAPH_DEMO_UNASSIGNED_ISSUES_WEEK_TITLE,
   })
 
@@ -310,11 +310,18 @@ async function ensureUnassignedIssuesDemoWeek(
     { assigneeId: input.ownerUserId, priority: 'low', state: 'backlog', title: `${FLEETGRAPH_DEMO_UNASSIGNED_ISSUES_WEEK_TITLE} Issue 5` },
   ]
 
+  const issueIds: string[] = []
   for (const issue of issues) {
-    await ensureDemoIssue(queryable, input, projectId, weekId, issue)
+    const issueId = await ensureDemoIssue(queryable, input, projectId, weekId, issue)
+    if (issue.assigneeId === null) {
+      issueIds.push(issueId)
+    }
   }
 
-  return weekId
+  return {
+    issueIds,
+    weekId,
+  }
 }
 
 function buildValidationReviewContent(weekNumber: number) {
@@ -486,7 +493,10 @@ export async function ensureFleetGraphDemoProofLane(
     successCriteria: 'The public demo shows a proactive sprint-owner gap with a real review-and-apply path that assigns the selected owner on the page.',
     title: FLEETGRAPH_DEMO_OWNER_GAP_WEEK_TITLE,
   })
-  const unassignedIssuesWeekId = await ensureUnassignedIssuesDemoWeek(
+  const {
+    issueIds: unassignedIssueIds,
+    weekId: unassignedIssuesWeekId,
+  } = await ensureUnassignedIssuesDemoWeek(
     queryable,
     input,
     projectId
@@ -559,6 +569,7 @@ export async function ensureFleetGraphDemoProofLane(
   )
   const unassignedIssuesDraft = buildUnassignedIssuesFindingDraft(
     {
+      issueIds: unassignedIssueIds,
       startDate,
       totalCount: 5,
       unassignedCount: 3,

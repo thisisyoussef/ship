@@ -721,7 +721,7 @@ describe('FleetGraphFindingsPanel', () => {
     consoleErrorSpy.mockRestore();
   });
 
-  it('renders unassigned-issues guidance as advisory-only with clear count context', async () => {
+  it('renders unassigned-issues guidance with the shared review-and-apply affordance', async () => {
     vi.mocked(apiGet).mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -739,17 +739,29 @@ describe('FleetGraphFindingsPanel', () => {
             findingType: 'unassigned_sprint_issues',
             id: 'finding-3',
             metadata: {
+              issueIds: [
+                '66666666-6666-4666-8666-666666666666',
+                '77777777-7777-4777-8777-777777777777',
+                '88888888-8888-4888-8888-888888888888',
+              ],
               sprintNumber: 8,
               totalCount: 5,
               unassignedCount: 3,
             },
             recommendedAction: {
+              body: {
+                issue_ids: [
+                  '66666666-6666-4666-8666-666666666666',
+                  '77777777-7777-4777-8777-777777777777',
+                  '88888888-8888-4888-8888-888888888888',
+                ],
+              },
               endpoint: {
-                method: 'PATCH',
-                path: `/api/documents/${SPRINT_ID}`,
+                method: 'POST',
+                path: '/api/issues/bulk',
               },
               evidence: ['3 of 5 issues in this sprint have no assignee.'],
-              rationale: 'FleetGraph can surface the coordination gap, but assignment should remain a human decision in Ship.',
+              rationale: 'Assignment should remain a human-reviewed action in Ship.',
               summary: 'Assign the unassigned sprint issues or make an explicit call to leave them unassigned.',
               targetId: SPRINT_ID,
               targetType: 'sprint',
@@ -783,11 +795,162 @@ describe('FleetGraphFindingsPanel', () => {
       )
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: 'Review and apply' })
-    ).not.toBeInTheDocument();
-    expect(
       screen.queryByRole('button', { name: 'Start week in Ship' })
     ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Review and apply' })
+    ).toBeInTheDocument();
+  });
+
+  it('reviews and applies unassigned-issues actions through the shared finding flow', async () => {
+    vi.mocked(apiGet).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        findings: [
+          {
+            dedupeKey: 'dedupe-3',
+            documentId: SPRINT_ID,
+            documentType: 'sprint',
+            evidence: [
+              '3 of 5 issues in this sprint have no assignee.',
+              'Sprint 8 is active and started on 2026-03-17.',
+              'Leaving them unassigned makes it harder for the team to coordinate execution.',
+            ],
+            findingKey: 'unassigned-issues:workspace-1:sprint-8',
+            findingType: 'unassigned_sprint_issues',
+            id: 'finding-3',
+            metadata: {
+              issueIds: [
+                '66666666-6666-4666-8666-666666666666',
+                '77777777-7777-4777-8777-777777777777',
+                '88888888-8888-4888-8888-888888888888',
+              ],
+              sprintNumber: 8,
+              totalCount: 5,
+              unassignedCount: 3,
+            },
+            recommendedAction: {
+              body: {
+                issue_ids: [
+                  '66666666-6666-4666-8666-666666666666',
+                  '77777777-7777-4777-8777-777777777777',
+                  '88888888-8888-4888-8888-888888888888',
+                ],
+              },
+              endpoint: {
+                method: 'POST',
+                path: '/api/issues/bulk',
+              },
+              evidence: ['3 of 5 issues in this sprint have no assignee.'],
+              rationale: 'Assignment should remain a human-reviewed action in Ship.',
+              summary: 'Assign the unassigned sprint issues or make an explicit call to leave them unassigned.',
+              targetId: SPRINT_ID,
+              targetType: 'sprint',
+              title: 'Assign sprint issues',
+              type: 'assign_issues',
+            },
+            status: 'active',
+            summary: 'Sprint 8 has several unassigned issues that need an ownership decision.',
+            threadId: 'fleetgraph:workspace-1:scheduled-sweep',
+            title: '3 unassigned issues in Sprint 8',
+            updatedAt: '2026-03-17T12:05:00.000Z',
+            workspaceId: 'workspace-1',
+          },
+        ],
+      }),
+    } as Response);
+    vi.mocked(apiPost).mockImplementation(async (path, body) => {
+      if (path === '/api/fleetgraph/findings/finding-3/review') {
+        expect(body).toEqual({
+          assigneeId: '22222222-2222-4222-8222-222222222222',
+        });
+        return {
+          ok: true,
+          json: async () => ({
+            finding: {
+              id: 'finding-3',
+            },
+            review: {
+              cancelLabel: 'Cancel',
+              confirmLabel: 'Assign issues in Ship',
+              evidence: [
+                '3 of 5 issues in this sprint have no assignee.',
+                'FleetGraph will assign the currently unassigned sprint issues to the person you selected in Ship when you confirm.',
+              ],
+              summary: 'FleetGraph will assign the currently unassigned sprint issues to the person you selected in Ship so execution has a clear owner.',
+              threadId: 'fleetgraph:workspace-1:finding-review:finding-3:assign-issues',
+              title: 'Confirm before assigning sprint issues',
+            },
+          }),
+        } as Response;
+      }
+
+      expect(body).toEqual({
+        assigneeId: '22222222-2222-4222-8222-222222222222',
+      });
+      return {
+        ok: true,
+        json: async () => ({
+          finding: {
+            actionExecution: {
+              actionType: 'assign_issues',
+              appliedAt: '2026-03-17T12:05:00.000Z',
+              attemptCount: 1,
+              endpoint: {
+                method: 'POST',
+                path: '/api/issues/bulk',
+              },
+              findingId: 'finding-3',
+              message: 'Sprint issues assigned in Ship. Look for Assignee showing the person you selected on the sprint issues on this page.',
+              status: 'applied',
+              updatedAt: '2026-03-17T12:05:00.000Z',
+            },
+            id: 'finding-3',
+            status: 'resolved',
+          },
+        }),
+      } as Response;
+    });
+
+    render(
+      <FleetGraphFindingsPanel
+        context={createContext()}
+        currentDocumentId={DOCUMENT_ID}
+        ownerOptions={OWNER_OPTIONS}
+      />,
+      { wrapper: createWrapper() }
+    );
+
+    let now = 1_000;
+    vi.spyOn(Date, 'now').mockImplementation(() => now);
+    fireEvent.click(await screen.findByRole('button', { name: 'Review and apply' }));
+
+    fireEvent.click(screen.getByRole('combobox', { name: 'Issue assignee' }));
+    fireEvent.click(await screen.findByText('Taylor Jenkins'));
+
+    await waitFor(() => {
+      expect(apiPost).toHaveBeenCalledWith(
+        '/api/fleetgraph/findings/finding-3/review',
+        { assigneeId: '22222222-2222-4222-8222-222222222222' }
+      );
+    });
+    expect(screen.getByText('Confirm before assigning sprint issues')).toBeInTheDocument();
+    expect(
+      screen.getByText('FleetGraph will assign the currently unassigned sprint issues to the person you selected in Ship so execution has a clear owner.')
+    ).toBeInTheDocument();
+
+    now += 500;
+    fireEvent.click(screen.getByRole('button', { name: 'Assign issues in Ship' }));
+
+    await waitFor(() => {
+      expect(apiPost).toHaveBeenCalledWith(
+        '/api/fleetgraph/findings/finding-3/apply',
+        { assigneeId: '22222222-2222-4222-8222-222222222222' }
+      );
+    });
+    expect(
+      await screen.findByText('Sprint issues assigned in Ship. Look for Assignee showing Taylor Jenkins on the sprint issues on this page.')
+    ).toBeInTheDocument();
   });
 
   it('waits for confirmed dismiss success before showing the lifecycle notice', async () => {

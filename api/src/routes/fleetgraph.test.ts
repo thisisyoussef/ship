@@ -892,6 +892,77 @@ describe('FleetGraph routes', () => {
     })
   })
 
+  it('returns a server-backed review payload for assign-issues findings', async () => {
+    reviewFinding.mockResolvedValue({
+      finding: makeFinding({
+        findingKey: 'unassigned-issues:workspace-1:sprint-8',
+        findingType: 'unassigned_sprint_issues',
+        id: 'finding-issues-gap',
+        metadata: {
+          issueIds: [
+            '66666666-6666-4666-8666-666666666666',
+            '77777777-7777-4777-8777-777777777777',
+            '88888888-8888-4888-8888-888888888888',
+          ],
+          sprintNumber: 8,
+          totalCount: 5,
+          unassignedCount: 3,
+        },
+        recommendedAction: {
+          body: {
+            issue_ids: [
+              '66666666-6666-4666-8666-666666666666',
+              '77777777-7777-4777-8777-777777777777',
+              '88888888-8888-4888-8888-888888888888',
+            ],
+          },
+          endpoint: {
+            method: 'POST',
+            path: '/api/issues/bulk',
+          },
+          evidence: ['3 of 5 issues in this sprint have no assignee.'],
+          rationale: 'Assignment should remain a human-reviewed action in Ship.',
+          summary: 'Assign the unassigned sprint issues or make an explicit call to leave them unassigned.',
+          targetId: SPRINT_ID,
+          targetType: 'sprint',
+          title: 'Assign sprint issues',
+          type: 'assign_issues',
+        },
+        summary: 'Sprint 8 has several unassigned issues that need an ownership decision.',
+        title: '3 unassigned issues in Sprint 8',
+      }),
+      review: {
+        cancelLabel: 'Cancel',
+        confirmLabel: 'Assign issues in Ship',
+        evidence: [
+          '3 of 5 issues in this sprint have no assignee.',
+          'FleetGraph will assign the currently unassigned sprint issues to the person you selected in Ship when you confirm.',
+        ],
+        summary: 'FleetGraph will assign the currently unassigned sprint issues to the person you selected in Ship so execution has a clear owner.',
+        threadId: 'fleetgraph:workspace-1:finding-review:finding-issues-gap:assign-issues',
+        title: 'Confirm before assigning sprint issues',
+      },
+    })
+
+    const response = await request(app)
+      .post('/api/fleetgraph/findings/finding-issues-gap/review')
+      .send({
+        assigneeId: '22222222-2222-4222-8222-222222222222',
+      })
+
+    expect(response.status).toBe(200)
+    expect(reviewFinding).toHaveBeenCalledWith({
+      actorUserId: '11111111-1111-4111-8111-111111111111',
+      assigneeId: '22222222-2222-4222-8222-222222222222',
+      findingId: 'finding-issues-gap',
+      workspaceId: '22222222-2222-4222-8222-222222222222',
+    })
+    expect(response.body.review).toMatchObject({
+      confirmLabel: 'Assign issues in Ship',
+      title: 'Confirm before assigning sprint issues',
+    })
+  })
+
   it('applies an assign-owner finding through the FleetGraph action route', async () => {
     const actionExecution: FleetGraphFindingActionExecutionRecord = {
       actionType: 'assign_owner',
@@ -948,6 +1019,80 @@ describe('FleetGraph routes', () => {
     })
     expect(response.body.finding.actionExecution).toMatchObject({
       actionType: 'assign_owner',
+      status: 'applied',
+    })
+  })
+
+  it('applies an assign-issues finding through the FleetGraph action route', async () => {
+    const actionExecution: FleetGraphFindingActionExecutionRecord = {
+      actionType: 'assign_issues',
+      appliedAt: new Date('2026-03-17T12:05:00.000Z'),
+      attemptCount: 1,
+      endpoint: {
+        method: 'POST',
+        path: '/api/issues/bulk',
+      },
+      findingId: 'finding-issues-gap',
+      message: 'Sprint issues assigned in Ship. Look for Assignee showing the person you selected on the sprint issues on this page.',
+      resultStatusCode: 200,
+      status: 'applied',
+      updatedAt: new Date('2026-03-17T12:05:00.000Z'),
+    }
+    applyFinding.mockResolvedValue(
+      makeFinding({
+        actionExecution,
+        findingKey: 'unassigned-issues:workspace-1:sprint-8',
+        findingType: 'unassigned_sprint_issues',
+        id: 'finding-issues-gap',
+        metadata: {
+          issueIds: [
+            '66666666-6666-4666-8666-666666666666',
+            '77777777-7777-4777-8777-777777777777',
+            '88888888-8888-4888-8888-888888888888',
+          ],
+          sprintNumber: 8,
+          totalCount: 5,
+          unassignedCount: 3,
+        },
+        recommendedAction: {
+          body: {
+            issue_ids: [
+              '66666666-6666-4666-8666-666666666666',
+              '77777777-7777-4777-8777-777777777777',
+              '88888888-8888-4888-8888-888888888888',
+            ],
+          },
+          endpoint: actionExecution.endpoint,
+          evidence: ['3 of 5 issues in this sprint have no assignee.'],
+          rationale: 'Assignment should remain a human-reviewed action in Ship.',
+          summary: 'Assign the unassigned sprint issues or make an explicit call to leave them unassigned.',
+          targetId: SPRINT_ID,
+          targetType: 'sprint',
+          title: 'Assign sprint issues',
+          type: 'assign_issues',
+        },
+        summary: 'Sprint 8 has several unassigned issues that need an ownership decision.',
+        title: '3 unassigned issues in Sprint 8',
+      })
+    )
+
+    const response = await request(app)
+      .post('/api/fleetgraph/findings/finding-issues-gap/apply')
+      .set('x-csrf-token', 'csrf-token')
+      .send({
+        assigneeId: '22222222-2222-4222-8222-222222222222',
+      })
+
+    expect(response.status).toBe(200)
+    expect(applyFinding).toHaveBeenCalledWith({
+      actorUserId: '11111111-1111-4111-8111-111111111111',
+      assigneeId: '22222222-2222-4222-8222-222222222222',
+      findingId: 'finding-issues-gap',
+      request: expect.any(Object),
+      workspaceId: '22222222-2222-4222-8222-222222222222',
+    })
+    expect(response.body.finding.actionExecution).toMatchObject({
+      actionType: 'assign_issues',
       status: 'applied',
     })
   })

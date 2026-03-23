@@ -36,8 +36,8 @@ const ACTION_SHAPE_BY_TYPE: Partial<Record<FleetGraphRequestedAction['type'], {
     targetType: 'sprint',
   },
   assign_issues: {
-    methods: ['PATCH'],
-    path: (targetId: string) => `/api/documents/${targetId}`,
+    methods: ['POST'],
+    path: () => '/api/issues/bulk',
     targetType: 'sprint',
   },
   assign_owner: {

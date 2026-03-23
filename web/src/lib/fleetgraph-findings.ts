@@ -24,7 +24,7 @@ export interface FleetGraphFindingAction {
 }
 
 export interface FleetGraphFindingActionExecution {
-  actionType: 'assign_owner' | 'start_week';
+  actionType: 'assign_issues' | 'assign_owner' | 'start_week';
   appliedAt?: string;
   attemptCount: number;
   endpoint: FleetGraphFindingActionEndpoint;

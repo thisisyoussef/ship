@@ -27,6 +27,7 @@ interface FleetGraphFindingCardProps {
   isReviewLoading?: boolean;
   isMutating: boolean;
   onApply: (findingId: string) => void;
+  onAssigneeChange?: (value: string | null) => void;
   onCancelReview: () => void;
   onDismiss: (findingId: string) => void;
   onOwnerChange?: (value: string | null) => void;
@@ -34,6 +35,7 @@ interface FleetGraphFindingCardProps {
   onSnooze: (findingId: string, preset: '10s' | '4h') => void;
   ownerOptions?: ComboboxOption[];
   review?: FleetGraphFindingReview | null;
+  selectedAssigneeId?: string | null;
   selectedOwnerId?: string | null;
 }
 
@@ -65,6 +67,7 @@ export function FleetGraphFindingCard({
   isReviewLoading = false,
   isMutating,
   onApply,
+  onAssigneeChange,
   onCancelReview,
   onDismiss,
   onOwnerChange,
@@ -72,21 +75,38 @@ export function FleetGraphFindingCard({
   onSnooze,
   ownerOptions = [],
   review,
+  selectedAssigneeId = null,
   selectedOwnerId = null,
 }: FleetGraphFindingCardProps) {
   const executionLabel = finding.actionExecution ? renderExecutionLabel(finding) : null;
   const canReviewInFleetGraph = canReviewFindingActionInFleetGraph(finding);
+  const requiresAssigneeSelection = finding.recommendedAction?.type === 'assign_issues';
   const requiresOwnerSelection = finding.recommendedAction?.type === 'assign_owner';
+  const selectedAssigneeOption = ownerOptions.find((option) => option.value === selectedAssigneeId);
   const selectedOwnerOption = ownerOptions.find((option) => option.value === selectedOwnerId);
+  const unassignedCount = typeof finding.metadata?.unassignedCount === 'number'
+    ? finding.metadata.unassignedCount
+    : null;
+  const assignmentTargetLabel = unassignedCount === null
+    ? 'the currently unassigned sprint issues'
+    : `${unassignedCount} currently unassigned ${unassignedCount === 1 ? 'issue' : 'issues'}`;
   const reviewSummary = review?.summary ?? (
     requiresOwnerSelection
       ? 'Choose the sprint owner FleetGraph should assign in Ship. Nothing changes until you confirm.'
-      : 'FleetGraph thinks this week is ready to start. Nothing changes in Ship until you confirm.'
+      : requiresAssigneeSelection
+        ? 'Choose who FleetGraph should assign the currently unassigned sprint issues to in Ship. Nothing changes until you confirm.'
+        : 'FleetGraph thinks this week is ready to start. Nothing changes in Ship until you confirm.'
   );
-  const waitingForOwnerReview = requiresOwnerSelection && isReviewLoading;
-  const confirmDisabled = isMutating || (requiresOwnerSelection && (!selectedOwnerId || review === null));
+  const waitingForSelectionReview = (requiresOwnerSelection || requiresAssigneeSelection) && isReviewLoading;
+  const confirmDisabled = isMutating
+    || (requiresOwnerSelection && (!selectedOwnerId || review === null))
+    || (requiresAssigneeSelection && (!selectedAssigneeId || review === null));
   const confirmLabel = review?.confirmLabel ?? (
-    requiresOwnerSelection ? 'Assign owner in Ship' : 'Start week in Ship'
+    requiresOwnerSelection
+      ? 'Assign owner in Ship'
+      : requiresAssigneeSelection
+        ? 'Assign issues in Ship'
+        : 'Start week in Ship'
   );
 
   return (
@@ -150,6 +170,25 @@ export function FleetGraphFindingCard({
                           : 'Choose the sprint owner before confirming.'}
                       </p>
                     </div>
+                  ) : requiresAssigneeSelection ? (
+                    <div className="space-y-2">
+                      <p className={sectionLabelClassName}>Assignee to set</p>
+                      <Combobox
+                        allowClear={false}
+                        aria-label="Issue assignee"
+                        emptyText="No people found"
+                        onChange={(value) => onAssigneeChange?.(value)}
+                        options={ownerOptions}
+                        placeholder="Choose assignee"
+                        searchPlaceholder="Search people..."
+                        value={selectedAssigneeId}
+                      />
+                      <p className="text-xs text-slate-700">
+                        {selectedAssigneeOption
+                          ? `FleetGraph will assign ${assignmentTargetLabel} to ${selectedAssigneeOption.label} when you confirm.`
+                          : 'Choose the assignee before confirming.'}
+                      </p>
+                    </div>
                   ) : null}
                   {review?.evidence.length ? (
                     <ul className="list-disc space-y-1 pl-5 text-sm text-slate-700">
@@ -158,7 +197,7 @@ export function FleetGraphFindingCard({
                       ))}
                     </ul>
                   ) : null}
-                  {waitingForOwnerReview ? (
+                  {waitingForSelectionReview ? (
                     <p className="text-xs text-slate-700">Updating review...</p>
                   ) : null}
                   <div className="flex flex-wrap justify-end gap-2">

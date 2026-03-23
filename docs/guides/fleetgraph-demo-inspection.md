@@ -49,7 +49,8 @@ Current public-demo blocker:
 
 - `FleetGraph Demo Week - Unassigned Issues` is seeded in repo but blocked on
   the current public Railway findings feed. Treat that lane as blocked unless
-  the titled finding is visibly present on the live demo.
+  the titled finding is visibly present on the live demo with its real
+  review/apply path.
 
 ## Final Demo Story Flow
 
@@ -131,9 +132,9 @@ Use this when recording the final video. It is intentionally narrower than the f
 - On `FleetGraph Demo Week - Unassigned Issues`, the proactive card shows:
   - `3 unassigned issues in FleetGraph Demo Week - Unassigned Issues`
   - count/context evidence about the unassigned work cluster
-  - `Assign sprint issues` as advisory guidance only
+  - `Assign sprint issues` with a real `Review and apply` path
   - `Quick actions` with `Dismiss` and snooze controls
-  - no `Review and apply` button
+  - `Review and apply`
 - If that titled finding is absent on Railway, use the evidence bundle's blocked
   note instead of treating the whole audit as failed. The lane is seeded in repo
   but blocked on the current public Railway findings feed.
@@ -184,9 +185,15 @@ Use this when recording the final video. It is intentionally narrower than the f
 3. Confirm the summary explains that the sprint still needs an ownership decision for those issues.
 4. Confirm the evidence includes the unassigned count and the sprint timing/context.
 5. Confirm the suggested next step is `Assign sprint issues`.
-6. Confirm FleetGraph does not show `Review and apply` or any other fake mutation control for this case.
-7. Confirm lifecycle controls such as `Dismiss` and `Snooze 4h` still work.
-8. Failure signal: the page has no unassigned-issues finding, the count/context is missing, or FleetGraph exposes a broken apply path for issue assignment.
+6. Click `Review and apply`.
+7. Confirm the inline review shows a searchable `Issue assignee` picker and that `Assign issues in Ship` stays disabled until you choose someone.
+8. Choose a person other than the already-assigned sprint owner.
+9. Confirm the review explains that FleetGraph will assign the currently unassigned sprint issues to the selected person.
+10. Apply the action.
+11. Confirm the page refreshes and the formerly unassigned sprint issues now show the selected assignee.
+12. Confirm the unassigned-issues finding disappears instead of resurfacing immediately.
+13. Confirm lifecycle controls such as `Dismiss` and `Snooze 4h` were available before apply.
+14. Failure signal: the page has no unassigned-issues finding, the assignee picker is missing, the selected assignee is ignored, or the same finding remains after apply.
 
 If that titled finding is not present on Railway, do not treat this checklist as
 failed. Instead, record the known blocker from

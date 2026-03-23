@@ -20,7 +20,11 @@ interface FleetGraphEntryServiceDeps {
   runtime: FleetGraphEntryRuntime
 }
 
-const ACTION_SHAPE_BY_TYPE = {
+const ACTION_SHAPE_BY_TYPE: Partial<Record<FleetGraphRequestedAction['type'], {
+  methods: readonly FleetGraphRequestedAction['endpoint']['method'][]
+  path: (targetId: string) => string
+  targetType: FleetGraphRequestedAction['targetType']
+}>> = {
   approve_project_plan: {
     methods: ['POST'],
     path: (targetId: string) => `/api/projects/${targetId}/approve-plan`,
@@ -41,11 +45,6 @@ const ACTION_SHAPE_BY_TYPE = {
     path: (targetId: string) => `/api/documents/${targetId}`,
     targetType: 'sprint',
   },
-  post_comment: {
-    methods: ['POST'],
-    path: (targetId: string) => `/api/documents/${targetId}/comments`,
-    targetType: 'document',
-  },
   start_week: {
     methods: ['POST'],
     path: (targetId: string) => `/api/weeks/${targetId}/start`,
@@ -56,7 +55,7 @@ const ACTION_SHAPE_BY_TYPE = {
     path: (targetId: string) => `/api/weeks/${targetId}/review`,
     targetType: 'sprint',
   },
-} as const
+}
 
 const APPROVAL_OPTIONS = [
   { id: 'apply', label: 'Apply' },

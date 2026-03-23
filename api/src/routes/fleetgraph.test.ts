@@ -475,6 +475,64 @@ describe('FleetGraph routes', () => {
     })
   })
 
+  it('rejects unsupported post-comment fallback previews for entry actions', async () => {
+    const payload = createEntryPayload()
+    const invokeCallCount = runtime.invoke.mock.calls.length
+    const response = await request(app)
+      .post('/api/fleetgraph/entry')
+      .send({
+        ...payload,
+        context: {
+          ...payload.context,
+          breadcrumbs: [
+            {
+              id: PROJECT_ID,
+              title: 'North Star',
+              type: 'project',
+            },
+            {
+              id: DOCUMENT_ID,
+              title: 'Alice retro',
+              type: 'weekly_retro',
+            },
+          ],
+          current: {
+            document_type: 'weekly_retro',
+            id: DOCUMENT_ID,
+            title: 'Alice retro',
+          },
+        },
+        trigger: {
+          ...payload.trigger,
+          documentType: 'weekly_retro',
+        },
+        draft: {
+          requestedAction: {
+            endpoint: {
+              method: 'POST',
+              path: `/api/documents/${DOCUMENT_ID}/comments`,
+            },
+            evidence: [
+              'The comment would be posted directly on this document.',
+              'A quick review helps make sure the message is right before it goes out.',
+            ],
+            rationale: 'Review the comment before posting it to the team.',
+            summary: 'Post a comment on the current document.',
+            targetId: DOCUMENT_ID,
+            targetType: 'document',
+            title: 'Post comment',
+            type: 'post_comment',
+          },
+        },
+      })
+
+    expect(response.status).toBe(400)
+    expect(response.body).toEqual({
+      error: 'Unsupported FleetGraph action type',
+    })
+    expect(runtime.invoke.mock.calls.length).toBe(invokeCallCount)
+  })
+
   it('accepts sprint-review validation payloads with a review write body', async () => {
     const response = await request(app)
       .post('/api/fleetgraph/entry')

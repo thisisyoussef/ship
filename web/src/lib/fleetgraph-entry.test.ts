@@ -192,7 +192,7 @@ describe('buildFleetGraphEntryPayload', () => {
     expect(payload.draft).toBeUndefined()
   })
 
-  it('falls back to a safe current-document comment action for weekly retro pages', () => {
+  it('does not create a fallback preview action for unsupported weekly retro pages', () => {
     const payload = buildFleetGraphEntryPayload({
       context: createContext('weekly_retro'),
       document: {
@@ -204,16 +204,6 @@ describe('buildFleetGraphEntryPayload', () => {
       userId: USER_ID,
     }, true)
 
-    expect(payload.draft?.requestedAction).toMatchObject({
-      endpoint: {
-        method: 'POST',
-        path: `/api/documents/${DOCUMENT_ID}/comments`,
-      },
-      targetId: DOCUMENT_ID,
-      targetType: 'document',
-      title: 'Post comment',
-      type: 'post_comment',
-      rationale: 'Review the comment before posting it to the team.',
-    })
+    expect(payload.draft).toBeUndefined()
   })
 })

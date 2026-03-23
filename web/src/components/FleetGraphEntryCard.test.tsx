@@ -35,7 +35,7 @@ function createWrapper() {
 }
 
 function createContext(
-  currentDocumentType: 'project' | 'sprint' | 'weekly_plan' = 'project',
+  currentDocumentType: 'project' | 'sprint' | 'weekly_plan' | 'weekly_retro' = 'project',
   currentTitle = 'Launch planner'
 ) {
   return {
@@ -648,5 +648,35 @@ describe('FleetGraphEntryCard', () => {
     expect(detail).toBeInTheDocument()
     expect(title.className).toContain('text-emerald-950')
     expect(detail.className).toContain('text-emerald-900/85')
+  })
+
+  it('shows no guided step and skips the entry API for unsupported preview pages', async () => {
+    render(
+      <FleetGraphEntryCard
+        context={createContext('weekly_retro', 'Alice retro')}
+        document={{
+          documentType: 'weekly_retro',
+          id: DOCUMENT_ID,
+          title: 'Alice retro',
+          workspaceId: '22222222-2222-4222-8222-222222222222',
+        }}
+        userId="11111111-1111-4111-8111-111111111111"
+      />,
+      { wrapper: createWrapper() }
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: /preview next step/i }))
+
+    expect(apiPost).not.toHaveBeenCalled()
+    expect(
+      await screen.findByText('FleetGraph has no guided step for this weekly_retro right now.')
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText('FleetGraph checked Alice retro and did not find a guided next step yet.')
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText('No guided step is needed for this page right now.')
+    ).toBeInTheDocument()
+    expect(screen.queryByText('Post comment')).not.toBeInTheDocument()
   })
 })

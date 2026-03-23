@@ -113,6 +113,37 @@ function splitNestedPath(value?: string) {
   return value ? value.split('/').filter(Boolean) : []
 }
 
+function sanitizeSegment(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+}
+
+function buildSurfaceLabel(activeTab?: string, nestedPath?: string) {
+  const parts = ['document-page']
+  if (activeTab) {
+    parts.push(activeTab)
+  }
+  if (nestedPath) {
+    parts.push(...splitNestedPath(nestedPath))
+  }
+  return parts.join(' / ')
+}
+
+function buildEntryThreadId(input: FleetGraphEntryInput) {
+  const tab = input.activeTab ? sanitizeSegment(input.activeTab) : 'current'
+  const nested = input.nestedPath
+    ? sanitizeSegment(splitNestedPath(input.nestedPath).join('-'))
+    : ''
+
+  return [
+    'fleetgraph',
+    input.document.workspaceId ?? 'workspace',
+    'entry',
+    input.document.id,
+    tab,
+    nested || 'root',
+  ].join(':')
+}
+
 function findRelatedContextTarget(
   context: DocumentContext,
   type: 'project' | 'sprint'
@@ -223,23 +254,6 @@ function buildRequestedAction(
       }
     }
   }
-
-  return {
-    endpoint: {
-      method: 'POST' as const,
-      path: `/api/documents/${document.id}/comments`,
-    },
-    evidence: [
-      'The comment would be posted directly on this document.',
-      'A quick review helps make sure the message is right before it goes out.',
-    ],
-    rationale: 'Review the comment before posting it to the team.',
-    summary: 'Post a comment on the current document.',
-    targetId: document.id,
-    targetType: 'document' as const,
-    title: 'Post comment',
-    type: 'post_comment' as const,
-  }
 }
 
 export function buildFleetGraphEntryPayload(
@@ -273,6 +287,41 @@ export function buildFleetGraphEntryPayload(
       threadId,
       trigger: 'document-context',
       workspaceId: input.document.workspaceId,
+    },
+  }
+}
+
+export function buildFleetGraphNoPreviewResponse(
+  input: FleetGraphEntryInput
+): FleetGraphEntryResponse {
+  const threadId = buildEntryThreadId(input)
+  const nestedPath = splitNestedPath(input.nestedPath)
+
+  return {
+    entry: {
+      current: {
+        documentType: input.document.documentType,
+        id: input.document.id,
+        title: input.document.title,
+      },
+      route: {
+        activeTab: input.activeTab,
+        nestedPath,
+        surface: 'document-page',
+      },
+      threadId,
+    },
+    run: {
+      branch: 'quiet',
+      outcome: 'quiet',
+      path: ['resolve_trigger_context', 'select_scenarios', 'quiet_exit'],
+      routeSurface: 'document-page',
+      threadId,
+    },
+    summary: {
+      detail: `FleetGraph checked ${input.document.title} and did not find a guided next step yet.`,
+      surfaceLabel: buildSurfaceLabel(input.activeTab, input.nestedPath),
+      title: `FleetGraph has no guided step for this ${input.document.documentType} right now.`,
     },
   }
 }

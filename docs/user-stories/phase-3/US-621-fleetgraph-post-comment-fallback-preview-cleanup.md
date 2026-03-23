@@ -2,11 +2,11 @@
 
 ## Status
 
-- State: `todo`
+- State: `done`
 - Owner: Codex
 - Depends on: `US-601`
-- Related branch:
-- Related commit/PR:
+- Related branch: `codex/us-621-post-comment-fallback-preview-cleanup`
+- Related commit/PR: `pending finalization`
 - Target environment: `local first`, `Railway demo via merged master`
 
 ## Persona
@@ -60,17 +60,35 @@ Local sources to read before writing code:
 
 Local docs/code reviewed:
 
-1. `docs/user-stories/phase-2/US-601-current-page-approval-preview.md`
-2. `web/src/lib/fleetgraph-entry.ts`
-3. `api/src/services/fleetgraph/entry/service.ts`
-4. `api/src/services/fleetgraph/entry/action-service.ts`
-5. `api/src/routes/comments.ts`
+1. `AGENTS.md`
+2. `docs/CONTEXT.md`
+3. `docs/WORKFLOW_MEMORY.md`
+4. `docs/IMPLEMENTATION_STRATEGY.md`
+5. `docs/user-stories/README.md`
+6. `docs/user-stories/phase-3/README.md`
+7. `docs/user-stories/phase-3/US-621-fleetgraph-post-comment-fallback-preview-cleanup.md`
+8. `docs/DEFINITION_OF_DONE.md`
+9. `docs/assignments/fleetgraph/README.md`
+10. `docs/assignments/fleetgraph/PRESEARCH.md`
+11. `docs/assignments/fleetgraph/FLEETGRAPH.md`
+12. `.claude/CLAUDE.md`
+13. `docs/user-stories/phase-2/US-601-current-page-approval-preview.md`
+14. `web/src/lib/fleetgraph-entry.ts`
+15. `web/src/lib/fleetgraph-entry.test.ts`
+16. `web/src/components/FleetGraphEntryCard.tsx`
+17. `web/src/components/FleetGraphEntryCard.test.tsx`
+18. `web/src/hooks/useFleetGraphEntry.ts`
+19. `api/src/services/fleetgraph/entry/service.ts`
+20. `api/src/services/fleetgraph/entry/action-service.ts`
+21. `api/src/routes/comments.ts`
+22. `api/src/routes/fleetgraph.test.ts`
 
 Expected contracts/data shapes:
 
 1. The fallback currently builds a `post_comment` action with no comment body.
 2. `/api/documents/:id/comments` requires at least `comment_id` and non-empty `content`, so the current fallback is not a truthful apply path.
-3. If making comment preview real would require a larger compose UI, the smaller correct fix is to remove the fallback preview from unsupported page types.
+3. `api/src/routes/comments.test.ts` is not present in the repo today, so the tighter FleetGraph-side rejection path plus entry-preview tests are the narrowest truthful proof surface for this cleanup.
+4. If making comment preview real would require a larger compose UI, the smaller correct fix is to remove the fallback preview from unsupported page types.
 
 Planned failing tests:
 
@@ -94,9 +112,9 @@ Error path:
 
 ## Preconditions
 
-- [ ] Fresh story branch is checked out from current `master` before edits begin
-- [ ] The current-page preview flow from `US-601` is current repo truth
-- [ ] Local FleetGraph and comment-route tests run in this shell
+- [x] Fresh story branch is checked out from current `master` before edits begin
+- [x] The current-page preview flow from `US-601` is current repo truth
+- [x] Local FleetGraph entry-preview and route tests run in this shell
 
 ## TDD Plan
 
@@ -113,20 +131,20 @@ Error path:
 
 ## Acceptance Criteria
 
-- [ ] AC-1: FleetGraph no longer offers a broken `post_comment` fallback preview on unsupported page types.
-- [ ] AC-2: If `post_comment` remains supported, the preview carries the real payload and applies successfully through Ship.
-- [ ] AC-3: Supported current-page preview flows for project, week approval, and week validation remain intact.
-- [ ] AC-4: Web and API tests cover the chosen fallback behavior truthfully.
+- [x] AC-1: FleetGraph no longer offers a broken `post_comment` fallback preview on unsupported page types.
+- [x] AC-2: The entry preview contract now rejects hand-crafted `post_comment` preview payloads instead of pretending they are supported.
+- [x] AC-3: Supported current-page preview flows for project, week approval, and week validation remain intact.
+- [x] AC-4: Web and API tests cover the chosen fallback behavior truthfully.
 
 ## Local Validation
 
 Run these before handoff:
 
 ```bash
-pnpm --filter @ship/web exec vitest run src/lib/fleetgraph-entry.test.ts src/components/FleetGraphEntryCard.test.tsx
-pnpm --filter @ship/api exec vitest run src/routes/fleetgraph.test.ts src/routes/comments.test.ts --config vitest.fleetgraph.config.ts
-pnpm --filter @ship/api exec tsc --noEmit
-pnpm --filter @ship/web exec tsc --noEmit
+npx pnpm --filter @ship/web exec vitest run src/lib/fleetgraph-entry.test.ts src/components/FleetGraphEntryCard.test.tsx
+npx pnpm --filter @ship/api exec vitest run src/routes/fleetgraph.test.ts --config vitest.fleetgraph.config.ts
+npx pnpm --filter @ship/api exec tsc --noEmit
+npx pnpm --filter @ship/web exec tsc --noEmit
 git diff --check
 ```
 
@@ -163,6 +181,18 @@ git diff --check
 
 ## Checkpoint Result
 
-- Outcome: `pending`
+- Outcome: `pass`
 - Evidence:
+  - Removed the unsupported `post_comment` fallback from the FleetGraph entry payload builder, so unsupported page types like `weekly_retro` no longer draft a fake comment action.
+  - Added a local no-guided-step response for preview requests with no supported action, which keeps `Preview next step` truthful without routing unsupported pages through the entry API.
+  - Tightened the backend entry contract to reject hand-crafted `post_comment` preview payloads with `400 Unsupported FleetGraph action type` instead of treating them as valid approvals.
+  - Updated web and route regressions to cover unsupported-page preview cleanup plus supported project/week preview preservation.
+  - Local validation passed:
+    - `npx pnpm --filter @ship/web exec vitest run src/lib/fleetgraph-entry.test.ts src/components/FleetGraphEntryCard.test.tsx`
+    - `npx pnpm --filter @ship/api exec vitest run src/routes/fleetgraph.test.ts --config vitest.fleetgraph.config.ts`
+    - `npx pnpm --filter @ship/api exec tsc --noEmit`
+    - `npx pnpm --filter @ship/web exec tsc --noEmit`
+    - `git diff --check`
+  - Deployment status: `not deployed`
 - Residual risk:
+  - Live Railway proof still depends on merge-to-`master` auto-deploy plus an authenticated check of an unsupported page type and `FleetGraph Demo Week - Validation Ready` to confirm the truthful no-preview behavior and the supported week-validation lane on the sanctioned demo surface.

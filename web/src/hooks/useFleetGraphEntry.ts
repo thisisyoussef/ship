@@ -5,6 +5,7 @@ import { apiPost } from '@/lib/api'
 import {
   type FleetGraphEntryAnalysisFinding,
   buildFleetGraphEntryPayload,
+  buildFleetGraphNoPreviewResponse,
   type FleetGraphEntryApplyResponse,
   type FleetGraphApprovalEnvelope,
   type FleetGraphEntryInput,
@@ -50,9 +51,19 @@ export function useFleetGraphEntry() {
       previewApproval: boolean
       threadId?: string
     }) => {
+      const payload = buildFleetGraphEntryPayload(
+        input.entry,
+        input.previewApproval,
+        input.threadId
+      )
+
+      if (input.previewApproval && !payload.draft?.requestedAction) {
+        return buildFleetGraphNoPreviewResponse(input.entry)
+      }
+
       const response = await apiPost(
         '/api/fleetgraph/entry',
-        buildFleetGraphEntryPayload(input.entry, input.previewApproval, input.threadId)
+        payload
       )
 
       if (!response.ok) {

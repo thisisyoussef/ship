@@ -6,7 +6,9 @@
 - Owner: Codex
 - Depends on: `US-612`
 - Related branch: `codex/us-613-panel-gradient-removal`
-- Related commit/PR: implementation `4a76596`, [PR #168](https://github.com/thisisyoussef/ship/pull/168), merged to `master` as `560b7d2`
+- Related commits/PRs:
+  - implementation `4a76596`, [PR #168](https://github.com/thisisyoussef/ship/pull/168), merged to `master` as `560b7d2`
+  - implementation `77aa218`, [PR #173](https://github.com/thisisyoussef/ship/pull/173), merged to `master` as `47ddd07` (darker title copy for visibility)
 - Target environment: `local first`, `Railway demo via merged master`
 
 ## Persona
@@ -168,8 +170,10 @@ git diff --check
     - `git diff --check`
   - Deployment status: `deployed`
   - Environment and proof path: Railway demo auto-deploy from merged `master` commit `560b7d2`, observed on March 22, 2026.
-  - Live runtime proof:
-    - `Documents` -> `FleetGraph Demo Week - Validation Ready` -> `Review` shows the calmer flat non-alert shell header with `On-demand guidance ready`.
-    - `Documents` -> `FleetGraph Demo Week - Owner Gap` shows a distinct flat amber alert header with `1 proactive alert`, confirming alert-state signaling still stands out without the gradient.
+- Live runtime proof:
+  - `Documents` -> `FleetGraph Demo Week - Validation Ready` -> `Review` shows the calmer flat non-alert shell header with `On-demand guidance ready`.
+  - `Documents` -> `FleetGraph Demo Week - Owner Gap` shows a distinct flat amber alert header with `1 proactive alert`, confirming alert-state signaling still stands out without the gradient.
+- Follow-up visibility tweak:
+  - `Documents` -> `FleetGraph Demo Week - Validation Ready` -> `Review` header text for `Page guidance and proactive alerts` now uses `text-slate-950` for reliable contrast on the light shell background.
 - Residual risk:
   - The story now has live proof on both a calm lane and an alert lane; remaining risk is limited to future visual drift from broader theme changes outside this shell.

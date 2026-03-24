@@ -25,7 +25,8 @@ Last updated: 2026-03-22
 
 - FleetGraph remains the most active product track in the repo.
 - FleetGraph assignment source docs live under `docs/assignments/fleetgraph/`.
-- The repo now uses `AGENTS.md` plus `docs/` as the primary harness, not the old `.ai` workspace docs.
+- The repo now uses `AGENTS.md` plus `docs/` as the primary harness.
+- `.ai/` is an organized compatibility workspace plus runtime state, not the canonical control plane.
 - Deploy-relevant merges to `master` should be judged by the actual auto-deployed surface, not by a standalone GitHub deploy workflow status.
 
 ## Operational Appendix
@@ -37,4 +38,4 @@ Last updated: 2026-03-22
 ## Open Maintenance Items
 
 - Backfill additional story files into `docs/user-stories/` as active packs are ported.
-- Retire stale references to the previous `.ai` workspace model in active docs when found.
+- Retire stale references to `.ai` as the primary harness when found, while keeping the organized compatibility workspace aligned with the checked-in docs control plane.

@@ -44,4 +44,5 @@ Use this file as the quick index for the repo's active documentation surfaces.
 - Use `docs/user-stories/` to decide what to build next.
 - Use `docs/plans/` to understand how something should be built.
 - Use `docs/submissions/` only for final packaging and review bundles.
+- Use `.ai/` as a compatibility/workflow mirror when a tool expects it, but treat `AGENTS.md` plus `docs/` as the source of truth.
 - Use `docs/archive/` for historical context, not current operating truth.

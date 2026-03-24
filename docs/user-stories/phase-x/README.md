@@ -15,7 +15,7 @@ This folder holds stories that change the execution harness itself.
 | US-907 | Skip default browser-verification closeout | `done` | P1 | `US-904` |
 | US-913 | Queue-first workflow reset | `done` | P1 | `US-907` |
 | US-914 | Prune superseded harness history | `done` | P1 | `US-913` |
-| US-915 | Organized `.ai` compatibility workspace | `in-progress` | P1 | `US-914` |
+| US-915 | Organized `.ai` compatibility workspace | `done` | P1 | `US-914` |
 
 ## Execution Notes
 

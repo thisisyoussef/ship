@@ -2,11 +2,11 @@
 
 ## Status
 
-- State: `in-progress`
+- State: `done`
 - Owner: Codex
 - Depends on: `US-914`
 - Related branch: `codex/us-915-ai-compat-workspace`
-- Related commit/PR: Pending
+- Related commit/PR: `383e310`, [PR #199](https://github.com/thisisyoussef/ship/pull/199)
 - Target environment: `repo-only`
 
 ## Persona
@@ -121,11 +121,11 @@ Error path:
 
 ## Acceptance Criteria
 
-- [ ] AC-1: `.ai/` contains a clear compatibility index, workflow docs, agent entrypoints, and state map.
-- [ ] AC-2: The new `.ai` workspace explicitly points back to `AGENTS.md` plus `docs/` as canonical.
-- [ ] AC-3: `scripts/check_ai_wiring.sh`, `scripts/verify_agent_contract.py`, and `scripts/ai_arch_changed.sh` all recognize the organized `.ai` surface.
-- [ ] AC-4: `docs/CONTEXT.md` and `docs/WORKFLOW_MEMORY.md` describe the updated compatibility model truthfully.
-- [ ] AC-5: Validation passes with `bash scripts/check_ai_wiring.sh` and `git diff --check`.
+- [x] AC-1: `.ai/` contains a clear compatibility index, workflow docs, agent entrypoints, and state map.
+- [x] AC-2: The new `.ai` workspace explicitly points back to `AGENTS.md` plus `docs/` as canonical.
+- [x] AC-3: `scripts/check_ai_wiring.sh`, `scripts/verify_agent_contract.py`, and `scripts/ai_arch_changed.sh` all recognize the organized `.ai` surface.
+- [x] AC-4: `docs/CONTEXT.md` and `docs/WORKFLOW_MEMORY.md` describe the updated compatibility model truthfully.
+- [x] AC-5: Validation passes with `bash scripts/check_ai_wiring.sh` and `git diff --check`.
 
 ## Local Validation
 
@@ -133,6 +133,7 @@ Run these before handoff:
 
 ```bash
 bash scripts/check_ai_wiring.sh
+python3 scripts/verify_agent_contract.py
 git diff --check
 ```
 
@@ -167,6 +168,12 @@ git diff --check
 
 ## Checkpoint Result
 
-- Outcome: Pending
-- Evidence: Pending
+- Outcome: `done`
+- Evidence:
+  - Added `.ai/README.md`, `.ai/docs/WORKSPACE_INDEX.md`, `.ai/workflows/`, `.ai/agents/`, and `.ai/state/README.md`.
+  - Updated `docs/CONTEXT.md`, `docs/WORKFLOW_MEMORY.md`, and `docs/README.md` to describe the compatibility model truthfully.
+  - Updated `scripts/check_ai_wiring.sh`, `scripts/verify_agent_contract.py`, and `scripts/ai_arch_changed.sh` to enforce the new `.ai` surface.
+  - `bash scripts/check_ai_wiring.sh`
+  - `python3 scripts/verify_agent_contract.py`
+  - `git diff --check`
 - Residual risk: If future harness changes update `AGENTS.md` and `docs/` without also updating `.ai`, the compatibility workspace could drift again unless the wiring audit stays strict.

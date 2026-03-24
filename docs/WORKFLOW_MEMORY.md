@@ -19,6 +19,9 @@ Use this file as durable working memory for recurring corrections, decisions, an
 - Queue-first story selection is the default.
   Source: post-`US-913` user correction
   Meaning: use `docs/user-stories/README.md` as the shared queue and keep the harness low-ceremony so story work can move without extra coordination-only workflow layers.
+- Organized `.ai` is a compatibility layer, not the source of truth.
+  Source: `US-915`
+  Meaning: keep `.ai/` easy to browse for AI tooling, but mirror the live workflow from `AGENTS.md` and `docs/` instead of moving ownership back into `.ai`.
 - Railway demo deploys should follow the real platform path.
   Source: post-`US-602` correction
   Meaning: when the demo already auto-deploys from `master`, do not add a manual Railway deploy attempt to the default closeout flow unless the story is about deployment itself or the user explicitly asks for a manual refresh.

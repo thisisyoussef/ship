@@ -15,6 +15,7 @@ This folder holds stories that change the execution harness itself.
 | US-907 | Skip default browser-verification closeout | `done` | P1 | `US-904` |
 | US-913 | Queue-first workflow reset | `done` | P1 | `US-907` |
 | US-914 | Prune superseded harness history | `done` | P1 | `US-913` |
+| US-915 | Organized `.ai` compatibility workspace | `in-progress` | P1 | `US-914` |
 
 ## Execution Notes
 
@@ -23,3 +24,4 @@ This folder holds stories that change the execution harness itself.
 3. Keep recovery guidance in `docs/guides/finalization-recovery.md`.
 4. Record detailed harness progress in `CHECKPOINT-LOG.md`.
 5. Treat `US-913` and `US-914` as the cleanup stories that keep the checked-in harness queue-first and focused on current guidance.
+6. Treat `US-915` as the compatibility-layer story that keeps `.ai/` organized without replacing the docs-first control plane.

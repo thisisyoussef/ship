@@ -24,6 +24,43 @@ require_cmd python3
 
 run_check "Agent contract required files" python3 scripts/verify_agent_contract.py
 
+run_check "AI compatibility workspace" python3 - <<'PY'
+from pathlib import Path
+import sys
+
+targets = {
+    ".ai/README.md": ["AGENTS.md", "docs/CONTEXT.md", "docs/WORKFLOW_MEMORY.md", "docs/IMPLEMENTATION_STRATEGY.md", "docs/user-stories/README.md", "docs/DEFINITION_OF_DONE.md", ".ai/workflows/", ".ai/state/"],
+    ".ai/codex.md": ["AGENTS.md", ".ai/docs/WORKSPACE_INDEX.md", "docs/user-stories/README.md"],
+    ".ai/docs/WORKSPACE_INDEX.md": ["AGENTS.md", ".ai/workflows/story-lookup.md", ".ai/workflows/feature-development.md", ".ai/workflows/story-handoff.md", ".ai/workflows/git-finalization.md", ".ai/state/README.md"],
+    ".ai/agents/claude.md": ["AGENTS.md", ".ai/docs/WORKSPACE_INDEX.md"],
+    ".ai/agents/cursor-agent.md": ["AGENTS.md", ".ai/docs/WORKSPACE_INDEX.md"],
+    ".ai/workflows/README.md": [".ai/workflows/story-lookup.md", ".ai/workflows/feature-development.md", ".ai/workflows/spec-driven-delivery.md", ".ai/workflows/parallel-flight.md", ".ai/workflows/user-correction-triage.md", ".ai/workflows/story-handoff.md", ".ai/workflows/git-finalization.md"],
+    ".ai/workflows/story-lookup.md": ["AGENTS.md", "docs/user-stories/README.md", "docs/CONTEXT.md", "docs/WORKFLOW_MEMORY.md", "docs/IMPLEMENTATION_STRATEGY.md"],
+    ".ai/workflows/feature-development.md": ["AGENTS.md", "docs/DEFINITION_OF_DONE.md", "docs/plans/", "docs/submissions/"],
+    ".ai/workflows/spec-driven-delivery.md": ["docs/plans/", "docs/specs/", "docs/user-stories/TEMPLATE.md", "docs/submissions/"],
+    ".ai/workflows/parallel-flight.md": ["scripts/flight_slot.sh", ".ai/state/flight-lock.json", ".ai/state/flight-board.json"],
+    ".ai/workflows/user-correction-triage.md": ["scripts/triage_counter.sh", ".ai/state/correction-triage.json", "docs/WORKFLOW_MEMORY.md"],
+    ".ai/workflows/story-handoff.md": ["docs/DEFINITION_OF_DONE.md", "What To Test", "deployment status"],
+    ".ai/workflows/git-finalization.md": ["AGENTS.md", "scripts/git_finalize_guard.sh", "docs/guides/finalization-recovery.md", "master"],
+    ".ai/state/README.md": [".ai/state/correction-triage.json", ".ai/state/flight-lock.json", ".ai/state/flight-board.json", ".ai/state/tdd-handoff/README.md"],
+}
+errors: list[str] = []
+
+for rel, required_tokens in targets.items():
+    text = Path(rel).read_text(encoding="utf-8")
+    missing = [token for token in required_tokens if token not in text]
+    if missing:
+        errors.append(f"{rel}: missing {', '.join(missing)}")
+
+if errors:
+    print("ERROR: AI compatibility workspace issues detected:", file=sys.stderr)
+    for item in errors:
+        print(f"- {item}", file=sys.stderr)
+    raise SystemExit(1)
+
+print("AI compatibility workspace check passed.")
+PY
+
 run_check "Startup routing surfaces" python3 - <<'PY'
 from pathlib import Path
 import sys
@@ -146,7 +183,7 @@ for rel in ("scripts/flight_slot.sh", "scripts/triage_counter.sh", "scripts/tdd_
         errors.append(f"{rel} still invokes bare python")
 
 ai_arch = Path("scripts/ai_arch_changed.sh").read_text(encoding="utf-8")
-for token in ("docs/IMPLEMENTATION_STRATEGY.md", "docs/CONTEXT.md", "docs/DEFINITION_OF_DONE.md", "docs/user-stories/", "docs/guides/finalization-recovery.md", "CLAUDE.md"):
+for token in (".ai/README.md", ".ai/workflows/", ".ai/state/README.md", "docs/IMPLEMENTATION_STRATEGY.md", "docs/CONTEXT.md", "docs/DEFINITION_OF_DONE.md", "docs/user-stories/", "docs/guides/finalization-recovery.md", "CLAUDE.md"):
     if token not in ai_arch:
         errors.append(f"scripts/ai_arch_changed.sh missing '{token}'")
 

@@ -2,11 +2,11 @@
 
 ## Status
 
-- State: `in-progress`
+- State: `done`
 - Owner: Codex
 - Depends on: —
 - Related branch: `codex/us-101-product-spec-pack`
-- Related commit/PR:
+- Related commit/PR: `ba634c6`, [PR #200](https://github.com/thisisyoussef/ship/pull/200)
 - Target environment: `not deployed`
 
 ## Persona
@@ -120,11 +120,11 @@ List the tests or validation layers this story will use before implementation.
 
 ## Acceptance Criteria
 
-- [ ] AC-1: A checked-in spec pack exists under `docs/specs/ship/SHIP-CURRENT-PRODUCT-SPEC/`.
-- [ ] AC-2: The pack covers the current Ship product surface, including app navigation, document workflows, team/admin/settings surfaces, and public/auth flows.
-- [ ] AC-3: The pack documents the current domain model and backend contract shape, including document types, weekly/accountability behavior, associations, and core REST/WebSocket surfaces.
-- [ ] AC-4: The pack documents the current shared editor/collaboration behavior and the current FleetGraph product layer.
-- [ ] AC-5: The story queue and checkpoint logs are updated so this work is resumable from the repo without chat history.
+- [x] AC-1: A checked-in spec pack exists under `docs/specs/ship/SHIP-CURRENT-PRODUCT-SPEC/`.
+- [x] AC-2: The pack covers the current Ship product surface, including app navigation, document workflows, team/admin/settings surfaces, and public/auth flows.
+- [x] AC-3: The pack documents the current domain model and backend contract shape, including document types, weekly/accountability behavior, associations, and core REST/WebSocket surfaces.
+- [x] AC-4: The pack documents the current shared editor/collaboration behavior and the current FleetGraph product layer.
+- [x] AC-5: The story queue and checkpoint logs are updated so this work is resumable from the repo without chat history.
 
 ## Local Validation
 
@@ -168,6 +168,6 @@ rg -n "US-101|SHIP-CURRENT-PRODUCT-SPEC" docs/user-stories docs/specs/ship
 
 ## Checkpoint Result
 
-- Outcome: Pending
-- Evidence: Pending
-- Residual risk: The pack will still reflect the current implementation, including any implementation quirks or transitional patterns that have not yet been normalized.
+- Outcome: Passed
+- Evidence: `git diff --check` pass; `find docs/specs/ship/SHIP-CURRENT-PRODUCT-SPEC -maxdepth 1 -type f | sort` pass; `rg -n "US-101|SHIP-CURRENT-PRODUCT-SPEC" docs/user-stories docs/specs/ship` pass; spec pack and queue metadata added in `ba634c6`; review recorded in PR #200
+- Residual risk: The pack intentionally mirrors the current implementation, including transitional naming (`sprint` vs week) and deprecated-but-still-present compatibility layers.

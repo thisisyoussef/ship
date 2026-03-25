@@ -26,7 +26,7 @@ This phase will hold core product and platform stories as they are ported into t
 
 | ID | Title | Status | Priority | Depends On |
 | --- | --- | --- | --- | --- |
-| US-101 | Current product spec pack | `in-progress` | P0 | — |
+| US-101 | Current product spec pack | `done` | P0 | — |
 
 ### Phase 2: FleetGraph Delivery
 

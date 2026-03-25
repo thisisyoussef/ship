@@ -6,7 +6,7 @@
 - Owner: Codex
 - Depends on: —
 - Related branch: `codex/us-625-shipyard-persistent-loop`
-- Related commit/PR: `pending`
+- Related commit/PR: `4a5124c` / [PR #207](https://github.com/thisisyoussef/ship/pull/207)
 - Target environment: `not deployed`
 
 ## Persona

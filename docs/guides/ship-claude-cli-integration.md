@@ -71,6 +71,7 @@ Run any Ship-integrated workflow. You should see:
 ## Design Phase: Paper, Pencil, and inspiration inputs
 
 When a story is design-heavy, pair this guide with [Agent Design Workflow Guide](./agent-design-workflow.md).
+When screenshot-driven iteration or fidelity checks matter, also use [Design Visual Evaluation Guide](./design-visual-evaluation.md).
 
 ### Canvas tools
 
@@ -89,6 +90,12 @@ After setup, run `/mcp` in Claude Code and confirm `paper` is available.
 - Use Variant, Mobbin, Awwwards, and Cosmos as reference inputs.
 - Distill the chosen direction back into `docs/plans/` and the active story before implementation.
 - Treat Paper or Pencil plus the checked-in story as the canonical design source, not the inspiration site itself.
+
+### Visual evaluation
+
+- Prefer the repo's tracked Playwright MCP contract in `.mcp.json` for browser capture and breakpoint checks when visual debugging is warranted.
+- Keep any local Playwright registration user-scoped instead of checking agent-specific config into the repo.
+- Record the route, breakpoints, rubric notes, and any saved screenshot paths back in the active story or `docs/plans/`.
 
 ## Planning Phase: /prd
 

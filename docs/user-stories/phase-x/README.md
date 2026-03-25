@@ -17,6 +17,7 @@ This folder holds stories that change the execution harness itself.
 | US-914 | Prune superseded harness history | `done` | P1 | `US-913` |
 | US-915 | Organized `.ai` compatibility workspace | `done` | P1 | `US-914` |
 | US-916 | Agent design workflow | `done` | P1 | `US-915` |
+| US-917 | Design visual evaluation loop | `done` | P1 | `US-916` |
 
 ## Execution Notes
 
@@ -27,3 +28,4 @@ This folder holds stories that change the execution harness itself.
 5. Treat `US-913` and `US-914` as the cleanup stories that keep the checked-in harness queue-first and focused on current guidance.
 6. Treat `US-915` as the compatibility-layer story that keeps `.ai/` organized without replacing the docs-first control plane.
 7. Treat `US-916` as the design-harness story that routes inspiration, canvas, and implementation phases through one checked-in workflow.
+8. Treat `US-917` as the visual-evaluation follow-on that adds a screenshot-driven critique loop around the design workflow without making browser automation the default closeout gate.

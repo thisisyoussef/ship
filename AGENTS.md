@@ -26,7 +26,7 @@ Load context in this order before making non-trivial changes:
 - Keep `docs/WORKFLOW_MEMORY.md` current when recurring corrections, decisions, or reusable patterns should persist across stories.
 - Keep `docs/IMPLEMENTATION_STRATEGY.md` current when the broad roadmap or phase order changes.
 - Use `docs/plans/` for design and implementation thinking.
-- For design-system, page-design, or visual exploration tasks, use `docs/guides/agent-design-workflow.md` to route inspiration, canvas, and implementation phases.
+- For design-system, page-design, or visual exploration tasks, use `docs/guides/agent-design-workflow.md` to route inspiration, canvas, visual evaluation, and implementation phases, and use `docs/guides/design-visual-evaluation.md` when screenshot-driven iteration is warranted.
 - Use `docs/submissions/` for assembled review, demo, and submission bundles.
 
 ## Story Rules

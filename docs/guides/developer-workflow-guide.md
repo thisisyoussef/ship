@@ -259,14 +259,19 @@ Move from inspiration to a buildable UI direction without inventing a one-off de
    - Follow [Agent Design Workflow Guide](./agent-design-workflow.md) for Codex and Claude setup
    - Keep machine-local MCP setup out of tracked repo files
 
-5. **Build in the repo**
+5. **Run the visual-evaluation loop when needed**
+   - Use [Design Visual Evaluation Guide](./design-visual-evaluation.md) and the tracked Playwright MCP for browser-based screenshot capture when fidelity or polish risk is high
+   - Score the current result against a short rubric before deciding whether another visual iteration is worth it
+
+6. **Build in the repo**
    - Implement the chosen direction in the active story
    - Update tokens, primitives, and proof docs together when the visual language changes
 
 ### Observable Outcomes
 
-- Design-heavy work uses one shared flow across inspiration, canvas, and implementation
+- Design-heavy work uses one shared flow across inspiration, canvas, visual evaluation, and implementation
 - Codex and Claude users follow the same checked-in guide
+- Visual polish is judged against an explicit rubric instead of vague taste checks
 - Final UI changes still land through the normal validation and handoff rules
 
 ---

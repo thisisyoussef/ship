@@ -27,6 +27,7 @@ Compatibility surfaces:
 - `.ai/workflows/feature-development.md`
 - `.ai/workflows/spec-driven-delivery.md`
 - `.ai/workflows/design-workflow.md`
+- `.ai/workflows/visual-eval-loop.md`
 - `.ai/workflows/parallel-flight.md`
 - `.ai/workflows/user-correction-triage.md`
 - `.ai/workflows/story-handoff.md`
@@ -44,4 +45,5 @@ Compatibility surfaces:
 
 - Use `docs/user-stories/README.md` to choose the next valid story and open the active story file before editing.
 - Use `docs/plans/` for design and `docs/submissions/` for packaged outputs.
+- Use `docs/guides/design-visual-evaluation.md` when a design-heavy story needs screenshot-driven iteration.
 - Run `bash scripts/check_ai_wiring.sh` whenever the harness contract changes.

@@ -3,6 +3,7 @@
 Use this guide when the task is primarily design-system work, page design, UI exploration, or visual iteration.
 
 The goal is to keep design work agent-friendly without losing the repo's checked-in story model.
+The checked-in story plus the chosen canvas stay canonical; screenshots and visual captures are feedback artifacts, not a replacement source of truth.
 
 ## Three Layers
 
@@ -11,6 +12,15 @@ The goal is to keep design work agent-friendly without losing the repo's checked
 | Inspiration | Train taste, collect references, compare patterns | Variant, Mobbin, Awwwards, Cosmos | Gather references, write down what to borrow, and save the distilled brief in `docs/plans/` before implementation. |
 | Canvas | Give the agent an editable design surface | Paper, Pencil | Pick one canonical canvas for the story. Use it for layout, tokens, and iteration before or alongside repo implementation. |
 | Build and sync | Move from design into the product | Codex, Claude Code, Ship repo | Implement the selected direction in the active story, update tokens/components with code, then validate with the normal harness gates. |
+
+## Cross-Cutting Visual Evaluation Loop
+
+Use the visual-evaluation loop when screenshot-driven critique will materially improve the result.
+It wraps the canvas and build phases instead of replacing them.
+
+| Loop | Role | Primary tools | How to use it here |
+| --- | --- | --- | --- |
+| Visual evaluation | Capture the current UI, compare it to the brief, and decide the next smallest improvement | Playwright MCP in `.mcp.json`, screenshot artifacts, active story notes | Use it only when the story needs visual debugging or fidelity checks. Follow [Design Visual Evaluation Guide](./design-visual-evaluation.md), record the route and rubric, then iterate in Paper, Pencil, or repo code. |
 
 ## Default Phase Sequence
 
@@ -82,7 +92,15 @@ For design-system work:
 2. Name reusable components clearly.
 3. Prefer frames, containers, and flex-style layout primitives that translate cleanly back to code.
 
-### Phase 5: Sync design and code
+### Phase 5: Capture and evaluate visually
+
+1. Start from the exact route, state, or named proof lane that matters for the story.
+2. If the story needs browser-based visual debugging, use the tracked Playwright MCP server in `.mcp.json`.
+3. Define the target breakpoints and short rubric by following [Design Visual Evaluation Guide](./design-visual-evaluation.md).
+4. Capture targeted screenshots, score them, and make the smallest useful change in the canvas or code.
+5. Repeat until the critical rubric failures are gone.
+
+### Phase 6: Sync design and code
 
 Once a direction is chosen:
 
@@ -91,13 +109,14 @@ Once a direction is chosen:
 3. Update code tokens, component primitives, and supporting docs in the same story when the visual language changes.
 4. If Pencil is the source of truth, keep the `.pen` file in the repo workspace when practical.
 5. If Paper is the source of truth, keep the implemented HTML/CSS or exported reference artifacts attached to the story or plan notes.
+6. If screenshots materially explain the accepted direction, save them under `docs/evidence/screenshots/` or record the exact capture path in the story notes.
 
-### Phase 6: Proof and handoff
+### Phase 7: Proof and handoff
 
 Visible design work still follows the repo's normal proof rules:
 
 1. Run the story validation commands.
-2. Prefer seeded proof lanes, runtime checks, and explicit `What To Test` steps over default browser automation.
+2. Prefer seeded proof lanes, runtime checks, and explicit `What To Test` steps over default browser automation. Use the visual-evaluation loop only when the story needs visual debugging or the user asks for it.
 3. Record deployment status as `deployed`, `not deployed`, or `blocked`.
 
 ## Tool Roles
@@ -111,6 +130,11 @@ Visible design work still follows the repo's normal proof rules:
 
 - Best for versioned design-as-code work, reusable components, token syncing, design-system maintenance, and parallel design exploration.
 - Strongest fit when the design file itself should live in the repo as a durable artifact.
+
+### Playwright MCP
+
+- Use for browser-based screenshot capture, DOM inspection, breakpoint checks, and targeted visual debugging.
+- Treat it as an iteration aid around the chosen canvas and implemented code, not as the design source of truth or the default handoff gate.
 
 ### Variant
 
@@ -145,4 +169,5 @@ Visible design work still follows the repo's normal proof rules:
 - New marketing or landing surface: start with Paper.
 - Design system or token sync work: start with Pencil.
 - Visual refresh with unclear direction: start with Variant, Mobbin, Awwwards, or Cosmos, then move into Paper or Pencil.
+- Implementation polish with fidelity risk: do the first canvas or code pass, then run [Design Visual Evaluation Guide](./design-visual-evaluation.md) with the tracked Playwright MCP before closing the loop.
 - Existing feature polish in code: gather references quickly, then implement directly in the repo and use the canvas only if the design needs iteration.

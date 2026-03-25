@@ -22,7 +22,7 @@ Read these first:
 - `.ai/agents/`: compatibility entrypoints for agent-specific tools
 - `.ai/state/`: persisted runtime state used by the harness helpers
 
-For design-heavy work, use `.ai/workflows/design-workflow.md` as the compatibility brief and `docs/guides/agent-design-workflow.md` as the canonical source.
+For design-heavy work, use `.ai/workflows/design-workflow.md` as the compatibility brief, `.ai/workflows/visual-eval-loop.md` for screenshot-driven iteration, and the matching `docs/guides/agent-design-workflow.md` plus `docs/guides/design-visual-evaluation.md` canonical guides.
 
 ## Rules
 

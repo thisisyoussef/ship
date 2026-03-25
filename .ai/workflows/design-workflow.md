@@ -22,7 +22,8 @@ Canonical sources still come first:
    - Codex: use its MCP surface and confirm the canvas appears in `/mcp` when applicable
    - Claude Code: use the documented Paper command or Pencil's local MCP path and confirm availability in `/mcp`
 4. Record design decisions in `docs/plans/` and the active story.
-5. Implement the final direction in the repo through the normal checked-in story flow.
-6. Validate, record deployment status, and include explicit `What To Test` steps for visible changes.
+5. When fidelity or visual-risk matters, run `.ai/workflows/visual-eval-loop.md` and the canonical `docs/guides/design-visual-evaluation.md` guide before widening the next design change.
+6. Implement the final direction in the repo through the normal checked-in story flow.
+7. Validate, record deployment status, and include explicit `What To Test` steps for visible changes.
 
 Do not treat inspiration tools as the source of truth. The canonical source is the checked-in story plus the selected editable canvas and implemented code.

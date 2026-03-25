@@ -25,6 +25,9 @@ Use this file as durable working memory for recurring corrections, decisions, an
 - Design work should follow the layered harness.
   Source: `US-916`
   Meaning: treat Variant, Mobbin, Awwwards, and Cosmos as inspiration inputs; use Paper or Pencil as the editable canvas layer; and keep machine-local Paper/Pencil MCP setup user-scoped while the checked-in story and repo docs remain canonical.
+- Design-heavy visual iteration should use a rubric-driven loop when needed.
+  Source: `US-917`
+  Meaning: when a design-heavy story needs screenshot-driven iteration, use the tracked Playwright MCP in `.mcp.json` plus `docs/guides/design-visual-evaluation.md` as an optional critique loop around the canvas/build phases, not as the default closeout gate.
 - Railway demo deploys should follow the real platform path.
   Source: post-`US-602` correction
   Meaning: when the demo already auto-deploys from `master`, do not add a manual Railway deploy attempt to the default closeout flow unless the story is about deployment itself or the user explicitly asks for a manual refresh.

@@ -11,6 +11,7 @@ usage() {
 
 # AI-architecture changes include:
 # - AGENTS.md and CLAUDE.md entrypoints
+# - .mcp.json tracked MCP contract
 # - organized .ai compatibility workspace and runtime-state docs
 # - .ai/README.md
 # - .ai/workflows/
@@ -19,6 +20,7 @@ usage() {
 # - docs/IMPLEMENTATION_STRATEGY.md
 # - docs/DEFINITION_OF_DONE.md
 # - docs/guides/agent-design-workflow.md
+# - docs/guides/design-visual-evaluation.md
 # - docs/guides/developer-workflow-guide.md
 # - docs/guides/ship-claude-cli-integration.md
 # - docs/user-stories/
@@ -26,7 +28,7 @@ usage() {
 # - supporting harness scripts and IDE mirrors
 
 match_ai_arch() {
-  grep -E '^(AGENTS\.md|CLAUDE\.md|\.clauderc|\.cursorrules|\.claude/CLAUDE\.md|\.ai/(README\.md|codex\.md|docs/WORKSPACE_INDEX\.md|agents/(claude|cursor-agent)\.md|workflows/.*|state/(README\.md|tdd-handoff/README\.md))|docs/(README\.md|CONTEXT\.md|WORKFLOW_MEMORY\.md|IMPLEMENTATION_STRATEGY\.md|DEFINITION_OF_DONE\.md|guides/(agent-design-workflow|developer-workflow-guide|ship-claude-cli-integration|finalization-recovery)\.md|submissions/.*|user-stories/.*)|\.husky/pre-commit|scripts/(check_ai_wiring|flight_slot|git_finalize_guard|ai_arch_changed|triage_counter|tdd_handoff)\.sh|scripts/verify_agent_contract\.py)$' || true
+  grep -E '^(AGENTS\.md|CLAUDE\.md|\.clauderc|\.cursorrules|\.claude/CLAUDE\.md|\.mcp\.json|\.ai/(README\.md|codex\.md|docs/WORKSPACE_INDEX\.md|agents/(claude|cursor-agent)\.md|workflows/.*|state/(README\.md|tdd-handoff/README\.md))|docs/(README\.md|CONTEXT\.md|WORKFLOW_MEMORY\.md|IMPLEMENTATION_STRATEGY\.md|DEFINITION_OF_DONE\.md|guides/(agent-design-workflow|design-visual-evaluation|developer-workflow-guide|ship-claude-cli-integration|finalization-recovery)\.md|submissions/.*|user-stories/.*)|\.husky/pre-commit|scripts/(check_ai_wiring|flight_slot|git_finalize_guard|ai_arch_changed|triage_counter|tdd_handoff)\.sh|scripts/verify_agent_contract\.py)$' || true
 }
 
 if [[ $# -lt 1 ]]; then

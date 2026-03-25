@@ -30,7 +30,8 @@ Use this file as the quick index for the repo's active documentation surfaces.
 - `docs/core/application-architecture.md`: monorepo architecture and deployment shape
 - `docs/core/unified-document-model.md`: core Ship data model
 - `docs/core/document-model-conventions.md`: editor and document-type conventions
-- `docs/guides/agent-design-workflow.md`: design-heavy workflow for inspiration, Paper/Pencil canvas work, and Codex/Claude implementation
+- `docs/guides/agent-design-workflow.md`: design-heavy workflow for inspiration, Paper/Pencil canvas work, visual evaluation, and Codex/Claude implementation
+- `docs/guides/design-visual-evaluation.md`: screenshot-driven critique loop for design-heavy stories when browser-based visual debugging helps
 - `.claude/CLAUDE.md`: Ship-specific command appendix and operational notes
 
 ## FleetGraph Assignment

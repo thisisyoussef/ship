@@ -17,9 +17,11 @@ When in doubt about implementation approach, check these docs first.
 ## Design Workflow
 
 For design-system work, page design, or visual exploration, use `docs/guides/agent-design-workflow.md`.
+When the story needs screenshot-driven iteration or visual fidelity checks, pair it with `docs/guides/design-visual-evaluation.md`.
 
 - Route inspiration through Variant, Mobbin, Awwwards, and Cosmos.
 - Use Paper or Pencil as the editable canvas and source of truth for the design pass.
+- Use the tracked Playwright MCP in `.mcp.json` for browser-based visual evaluation when the story needs visual debugging, while keeping any Claude-local MCP registration user-scoped.
 - Keep Paper and Pencil MCP setup user-scoped instead of checking machine-local config into the repo.
 
 ## Commands

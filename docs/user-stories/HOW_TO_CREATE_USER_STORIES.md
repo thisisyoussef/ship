@@ -16,6 +16,7 @@ Write stories that are executable, testable, and resumable from the repo alone.
 5. Always include validation, deployment status, and user-facing verification steps.
 6. Use `docs/DEFINITION_OF_DONE.md` as the hard completion gate.
 7. When a story is primarily design-system, page-design, or visual exploration work, include `docs/guides/agent-design-workflow.md` in the pre-implementation audit.
+8. When a design-heavy story is likely to need screenshot-driven iteration, also include `docs/guides/design-visual-evaluation.md` and record the target route, breakpoints, and rubric.
 
 ## Process
 
@@ -24,7 +25,7 @@ Write stories that are executable, testable, and resumable from the repo alone.
 3. Fill status, ownership, dependencies, and target environment first.
 4. Define persona, user story, goal, and scope.
 5. List the local files and contracts to audit before coding.
-6. For design-heavy stories, record the inspiration inputs, canonical canvas, and design-to-code sync path.
+6. For design-heavy or visually risky stories, record the inspiration inputs, canonical canvas, visual-eval route and breakpoints, rubric, and design-to-code sync path.
 7. Complete the Preparation Phase notes before implementation.
 8. Write the TDD or validation plan before production edits.
 9. Add acceptance criteria and concrete local validation commands.

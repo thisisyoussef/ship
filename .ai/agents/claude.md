@@ -14,4 +14,4 @@ Read in this order:
 
 Use `.ai/docs/WORKSPACE_INDEX.md` to find the matching workflow brief, but follow the checked-in `docs/` control plane when there is any ambiguity.
 
-For design-system, page-design, or visual exploration tasks, open `docs/guides/agent-design-workflow.md` and the matching `.ai/workflows/design-workflow.md` brief before choosing tools.
+For design-system, page-design, or visual exploration tasks, open `docs/guides/agent-design-workflow.md` and the matching `.ai/workflows/design-workflow.md` brief before choosing tools. If the story needs screenshot-driven iteration, also open `docs/guides/design-visual-evaluation.md` and `.ai/workflows/visual-eval-loop.md`.

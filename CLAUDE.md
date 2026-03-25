@@ -16,3 +16,8 @@ For FleetGraph work, also read:
 - `docs/assignments/fleetgraph/README.md`
 - `docs/assignments/fleetgraph/PRESEARCH.md`
 - `docs/assignments/fleetgraph/FLEETGRAPH.md`
+
+For design-heavy work, also read:
+
+- `docs/guides/agent-design-workflow.md`
+- `docs/guides/design-visual-evaluation.md` when screenshot-driven iteration or visual fidelity checks are needed

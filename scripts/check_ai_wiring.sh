@@ -31,10 +31,10 @@ import sys
 targets = {
     ".ai/README.md": ["AGENTS.md", "docs/CONTEXT.md", "docs/WORKFLOW_MEMORY.md", "docs/IMPLEMENTATION_STRATEGY.md", "docs/user-stories/README.md", "docs/DEFINITION_OF_DONE.md", ".ai/workflows/", ".ai/state/"],
     ".ai/codex.md": ["AGENTS.md", ".ai/docs/WORKSPACE_INDEX.md", "docs/user-stories/README.md"],
-    ".ai/docs/WORKSPACE_INDEX.md": ["AGENTS.md", ".ai/workflows/story-lookup.md", ".ai/workflows/feature-development.md", ".ai/workflows/story-handoff.md", ".ai/workflows/git-finalization.md", ".ai/state/README.md"],
+    ".ai/docs/WORKSPACE_INDEX.md": ["AGENTS.md", ".ai/workflows/story-lookup.md", ".ai/workflows/feature-development.md", ".ai/workflows/visual-eval-loop.md", ".ai/workflows/story-handoff.md", ".ai/workflows/git-finalization.md", ".ai/state/README.md"],
     ".ai/agents/claude.md": ["AGENTS.md", ".ai/docs/WORKSPACE_INDEX.md"],
     ".ai/agents/cursor-agent.md": ["AGENTS.md", ".ai/docs/WORKSPACE_INDEX.md"],
-    ".ai/workflows/README.md": [".ai/workflows/story-lookup.md", ".ai/workflows/feature-development.md", ".ai/workflows/spec-driven-delivery.md", ".ai/workflows/parallel-flight.md", ".ai/workflows/user-correction-triage.md", ".ai/workflows/story-handoff.md", ".ai/workflows/git-finalization.md"],
+    ".ai/workflows/README.md": [".ai/workflows/story-lookup.md", ".ai/workflows/feature-development.md", ".ai/workflows/spec-driven-delivery.md", ".ai/workflows/design-workflow.md", ".ai/workflows/visual-eval-loop.md", ".ai/workflows/parallel-flight.md", ".ai/workflows/user-correction-triage.md", ".ai/workflows/story-handoff.md", ".ai/workflows/git-finalization.md"],
     ".ai/workflows/story-lookup.md": ["AGENTS.md", "docs/user-stories/README.md", "docs/CONTEXT.md", "docs/WORKFLOW_MEMORY.md", "docs/IMPLEMENTATION_STRATEGY.md"],
     ".ai/workflows/feature-development.md": ["AGENTS.md", "docs/DEFINITION_OF_DONE.md", "docs/plans/", "docs/submissions/"],
     ".ai/workflows/spec-driven-delivery.md": ["docs/plans/", "docs/specs/", "docs/user-stories/TEMPLATE.md", "docs/submissions/"],
@@ -70,7 +70,7 @@ targets = {
     "CLAUDE.md": ["AGENTS.md", "docs/CONTEXT.md", "docs/WORKFLOW_MEMORY.md", "docs/IMPLEMENTATION_STRATEGY.md", "docs/user-stories/README.md"],
     ".clauderc": ["AGENTS.md", "docs/CONTEXT.md", "docs/WORKFLOW_MEMORY.md", "docs/IMPLEMENTATION_STRATEGY.md", "docs/user-stories/README.md"],
     ".cursorrules": ["AGENTS.md", "docs/CONTEXT.md", "docs/WORKFLOW_MEMORY.md", "docs/IMPLEMENTATION_STRATEGY.md", "docs/user-stories/README.md"],
-    "docs/README.md": ["AGENTS.md", "docs/CONTEXT.md", "docs/WORKFLOW_MEMORY.md", "docs/IMPLEMENTATION_STRATEGY.md", "docs/user-stories/README.md", "docs/DEFINITION_OF_DONE.md", "docs/submissions/", "docs/guides/agent-design-workflow.md"],
+    "docs/README.md": ["AGENTS.md", "docs/CONTEXT.md", "docs/WORKFLOW_MEMORY.md", "docs/IMPLEMENTATION_STRATEGY.md", "docs/user-stories/README.md", "docs/DEFINITION_OF_DONE.md", "docs/submissions/", "docs/guides/agent-design-workflow.md", "docs/guides/design-visual-evaluation.md"],
 }
 errors: list[str] = []
 
@@ -94,20 +94,23 @@ from pathlib import Path
 import sys
 
 targets = {
-    "AGENTS.md": ["docs/guides/agent-design-workflow.md"],
-    ".claude/CLAUDE.md": ["docs/guides/agent-design-workflow.md"],
-    ".clauderc": ["docs/guides/agent-design-workflow.md"],
-    "docs/README.md": ["docs/guides/agent-design-workflow.md"],
-    "docs/guides/developer-workflow-guide.md": ["Agent Design Workflow Guide", "./agent-design-workflow.md"],
-    "docs/guides/ship-claude-cli-integration.md": ["Agent Design Workflow Guide", "claude mcp add paper --transport http http://127.0.0.1:29979/mcp --scope user"],
-    "docs/user-stories/HOW_TO_CREATE_USER_STORIES.md": ["docs/guides/agent-design-workflow.md"],
-    ".ai/README.md": [".ai/workflows/design-workflow.md", "docs/guides/agent-design-workflow.md"],
-    ".ai/codex.md": ["docs/guides/agent-design-workflow.md", ".ai/workflows/design-workflow.md"],
-    ".ai/agents/claude.md": ["docs/guides/agent-design-workflow.md", ".ai/workflows/design-workflow.md"],
-    ".ai/workflows/README.md": [".ai/workflows/design-workflow.md"],
-    ".ai/docs/WORKSPACE_INDEX.md": [".ai/workflows/design-workflow.md"],
-    ".ai/workflows/design-workflow.md": ["docs/guides/agent-design-workflow.md"],
-    "docs/guides/agent-design-workflow.md": ["Paper", "Pencil", "Variant", "Mobbin", "Awwwards", "Cosmos", "Codex", "Claude Code"],
+    "AGENTS.md": ["docs/guides/agent-design-workflow.md", "docs/guides/design-visual-evaluation.md"],
+    "CLAUDE.md": ["docs/guides/agent-design-workflow.md", "docs/guides/design-visual-evaluation.md"],
+    ".claude/CLAUDE.md": ["docs/guides/agent-design-workflow.md", "docs/guides/design-visual-evaluation.md", ".mcp.json"],
+    ".clauderc": ["docs/guides/agent-design-workflow.md", "docs/guides/design-visual-evaluation.md"],
+    "docs/README.md": ["docs/guides/agent-design-workflow.md", "docs/guides/design-visual-evaluation.md"],
+    "docs/guides/developer-workflow-guide.md": ["Agent Design Workflow Guide", "./agent-design-workflow.md", "Design Visual Evaluation Guide", "./design-visual-evaluation.md"],
+    "docs/guides/ship-claude-cli-integration.md": ["Agent Design Workflow Guide", "./design-visual-evaluation.md", ".mcp.json", "claude mcp add paper --transport http http://127.0.0.1:29979/mcp --scope user"],
+    "docs/user-stories/HOW_TO_CREATE_USER_STORIES.md": ["docs/guides/agent-design-workflow.md", "docs/guides/design-visual-evaluation.md"],
+    ".ai/README.md": [".ai/workflows/design-workflow.md", ".ai/workflows/visual-eval-loop.md", "docs/guides/agent-design-workflow.md", "docs/guides/design-visual-evaluation.md"],
+    ".ai/codex.md": ["docs/guides/agent-design-workflow.md", ".ai/workflows/design-workflow.md", "docs/guides/design-visual-evaluation.md", ".ai/workflows/visual-eval-loop.md"],
+    ".ai/agents/claude.md": ["docs/guides/agent-design-workflow.md", ".ai/workflows/design-workflow.md", "docs/guides/design-visual-evaluation.md", ".ai/workflows/visual-eval-loop.md"],
+    ".ai/workflows/README.md": [".ai/workflows/design-workflow.md", ".ai/workflows/visual-eval-loop.md"],
+    ".ai/docs/WORKSPACE_INDEX.md": [".ai/workflows/design-workflow.md", ".ai/workflows/visual-eval-loop.md", "docs/guides/design-visual-evaluation.md"],
+    ".ai/workflows/design-workflow.md": ["docs/guides/agent-design-workflow.md", "docs/guides/design-visual-evaluation.md", ".ai/workflows/visual-eval-loop.md"],
+    ".ai/workflows/visual-eval-loop.md": ["docs/guides/design-visual-evaluation.md", ".mcp.json", "pass", "attention", "fail"],
+    "docs/guides/agent-design-workflow.md": ["Paper", "Pencil", "Variant", "Mobbin", "Awwwards", "Cosmos", "Codex", "Claude Code", "Playwright MCP", "./design-visual-evaluation.md"],
+    "docs/guides/design-visual-evaluation.md": ["Playwright", ".mcp.json", "hierarchy", "spacing", "responsiveness", "docs/evidence/screenshots/"],
 }
 errors: list[str] = []
 
@@ -124,6 +127,39 @@ if errors:
     raise SystemExit(1)
 
 print("Design workflow routing check passed.")
+PY
+
+run_check "Visual evaluation tooling" python3 - <<'PY'
+from pathlib import Path
+import json
+import sys
+
+errors: list[str] = []
+
+raw = Path(".mcp.json").read_text(encoding="utf-8")
+data = json.loads(raw)
+playwright = data.get("mcpServers", {}).get("playwright")
+
+if not isinstance(playwright, dict):
+    errors.append(".mcp.json missing mcpServers.playwright")
+else:
+    if playwright.get("command") != "npx":
+        errors.append(".mcp.json playwright server must use command 'npx'")
+    args = playwright.get("args")
+    if not isinstance(args, list):
+        errors.append(".mcp.json playwright server args must be a list")
+    else:
+        for token in ("@playwright/mcp@latest", "--headless", "--isolated"):
+            if token not in args:
+                errors.append(f".mcp.json playwright args missing '{token}'")
+
+if errors:
+    print("ERROR: Visual evaluation tooling issues detected:", file=sys.stderr)
+    for item in errors:
+        print(f"- {item}", file=sys.stderr)
+    raise SystemExit(1)
+
+print("Visual evaluation tooling check passed.")
 PY
 
 run_check "AGENTS primacy and docs control plane" python3 - <<'PY'

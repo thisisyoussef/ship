@@ -6,7 +6,7 @@
 - Owner: Codex
 - Depends on: `US-623`
 - Related branch: `codex/fleetgraph-auto-enrichment-once`
-- Related commit/PR: `pending`
+- Related commit/PR: `41ac928`, [PR #204](https://github.com/thisisyoussef/ship/pull/204)
 - Target environment: `local first`, `Railway demo via merged master`
 
 ## Persona
@@ -178,6 +178,8 @@ git diff --check
 
 - Outcome: `pass`
 - Evidence:
+  - Commit: `41ac928`
+  - Review: [PR #204](https://github.com/thisisyoussef/ship/pull/204)
   - `pnpm build:shared`
   - `pnpm --filter @ship/web exec vitest run src/components/FleetGraphFab.test.tsx src/pages/UnifiedDocumentPage.test.tsx`
   - `pnpm --filter @ship/web exec tsc --noEmit`

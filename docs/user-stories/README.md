@@ -29,7 +29,7 @@ This phase will hold core product and platform stories as they are ported into t
 | US-101 | Current product spec pack | `done` | P0 | — |
 | US-102 | Expanded current product spec blueprint | `done` | P0 | `US-101` |
 | US-103 | Current product spec implementation-contract deepening | `done` | P0 | `US-102` |
-| US-104 | Current product spec developer build queue | `in-progress` | P0 | `US-103` |
+| US-104 | Current product spec developer build queue | `done` | P0 | `US-103` |
 
 ### Phase 2: FleetGraph Delivery
 

@@ -2,11 +2,11 @@
 
 ## Status
 
-- State: `in-progress`
+- State: `done`
 - Owner: Codex
 - Depends on: `US-103`
 - Related branch: `codex/us-104-spec-build-queue`
-- Related commit/PR: `pending`
+- Related commit/PR: `430a5d0` / [PR #206](https://github.com/thisisyoussef/ship/pull/206)
 - Target environment: `not deployed`
 
 ## Persona
@@ -124,11 +124,11 @@ Validation layers for this story:
 
 ## Acceptance Criteria
 
-- [ ] AC-1: The Ship current-product spec pack includes a dedicated developer build queue that orders the rebuild into one-by-one implementation steps.
-- [ ] AC-2: Each queue step points to the spec docs an engineer should read before implementing that slice.
-- [ ] AC-3: The queue makes dependencies and good stopping points explicit enough that a developer can build in sequence without inventing their own plan first.
-- [ ] AC-4: The pack README and rebuild-guidance docs are updated so the new queue is discoverable from the main spec entrypoint.
-- [ ] AC-5: Queue/story/checkpoint metadata is updated so the work is resumable from the repo.
+- [x] AC-1: The Ship current-product spec pack includes a dedicated developer build queue that orders the rebuild into one-by-one implementation steps.
+- [x] AC-2: Each queue step points to the spec docs an engineer should read before implementing that slice.
+- [x] AC-3: The queue makes dependencies and good stopping points explicit enough that a developer can build in sequence without inventing their own plan first.
+- [x] AC-4: The pack README and rebuild-guidance docs are updated so the new queue is discoverable from the main spec entrypoint.
+- [x] AC-5: Queue/story/checkpoint metadata is updated so the work is resumable from the repo.
 
 ## Local Validation
 
@@ -172,6 +172,6 @@ rg -n "US-104|developer-build-queue|task-breakdown|README.md" docs/user-stories 
 
 ## Checkpoint Result
 
-- Outcome: Pending
-- Evidence: Pending
-- Residual risk: Pending
+- Outcome: Passed
+- Evidence: `git diff --check` passed; `find docs/specs/ship/SHIP-CURRENT-PRODUCT-SPEC -maxdepth 1 -type f | sort` passed; `rg -n "US-104|developer-build-queue|task-breakdown|README.md" docs/user-stories docs/specs/ship` passed; the pack now includes a dedicated `developer-build-queue.md` with spec intake order, a full Q00-Q15 implementation sequence, and a per-spec coverage map.
+- Residual risk: This story is documentation-only, so proof is repo inspection rather than runtime execution; future product changes will need the queue kept aligned with the deeper spec pack to preserve its usefulness.

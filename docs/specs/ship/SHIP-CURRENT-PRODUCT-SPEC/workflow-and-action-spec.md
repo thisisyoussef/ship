@@ -1,6 +1,6 @@
 # Workflow And Action Spec
 
-This document describes how user-triggered actions work end to end. Use it with `api-and-service-spec.md` for endpoints and `document-field-reference.md` for the payload/data model behind each action.
+This document describes how user-triggered actions work end to end. Use it with `api-and-service-spec.md` for endpoint inventory, `payload-and-response-reference.md` for request/response shapes, `mutation-side-effects-spec.md` for invalidation/broadcast consequences, and `document-field-reference.md` for the payload/data model behind each action.
 
 ## Mutation Conventions
 

@@ -17,8 +17,9 @@ This pack describes the product as implemented on local `master` at commit `ce14
 7. Read `workflow-and-action-spec.md`, `mutation-side-effects-spec.md`, and `api-and-service-spec.md` together for user-triggered mutations, approval flows, conversion rules, invalidation/broadcast behavior, and backing endpoints/services.
 8. Read `editor-and-collaboration-spec.md` for the shared editing surface used across most product types.
 9. Read `fleetgraph-spec.md` for the proactive queue, current-page analysis, review/apply flows, and runtime shape.
-10. Use `acceptance-and-rebuild-checklist.md` and `task-breakdown.md` as the implementation and verification sequence for rebuilding the product.
-11. Use `implementation-constraints.md` and `constitution-check.md` as the non-negotiable build constraints.
+10. Read `developer-build-queue.md` for the ideal one-by-one implementation order an engineer should follow.
+11. Use `acceptance-and-rebuild-checklist.md` and `task-breakdown.md` as the verification gate and macro dependency map for that rebuild.
+12. Use `implementation-constraints.md` and `constitution-check.md` as the non-negotiable build constraints.
 
 ## Pack Contents
 
@@ -26,6 +27,7 @@ This pack describes the product as implemented on local `master` at commit `ce14
 | --- | --- |
 | `feature-spec.md` | High-level product-pack objective, blueprint scope, acceptance criteria, and out-of-scope boundaries |
 | `technical-plan.md` | Source map, documentation architecture, and evidence plan for this pack |
+| `developer-build-queue.md` | Detailed one-by-one implementation order, per-step spec-reading list, and stop/check gates for a rebuild |
 | `task-breakdown.md` | Recommended implementation sequencing for rebuilding the current product |
 | `constitution-check.md` | Repo-convention and source-of-truth alignment notes |
 | `product-overview.md` | Product thesis, user roles, navigation, and major workflows |
@@ -58,6 +60,17 @@ This pack describes the product as implemented on local `master` at commit `ce14
 8. FleetGraph proactive and on-demand project-intelligence behavior
 
 ## Reading Paths By Role
+
+### If you are leading implementation or onboarding a build team
+
+Follow the `Spec Intake Order` inside `developer-build-queue.md`, then execute `Q00` through `Q15` in order.
+
+1. `feature-spec.md`
+2. `product-overview.md`
+3. `developer-build-queue.md`
+4. `task-breakdown.md`
+5. `acceptance-and-rebuild-checklist.md`
+6. `implementation-constraints.md`
 
 ### If you are rebuilding routing and UI structure
 
@@ -123,6 +136,8 @@ Primary repo evidence:
 4. Add issue/project/program/week workflows and team/accountability views.
 5. Add settings/admin/public feedback surfaces.
 6. Add FleetGraph runtime, queue, and document-context UI.
+
+For the detailed step-by-step order and per-spec coverage map, use `developer-build-queue.md`.
 
 ## Important Notes
 

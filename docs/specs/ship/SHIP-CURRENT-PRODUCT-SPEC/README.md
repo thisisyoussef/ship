@@ -4,20 +4,21 @@
 
 This pack is the current-product handoff for Ship. It translates the repo’s code and living docs into an implementation-ready specification so an engineer can rebuild the shipped product behavior without reverse-engineering the entire codebase first.
 
-This pack describes the product as implemented on local `master` at commit `7888aec` on March 25, 2026.
+This pack describes the product as implemented on local `master` at commit `ce14b05` on March 25, 2026.
 
 ## How To Use This Pack
 
 1. Read `feature-spec.md` for the scope, fidelity target, and what this pack must cover.
 2. Read `product-overview.md` for the product model, personas, major work loops, and module boundaries.
 3. Read `navigation-and-routing-spec.md`, `screen-spec.md`, and `screen-state-spec.md` together for the canonical URL contract, route-to-screen mapping, tab rules, and state handling.
-4. Read `shared-interaction-patterns-spec.md` for shell behavior, list interactions, keyboard shortcuts, persistence, and shared UI mechanics.
+4. Read `state-machine-and-lifecycle-spec.md` and `shared-interaction-patterns-spec.md` together for auth/session transitions, review states, route-driven lifecycle changes, shell behavior, keyboard shortcuts, persistence, and shared UI mechanics.
 5. Read `domain-and-data-spec.md` and `document-field-reference.md` together for the entity model, storage surfaces, per-document properties, compatibility fields, and computed data.
-6. Read `workflow-and-action-spec.md` and `api-and-service-spec.md` together for the user-triggered mutations, approval flows, conversion rules, admin actions, and backing endpoints/services.
-7. Read `editor-and-collaboration-spec.md` for the shared editing surface used across most product types.
-8. Read `fleetgraph-spec.md` for the proactive queue, current-page analysis, review/apply flows, and runtime shape.
-9. Use `acceptance-and-rebuild-checklist.md` and `task-breakdown.md` as the implementation and verification sequence for rebuilding the product.
-10. Use `implementation-constraints.md` and `constitution-check.md` as the non-negotiable build constraints.
+6. Read `permissions-and-access-spec.md` and `payload-and-response-reference.md` together for access boundaries, envelope families, request bodies, response shapes, and current compatibility drifts.
+7. Read `workflow-and-action-spec.md`, `mutation-side-effects-spec.md`, and `api-and-service-spec.md` together for user-triggered mutations, approval flows, conversion rules, invalidation/broadcast behavior, and backing endpoints/services.
+8. Read `editor-and-collaboration-spec.md` for the shared editing surface used across most product types.
+9. Read `fleetgraph-spec.md` for the proactive queue, current-page analysis, review/apply flows, and runtime shape.
+10. Use `acceptance-and-rebuild-checklist.md` and `task-breakdown.md` as the implementation and verification sequence for rebuilding the product.
+11. Use `implementation-constraints.md` and `constitution-check.md` as the non-negotiable build constraints.
 
 ## Pack Contents
 
@@ -31,10 +32,14 @@ This pack describes the product as implemented on local `master` at commit `7888
 | `navigation-and-routing-spec.md` | Canonical URL map, access rules, redirect contract, query params, shell mode derivation, and tab routing |
 | `screen-spec.md` | Route-by-route screen behavior and document-tab behavior |
 | `screen-state-spec.md` | Loading, empty, blocked, success, review, and mutation states for major screens |
+| `state-machine-and-lifecycle-spec.md` | Session, invite/setup, workspace, document, approval, collaboration, and FleetGraph lifecycle state machines |
 | `shared-interaction-patterns-spec.md` | App-shell behavior, command palette, selection, keyboard shortcuts, persistence, and shared UI mechanics |
 | `domain-and-data-spec.md` | Entity model, associations, weekly/accountability flows, and storage contracts |
 | `document-field-reference.md` | Field-level document contract, property schema, compatibility layer, and computed/flattened response fields |
+| `permissions-and-access-spec.md` | Public/authenticated/admin access model, workspace/document visibility rules, and mutation ownership boundaries |
+| `payload-and-response-reference.md` | Dominant request bodies, response envelopes, raw-vs-wrapped contracts, and payload compatibility drifts |
 | `workflow-and-action-spec.md` | Create/update/delete, approval/review, conversion, allocation, feedback, admin, and FleetGraph action flows |
+| `mutation-side-effects-spec.md` | Query invalidation, optimistic updates, broadcasts, navigation changes, collaboration resets, and background hooks after writes |
 | `api-and-service-spec.md` | REST route groups, collaboration service behavior, and cross-cutting backend services |
 | `editor-and-collaboration-spec.md` | Shared editor capabilities, collaboration model, offline behavior, and content extraction rules |
 | `fleetgraph-spec.md` | FleetGraph proactive queue, on-demand analysis, review/apply actions, and runtime contracts |
@@ -60,21 +65,33 @@ This pack describes the product as implemented on local `master` at commit `7888
 2. `navigation-and-routing-spec.md`
 3. `screen-spec.md`
 4. `screen-state-spec.md`
-5. `shared-interaction-patterns-spec.md`
+5. `state-machine-and-lifecycle-spec.md`
+6. `shared-interaction-patterns-spec.md`
 
 ### If you are rebuilding data contracts and CRUD behavior
 
 1. `domain-and-data-spec.md`
 2. `document-field-reference.md`
-3. `workflow-and-action-spec.md`
-4. `api-and-service-spec.md`
+3. `payload-and-response-reference.md`
+4. `workflow-and-action-spec.md`
+5. `mutation-side-effects-spec.md`
+6. `api-and-service-spec.md`
+
+### If you are rebuilding auth, permissions, and backend contracts
+
+1. `navigation-and-routing-spec.md`
+2. `permissions-and-access-spec.md`
+3. `payload-and-response-reference.md`
+4. `state-machine-and-lifecycle-spec.md`
+5. `api-and-service-spec.md`
 
 ### If you are rebuilding the collaborative editor and AI layer
 
 1. `editor-and-collaboration-spec.md`
 2. `fleetgraph-spec.md`
-3. `shared-interaction-patterns-spec.md`
-4. `implementation-constraints.md`
+3. `mutation-side-effects-spec.md`
+4. `shared-interaction-patterns-spec.md`
+5. `implementation-constraints.md`
 
 ## Source Of Truth For This Pack
 
@@ -116,5 +133,6 @@ Primary repo evidence:
   - `/documents/:id/*` is canonical, while older `/docs/:id`, `/issues/:id`, `/projects/:id`, `/programs/:id/*`, and `/sprints/:id/*` routes still redirect into it.
   - Current issue/project conversion is implemented in-place with snapshots, while the conversions history screen still reflects the older archived-original/new-document model.
   - Person documents persist `properties.user_id` even though the shared TS type omits that field.
-- The exact REST payloads continue to live in `api/openapi.yaml`; this pack summarizes them in product terms and groups them by capability.
+- The dominant REST payloads and response families are now captured in `payload-and-response-reference.md`; `api/openapi.yaml` remains the exhaustive wire reference for edge endpoints and schema details not restated here.
+- The collaboration layer exposes a conversion close-code path (`4100`), but the current conversion routes do not invoke it; current conversion UX depends on client-side navigation and invalidation instead.
 - When this pack and older prose docs disagree, prefer the route files, page components, schema, and backend route implementations named in the source inventory.

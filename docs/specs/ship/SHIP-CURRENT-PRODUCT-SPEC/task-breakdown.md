@@ -2,8 +2,8 @@
 
 ## Story
 
-- Story ID: US-102
-- Story Title: Expanded current product spec blueprint
+- Story ID: US-103
+- Story Title: Current product spec implementation-contract deepening
 
 ## Execution Notes
 
@@ -11,6 +11,7 @@
 - Prefer canonical routes and current behaviors over legacy aliases.
 - Sequence the rebuild in a way that respects Ship’s shared editor and unified-document architecture.
 - Treat the new deep-dive docs as the primary build contract and the older overview docs as orientation layers.
+- Preserve the exact current access boundaries, payload families, lifecycle transitions, and post-mutation fan-out behavior instead of normalizing them away.
 
 ## Rebuild Workstreams
 
@@ -50,6 +51,10 @@
 - [ ] Document-type tabs and shared editor patterns
 - [ ] Domain/data model, field reference, and weekly/accountability logic
 - [ ] Workflow/action contracts for approvals, reconciliation, conversion, allocation, and admin flows
+- [ ] Permissions/access boundaries, blocked-result semantics, and reviewer authorization rules
+- [ ] Request/response envelopes, dominant payload families, and raw-vs-wrapped compatibility quirks
+- [ ] Lifecycle/state-machine coverage for sessions, invites, documents, approvals, and FleetGraph
+- [ ] Mutation side effects, query invalidation, broadcasts, navigation replacement, and collaboration resets
 - [ ] REST/WebSocket/service inventory
 - [ ] FleetGraph proactive and on-demand functionality
 - [ ] Auth/admin/settings/public feedback edge surfaces

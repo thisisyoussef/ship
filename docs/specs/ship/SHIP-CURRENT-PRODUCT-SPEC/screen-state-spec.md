@@ -1,6 +1,6 @@
 # Screen State Spec
 
-This document defines the state taxonomy a rebuild must preserve. It focuses on what users see when data is loading, missing, invalid, empty, ready for action, or mid-mutation.
+This document defines the state taxonomy a rebuild must preserve. It focuses on what users see when data is loading, missing, invalid, empty, ready for action, or mid-mutation. Use `state-machine-and-lifecycle-spec.md` alongside this file when you need the underlying transition rules, stored approval states, or session/document lifecycle mechanics behind those visible states.
 
 ## Cross-Cutting State Taxonomy
 

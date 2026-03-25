@@ -1,6 +1,6 @@
 # API And Service Spec
 
-Use this document with `workflow-and-action-spec.md` for the user-visible mutation contract and `document-field-reference.md` for the data shapes these routes read and write.
+Use this document with `workflow-and-action-spec.md` for the user-visible mutation contract, `payload-and-response-reference.md` for dominant request/response shapes, `permissions-and-access-spec.md` for route gating, and `document-field-reference.md` for the data shapes these routes read and write.
 
 ## API Architecture Summary
 
@@ -192,4 +192,4 @@ When content persists, the collaboration service also:
 3. The same backend serves both normal product routes and FleetGraph routes.
 4. Route groups are product-centric and largely same-origin/browser-oriented.
 5. Many document routes still flatten `properties` onto top-level response fields for backward compatibility.
-6. OpenAPI is the exact HTTP contract source; this doc is the capability map.
+6. `payload-and-response-reference.md` is the dominant current-state wire-contract summary, while `api/openapi.yaml` remains the exhaustive backup reference.

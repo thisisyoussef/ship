@@ -2,11 +2,11 @@
 
 ## Status
 
-- State: `in-progress`
+- State: `done`
 - Owner: Codex
 - Depends on: `US-102`
 - Related branch: `codex/us-103-spec-blueprint-deepening`
-- Related commit/PR: `pending`
+- Related commit/PR: `7935c02` / [PR #205](https://github.com/thisisyoussef/ship/pull/205)
 - Target environment: `not deployed`
 
 ## Persona
@@ -121,11 +121,11 @@ List the tests or validation layers this story will use before implementation.
 
 ## Acceptance Criteria
 
-- [ ] AC-1: The Ship current-product pack includes a dedicated permissions/access reference that distinguishes public, authenticated, workspace-admin, super-admin, and document-visibility behavior.
-- [ ] AC-2: The Ship current-product pack includes a dedicated request/response reference that documents the dominant envelopes and key payload families closely enough for frontend and backend rebuild work.
-- [ ] AC-3: The Ship current-product pack includes a dedicated state-machine/lifecycle reference covering session, invite/setup, document-detail, review/approval, and FleetGraph lifecycle behavior.
-- [ ] AC-4: The Ship current-product pack includes a dedicated mutation side-effects reference that documents query invalidation, optimistic updates, navigation replacement, collaboration fan-out, and other refresh consequences.
-- [ ] AC-5: The pack README, queue docs, and checkpoint logs are updated so the deeper implementation-contract layer is discoverable and resumable from the repo.
+- [x] AC-1: The Ship current-product pack includes a dedicated permissions/access reference that distinguishes public, authenticated, workspace-admin, super-admin, and document-visibility behavior.
+- [x] AC-2: The Ship current-product pack includes a dedicated request/response reference that documents the dominant envelopes and key payload families closely enough for frontend and backend rebuild work.
+- [x] AC-3: The Ship current-product pack includes a dedicated state-machine/lifecycle reference covering session, invite/setup, document-detail, review/approval, and FleetGraph lifecycle behavior.
+- [x] AC-4: The Ship current-product pack includes a dedicated mutation side-effects reference that documents query invalidation, optimistic updates, navigation replacement, collaboration fan-out, and other refresh consequences.
+- [x] AC-5: The pack README, queue docs, and checkpoint logs are updated so the deeper implementation-contract layer is discoverable and resumable from the repo.
 
 ## Local Validation
 
@@ -169,6 +169,6 @@ rg -n "US-103|permissions-and-access-spec|payload-and-response-reference|state-m
 
 ## Checkpoint Result
 
-- Outcome: Pending
-- Evidence: Pending
-- Residual risk: Pending
+- Outcome: Passed
+- Evidence: `git diff --check` passed; `find docs/specs/ship/SHIP-CURRENT-PRODUCT-SPEC -maxdepth 1 -type f | sort` passed; `rg -n "US-103|permissions-and-access-spec|payload-and-response-reference|state-machine-and-lifecycle-spec|mutation-side-effects-spec" docs/user-stories docs/specs/ship` passed; new implementation-contract docs are linked from the pack README and cross-linked from adjacent contract docs.
+- Residual risk: This story is documentation-only, so the proof path is repo inspection rather than runtime execution; future product changes will need the pack kept in sync to preserve the contract accuracy.

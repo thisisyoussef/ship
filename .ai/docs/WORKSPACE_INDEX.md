@@ -26,6 +26,7 @@ Compatibility surfaces:
 - `.ai/workflows/story-lookup.md`
 - `.ai/workflows/feature-development.md`
 - `.ai/workflows/spec-driven-delivery.md`
+- `.ai/workflows/design-workflow.md`
 - `.ai/workflows/parallel-flight.md`
 - `.ai/workflows/user-correction-triage.md`
 - `.ai/workflows/story-handoff.md`

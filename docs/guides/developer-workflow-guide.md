@@ -236,6 +236,41 @@ While `/work` runs:
 
 ---
 
+## Workflow 7: Agentic Design and UI Exploration
+
+### Goal
+Move from inspiration to a buildable UI direction without inventing a one-off design process every time.
+
+### Current Path
+
+1. **Start with the checked-in story**
+   - Keep the active story as the execution contract
+   - If the design pass is large enough, write a short design brief in `docs/plans/`
+
+2. **Gather references**
+   - Use Variant, Mobbin, Awwwards, and Cosmos to calibrate taste, layout direction, and interaction ideas
+   - Distill the takeaways into repo notes instead of leaving them only in third-party tools
+
+3. **Choose an editable canvas**
+   - Use Paper for HTML/CSS-native design iteration
+   - Use Pencil for versioned `.pen` design files and design-system/token work
+
+4. **Connect the agent**
+   - Follow [Agent Design Workflow Guide](./agent-design-workflow.md) for Codex and Claude setup
+   - Keep machine-local MCP setup out of tracked repo files
+
+5. **Build in the repo**
+   - Implement the chosen direction in the active story
+   - Update tokens, primitives, and proof docs together when the visual language changes
+
+### Observable Outcomes
+
+- Design-heavy work uses one shared flow across inspiration, canvas, and implementation
+- Codex and Claude users follow the same checked-in guide
+- Final UI changes still land through the normal validation and handoff rules
+
+---
+
 ## Future Improvements
 
 Once bugs are fixed, the following improvements are planned:

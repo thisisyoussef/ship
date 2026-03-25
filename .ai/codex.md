@@ -11,3 +11,5 @@ For Codex-style `.ai` entrypoints, use this read order:
 7. `.ai/docs/WORKSPACE_INDEX.md`
 
 `AGENTS.md` and the checked-in `docs/` surfaces are authoritative. Use `.ai/docs/WORKSPACE_INDEX.md` and `.ai/workflows/` as a compatibility map back to that canonical workflow.
+
+For design-system, page-design, or visual exploration tasks, open `docs/guides/agent-design-workflow.md` and the matching `.ai/workflows/design-workflow.md` brief before choosing tools.

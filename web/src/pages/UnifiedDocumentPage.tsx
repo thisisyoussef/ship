@@ -650,6 +650,18 @@ export function UnifiedDocumentPage() {
     nestedPath,
     userId: user?.id ?? null,
   });
+  const fleetGraphAnalysisContextKey = useMemo(() => {
+    if (!document?.id) {
+      return null
+    }
+
+    return [
+      document.id,
+      activeTab || 'current',
+      nestedPath ?? 'root',
+      document.updated_at,
+    ].join('::')
+  }, [activeTab, document?.id, document?.updated_at, nestedPath]);
 
   // Loading state
   if (isLoading) {
@@ -703,6 +715,7 @@ export function UnifiedDocumentPage() {
         nestedPath={nestedPath}
       />
       <FleetGraphFab
+        autoAnalyzeContextKey={fleetGraphAnalysisContextKey}
         documentId={document.id}
         documentTitle={document.title}
         documentType={document.document_type}

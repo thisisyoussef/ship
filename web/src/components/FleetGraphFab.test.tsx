@@ -59,6 +59,7 @@ describe('FleetGraphFab', () => {
   it('renders suggested next steps as plain text instead of clickable buttons', () => {
     render(
       <FleetGraphFab
+        autoAnalyzeContextKey="doc-123::overview::root::2026-03-17T00:00:00.000Z"
         documentId="doc-123"
         documentTitle="Sprint 8"
         documentType="sprint"
@@ -77,6 +78,7 @@ describe('FleetGraphFab', () => {
   it('uses a dark text style for the follow-up input on the white chat surface', () => {
     render(
       <FleetGraphFab
+        autoAnalyzeContextKey="doc-123::overview::root::2026-03-17T00:00:00.000Z"
         documentId="doc-123"
         documentTitle="Sprint 8"
         documentType="sprint"
@@ -88,7 +90,45 @@ describe('FleetGraphFab', () => {
     expect(screen.getByPlaceholderText('Ask a follow-up...')).toHaveClass('text-black')
   })
 
-  it('starts analysis when the user opens the FAB on a document page', () => {
+  it('auto-runs analysis once for a fresh page context before the FAB opens', () => {
+    const analyze = vi.fn()
+    vi.mocked(useFleetGraphAnalysis).mockReturnValue({
+      analyze,
+      applyError: null,
+      applyFindingAction: vi.fn(),
+      conversation: [],
+      isAnalyzing: false,
+      isApplying: false,
+      isResponding: false,
+      pendingActionFindingId: null,
+      reset: vi.fn(),
+      sendMessage: vi.fn(),
+      threadId: null,
+    })
+
+    render(
+      <FleetGraphFab
+        autoAnalyzeContextKey="doc-123::review::root::2026-03-17T00:00:00.000Z"
+        documentId="doc-123"
+        documentTitle="Sprint 8"
+        documentType="sprint"
+      />
+    )
+
+    expect(analyze).toHaveBeenCalledWith(
+      'doc-123',
+      'sprint',
+      'Sprint 8',
+      expect.any(Object)
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: /fleetgraph intelligence/i }))
+
+    expect(analyze).toHaveBeenCalledTimes(1)
+    expect(screen.getByPlaceholderText('Ask a follow-up...')).toBeInTheDocument()
+  })
+
+  it('starts analysis when the user opens the FAB on a document page without an auto-run context', () => {
     const analyze = vi.fn()
     vi.mocked(useFleetGraphAnalysis).mockReturnValue({
       analyze,
@@ -116,13 +156,56 @@ describe('FleetGraphFab', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /fleetgraph intelligence/i }))
 
-    expect(analyze).toHaveBeenCalledWith('doc-123', 'sprint', 'Sprint 8')
+    expect(analyze).toHaveBeenCalledWith(
+      'doc-123',
+      'sprint',
+      'Sprint 8',
+      expect.any(Object)
+    )
     expect(screen.getByPlaceholderText('Ask a follow-up...')).toBeInTheDocument()
+  })
+
+  it('re-runs analysis when the page context key changes', () => {
+    const analyze = vi.fn()
+    vi.mocked(useFleetGraphAnalysis).mockReturnValue({
+      analyze,
+      applyError: null,
+      applyFindingAction: vi.fn(),
+      conversation: [],
+      isAnalyzing: false,
+      isApplying: false,
+      isResponding: false,
+      pendingActionFindingId: null,
+      reset: vi.fn(),
+      sendMessage: vi.fn(),
+      threadId: null,
+    })
+
+    const { rerender } = render(
+      <FleetGraphFab
+        autoAnalyzeContextKey="doc-123::overview::root::2026-03-17T00:00:00.000Z"
+        documentId="doc-123"
+        documentTitle="Sprint 8"
+        documentType="sprint"
+      />
+    )
+
+    rerender(
+      <FleetGraphFab
+        autoAnalyzeContextKey="doc-123::review::root::2026-03-17T00:00:00.000Z"
+        documentId="doc-123"
+        documentTitle="Sprint 8"
+        documentType="sprint"
+      />
+    )
+
+    expect(analyze).toHaveBeenCalledTimes(2)
   })
 
   it('keeps the FAB analysis-only instead of rendering a guided-actions tab', () => {
     render(
       <FleetGraphFab
+        autoAnalyzeContextKey="doc-123::overview::root::2026-03-17T00:00:00.000Z"
         documentId="doc-123"
         documentTitle="Sprint 8"
         documentType="sprint"

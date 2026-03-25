@@ -6,7 +6,7 @@
 - Owner: Codex
 - Depends on: —
 - Related branch: `codex/us-626-revert-shipyard-loop`
-- Related commit/PR: `pending`
+- Related commit/PR: `8aa65b4` / [PR #208](https://github.com/thisisyoussef/ship/pull/208)
 - Target environment: `not deployed`
 
 ## Persona

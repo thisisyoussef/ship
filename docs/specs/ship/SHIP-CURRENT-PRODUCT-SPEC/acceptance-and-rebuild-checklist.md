@@ -2,6 +2,8 @@
 
 This checklist is the final acceptance contract for a rebuild of the current Ship product. It is intentionally route- and behavior-specific so QA does not have to rediscover the product from source.
 
+Use `developer-build-queue.md` to reach this checklist in dependency-safe order. This file is the exit gate after the rebuild slices are in place, not the first document to drive implementation.
+
 ## Pack-Wide Exit Criteria
 
 - [ ] Canonical routes, redirects, and query params match `navigation-and-routing-spec.md`.

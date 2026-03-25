@@ -2,8 +2,14 @@
 
 ## Story
 
-- Story ID: US-103
-- Story Title: Current product spec implementation-contract deepening
+- Story ID: US-104
+- Story Title: Current product spec developer build queue
+
+## How To Read This File
+
+- Use `developer-build-queue.md` for the detailed one-by-one implementation sequence.
+- Use this file for the macro workstream map, dependency grouping, and coverage checklist.
+- Use `acceptance-and-rebuild-checklist.md` after implementation as the final QA/verification gate.
 
 ## Execution Notes
 
@@ -31,6 +37,8 @@
 | T012 | Package the blueprint handoff with an index, implementation constraints, and repo metadata updates | blocked-by:T001,T002,T003,T004,T005,T006,T007,T008,T009,T010,T011 | no | the pack stands alone and queue/checkpoint docs point to it |
 
 ## Suggested Rebuild Order
+
+This remains the coarse-grained order. For the detailed engineer-facing queue, use `developer-build-queue.md`.
 
 1. Auth, sessions, setup, invites, and workspace switching
 2. Unified documents table, document associations, and shared document types

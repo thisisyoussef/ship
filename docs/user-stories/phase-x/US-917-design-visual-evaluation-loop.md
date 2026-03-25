@@ -2,11 +2,11 @@
 
 ## Status
 
-- State: `in-progress`
+- State: `done`
 - Owner: Codex
 - Depends on: `US-916`
 - Related branch: `codex/us-917-visual-eval-loop`
-- Related commit/PR: `pending`
+- Related commit/PR: `7e261fb`, [PR #203](https://github.com/thisisyoussef/ship/pull/203)
 - Target environment: `repo-only`
 
 ## Persona
@@ -144,11 +144,11 @@ Error path:
 
 ## Acceptance Criteria
 
-- [ ] AC-1: The repo contains a canonical guide for screenshot-driven visual evaluation in design-heavy stories.
-- [ ] AC-2: The existing design workflow explains how Playwright MCP and screenshot capture fit without becoming the default closeout gate.
-- [ ] AC-3: Codex and Claude compatibility surfaces both point to the same visual-eval loop and rubric.
-- [ ] AC-4: Harness validation enforces the new guide and the tracked `.mcp.json` contract.
-- [ ] AC-5: `bash scripts/check_ai_wiring.sh`, `python3 scripts/verify_agent_contract.py`, and `git diff --check` pass.
+- [x] AC-1: The repo contains a canonical guide for screenshot-driven visual evaluation in design-heavy stories.
+- [x] AC-2: The existing design workflow explains how Playwright MCP and screenshot capture fit without becoming the default closeout gate.
+- [x] AC-3: Codex and Claude compatibility surfaces both point to the same visual-eval loop and rubric.
+- [x] AC-4: Harness validation enforces the new guide and the tracked `.mcp.json` contract.
+- [x] AC-5: `bash scripts/check_ai_wiring.sh`, `python3 scripts/verify_agent_contract.py`, and `git diff --check` pass.
 
 ## Local Validation
 
@@ -192,8 +192,15 @@ git diff --check
 
 ## Checkpoint Result
 
-- Outcome: `in-progress`
+- Outcome: `done`
 - Evidence:
-  - Story scaffolded on branch `codex/us-917-visual-eval-loop`.
+  - Added `docs/guides/design-visual-evaluation.md` as the canonical screenshot-driven design-iteration guide.
+  - Added `.ai/workflows/visual-eval-loop.md` and threaded it through the `.ai` compatibility workspace.
+  - Updated `docs/guides/agent-design-workflow.md`, `AGENTS.md`, `.claude/CLAUDE.md`, `.clauderc`, `CLAUDE.md`, `docs/guides/developer-workflow-guide.md`, and `docs/guides/ship-claude-cli-integration.md` so the visual-eval loop is routed across Codex and Claude workflows.
+  - Updated `docs/CONTEXT.md`, `docs/WORKFLOW_MEMORY.md`, `docs/user-stories/HOW_TO_CREATE_USER_STORIES.md`, and the story queue so screenshot-driven iteration is part of the checked-in harness.
+  - Updated `scripts/check_ai_wiring.sh`, `scripts/verify_agent_contract.py`, and `scripts/ai_arch_changed.sh` so the new guide and tracked `.mcp.json` Playwright MCP contract are enforced.
+  - `bash scripts/check_ai_wiring.sh`
+  - `python3 scripts/verify_agent_contract.py`
+  - `git diff --check`
 - Residual risk:
-  - The repo should keep the visual-eval loop precise enough to help design-heavy stories without turning every visible story into mandatory browser automation.
+  - Claude-local Playwright registration remains user-scoped. The repo now defines the loop and contract clearly, but individual Claude environments may still need local MCP setup outside the checked-in repo.

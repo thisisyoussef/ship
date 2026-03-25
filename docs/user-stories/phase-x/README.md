@@ -17,7 +17,7 @@ This folder holds stories that change the execution harness itself.
 | US-914 | Prune superseded harness history | `done` | P1 | `US-913` |
 | US-915 | Organized `.ai` compatibility workspace | `done` | P1 | `US-914` |
 | US-916 | Agent design workflow | `done` | P1 | `US-915` |
-| US-917 | Design visual evaluation loop | `in-progress` | P1 | `US-916` |
+| US-917 | Design visual evaluation loop | `done` | P1 | `US-916` |
 
 ## Execution Notes
 

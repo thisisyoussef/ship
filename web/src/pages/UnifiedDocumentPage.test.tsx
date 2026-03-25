@@ -77,11 +77,13 @@ vi.mock('@/components/FleetGraphGuidedActionsOverlay', () => ({
 
 vi.mock('@/components/FleetGraphFab', () => ({
   FleetGraphFab: ({
+    autoAnalyzeContextKey,
     documentId,
   }: {
+    autoAnalyzeContextKey?: string | null
     documentId: string
   }) => (
-    <div>{`FleetGraph FAB ${documentId} analysis`}</div>
+    <div>{`FleetGraph FAB ${documentId} analysis ${autoAnalyzeContextKey ?? 'none'}`}</div>
   ),
 }));
 
@@ -213,7 +215,11 @@ describe('UnifiedDocumentPage', () => {
     expect(await screen.findByTestId('fleetgraph-document-page-shell')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /open fleetgraph panel/i })).toBeInTheDocument();
     expect(screen.getByText('FleetGraph guided overlay sprint-1 ready')).toBeInTheDocument();
-    expect(screen.getByText('FleetGraph FAB sprint-1 analysis')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'FleetGraph FAB sprint-1 analysis sprint-1::overview::root::2026-03-17T00:00:00.000Z'
+      )
+    ).toBeInTheDocument();
     expect(screen.queryByText('FleetGraph entry')).not.toBeInTheDocument();
   });
 
@@ -263,7 +269,37 @@ describe('UnifiedDocumentPage', () => {
     });
 
     expect(await screen.findByText('FleetGraph guided overlay sprint-1 ready')).toBeInTheDocument();
-    expect(screen.getByText('FleetGraph FAB sprint-1 analysis')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'FleetGraph FAB sprint-1 analysis sprint-1::overview::root::2026-03-17T00:00:00.000Z'
+      )
+    ).toBeInTheDocument();
     expect(screen.queryByText('FleetGraph entry')).not.toBeInTheDocument();
+  });
+
+  it('passes the active tab through the FleetGraph auto-analysis context key', async () => {
+    vi.mocked(apiGet).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        created_at: '2026-03-17T00:00:00.000Z',
+        created_by: 'user-1',
+        document_type: 'sprint',
+        id: 'sprint-1',
+        properties: { status: 'active' },
+        title: 'FleetGraph Demo Week - Review and Apply',
+        updated_at: '2026-03-17T00:00:00.000Z',
+        workspace_id: 'workspace-1',
+      }),
+    } as Response);
+
+    render(<UnifiedDocumentPage />, {
+      wrapper: createWrapper('/documents/sprint-1/review'),
+    });
+
+    expect(
+      await screen.findByText(
+        'FleetGraph FAB sprint-1 analysis sprint-1::review::root::2026-03-17T00:00:00.000Z'
+      )
+    ).toBeInTheDocument();
   });
 });

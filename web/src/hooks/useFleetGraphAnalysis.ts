@@ -1,5 +1,5 @@
 import { useMutation } from '@tanstack/react-query'
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 
 import { apiDelete, apiPatch, apiPost } from '@/lib/api'
 
@@ -39,6 +39,11 @@ export interface ConversationEntry {
   timestamp: string
 }
 
+interface AnalyzeOptions {
+  onError?: () => void
+  onSuccess?: () => void
+}
+
 /* ------------------------------------------------------------------ */
 /*  Hook                                                              */
 /* ------------------------------------------------------------------ */
@@ -46,6 +51,7 @@ export interface ConversationEntry {
 export function useFleetGraphAnalysis() {
   const [threadId, setThreadId] = useState<string | null>(null)
   const [conversation, setConversation] = useState<ConversationEntry[]>([])
+  const latestAnalysisRequestIdRef = useRef(0)
 
   // Auto-analysis mutation
   const analyzeMutation = useMutation({
@@ -53,14 +59,23 @@ export function useFleetGraphAnalysis() {
       documentId: string
       documentTitle: string
       documentType: string
+      requestId: number
     }) => {
-      const response = await apiPost('/api/fleetgraph/analyze', input)
+      const response = await apiPost('/api/fleetgraph/analyze', {
+        documentId: input.documentId,
+        documentTitle: input.documentTitle,
+        documentType: input.documentType,
+      })
       if (!response.ok) {
         throw new Error('FleetGraph analysis failed')
       }
       return response.json() as Promise<FleetGraphAnalysisResponse>
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
+      if (variables.requestId !== latestAnalysisRequestIdRef.current) {
+        return
+      }
+
       setThreadId(data.threadId)
       setConversation([
         {
@@ -111,8 +126,19 @@ export function useFleetGraphAnalysis() {
   })
 
   const analyze = useCallback(
-    (documentId: string, documentType: string, documentTitle: string) => {
-      analyzeMutation.mutate({ documentId, documentTitle, documentType })
+    (
+      documentId: string,
+      documentType: string,
+      documentTitle: string,
+      options?: AnalyzeOptions
+    ) => {
+      const requestId = ++latestAnalysisRequestIdRef.current
+      setThreadId(null)
+      setConversation([])
+      analyzeMutation.mutate(
+        { documentId, documentTitle, documentType, requestId },
+        options
+      )
     },
     [analyzeMutation]
   )
@@ -162,6 +188,7 @@ export function useFleetGraphAnalysis() {
   }, [])
 
   const reset = useCallback(() => {
+    latestAnalysisRequestIdRef.current++
     setThreadId(null)
     setConversation([])
   }, [])

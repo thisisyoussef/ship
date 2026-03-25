@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import {
   useFleetGraphAnalysis,
   type ConversationEntry,
@@ -10,6 +10,7 @@ import {
 /* ------------------------------------------------------------------ */
 
 interface FleetGraphFabProps {
+  autoAnalyzeContextKey?: string | null
   documentId: string
   documentTitle: string
   documentType: string
@@ -98,6 +99,7 @@ function ConversationMessage({
 /* ------------------------------------------------------------------ */
 
 export function FleetGraphFab({
+  autoAnalyzeContextKey = null,
   documentId,
   documentTitle,
   documentType,
@@ -114,15 +116,39 @@ export function FleetGraphFab({
     sendMessage,
   } = useFleetGraphAnalysis()
 
-  // Auto-analyze when opening on a new document
-  const lastAnalyzedRef = useRef<string | null>(null)
+  // Auto-analyze when a fresh page context becomes ready, and suppress duplicates.
+  const analyzedContextRef = useRef<string | null>(null)
+
+  const triggerAnalysis = useCallback((contextKey: string) => {
+    if (!documentId || analyzedContextRef.current === contextKey) {
+      return
+    }
+
+    analyzedContextRef.current = contextKey
+    analyze(documentId, documentType, documentTitle, {
+      onError: () => {
+        if (analyzedContextRef.current === contextKey) {
+          analyzedContextRef.current = null
+        }
+      },
+    })
+  }, [analyze, documentId, documentTitle, documentType])
 
   useEffect(() => {
-    if (isOpen && documentId && lastAnalyzedRef.current !== documentId) {
-      lastAnalyzedRef.current = documentId
-      analyze(documentId, documentType, documentTitle)
+    if (!autoAnalyzeContextKey) {
+      return
     }
-  }, [isOpen, documentId, documentType, documentTitle, analyze])
+
+    triggerAnalysis(autoAnalyzeContextKey)
+  }, [autoAnalyzeContextKey, triggerAnalysis])
+
+  useEffect(() => {
+    if (!isOpen || !documentId) {
+      return
+    }
+
+    triggerAnalysis(autoAnalyzeContextKey ?? documentId)
+  }, [autoAnalyzeContextKey, documentId, isOpen, triggerAnalysis])
 
   // Auto-scroll on new messages
   useEffect(() => {

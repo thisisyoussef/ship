@@ -16,7 +16,7 @@ This folder holds stories that change the execution harness itself.
 | US-913 | Queue-first workflow reset | `done` | P1 | `US-907` |
 | US-914 | Prune superseded harness history | `done` | P1 | `US-913` |
 | US-915 | Organized `.ai` compatibility workspace | `done` | P1 | `US-914` |
-| US-916 | Agent design workflow | `in-progress` | P1 | `US-915` |
+| US-916 | Agent design workflow | `done` | P1 | `US-915` |
 
 ## Execution Notes
 

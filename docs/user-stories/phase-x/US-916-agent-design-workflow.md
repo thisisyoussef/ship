@@ -2,11 +2,11 @@
 
 ## Status
 
-- State: `in-progress`
+- State: `done`
 - Owner: Codex
 - Depends on: `US-915`
 - Related branch: `codex/us-915-design-agent-canvas`
-- Related commit/PR: pending
+- Related commit/PR: `589b98e`, [PR #201](https://github.com/thisisyoussef/ship/pull/201)
 - Target environment: `repo-only`
 
 ## Persona
@@ -127,11 +127,11 @@ Error path:
 
 ## Acceptance Criteria
 
-- [ ] AC-1: The repo contains a canonical guide for agent-driven design phases.
-- [ ] AC-2: Codex and Claude workflow surfaces both route to the same design guide.
-- [ ] AC-3: The `.ai` compatibility workspace mirrors the new design workflow cleanly.
-- [ ] AC-4: Harness validation recognizes the new design-workflow files.
-- [ ] AC-5: `bash scripts/check_ai_wiring.sh`, `python3 scripts/verify_agent_contract.py`, and `git diff --check` pass.
+- [x] AC-1: The repo contains a canonical guide for agent-driven design phases.
+- [x] AC-2: Codex and Claude workflow surfaces both route to the same design guide.
+- [x] AC-3: The `.ai` compatibility workspace mirrors the new design workflow cleanly.
+- [x] AC-4: Harness validation recognizes the new design-workflow files.
+- [x] AC-5: `bash scripts/check_ai_wiring.sh`, `python3 scripts/verify_agent_contract.py`, and `git diff --check` pass.
 
 ## Local Validation
 
@@ -175,6 +175,14 @@ git diff --check
 
 ## Checkpoint Result
 
-- Outcome: pending
-- Evidence: pending
-- Residual risk: pending
+- Outcome: `done`
+- Evidence:
+  - Added `docs/guides/agent-design-workflow.md` as the canonical design-phase guide.
+  - Added `.ai/workflows/design-workflow.md` and routed the `.ai` compatibility workspace back to the canonical guide.
+  - Updated `AGENTS.md`, `.claude/CLAUDE.md`, `.clauderc`, `docs/guides/developer-workflow-guide.md`, and `docs/guides/ship-claude-cli-integration.md` to point at the shared design workflow.
+  - Updated `scripts/check_ai_wiring.sh`, `scripts/verify_agent_contract.py`, and `scripts/ai_arch_changed.sh` so the new workflow is enforced.
+  - `bash scripts/check_ai_wiring.sh`
+  - `python3 scripts/verify_agent_contract.py`
+  - `git diff --check`
+- Residual risk:
+  - Paper and Pencil setup remain user-scoped local integrations. If the team later wants repo-level shared environment automation for those tools, that should land as a separate environment-setup story.

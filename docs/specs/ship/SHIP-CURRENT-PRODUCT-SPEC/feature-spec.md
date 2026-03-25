@@ -2,37 +2,39 @@
 
 ## Metadata
 
-- Story ID: US-101
-- Story Title: Current product spec pack
+- Story ID: US-102
+- Story Title: Expanded current product spec blueprint
 - Author: Codex
 - Date: 2026-03-25
 - Related phase gate: Phase 1 core Ship baseline documentation
 
 ## Problem Statement
 
-Ship’s current product behavior is spread across route files, page components, shared types, core docs, and FleetGraph assignment material. A new engineer can recover the truth from the repo, but it takes significant code spelunking to understand what the product actually does today, what is core versus optional, and which capabilities are shared versus document-type-specific. The repo needs a single, implementation-ready spec pack that consolidates the current product into a handoffable contract.
+US-101 created a first-pass current-product pack, but it still leaves too much implied knowledge in the route files, shared components, and route handlers. A new engineer can now find the major modules, but still has to reverse-engineer exact route rules, state handling, field-level contracts, compatibility behavior, and mutation flows from source. The repo needs a second-pass blueprint expansion so the pack reads like a build contract instead of a summary.
 
 ## Pack Objectives
 
-- Objective 1: Describe the current product surface area in one place, including main routes, document tabs, supporting admin/settings/auth flows, and FleetGraph.
-- Objective 2: Capture the current domain/data model so the engineer understands Ship’s unified-document architecture and weekly/accountability workflow.
-- Objective 3: Capture the current backend capability map and collaboration model, including REST, WebSocket, uploads, comments, history, and caching/offline behavior.
-- Objective 4: Sequence the implementation into a practical rebuild order instead of leaving the engineer with a flat pile of observations.
-- Objective 5: Preserve repo-grounded truth by anchoring the pack in code and living docs instead of chat memory.
+- Objective 1: Expand the route contract so canonical routes, redirects, query params, tab parsing, shell mode derivation, and hidden/legacy behaviors are explicit.
+- Objective 2: Expand the screen contract so loading, empty, blocked, review, and mutation-result states are documented for every major surface.
+- Objective 3: Expand the domain/data contract so field-level document properties, enums, approvals, computed fields, and compatibility shims are spelled out.
+- Objective 4: Expand the workflow contract so create/update/delete/review/apply flows are described in user-facing and backend-facing terms.
+- Objective 5: Keep the pack repo-grounded by correcting transitional areas instead of flattening them into idealized product prose.
+- Objective 6: Make the pack usable as a rebuild checklist and acceptance contract, not just as a discovery guide.
 
 ## User Stories
 
-- As a product lead, I want a checked-in product spec folder so I can hand it to an engineer as a build contract.
-- As an engineer joining Ship, I want a route, domain, and API map so I can reconstruct the current behavior without reading every file first.
-- As a maintainer, I want FleetGraph documented as part of the actual product surface, not buried in assignment-only docs.
+- As a product lead, I want a checked-in product spec folder that is detailed enough to hand to an engineer as a build blueprint.
+- As an engineer joining Ship, I want route rules, state rules, field definitions, and action contracts so I can rebuild current behavior without reading every file first.
+- As a maintainer, I want transitional and legacy behavior documented honestly so future cleanup work starts from the true current state.
 
 ## Acceptance Criteria
 
-- [ ] AC-1: The spec pack exists at `docs/specs/ship/SHIP-CURRENT-PRODUCT-SPEC/` and includes an index plus implementation-oriented supporting docs.
-- [ ] AC-2: The pack documents all major product surfaces currently reachable from the frontend route map, including auth/public/admin/settings routes and the main in-app modes.
-- [ ] AC-3: The pack documents the unified document model, week/accountability philosophy, associations, visibility, approvals, conversions, and FleetGraph-specific storage contracts.
-- [ ] AC-4: The pack documents shared editor/collaboration behavior and the current REST/WebSocket capability map closely enough for an engineer to reproduce the current feature set.
-- [ ] AC-5: The pack includes a practical build/rebuild sequence instead of just descriptive notes.
+- [ ] AC-1: The spec pack exists at `docs/specs/ship/SHIP-CURRENT-PRODUCT-SPEC/` and includes dedicated blueprint docs for routing/navigation, screen states, shared interaction patterns, document field reference, workflow/action contracts, and acceptance/rebuild criteria.
+- [ ] AC-2: The pack documents all major product surfaces currently reachable from the frontend route map, including auth/public/admin/settings routes, team routes, document detail flows, and FleetGraph.
+- [ ] AC-3: The pack documents the unified document model, per-type property fields, associations, approvals, visibility, compatibility layers, and conversion/storage behavior closely enough for an engineer to rebuild the data model.
+- [ ] AC-4: The pack documents the current shared editor/collaboration behavior and the current REST/WebSocket/service capability map closely enough for an engineer to reproduce the current feature set.
+- [ ] AC-5: The pack documents the major user-triggered action flows, including week/accountability actions, review flows, conversions, team operations, feedback intake, admin actions, and FleetGraph review/apply behavior.
+- [ ] AC-6: The pack includes a practical rebuild order plus an acceptance checklist instead of only descriptive notes.
 
 ## Edge Cases
 
@@ -40,6 +42,9 @@ Ship’s current product behavior is spread across route files, page components,
 - Some behavior is cross-cutting rather than route-local, especially the shared editor, collaboration substrate, and FleetGraph overlays.
 - Several legacy route aliases redirect into `/documents/:id/*`; the spec must distinguish canonical routes from compatibility routes.
 - FleetGraph behavior spans proactive queue state, on-demand analysis, follow-up conversation turns, and human-in-the-loop review/apply flows.
+- Conversions are a current example of a split model: the active mutation path is in-place and snapshot-based, while some user-facing copy and the conversion-history page still describe or surface the older archived-original/new-document pattern.
+- Person documents use `properties.user_id` as a real runtime contract even though the shared type definition lags behind that truth.
+- Sprint/week ownership and completeness also straddle old and new shapes: week authoring uses `owner_id`, while some older sprint paths still read `assignee_ids[0]`.
 
 ## Non-Functional Requirements
 
@@ -47,6 +52,7 @@ Ship’s current product behavior is spread across route files, page components,
 - Completeness: every major route family and document type must appear somewhere in the pack.
 - Implementability: the pack should tell an engineer what to build, not just what the repo contains.
 - Traceability: sections should identify the canonical local sources they were derived from.
+- Usability: an engineer should be able to answer “what route?”, “what state?”, “what fields?”, and “what mutation?” from the docs without first opening the source.
 
 ## Out Of Scope
 
@@ -58,6 +64,6 @@ Ship’s current product behavior is spread across route files, page components,
 ## Done Definition
 
 - The spec pack can stand on its own as a current-state engineer handoff.
-- The pack names the core product areas, the major shared behaviors, and the current backend contract surfaces.
-- The task breakdown gives a coherent implementation order for rebuilding the product.
-- Queue and checkpoint docs are updated so the work is discoverable from the repo alone.
+- The pack names the core product areas, the major shared behaviors, the field-level contracts, and the current backend contract surfaces.
+- The task breakdown and acceptance checklist give a coherent implementation and verification order for rebuilding the product.
+- Queue and checkpoint docs are updated so the follow-up blueprint pass is discoverable from the repo alone.

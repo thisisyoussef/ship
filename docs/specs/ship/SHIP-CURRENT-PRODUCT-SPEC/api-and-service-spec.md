@@ -1,5 +1,7 @@
 # API And Service Spec
 
+Use this document with `workflow-and-action-spec.md` for the user-visible mutation contract and `document-field-reference.md` for the data shapes these routes read and write.
+
 ## API Architecture Summary
 
 Ship uses a single Express application mounted under `/api` plus a separate WebSocket collaboration server. The REST API is grouped by product capability rather than by frontend page, and most authenticated browser flows use session cookies while API/token flows can use Bearer tokens.
@@ -49,7 +51,7 @@ Ship uses a single Express application mounted under `/api` plus a separate WebS
 | --- | --- | --- |
 | Documents | `GET /api/documents`, `GET /api/documents/:id`, `POST /api/documents`, `PATCH /api/documents/:id`, `DELETE /api/documents/:id` | Core document CRUD |
 | Document content | `GET /api/documents/:id/content`, `PATCH /api/documents/:id/content` | Explicit content fetch/update paths |
-| Document conversion | `GET /api/documents/converted/list`, `POST /api/documents/:id/convert`, `POST /api/documents/:id/undo-conversion` | Issue↔project conversion model |
+| Document conversion | `GET /api/documents/converted/list`, `POST /api/documents/:id/convert`, `POST /api/documents/:id/undo-conversion` | Issue↔project conversion model; current conversions are in-place with snapshots, while the list route still reflects legacy archived-original records |
 | Backlinks | `GET /api/documents/:id/backlinks`, `POST /api/documents/:id/links` | Link tracking and backlinks |
 | Associations | `GET /api/documents/:id/associations`, `POST /api/documents/:id/associations`, `DELETE /api/documents/:id/associations/:relatedId`, `GET /api/documents/:id/reverse-associations`, `GET /api/documents/:id/context` | Association and contextual relationship queries |
 | Comments | `GET /api/documents/:id/comments`, `POST /api/documents/:id/comments`, plus `/api/comments/*` mutation routes | Inline/editor comment system |
@@ -189,4 +191,5 @@ When content persists, the collaboration service also:
 2. Collaboration is a separate WebSocket/Yjs layer, not a REST poller.
 3. The same backend serves both normal product routes and FleetGraph routes.
 4. Route groups are product-centric and largely same-origin/browser-oriented.
-5. OpenAPI is the exact HTTP contract source; this doc is the capability map.
+5. Many document routes still flatten `properties` onto top-level response fields for backward compatibility.
+6. OpenAPI is the exact HTTP contract source; this doc is the capability map.

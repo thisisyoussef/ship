@@ -1,5 +1,7 @@
 # Screen Spec
 
+Use this document with `navigation-and-routing-spec.md` for the URL contract and `screen-state-spec.md` for the loading/empty/error/review states that each screen must preserve.
+
 ## Route Families
 
 ### Public and bootstrap routes
@@ -208,9 +210,10 @@ Required behavior:
 
 Required behavior:
 
-1. List archived original documents paired with active converted documents.
+1. List historical conversion records returned by `/api/documents/converted/list`.
 2. Filter `all`, `issue-to-project`, and `project-to-issue`.
-3. Show conversion actor and timestamp metadata.
+3. Show original and converted document metadata, conversion actor, and conversion timestamp.
+4. Preserve the current transitional reality that this page reflects the older archived-original/new-document model, while live conversion now happens in-place.
 
 ### Admin dashboard (`/admin`)
 

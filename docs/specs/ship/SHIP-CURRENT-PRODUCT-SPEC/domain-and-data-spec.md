@@ -1,5 +1,7 @@
 # Domain And Data Spec
 
+Use this document with `document-field-reference.md` for the per-field contract and `workflow-and-action-spec.md` for how these entities change over time.
+
 ## Core Domain Model
 
 Ship’s primary data model is a unified document system backed by PostgreSQL. The product does not model wiki pages, issues, projects, programs, weeks, and people as separate primary content tables. Instead, it uses a shared `documents` table with type-specific properties and supporting relationship tables.
@@ -117,7 +119,7 @@ Week-document requirements:
 
 1. It belongs to a program.
 2. It carries `properties.sprint_number`.
-3. It carries exactly one `owner_id`.
+3. It carries exactly one `owner_id` pointing at a workspace user.
 4. It may have child weekly plan and retro docs.
 5. It may have issues assigned into the week.
 
@@ -229,10 +231,10 @@ Issue and project documents can convert into one another.
 
 Conversion expectations:
 
-1. Original document is archived after conversion.
-2. Converted document stays active.
-3. Conversion metadata tracks source/target IDs, actor, and time.
-4. Settings exposes a conversion-history view.
+1. Current conversion is an in-place type change on the same document ID backed by `document_snapshots`.
+2. Conversion metadata still tracks actor, time, source type, and conversion count on the document row.
+3. Legacy conversions from the older archived-original/new-document model still exist and still drive redirect behavior plus the conversion-history screen.
+4. The pack must preserve this split model explicitly instead of pretending conversion is fully normalized.
 
 ## Person Model
 

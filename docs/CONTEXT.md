@@ -1,6 +1,6 @@
 # Live Context Snapshot
 
-Last updated: 2026-03-22
+Last updated: 2026-03-25
 
 ## Repo
 
@@ -27,6 +27,7 @@ Last updated: 2026-03-22
 - FleetGraph assignment source docs live under `docs/assignments/fleetgraph/`.
 - The repo now uses `AGENTS.md` plus `docs/` as the primary harness.
 - `.ai/` is an organized compatibility workspace plus runtime state, not the canonical control plane.
+- Design-heavy stories now route through `docs/guides/agent-design-workflow.md`, with Paper and Pencil as canvas tools and Variant, Mobbin, Awwwards, and Cosmos as inspiration inputs.
 - Deploy-relevant merges to `master` should be judged by the actual auto-deployed surface, not by a standalone GitHub deploy workflow status.
 
 ## Operational Appendix

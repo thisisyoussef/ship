@@ -14,6 +14,14 @@ This file is the secondary Ship appendix for commands, architecture notes, and d
 
 When in doubt about implementation approach, check these docs first.
 
+## Design Workflow
+
+For design-system work, page design, or visual exploration, use `docs/guides/agent-design-workflow.md`.
+
+- Route inspiration through Variant, Mobbin, Awwwards, and Cosmos.
+- Use Paper or Pencil as the editable canvas and source of truth for the design pass.
+- Keep Paper and Pencil MCP setup user-scoped instead of checking machine-local config into the repo.
+
 ## Commands
 
 **PostgreSQL must be running locally before dev or tests.** The user has local PostgreSQL installed (not Docker).

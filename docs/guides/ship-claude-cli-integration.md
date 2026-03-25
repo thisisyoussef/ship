@@ -68,6 +68,28 @@ Run any Ship-integrated workflow. You should see:
 - "Ship: Connected" in workflow output
 - Your activity appearing in Ship's dashboard
 
+## Design Phase: Paper, Pencil, and inspiration inputs
+
+When a story is design-heavy, pair this guide with [Agent Design Workflow Guide](./agent-design-workflow.md).
+
+### Canvas tools
+
+- **Paper**: Start Paper Desktop, open the target file, then run:
+
+```bash
+claude mcp add paper --transport http http://127.0.0.1:29979/mcp --scope user
+```
+
+After setup, run `/mcp` in Claude Code and confirm `paper` is available.
+
+- **Pencil**: Start Pencil, authenticate Claude Code with `claude`, open the target `.pen` file, and confirm Pencil appears in the MCP/tool list before prompting against it.
+
+### Inspiration tools
+
+- Use Variant, Mobbin, Awwwards, and Cosmos as reference inputs.
+- Distill the chosen direction back into `docs/plans/` and the active story before implementation.
+- Treat Paper or Pencil plus the checked-in story as the canonical design source, not the inspiration site itself.
+
 ## Planning Phase: /prd
 
 The `/prd` command (alias `/workflows:plan`) creates structured product requirements and syncs them to Ship.

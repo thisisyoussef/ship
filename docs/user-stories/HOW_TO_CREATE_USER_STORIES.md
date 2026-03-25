@@ -15,6 +15,7 @@ Write stories that are executable, testable, and resumable from the repo alone.
 4. Always include a Preparation Phase before coding.
 5. Always include validation, deployment status, and user-facing verification steps.
 6. Use `docs/DEFINITION_OF_DONE.md` as the hard completion gate.
+7. When a story is primarily design-system, page-design, or visual exploration work, include `docs/guides/agent-design-workflow.md` in the pre-implementation audit.
 
 ## Process
 
@@ -23,13 +24,14 @@ Write stories that are executable, testable, and resumable from the repo alone.
 3. Fill status, ownership, dependencies, and target environment first.
 4. Define persona, user story, goal, and scope.
 5. List the local files and contracts to audit before coding.
-6. Complete the Preparation Phase notes before implementation.
-7. Write the TDD or validation plan before production edits.
-8. Add acceptance criteria and concrete local validation commands.
-9. Add deployment and user verification steps.
-10. For visible stories, create or refresh a named seeded verification entry or proof lane when the product supports one, and record it explicitly in `How To Verify`.
-11. Do not require agent-run browser verification by default; prefer seeded proof lanes, runtime or API checks, and explicit `What To Test` steps unless the story truly needs visual debugging.
-12. Update the relevant checkpoint log when the story advances or closes.
+6. For design-heavy stories, record the inspiration inputs, canonical canvas, and design-to-code sync path.
+7. Complete the Preparation Phase notes before implementation.
+8. Write the TDD or validation plan before production edits.
+9. Add acceptance criteria and concrete local validation commands.
+10. Add deployment and user verification steps.
+11. For visible stories, create or refresh a named seeded verification entry or proof lane when the product supports one, and record it explicitly in `How To Verify`.
+12. Do not require agent-run browser verification by default; prefer seeded proof lanes, runtime or API checks, and explicit `What To Test` steps unless the story truly needs visual debugging.
+13. Update the relevant checkpoint log when the story advances or closes.
 
 ## Phase Folders
 

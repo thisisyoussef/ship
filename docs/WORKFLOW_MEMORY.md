@@ -22,6 +22,9 @@ Use this file as durable working memory for recurring corrections, decisions, an
 - Organized `.ai` is a compatibility layer, not the source of truth.
   Source: `US-915`
   Meaning: keep `.ai/` easy to browse for AI tooling, but mirror the live workflow from `AGENTS.md` and `docs/` instead of moving ownership back into `.ai`.
+- Design work should follow the layered harness.
+  Source: `US-916`
+  Meaning: treat Variant, Mobbin, Awwwards, and Cosmos as inspiration inputs; use Paper or Pencil as the editable canvas layer; and keep machine-local Paper/Pencil MCP setup user-scoped while the checked-in story and repo docs remain canonical.
 - Railway demo deploys should follow the real platform path.
   Source: post-`US-602` correction
   Meaning: when the demo already auto-deploys from `master`, do not add a manual Railway deploy attempt to the default closeout flow unless the story is about deployment itself or the user explicitly asks for a manual refresh.

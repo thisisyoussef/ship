@@ -70,7 +70,7 @@ targets = {
     "CLAUDE.md": ["AGENTS.md", "docs/CONTEXT.md", "docs/WORKFLOW_MEMORY.md", "docs/IMPLEMENTATION_STRATEGY.md", "docs/user-stories/README.md"],
     ".clauderc": ["AGENTS.md", "docs/CONTEXT.md", "docs/WORKFLOW_MEMORY.md", "docs/IMPLEMENTATION_STRATEGY.md", "docs/user-stories/README.md"],
     ".cursorrules": ["AGENTS.md", "docs/CONTEXT.md", "docs/WORKFLOW_MEMORY.md", "docs/IMPLEMENTATION_STRATEGY.md", "docs/user-stories/README.md"],
-    "docs/README.md": ["AGENTS.md", "docs/CONTEXT.md", "docs/WORKFLOW_MEMORY.md", "docs/IMPLEMENTATION_STRATEGY.md", "docs/user-stories/README.md", "docs/DEFINITION_OF_DONE.md", "docs/submissions/"],
+    "docs/README.md": ["AGENTS.md", "docs/CONTEXT.md", "docs/WORKFLOW_MEMORY.md", "docs/IMPLEMENTATION_STRATEGY.md", "docs/user-stories/README.md", "docs/DEFINITION_OF_DONE.md", "docs/submissions/", "docs/guides/agent-design-workflow.md"],
 }
 errors: list[str] = []
 
@@ -87,6 +87,43 @@ if errors:
     raise SystemExit(1)
 
 print("Startup routing check passed.")
+PY
+
+run_check "Design workflow routing" python3 - <<'PY'
+from pathlib import Path
+import sys
+
+targets = {
+    "AGENTS.md": ["docs/guides/agent-design-workflow.md"],
+    ".claude/CLAUDE.md": ["docs/guides/agent-design-workflow.md"],
+    ".clauderc": ["docs/guides/agent-design-workflow.md"],
+    "docs/README.md": ["docs/guides/agent-design-workflow.md"],
+    "docs/guides/developer-workflow-guide.md": ["Agent Design Workflow Guide", "./agent-design-workflow.md"],
+    "docs/guides/ship-claude-cli-integration.md": ["Agent Design Workflow Guide", "claude mcp add paper --transport http http://127.0.0.1:29979/mcp --scope user"],
+    "docs/user-stories/HOW_TO_CREATE_USER_STORIES.md": ["docs/guides/agent-design-workflow.md"],
+    ".ai/README.md": [".ai/workflows/design-workflow.md", "docs/guides/agent-design-workflow.md"],
+    ".ai/codex.md": ["docs/guides/agent-design-workflow.md", ".ai/workflows/design-workflow.md"],
+    ".ai/agents/claude.md": ["docs/guides/agent-design-workflow.md", ".ai/workflows/design-workflow.md"],
+    ".ai/workflows/README.md": [".ai/workflows/design-workflow.md"],
+    ".ai/docs/WORKSPACE_INDEX.md": [".ai/workflows/design-workflow.md"],
+    ".ai/workflows/design-workflow.md": ["docs/guides/agent-design-workflow.md"],
+    "docs/guides/agent-design-workflow.md": ["Paper", "Pencil", "Variant", "Mobbin", "Awwwards", "Cosmos", "Codex", "Claude Code"],
+}
+errors: list[str] = []
+
+for rel, required_tokens in targets.items():
+    text = Path(rel).read_text(encoding="utf-8")
+    missing = [token for token in required_tokens if token not in text]
+    if missing:
+        errors.append(f"{rel}: missing {', '.join(missing)}")
+
+if errors:
+    print("ERROR: Design workflow routing issues detected:", file=sys.stderr)
+    for item in errors:
+        print(f"- {item}", file=sys.stderr)
+    raise SystemExit(1)
+
+print("Design workflow routing check passed.")
 PY
 
 run_check "AGENTS primacy and docs control plane" python3 - <<'PY'

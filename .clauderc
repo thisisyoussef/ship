@@ -18,6 +18,7 @@
       "Use docs/user-stories/README.md as the master queue and open the active story file before edits.",
       "Do a preparation pass before implementation: read relevant code, contracts, and local docs first.",
       "Use docs/plans/ for design and technical planning, and docs/submissions/ for final bundles only.",
+      "For design-system, page-design, or visual exploration work, use docs/guides/agent-design-workflow.md to route inspiration, canvas, and implementation phases.",
       "Use TDD for behavior changes and record validation, deployment status, and checkpoint evidence in the active story.",
       "Run bash scripts/check_ai_wiring.sh when the harness contract changes.",
       "Keep docs/CONTEXT.md current when live environment truth changes.",

@@ -2,11 +2,11 @@
 
 ## Status
 
-- State: `in-progress`
+- State: `done`
 - Owner: Codex
 - Depends on: `US-101`
 - Related branch: `codex/us-102-expanded-product-spec`
-- Related commit/PR:
+- Related commit/PR: `7afee8d`, [PR #202](https://github.com/thisisyoussef/ship/pull/202)
 - Target environment: `not deployed`
 
 ## Persona
@@ -125,11 +125,11 @@ List the tests or validation layers this story will use before implementation.
 
 ## Acceptance Criteria
 
-- [ ] AC-1: The Ship current-product pack includes new docs that cover routing/navigation, screen states, shared UI interaction rules, field/property reference, workflow/action contracts, and rebuild acceptance criteria.
-- [ ] AC-2: The expanded pack documents canonical routes, redirects, query params, tab rules, and route-derived state closely enough that a new engineer can rebuild navigation behavior without reading the route files first.
-- [ ] AC-3: The expanded pack documents shared field/property contracts, enums, relationships, approval objects, and transitional legacy compatibility behaviors closely enough that the data model is implementable from the docs.
-- [ ] AC-4: The expanded pack documents major create/update/delete/review/apply flows, including week/accountability behaviors, conversions, team operations, and FleetGraph review/apply interactions.
-- [ ] AC-5: The pack README and supporting docs read like a blueprint handoff rather than a high-level survey, and the queue/checkpoint docs are updated to make this follow-up discoverable from the repo.
+- [x] AC-1: The Ship current-product pack includes new docs that cover routing/navigation, screen states, shared UI interaction rules, field/property reference, workflow/action contracts, and rebuild acceptance criteria.
+- [x] AC-2: The expanded pack documents canonical routes, redirects, query params, tab rules, and route-derived state closely enough that a new engineer can rebuild navigation behavior without reading the route files first.
+- [x] AC-3: The expanded pack documents shared field/property contracts, enums, relationships, approval objects, and transitional legacy compatibility behaviors closely enough that the data model is implementable from the docs.
+- [x] AC-4: The expanded pack documents major create/update/delete/review/apply flows, including week/accountability behaviors, conversions, team operations, and FleetGraph review/apply interactions.
+- [x] AC-5: The pack README and supporting docs read like a blueprint handoff rather than a high-level survey, and the queue/checkpoint docs are updated to make this follow-up discoverable from the repo.
 
 ## Local Validation
 
@@ -173,6 +173,6 @@ rg -n "US-102|navigation-and-routing-spec|screen-state-spec|shared-interaction-p
 
 ## Checkpoint Result
 
-- Outcome: Pending
-- Evidence: Pending
-- Residual risk: The pack can still only be as exact as the current implementation; transitional naming and legacy compatibility layers must remain labeled explicitly.
+- Outcome: Passed
+- Evidence: `git diff --check` pass; `find docs/specs/ship/SHIP-CURRENT-PRODUCT-SPEC -maxdepth 1 -type f | sort` pass; `rg -n "US-102|navigation-and-routing-spec|screen-state-spec|shared-interaction-patterns-spec|document-field-reference|workflow-and-action-spec|acceptance-and-rebuild-checklist" docs/user-stories docs/specs/ship` pass; expanded pack committed in `7afee8d`; review recorded in PR #202
+- Residual risk: The pack is intentionally exact to the current implementation, so transitional compatibility layers like `sprint` naming, legacy `sprints` route aliases, and split conversion models remain present by design.

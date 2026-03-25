@@ -24,6 +24,10 @@ Work should resume from the repo by reading these files, not by reconstructing p
 
 This phase will hold core product and platform stories as they are ported into the story-driven model.
 
+| ID | Title | Status | Priority | Depends On |
+| --- | --- | --- | --- | --- |
+| US-101 | Current product spec pack | `in-progress` | P0 | — |
+
 ### Phase 2: FleetGraph Delivery
 
 This phase will hold FleetGraph product and integration stories as the active packs are ported into story files.

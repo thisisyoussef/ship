@@ -382,6 +382,9 @@ def render_pdf() -> None:
         bottomMargin=BOTTOM_MARGIN,
         title="Shipyard Pre-Search Submission",
         author="Codex",
+        # Keep PDF bytes stable across rerenders so artifact refreshes do not create
+        # timestamp-only diffs during validation.
+        invariant=1,
     )
 
     cover = Table(

@@ -32,7 +32,7 @@ This phase will hold core product and platform stories as they are ported into t
 | US-104 | Current product spec developer build queue | `done` | P0 | `US-103` |
 | US-105 | Current product spec pack product-only cleanup | `done` | P0 | `US-104` |
 | US-106 | Specs index and Ship entrypoint consolidation | `done` | P1 | `US-105` |
-| US-107 | Full Ship PRD consolidation | `in-progress` | P0 | `US-106` |
+| US-107 | Full Ship PRD consolidation | `done` | P0 | `US-106` |
 | US-626 | Shipyard loop requirement rollback | `done` | P1 | — |
 
 ### Phase 2: FleetGraph Delivery

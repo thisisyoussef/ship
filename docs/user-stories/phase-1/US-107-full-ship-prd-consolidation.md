@@ -2,11 +2,11 @@
 
 ## Status
 
-- State: `in-progress`
+- State: `done`
 - Owner: Codex
 - Depends on: `US-106`
 - Related branch: `codex/us-107-ship-prd`
-- Related commit/PR:
+- Related commit/PR: `43dcaf8` / [PR #211](https://github.com/thisisyoussef/ship/pull/211)
 - Target environment: `not deployed`
 
 ## Persona
@@ -125,11 +125,11 @@ Validation layers for this story:
 
 ## Acceptance Criteria
 
-- [ ] AC-1: A full Ship PRD exists inside `docs/specs/ship/SHIP-CURRENT-PRODUCT-SPEC/`.
-- [ ] AC-2: The PRD is complete enough for a developer to understand the full product and recreate it end to end from one document.
-- [ ] AC-3: The PRD stays product-only and does not pull FleetGraph or harness-only material into the Ship pack.
-- [ ] AC-4: Ship specs entrypoints clearly point readers to the PRD.
-- [ ] AC-5: Queue/checkpoint metadata is updated so the work is resumable from the repo.
+- [x] AC-1: A full Ship PRD exists inside `docs/specs/ship/SHIP-CURRENT-PRODUCT-SPEC/`.
+- [x] AC-2: The PRD is complete enough for a developer to understand the full product and recreate it end to end from one document.
+- [x] AC-3: The PRD stays product-only and does not pull FleetGraph or harness-only material into the Ship pack.
+- [x] AC-4: Ship specs entrypoints clearly point readers to the PRD.
+- [x] AC-5: Queue/checkpoint metadata is updated so the work is resumable from the repo.
 
 ## Local Validation
 
@@ -173,6 +173,6 @@ rg -n "product-requirements-document.md|Full Ship PRD|Product Requirements Docum
 
 ## Checkpoint Result
 
-- Outcome:
-- Evidence:
-- Residual risk:
+- Outcome: Passed
+- Evidence: `git diff --check` passed; `test -f docs/specs/ship/SHIP-CURRENT-PRODUCT-SPEC/product-requirements-document.md` passed; `rg -n "product-requirements-document.md|Full Ship PRD|Product Requirements Document" docs/specs/README.md docs/specs/ship/README.md docs/specs/ship/SHIP-CURRENT-PRODUCT-SPEC/README.md docs/user-stories` passed; the Ship specs pack now has a single-file PRD plus updated entrypoints and queue docs.
+- Residual risk: The PRD is intentionally comprehensive, but exact field-by-field and route-edge reference detail still also lives in the deeper supporting docs in the same pack; future product changes will need both the PRD and those detailed specs kept in sync.

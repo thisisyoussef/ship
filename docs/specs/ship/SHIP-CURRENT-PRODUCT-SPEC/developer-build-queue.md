@@ -4,7 +4,7 @@ Use this document as the primary execution-order guide for rebuilding Ship from 
 
 ## How To Use This Queue
 
-1. Read `README.md` first, then use the `Spec Intake Order` below before starting `Q00`.
+1. Read `README.md` and `product-requirements-document.md` first, then use the `Spec Intake Order` below before starting `Q00`.
 2. Treat each queue item as a stop-and-stabilize slice.
 3. Before starting a queue item, read the listed spec docs for that step.
 4. Do not pull later slices forward just because their routes already exist in the shell; many later features depend on the shared substrate built in earlier queue items.
@@ -16,7 +16,7 @@ This is the fastest way for a fresh engineer to understand the pack before touch
 
 | Order | Read these docs | Why first |
 | --- | --- | --- |
-| S01 | `README.md`, `feature-spec.md` | Understand the pack’s purpose, fidelity target, and how the docs are organized |
+| S01 | `README.md`, `product-requirements-document.md`, `feature-spec.md` | Understand the one-document Ship handoff, the pack’s purpose, fidelity target, and how the docs are organized |
 | S02 | `product-overview.md` | Build a mental model of Ship’s users, modules, and major work loops |
 | S03 | `implementation-constraints.md` | Lock in the non-negotiable stack, compatibility, and delivery constraints before designing anything |
 | S04 | `developer-build-queue.md`, `task-breakdown.md` | Understand both the detailed queue and the macro dependency map |
@@ -34,6 +34,7 @@ Use this table when the question is not "what do I build next?" but "when does t
 | Spec file | First required in queue | Main job in the rebuild |
 | --- | --- | --- |
 | `README.md` | Q00 | Entry point, reading paths, and pack structure |
+| `product-requirements-document.md` | Q00 | One-document end-to-end Ship handoff for orientation, system shape, module scope, and rebuild expectations |
 | `feature-spec.md` | Q00 | Scope, fidelity target, and out-of-scope guardrails |
 | `developer-build-queue.md` | Q00-Q14 | Day-to-day execution order, dependencies, and stopping gates |
 | `task-breakdown.md` | Q00, Q14 | Macro dependency map and end-of-build coverage cross-check |
@@ -343,6 +344,11 @@ If more than one engineer is building in parallel, the safest split points are:
 2. The final compatibility pass should be shared, because it spans every module and many transitional behaviors.
 
 ## Relationship To Other Rebuild Docs
+
+- `product-requirements-document.md` is the single-file PRD and first-stop onboarding brief.
+- `developer-build-queue.md` is the detailed execution-order contract.
+- `task-breakdown.md` is the coarse-grained workstream map.
+- `acceptance-and-rebuild-checklist.md` is the final QA gate.
 
 | Doc | Use it for |
 | --- | --- |

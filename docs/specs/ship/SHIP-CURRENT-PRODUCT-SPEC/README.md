@@ -10,22 +10,24 @@ This pack describes the product as implemented on local `master` at commit `ce14
 
 ## How To Use This Pack
 
-1. Read `feature-spec.md` for the scope, fidelity target, and what this pack must cover.
-2. Read `product-overview.md` for the product model, personas, major work loops, and module boundaries.
-3. Read `navigation-and-routing-spec.md`, `screen-spec.md`, and `screen-state-spec.md` together for the canonical URL contract, route-to-screen mapping, tab rules, and state handling.
-4. Read `state-machine-and-lifecycle-spec.md` and `shared-interaction-patterns-spec.md` together for auth/session transitions, review states, route-driven lifecycle changes, shell behavior, keyboard shortcuts, persistence, and shared UI mechanics.
-5. Read `domain-and-data-spec.md` and `document-field-reference.md` together for the entity model, storage surfaces, per-document properties, compatibility fields, and computed data.
-6. Read `permissions-and-access-spec.md` and `payload-and-response-reference.md` together for access boundaries, envelope families, request bodies, response shapes, and current compatibility drifts.
-7. Read `workflow-and-action-spec.md`, `mutation-side-effects-spec.md`, and `api-and-service-spec.md` together for user-triggered mutations, approval flows, conversion rules, invalidation/broadcast behavior, and backing endpoints/services.
-8. Read `editor-and-collaboration-spec.md` for the shared editing surface used across most product types.
-9. Read `developer-build-queue.md` for the ideal one-by-one implementation order an engineer should follow.
-10. Use `acceptance-and-rebuild-checklist.md` and `task-breakdown.md` as the verification gate and macro dependency map for that rebuild.
-11. Use `implementation-constraints.md` as the non-negotiable build constraints.
+1. Read `product-requirements-document.md` if you want one complete Ship handoff before opening the deeper supporting docs.
+2. Read `feature-spec.md` for the scope, fidelity target, and what this pack must cover.
+3. Read `product-overview.md` for the product model, personas, major work loops, and module boundaries.
+4. Read `navigation-and-routing-spec.md`, `screen-spec.md`, and `screen-state-spec.md` together for the canonical URL contract, route-to-screen mapping, tab rules, and state handling.
+5. Read `state-machine-and-lifecycle-spec.md` and `shared-interaction-patterns-spec.md` together for auth/session transitions, review states, route-driven lifecycle changes, shell behavior, keyboard shortcuts, persistence, and shared UI mechanics.
+6. Read `domain-and-data-spec.md` and `document-field-reference.md` together for the entity model, storage surfaces, per-document properties, compatibility fields, and computed data.
+7. Read `permissions-and-access-spec.md` and `payload-and-response-reference.md` together for access boundaries, envelope families, request bodies, response shapes, and current compatibility drifts.
+8. Read `workflow-and-action-spec.md`, `mutation-side-effects-spec.md`, and `api-and-service-spec.md` together for user-triggered mutations, approval flows, conversion rules, invalidation/broadcast behavior, and backing endpoints/services.
+9. Read `editor-and-collaboration-spec.md` for the shared editing surface used across most product types.
+10. Read `developer-build-queue.md` for the ideal one-by-one implementation order an engineer should follow.
+11. Use `acceptance-and-rebuild-checklist.md` and `task-breakdown.md` as the verification gate and macro dependency map for that rebuild.
+12. Use `implementation-constraints.md` as the non-negotiable build constraints.
 
 ## Pack Contents
 
 | File | Purpose |
 | --- | --- |
+| `product-requirements-document.md` | Single-file full Ship PRD covering the product, system, workflows, rebuild sequence, and acceptance expectations end to end |
 | `feature-spec.md` | High-level product-pack objective, blueprint scope, acceptance criteria, and out-of-scope boundaries |
 | `developer-build-queue.md` | Detailed one-by-one implementation order, per-step spec-reading list, and stop/check gates for a rebuild |
 | `task-breakdown.md` | Recommended implementation sequencing for rebuilding the current product |
@@ -62,12 +64,13 @@ This pack describes the product as implemented on local `master` at commit `ce14
 
 Follow the `Spec Intake Order` inside `developer-build-queue.md`, then execute `Q00` through `Q14` in order.
 
-1. `feature-spec.md`
-2. `product-overview.md`
-3. `developer-build-queue.md`
-4. `task-breakdown.md`
-5. `acceptance-and-rebuild-checklist.md`
-6. `implementation-constraints.md`
+1. `product-requirements-document.md`
+2. `feature-spec.md`
+3. `product-overview.md`
+4. `developer-build-queue.md`
+5. `task-breakdown.md`
+6. `acceptance-and-rebuild-checklist.md`
+7. `implementation-constraints.md`
 
 ### If you are rebuilding routing and UI structure
 

@@ -2,6 +2,7 @@
 
 ## How To Read This File
 
+- Use `product-requirements-document.md` as the one-document Ship handoff.
 - Use `developer-build-queue.md` for the detailed one-by-one implementation sequence.
 - Use this file for the macro workstream map, dependency grouping, and coverage checklist.
 - Use `acceptance-and-rebuild-checklist.md` after implementation as the final QA/verification gate.

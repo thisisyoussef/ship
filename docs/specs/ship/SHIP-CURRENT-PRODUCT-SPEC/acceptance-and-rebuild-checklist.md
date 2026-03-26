@@ -11,7 +11,6 @@ Use `developer-build-queue.md` to reach this checklist in dependency-safe order.
 - [ ] Shared list, selection, keyboard, and persistence behavior matches `shared-interaction-patterns-spec.md`.
 - [ ] Document fields, compatibility shims, and computed properties match `document-field-reference.md`.
 - [ ] Workflow and action behavior matches `workflow-and-action-spec.md`.
-- [ ] FleetGraph behavior matches `fleetgraph-spec.md`.
 
 ## Phase Checklist
 
@@ -85,15 +84,6 @@ Use `developer-build-queue.md` to reach this checklist in dependency-safe order.
 - [ ] `/admin/workspaces/:id` supports members, invites, add-existing-user, role update, remove member, and copy invite link.
 - [ ] `/feedback/:programId` supports public submission success flow.
 
-### Phase 8: FleetGraph
-
-- [ ] `/fleetgraph` shows workspace proactive findings with open/review/apply/dismiss/snooze flows.
-- [ ] Document detail pages show document-context proactive findings when relevant.
-- [ ] Guided overlay auto-surfaces page-specific recommended next steps.
-- [ ] FAB supports analysis-only entry.
-- [ ] Review/apply supports owner or assignee selection when required.
-- [ ] Follow-up conversation turns continue through thread-based history.
-
 ## Route Verification Matrix
 
 | Route | Interaction | Expected visible result |
@@ -112,7 +102,6 @@ Use `developer-build-queue.md` to reach this checklist in dependency-safe order.
 | `/team/allocation` | Assign project work to a person/week cell | Cell updates and grouping stays coherent |
 | `/settings?tab=members` | Archive a member | Member access changes and archived-person state is reflected |
 | `/admin?tab=users` | Start impersonation | Admin enters impersonation banner flow and lands in normal product context |
-| `/fleetgraph` | Snooze a finding for 10 seconds | Finding hides, a local notice appears, and the list refreshes after the snooze expires |
 
 ## Transitional Behaviors That Must Be Deliberately Preserved Or Deliberately Fixed
 
@@ -127,4 +116,4 @@ Use `developer-build-queue.md` to reach this checklist in dependency-safe order.
 1. Verify auth/bootstrap and shell navigation first.
 2. Verify list interactions next because they underpin multiple surfaces.
 3. Verify canonical detail routing and week-state transitions before reviewing team/admin surfaces.
-4. Verify conversion and FleetGraph last because both carry the heaviest transitional behavior.
+4. Verify conversion last because it carries the heaviest transitional behavior.

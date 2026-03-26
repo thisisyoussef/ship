@@ -54,7 +54,6 @@ Implication for rebuilds:
 | `/issues` | Protected | issues | `IssuesPage` | `state` | Canonical issue list |
 | `/projects` | Protected | projects | `ProjectsPage` | `status` | Canonical project list |
 | `/programs` | Protected | programs | `ProgramsPage` | none | Canonical program list |
-| `/fleetgraph` | Protected | fleetgraph | `FleetGraphQueuePage` | none | Workspace proactive-findings queue |
 | `/team/allocation` | Protected | team | `TeamModePage` | none | Team allocation grid |
 | `/team/directory` | Protected | team | `TeamDirectoryPage` | none | Team directory |
 | `/team/status` | Protected | team | `StatusOverviewPage` | none | Accountability/status heatmap |
@@ -74,7 +73,6 @@ The left-rail mode is not determined only by pathname. For canonical detail page
 | Condition | Mode |
 | --- | --- |
 | Path starts with `/dashboard` or `/my-week` | `dashboard` |
-| Path starts with `/fleetgraph` | `fleetgraph` |
 | Path starts with `/docs` | `docs` |
 | Path starts with `/issues` | `issues` |
 | Path starts with `/projects` | `projects` |
@@ -203,4 +201,3 @@ Shared route rules:
 2. Auto-opened accountability modal must not block direct entry into `/documents/:id/*`; the shell closes it automatically when the destination is a document detail route.
 3. Creating a document, program, project, or issue from a list surface navigates directly into the canonical detail route.
 4. Manager review flows open weekly plan/retro documents through `/documents/:id?review=true&sprintId=:id` so the detail screen knows it is in review mode.
-5. FleetGraph queue and document-context routes both rely on the same shell navigation primitives, including the left-rail badge count.

@@ -1,10 +1,5 @@
 # Task Breakdown
 
-## Story
-
-- Story ID: US-104
-- Story Title: Current product spec developer build queue
-
 ## How To Read This File
 
 - Use `developer-build-queue.md` for the detailed one-by-one implementation sequence.
@@ -32,9 +27,7 @@
 | T007 | Rebuild team surfaces: allocation, directory, reviews, status overview, org chart, and person detail | blocked-by:T002,T003,T004 | yes | team routes and management flows are explicitly covered |
 | T008 | Rebuild workspace settings, conversions, public feedback, and super-admin surfaces | blocked-by:T001,T002,T003 | yes | supporting admin/public surfaces are fully documented |
 | T009 | Rebuild backend route groups, collaboration service, uploads/comments/history, and supporting storage contracts | blocked-by:T002,T005 | yes | API/service groups and persistence rules are documented |
-| T010 | Rebuild FleetGraph runtime, proactive queue, document-context overlays, review/apply flows, and readiness contracts | blocked-by:T003,T005,T009 | no | FleetGraph’s proactive and on-demand layers are documented as a product module |
-| T011 | Validate the rebuild against route-by-route acceptance and the transition/compatibility checklist | blocked-by:T006,T007,T008,T009,T010 | no | acceptance matrix is complete enough to drive QA without code spelunking |
-| T012 | Package the blueprint handoff with an index, implementation constraints, and repo metadata updates | blocked-by:T001,T002,T003,T004,T005,T006,T007,T008,T009,T010,T011 | no | the pack stands alone and queue/checkpoint docs point to it |
+| T010 | Validate the rebuild against route-by-route acceptance and the transition/compatibility checklist | blocked-by:T006,T007,T008,T009 | no | acceptance matrix is complete enough to drive QA without code spelunking |
 
 ## Suggested Rebuild Order
 
@@ -48,8 +41,7 @@ This remains the coarse-grained order. For the detailed engineer-facing queue, u
 6. Core work-management surfaces: docs, issues, projects, programs, weeks, My Week, dashboard
 7. Team/accountability surfaces: allocation, directory, reviews, status overview, org chart, person profile
 8. Workspace admin/settings/public feedback/conversions/admin-dashboard surfaces
-9. FleetGraph worker/runtime, queue, findings panel, overlay, analysis FAB, and action flows
-10. Final verification against the acceptance matrix, especially the compatibility behaviors
+9. Final verification against the acceptance matrix, especially the compatibility behaviors
 
 ## Coverage Checklist
 
@@ -61,10 +53,9 @@ This remains the coarse-grained order. For the detailed engineer-facing queue, u
 - [ ] Workflow/action contracts for approvals, reconciliation, conversion, allocation, and admin flows
 - [ ] Permissions/access boundaries, blocked-result semantics, and reviewer authorization rules
 - [ ] Request/response envelopes, dominant payload families, and raw-vs-wrapped compatibility quirks
-- [ ] Lifecycle/state-machine coverage for sessions, invites, documents, approvals, and FleetGraph
+- [ ] Lifecycle/state-machine coverage for sessions, invites, documents, approvals, and collaboration
 - [ ] Mutation side effects, query invalidation, broadcasts, navigation replacement, and collaboration resets
 - [ ] REST/WebSocket/service inventory
-- [ ] FleetGraph proactive and on-demand functionality
 - [ ] Auth/admin/settings/public feedback edge surfaces
 - [ ] Build constraints, security, caching, and deployment notes
 
@@ -74,4 +65,3 @@ This remains the coarse-grained order. For the detailed engineer-facing queue, u
 - [ ] An engineer can follow the rebuild order without first reading the whole repo
 - [ ] Major product surfaces are grouped coherently by implementation question instead of scattered across unrelated files
 - [ ] The acceptance checklist is concrete enough to drive manual QA of a rebuild
-- [ ] Queue/story metadata is updated so the pack is discoverable from the repo

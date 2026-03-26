@@ -1,16 +1,8 @@
 # Feature Spec
 
-## Metadata
-
-- Story ID: US-102
-- Story Title: Expanded current product spec blueprint
-- Author: Codex
-- Date: 2026-03-25
-- Related phase gate: Phase 1 core Ship baseline documentation
-
 ## Problem Statement
 
-US-101 created a first-pass current-product pack, but it still leaves too much implied knowledge in the route files, shared components, and route handlers. A new engineer can now find the major modules, but still has to reverse-engineer exact route rules, state handling, field-level contracts, compatibility behavior, and mutation flows from source. The repo needs a second-pass blueprint expansion so the pack reads like a build contract instead of a summary.
+The Ship spec pack should read like a direct product build contract, not a mixture of product behavior and pack-construction notes. A new engineer should be able to recreate Ship’s route rules, state handling, field-level contracts, compatibility behavior, and mutation flows from this folder alone.
 
 ## Pack Objectives
 
@@ -30,18 +22,17 @@ US-101 created a first-pass current-product pack, but it still leaves too much i
 ## Acceptance Criteria
 
 - [ ] AC-1: The spec pack exists at `docs/specs/ship/SHIP-CURRENT-PRODUCT-SPEC/` and includes dedicated blueprint docs for routing/navigation, screen states, shared interaction patterns, document field reference, workflow/action contracts, and acceptance/rebuild criteria.
-- [ ] AC-2: The pack documents all major product surfaces currently reachable from the frontend route map, including auth/public/admin/settings routes, team routes, document detail flows, and FleetGraph.
+- [ ] AC-2: The pack documents all major product surfaces currently reachable from the frontend route map, including auth/public/admin/settings routes, team routes, and document detail flows.
 - [ ] AC-3: The pack documents the unified document model, per-type property fields, associations, approvals, visibility, compatibility layers, and conversion/storage behavior closely enough for an engineer to rebuild the data model.
 - [ ] AC-4: The pack documents the current shared editor/collaboration behavior and the current REST/WebSocket/service capability map closely enough for an engineer to reproduce the current feature set.
-- [ ] AC-5: The pack documents the major user-triggered action flows, including week/accountability actions, review flows, conversions, team operations, feedback intake, admin actions, and FleetGraph review/apply behavior.
+- [ ] AC-5: The pack documents the major user-triggered action flows, including week/accountability actions, review flows, conversions, team operations, feedback intake, and admin actions.
 - [ ] AC-6: The pack includes a practical rebuild order plus an acceptance checklist instead of only descriptive notes.
 
 ## Edge Cases
 
 - The product contains both current and transitional patterns; the pack must label deprecated or transitional areas instead of pretending they do not exist.
-- Some behavior is cross-cutting rather than route-local, especially the shared editor, collaboration substrate, and FleetGraph overlays.
+- Some behavior is cross-cutting rather than route-local, especially the shared editor and collaboration substrate.
 - Several legacy route aliases redirect into `/documents/:id/*`; the spec must distinguish canonical routes from compatibility routes.
-- FleetGraph behavior spans proactive queue state, on-demand analysis, follow-up conversation turns, and human-in-the-loop review/apply flows.
 - Conversions are a current example of a split model: the active mutation path is in-place and snapshot-based, while some user-facing copy and the conversion-history page still describe or surface the older archived-original/new-document pattern.
 - Person documents use `properties.user_id` as a real runtime contract even though the shared type definition lags behind that truth.
 - Sprint/week ownership and completeness also straddle old and new shapes: week authoring uses `owner_id`, while some older sprint paths still read `assignee_ids[0]`.
@@ -66,4 +57,3 @@ US-101 created a first-pass current-product pack, but it still leaves too much i
 - The spec pack can stand on its own as a current-state engineer handoff.
 - The pack names the core product areas, the major shared behaviors, the field-level contracts, and the current backend contract surfaces.
 - The task breakdown and acceptance checklist give a coherent implementation and verification order for rebuilding the product.
-- Queue and checkpoint docs are updated so the follow-up blueprint pass is discoverable from the repo alone.

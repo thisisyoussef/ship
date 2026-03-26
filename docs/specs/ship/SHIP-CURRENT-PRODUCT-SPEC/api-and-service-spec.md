@@ -169,27 +169,10 @@ When content persists, the collaboration service also:
 2. extracts plan/success-criteria/vision/goals metadata from content
 3. writes weekly-plan/retro content history entries with throttling
 
-## FleetGraph Endpoints
-
-| Key endpoints | Behavior |
-| --- | --- |
-| `GET /api/fleetgraph/ready` | Readiness check gated by service token |
-| `POST /api/fleetgraph/entry` | Contextual entry creation for document-page interactions |
-| `POST /api/fleetgraph/entry/apply` | Apply reviewed document-context action |
-| `GET /api/fleetgraph/findings` | Active proactive findings, optionally filtered by document IDs |
-| `GET /api/fleetgraph/debug/threads` | Thread/checkpoint debugging surface |
-| `POST /api/fleetgraph/findings/:id/dismiss` | Dismiss finding |
-| `POST /api/fleetgraph/findings/:id/review` | Prepare reviewed action payload, optionally with owner/assignee selections |
-| `POST /api/fleetgraph/findings/:id/snooze` | Snooze finding |
-| `POST /api/fleetgraph/findings/:id/apply` | Execute reviewed finding action |
-| `POST /api/fleetgraph/analyze` | On-demand page analysis |
-| `POST /api/fleetgraph/thread/:threadId/turn` | Follow-up conversation turn |
-
 ## Service Boundaries A Rebuild Must Preserve
 
 1. REST remains the primary browser/server contract.
 2. Collaboration is a separate WebSocket/Yjs layer, not a REST poller.
-3. The same backend serves both normal product routes and FleetGraph routes.
-4. Route groups are product-centric and largely same-origin/browser-oriented.
-5. Many document routes still flatten `properties` onto top-level response fields for backward compatibility.
-6. `payload-and-response-reference.md` is the dominant current-state wire-contract summary, while `api/openapi.yaml` remains the exhaustive backup reference.
+3. Route groups are product-centric and largely same-origin/browser-oriented.
+4. Many document routes still flatten `properties` onto top-level response fields for backward compatibility.
+5. `payload-and-response-reference.md` is the dominant current-state wire-contract summary, while `api/openapi.yaml` remains the exhaustive backup reference.

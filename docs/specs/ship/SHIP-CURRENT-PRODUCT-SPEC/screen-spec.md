@@ -24,7 +24,6 @@ Use this document with `navigation-and-routing-spec.md` for the URL contract and
 | `/issues` | Issues | Issue backlog/work list | List or kanban view, state filter tabs, program filter, create issue, bulk actions, keyboard navigation |
 | `/projects` | Projects | Project portfolio list | Status filters, program filter, list/kanban, ICE sorting, bulk archive/delete, conversion flows |
 | `/programs` | Programs | Program list | List view, create/open/archive/delete programs, column visibility |
-| `/fleetgraph` | FleetGraph queue | Workspace findings queue | Global proactive findings list with open/review/apply/snooze/dismiss behavior |
 | `/settings` | Workspace settings | Workspace administration | Members, invites, API tokens, audit logs |
 | `/settings/conversions` | Converted documents | Conversion history | Filtered list of issue↔project conversions with metadata |
 
@@ -59,7 +58,6 @@ Required shell behavior:
 5. Session timeout warning modal and redirect on expiration.
 6. Upload navigation warning and cache-corruption alert surfaces.
 7. Global accountability/action-items modal with route-aware suppression behavior.
-8. FleetGraph queue badge/count in shell navigation.
 
 ## Canonical Detail Screen: `/documents/:id/*`
 
@@ -70,8 +68,7 @@ Shared behavior:
 1. Loads a single document regardless of type.
 2. Sets current-document context for shell highlighting and contextual sidebars.
 3. Renders a shared editor and a type-specific properties sidebar.
-4. Supports FleetGraph document-context analysis surfaces.
-5. Adapts tab bar behavior based on document type and, for week docs, status.
+4. Adapts tab bar behavior based on document type and, for week docs, status.
 
 ### Document-type tab matrix
 
@@ -95,7 +92,6 @@ Shared behavior:
 4. Shared rich-text editor.
 5. Document-type selector when the parent flow enables it.
 6. Delete and conversion hooks where applicable.
-7. FleetGraph findings panel, guided actions overlay, analysis FAB, and optional debug surfaces.
 
 ## Screen-by-Screen Functional Spec
 
@@ -234,26 +230,6 @@ Required behavior:
 3. Support adding existing users to the workspace.
 4. Support role changes and member removal.
 5. Support copying invite links.
-
-## FleetGraph Surface Spec
-
-### Global queue (`/fleetgraph`)
-
-Required behavior:
-
-1. Present active proactive findings across the workspace.
-2. Allow navigation from a finding to its source document.
-3. Allow review/apply, dismiss, and snooze behaviors.
-4. Show contextual owner options where actions require assignment.
-
-### Document-context surfaces (`/documents/:id/*`)
-
-Required behavior:
-
-1. Show document-scoped proactive findings when available.
-2. Show an analysis-only FAB for on-demand reasoning.
-3. Show guided actions in a floating overlay when a consequential next step is recommended.
-4. Preserve follow-up conversation context through thread-based turns.
 
 ## Compatibility and Redirect Rules
 

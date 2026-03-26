@@ -17,7 +17,6 @@ Current baseline stack:
 | Collaboration | Yjs + WebSocket |
 | Client metadata cache | TanStack Query + IndexedDB persistence |
 | Editor offline cache | y-indexeddb |
-| FleetGraph orchestration | LangGraph + LangSmith |
 
 ## Product-Architecture Constraints
 
@@ -68,35 +67,6 @@ Current security behavior to preserve:
 4. Collaboration persistence must keep JSON content and extracted metadata aligned with Yjs state.
 5. The editor must guard against stale-cache and cross-document contamination issues.
 
-## FleetGraph Constraints
-
-1. FleetGraph must use Ship REST data as its data source.
-2. The runtime should remain provider-agnostic with OpenAI as the default in this repo.
-3. LangSmith tracing is part of the product contract.
-4. Human-in-the-loop review/apply is required for consequential actions.
-5. Proactive and on-demand modes should share the same underlying graph/runtime model.
-
-## Testing And Validation Constraints
-
-Current repo-level validation expectations:
-
-1. TypeScript strict mode is enabled.
-2. API tests use Vitest in Node.
-3. Web tests use Vitest in JSDOM.
-4. `git diff --check` is a standard hygiene gate.
-5. Husky pre-commit runs additional checks for empty tests, API coverage, optional AI wiring, and compliance scanning.
-
-Useful commands:
-
-```bash
-pnpm dev
-pnpm build
-pnpm type-check
-pnpm test
-pnpm db:migrate
-pnpm db:seed
-```
-
 ## Deployment Constraints
 
 Current deployment truth:
@@ -114,14 +84,12 @@ Implication for rebuild planning:
 
 1. Local PostgreSQL is expected for development and tests.
 2. `pnpm dev` also handles database bootstrap/migration/seed helpers for fresh local environments.
-3. OpenAPI, MCP, and FleetGraph worker/studio commands already exist and should remain discoverable in rebuild planning.
 
 ## Known Transitional Areas
 
 1. Several old context providers in the frontend are explicitly marked deprecated.
 2. Compatibility redirects remain part of the current product surface.
 3. Some schemas and docs still use historical “sprint” naming for week concepts.
-4. FleetGraph includes both stable product-facing flows and explicit debug/deployment-readiness helpers.
 
 ## Rebuild Guidance
 
@@ -131,4 +99,3 @@ If an engineer is rebuilding the product from scratch, they should treat the fol
 2. shared editor/collaboration substrate
 3. weekly-accountability workflow
 4. workspace/member/admin/auth model
-5. embedded FleetGraph rather than standalone AI chat

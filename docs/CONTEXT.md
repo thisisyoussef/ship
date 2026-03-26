@@ -1,6 +1,6 @@
 # Live Context Snapshot
 
-Last updated: 2026-03-25
+Last updated: 2026-03-26
 
 ## Repo
 
@@ -25,6 +25,8 @@ Last updated: 2026-03-25
 
 - FleetGraph remains the most active product track in the repo.
 - FleetGraph assignment source docs live under `docs/assignments/fleetgraph/`.
+- The current product-only Ship spec pack lives under `docs/specs/ship/SHIP-CURRENT-PRODUCT-SPEC/`.
+- `docs/specs/README.md` and `docs/specs/ship/README.md` are the discovery entrypoints for finding the Ship pack from the repo docs tree.
 - The repo now uses `AGENTS.md` plus `docs/` as the primary harness.
 - `.ai/` is an organized compatibility workspace plus runtime state, not the canonical control plane.
 - Design-heavy stories now route through `docs/guides/agent-design-workflow.md`, with Paper and Pencil as canvas tools and Variant, Mobbin, Awwwards, and Cosmos as inspiration inputs.

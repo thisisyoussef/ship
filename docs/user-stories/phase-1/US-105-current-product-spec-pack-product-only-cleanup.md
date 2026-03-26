@@ -2,11 +2,11 @@
 
 ## Status
 
-- State: `in-progress`
+- State: `done`
 - Owner: Codex
 - Depends on: `US-104`
 - Related branch: `codex/us-105-product-only-specs`
-- Related commit/PR: `pending`
+- Related commit/PR: `bcecec3` / [PR #209](https://github.com/thisisyoussef/ship/pull/209)
 - Target environment: `not deployed`
 
 ## Persona
@@ -124,11 +124,11 @@ Validation layers for this story:
 
 ## Acceptance Criteria
 
-- [ ] AC-1: The Ship current-product pack removes pack-only meta docs or story-oriented scaffolding that are not needed to recreate the product.
-- [ ] AC-2: `fleetgraph-spec.md` is removed from the Ship current-product pack and the remaining pack docs no longer treat FleetGraph as part of the required Ship rebuild.
-- [ ] AC-3: The pack README, build queue, and acceptance checklist now focus only on the core Ship product surfaces.
-- [ ] AC-4: The remaining product-spec docs stay internally consistent after FleetGraph removal.
-- [ ] AC-5: Queue/checkpoint metadata is updated so this cleanup is resumable from the repo.
+- [x] AC-1: The Ship current-product pack removes pack-only meta docs or story-oriented scaffolding that are not needed to recreate the product.
+- [x] AC-2: `fleetgraph-spec.md` is removed from the Ship current-product pack and the remaining pack docs no longer treat FleetGraph as part of the required Ship rebuild.
+- [x] AC-3: The pack README, build queue, and acceptance checklist now focus only on the core Ship product surfaces.
+- [x] AC-4: The remaining product-spec docs stay internally consistent after FleetGraph removal.
+- [x] AC-5: Queue/checkpoint metadata is updated so this cleanup is resumable from the repo.
 
 ## Local Validation
 
@@ -175,6 +175,6 @@ rg -n "US-105|product-only cleanup|fleetgraph-spec|technical-plan|constitution-c
 
 ## Checkpoint Result
 
-- Outcome: Pending
-- Evidence: Pending
-- Residual risk: Pending
+- Outcome: Passed
+- Evidence: `git diff --check` passed; `test ! -f docs/specs/ship/SHIP-CURRENT-PRODUCT-SPEC/fleetgraph-spec.md` passed; `test ! -f docs/specs/ship/SHIP-CURRENT-PRODUCT-SPEC/technical-plan.md` passed; `test ! -f docs/specs/ship/SHIP-CURRENT-PRODUCT-SPEC/constitution-check.md` passed; `! rg -n "FleetGraph|fleetgraph" docs/specs/ship/SHIP-CURRENT-PRODUCT-SPEC` passed; the README, build queue, acceptance checklist, and remaining core product docs are now FleetGraph-free and focused on Ship itself.
+- Residual risk: This story intentionally removes FleetGraph and pack-construction material from the Ship pack; if either needs a dedicated implementation handoff later, it should return as a separate explicit spec pack rather than being mixed back into the core Ship product folder.

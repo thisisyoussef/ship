@@ -16,7 +16,6 @@ Ship’s primary data model is a unified document system backed by PostgreSQL. T
 | Document | Core content/work object used by most product features |
 | Document association | Organizational relationship between documents |
 | Audit/session/invite | Security, compliance, and membership lifecycle state |
-| FleetGraph runtime state | Proactive/on-demand agent queue, findings, and dedupe state |
 
 ## Document Contract
 
@@ -303,39 +302,6 @@ The product tracks iteration-style progress logs for:
 1. week/story attempts
 2. issue-level iterations
 
-## FleetGraph Data Model
-
-### Queue and dedupe
-
-FleetGraph uses dedicated runtime tables for:
-
-1. `fleetgraph_queue_jobs`
-2. `fleetgraph_dedupe_ledger`
-3. `fleetgraph_sweep_schedules`
-
-### Findings
-
-Proactive findings persist in `fleetgraph_proactive_findings`.
-
-Current finding types:
-
-1. `sprint_no_owner`
-2. `unassigned_sprint_issues`
-3. `week_start_drift`
-
-Current finding lifecycle states:
-
-1. `active`
-2. `dismissed`
-3. `resolved`
-4. `snoozed`
-
-### Action runs
-
-Action execution state persists in `fleetgraph_finding_action_runs`.
-
-The current schema explicitly supports action-run persistence for `start_week`, while the runtime and UI also support reviewed/apply flows that may require owner or assignee selection before execution.
-
 ## Data Invariants To Preserve In A Rebuild
 
 1. Everything content-like is a document.
@@ -343,4 +309,3 @@ The current schema explicitly supports action-run persistence for `start_week`, 
 3. Weekly behavior is derived from workspace cadence plus explicit week documents.
 4. Plans and retros are explicit documents with approval/change-request lifecycle.
 5. Person documents and authorization memberships remain separate.
-6. FleetGraph augments the same workspace/document graph instead of creating a parallel domain model.

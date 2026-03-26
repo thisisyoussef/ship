@@ -16,35 +16,31 @@ This pack describes the product as implemented on local `master` at commit `ce14
 6. Read `permissions-and-access-spec.md` and `payload-and-response-reference.md` together for access boundaries, envelope families, request bodies, response shapes, and current compatibility drifts.
 7. Read `workflow-and-action-spec.md`, `mutation-side-effects-spec.md`, and `api-and-service-spec.md` together for user-triggered mutations, approval flows, conversion rules, invalidation/broadcast behavior, and backing endpoints/services.
 8. Read `editor-and-collaboration-spec.md` for the shared editing surface used across most product types.
-9. Read `fleetgraph-spec.md` for the proactive queue, current-page analysis, review/apply flows, and runtime shape.
-10. Read `developer-build-queue.md` for the ideal one-by-one implementation order an engineer should follow.
-11. Use `acceptance-and-rebuild-checklist.md` and `task-breakdown.md` as the verification gate and macro dependency map for that rebuild.
-12. Use `implementation-constraints.md` and `constitution-check.md` as the non-negotiable build constraints.
+9. Read `developer-build-queue.md` for the ideal one-by-one implementation order an engineer should follow.
+10. Use `acceptance-and-rebuild-checklist.md` and `task-breakdown.md` as the verification gate and macro dependency map for that rebuild.
+11. Use `implementation-constraints.md` as the non-negotiable build constraints.
 
 ## Pack Contents
 
 | File | Purpose |
 | --- | --- |
 | `feature-spec.md` | High-level product-pack objective, blueprint scope, acceptance criteria, and out-of-scope boundaries |
-| `technical-plan.md` | Source map, documentation architecture, and evidence plan for this pack |
 | `developer-build-queue.md` | Detailed one-by-one implementation order, per-step spec-reading list, and stop/check gates for a rebuild |
 | `task-breakdown.md` | Recommended implementation sequencing for rebuilding the current product |
-| `constitution-check.md` | Repo-convention and source-of-truth alignment notes |
 | `product-overview.md` | Product thesis, user roles, navigation, and major workflows |
 | `navigation-and-routing-spec.md` | Canonical URL map, access rules, redirect contract, query params, shell mode derivation, and tab routing |
 | `screen-spec.md` | Route-by-route screen behavior and document-tab behavior |
 | `screen-state-spec.md` | Loading, empty, blocked, success, review, and mutation states for major screens |
-| `state-machine-and-lifecycle-spec.md` | Session, invite/setup, workspace, document, approval, collaboration, and FleetGraph lifecycle state machines |
+| `state-machine-and-lifecycle-spec.md` | Session, invite/setup, workspace, document, approval, and collaboration lifecycle state machines |
 | `shared-interaction-patterns-spec.md` | App-shell behavior, command palette, selection, keyboard shortcuts, persistence, and shared UI mechanics |
 | `domain-and-data-spec.md` | Entity model, associations, weekly/accountability flows, and storage contracts |
 | `document-field-reference.md` | Field-level document contract, property schema, compatibility layer, and computed/flattened response fields |
 | `permissions-and-access-spec.md` | Public/authenticated/admin access model, workspace/document visibility rules, and mutation ownership boundaries |
 | `payload-and-response-reference.md` | Dominant request bodies, response envelopes, raw-vs-wrapped contracts, and payload compatibility drifts |
-| `workflow-and-action-spec.md` | Create/update/delete, approval/review, conversion, allocation, feedback, admin, and FleetGraph action flows |
+| `workflow-and-action-spec.md` | Create/update/delete, approval/review, conversion, allocation, feedback, and admin action flows |
 | `mutation-side-effects-spec.md` | Query invalidation, optimistic updates, broadcasts, navigation changes, collaboration resets, and background hooks after writes |
 | `api-and-service-spec.md` | REST route groups, collaboration service behavior, and cross-cutting backend services |
 | `editor-and-collaboration-spec.md` | Shared editor capabilities, collaboration model, offline behavior, and content extraction rules |
-| `fleetgraph-spec.md` | FleetGraph proactive queue, on-demand analysis, review/apply actions, and runtime contracts |
 | `acceptance-and-rebuild-checklist.md` | Route-by-route rebuild acceptance checklist and verification matrix |
 | `implementation-constraints.md` | Stack, security, caching, deployment, validation, and migration constraints |
 
@@ -57,13 +53,12 @@ This pack describes the product as implemented on local `master` at commit `ce14
 5. Workspace settings, API tokens, audit logs, conversions, and admin controls
 6. Public feedback intake and internal feedback-as-issue handling
 7. Shared rich-text editing, collaboration, mentions, uploads, comments, history, and AI quality banners
-8. FleetGraph proactive and on-demand project-intelligence behavior
 
 ## Reading Paths By Role
 
 ### If you are leading implementation or onboarding a build team
 
-Follow the `Spec Intake Order` inside `developer-build-queue.md`, then execute `Q00` through `Q15` in order.
+Follow the `Spec Intake Order` inside `developer-build-queue.md`, then execute `Q00` through `Q14` in order.
 
 1. `feature-spec.md`
 2. `product-overview.md`
@@ -98,13 +93,12 @@ Follow the `Spec Intake Order` inside `developer-build-queue.md`, then execute `
 4. `state-machine-and-lifecycle-spec.md`
 5. `api-and-service-spec.md`
 
-### If you are rebuilding the collaborative editor and AI layer
+### If you are rebuilding the collaborative editor layer
 
 1. `editor-and-collaboration-spec.md`
-2. `fleetgraph-spec.md`
-3. `mutation-side-effects-spec.md`
-4. `shared-interaction-patterns-spec.md`
-5. `implementation-constraints.md`
+2. `mutation-side-effects-spec.md`
+3. `shared-interaction-patterns-spec.md`
+4. `implementation-constraints.md`
 
 ## Source Of Truth For This Pack
 
@@ -114,19 +108,17 @@ Primary repo evidence:
 2. `docs/core/unified-document-model.md`
 3. `docs/core/document-model-conventions.md`
 4. `docs/core/week-documentation-philosophy.md`
-5. `docs/assignments/fleetgraph/README.md`
-6. `docs/assignments/fleetgraph/FLEETGRAPH.md`
-7. `web/src/main.tsx`
-8. `web/src/pages/App.tsx`
-9. `web/src/pages/*.tsx`
-10. `web/src/components/UnifiedEditor.tsx`
-11. `web/src/components/Editor.tsx`
-12. `api/src/app.ts`
-13. `api/src/routes/*.ts`
-14. `api/openapi.yaml`
-15. `api/src/db/schema.sql`
-16. `api/src/collaboration/index.ts`
-17. `shared/src/types/document.ts`
+5. `web/src/main.tsx`
+6. `web/src/pages/App.tsx`
+7. `web/src/pages/*.tsx`
+8. `web/src/components/UnifiedEditor.tsx`
+9. `web/src/components/Editor.tsx`
+10. `api/src/app.ts`
+11. `api/src/routes/*.ts`
+12. `api/openapi.yaml`
+13. `api/src/db/schema.sql`
+14. `api/src/collaboration/index.ts`
+15. `shared/src/types/document.ts`
 
 ## Recommended Build Sequence
 
@@ -135,7 +127,6 @@ Primary repo evidence:
 3. Build the unified document page and shared editor/collaboration substrate.
 4. Add issue/project/program/week workflows and team/accountability views.
 5. Add settings/admin/public feedback surfaces.
-6. Add FleetGraph runtime, queue, and document-context UI.
 
 For the detailed step-by-step order and per-spec coverage map, use `developer-build-queue.md`.
 

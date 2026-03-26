@@ -11,18 +11,16 @@ Ship is a project-management product that combines rich documents, issue trackin
 3. Programs, projects, weeks, and issues are different lenses over the same graph.
 4. Collaboration is real-time and rich-text-first, not plain-text comment-first.
 5. Workspace-level access is simple; visibility is mostly workspace-wide with optional private documents.
-6. FleetGraph adds project-intelligence behavior on top of the same document/workspace state instead of living as a separate chatbot product.
 
 ## Primary User Roles
 
 | Role | What they do in the product |
 | --- | --- |
-| Workspace member | Read/edit documents, create issues/projects/programs, participate in weekly planning and retros, use team views, and consume FleetGraph guidance |
+| Workspace member | Read/edit documents, create issues/projects/programs, participate in weekly planning and retros, and use team views |
 | Manager / reviewer | Review plans and retros, approve or request changes, rate weekly review outcomes, inspect allocation and accountability surfaces |
 | Workspace admin | Manage members, invites, API tokens, audit logs, workspace settings, and archived members |
 | Super admin | Manage all workspaces and users, archive workspaces, impersonate users, and inspect global audit/admin surfaces |
 | External submitter | Submit public feedback to a program through the public feedback form |
-| FleetGraph operator / service | Run readiness checks, proactive sweeps, and on-demand analysis against authenticated Ship data |
 
 ## Canonical Product Areas
 
@@ -39,7 +37,6 @@ Ship is a project-management product that combines rich documents, issue trackin
 | Settings | `/settings`, `/settings/conversions` | Members, invites, tokens, audit logs, and converted-document history |
 | Admin | `/admin`, `/admin/workspaces/:id` | Super-admin-only workspace and user administration |
 | Public feedback | `/feedback/:programId` and internal `/feedback/:id` redirect | External feedback submission and internal issue-style follow-up |
-| FleetGraph | `/fleetgraph` plus document-page FleetGraph surfaces | Workspace findings queue, guided actions, and contextual analysis |
 
 ## Navigation Model
 
@@ -52,7 +49,6 @@ Shared shell behavior:
 3. The left sidebar collapse state is stored in localStorage.
 4. The app can auto-open accountability/action-item prompts on load unless the current route suppresses them.
 5. Session timeout warning and redirect behavior is global.
-6. FleetGraph queue count is surfaced at the workspace-shell level.
 
 ## Major User Workflows
 
@@ -103,12 +99,6 @@ Shared shell behavior:
 2. Internal feedback items are represented as issues with `source='external'`.
 3. Existing `/feedback/:id` routes redirect to the canonical issue/document view.
 
-### 8. FleetGraph workflow
-
-1. FleetGraph scans the current workspace for proactive findings and exposes them at `/fleetgraph`.
-2. FleetGraph also reacts to document context on `/documents/:id/*` with analysis, findings, and guided actions.
-3. Consequential actions require a review/apply step rather than silent execution.
-
 ## Canonical Compatibility Rules
 
 1. `/documents/:id/*` is the canonical detail route for most document types.
@@ -120,4 +110,3 @@ Shared shell behavior:
 1. The unified-document model means most product surfaces share a common detail page and editor.
 2. The weekly plan/retro system is baked into the core workflow, not an add-on.
 3. Team allocation, accountability, and reviews use the same underlying data graph as projects and issues.
-4. FleetGraph augments the product from inside the existing document/workspace context instead of replacing it.

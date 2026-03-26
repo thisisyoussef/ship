@@ -186,7 +186,6 @@ Special rules:
 1. Draft review can exist before the user finalizes it.
 2. User can validate, invalidate, or clear plan validation.
 3. Save and update are separate states.
-4. FleetGraph week-plan validation can refresh the review after apply.
 
 ### Week approval flows
 
@@ -335,44 +334,6 @@ Rebuild rule:
 3. User submits title and optional email.
 4. Backend creates an internal issue with `source='external'`.
 5. Internal staff later follow the item through canonical issue/document surfaces.
-
-## FleetGraph Workflow
-
-### Workspace proactive queue
-
-Actions on a finding:
-
-1. Open source document
-2. Review
-3. Apply
-4. Dismiss
-5. Snooze for `10s` or `4h`
-
-Selection-dependent review flows:
-
-1. `assign_owner` requires owner selection before review/apply payload is meaningful.
-2. `assign_issues` requires assignee selection.
-
-Behavioral rules:
-
-1. Review opening timestamps are used as a short guard before apply.
-2. Snooze schedules a client-side refresh at expiry.
-3. Dismiss/apply/snooze can clear review state for that card.
-
-### Document-context FleetGraph
-
-Document pages support:
-
-1. Proactive findings panel
-2. Guided next-step overlay keyed by page context
-3. Analysis-only FAB
-4. Follow-up thread turns through a thread ID
-
-Current guided actions include page-level actions such as:
-
-1. `validate_week_plan`
-2. `start_week`
-3. Proactive recommended actions like `assign_owner` and `assign_issues`
 
 ## Rebuild Rules
 

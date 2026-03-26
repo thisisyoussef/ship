@@ -18,15 +18,14 @@ This is the fastest way for a fresh engineer to understand the pack before touch
 | --- | --- | --- |
 | S01 | `README.md`, `feature-spec.md` | Understand the pack’s purpose, fidelity target, and how the docs are organized |
 | S02 | `product-overview.md` | Build a mental model of Ship’s users, modules, and major work loops |
-| S03 | `implementation-constraints.md`, `constitution-check.md` | Lock in the non-negotiable stack, compatibility, and repo-alignment rules before designing anything |
+| S03 | `implementation-constraints.md` | Lock in the non-negotiable stack, compatibility, and delivery constraints before designing anything |
 | S04 | `developer-build-queue.md`, `task-breakdown.md` | Understand both the detailed queue and the macro dependency map |
 | S05 | `domain-and-data-spec.md`, `document-field-reference.md` | Learn the unified document model and current compatibility shims |
 | S06 | `permissions-and-access-spec.md`, `payload-and-response-reference.md` | Learn the current access model and the raw-vs-wrapped API contract split |
 | S07 | `navigation-and-routing-spec.md`, `screen-spec.md`, `screen-state-spec.md`, `state-machine-and-lifecycle-spec.md`, `shared-interaction-patterns-spec.md` | Learn route, shell, UI-state, and interaction behavior |
 | S08 | `workflow-and-action-spec.md`, `mutation-side-effects-spec.md`, `api-and-service-spec.md` | Learn how writes behave end to end and what refresh fan-out must happen afterward |
 | S09 | `editor-and-collaboration-spec.md` | Learn the shared editor and collaboration substrate before building any document-heavy surface |
-| S10 | `fleetgraph-spec.md` | Learn FleetGraph last, after the rest of the product model is already clear |
-| S11 | `acceptance-and-rebuild-checklist.md` | Use the acceptance matrix only when the rebuild is nearing feature completeness |
+| S10 | `acceptance-and-rebuild-checklist.md` | Use the acceptance matrix only when the rebuild is nearing feature completeness |
 
 ## Spec-To-Queue Coverage Map
 
@@ -36,26 +35,23 @@ Use this table when the question is not "what do I build next?" but "when does t
 | --- | --- | --- |
 | `README.md` | Q00 | Entry point, reading paths, and pack structure |
 | `feature-spec.md` | Q00 | Scope, fidelity target, and out-of-scope guardrails |
-| `technical-plan.md` | Q00 | Source inventory and evidence map while auditing the pack |
-| `developer-build-queue.md` | Q00-Q15 | Day-to-day execution order, dependencies, and stopping gates |
-| `task-breakdown.md` | Q00, Q15 | Macro dependency map and end-of-build coverage cross-check |
-| `constitution-check.md` | Q00, Q15 | Repo alignment and current-state constraints that should not be normalized away |
+| `developer-build-queue.md` | Q00-Q14 | Day-to-day execution order, dependencies, and stopping gates |
+| `task-breakdown.md` | Q00, Q14 | Macro dependency map and end-of-build coverage cross-check |
 | `product-overview.md` | Q00 | Product model, personas, and module boundaries |
 | `navigation-and-routing-spec.md` | Q01 | Route protection, canonical URLs, redirects, shell mode derivation, and tab parsing |
 | `screen-spec.md` | Q03 | Route-by-route surface behavior once the shell is in place |
 | `screen-state-spec.md` | Q01 | Loading, empty, blocked, review, and mutation-result states |
-| `state-machine-and-lifecycle-spec.md` | Q01 | Session, invite, document, approval, collaboration, and FleetGraph lifecycle rules |
+| `state-machine-and-lifecycle-spec.md` | Q01 | Session, invite, document, approval, and collaboration lifecycle rules |
 | `shared-interaction-patterns-spec.md` | Q03 | App-shell mechanics, keyboard rules, persistence, and shared interaction behavior |
 | `domain-and-data-spec.md` | Q02 | Unified entity model, associations, and weekly/accountability structure |
 | `document-field-reference.md` | Q02 | Field-level contract and compatibility flattening for every document type |
 | `permissions-and-access-spec.md` | Q01 | Public/auth/admin boundaries and mutation ownership rules |
 | `payload-and-response-reference.md` | Q01 | Dominant request/response families and raw-vs-wrapped API behavior |
-| `workflow-and-action-spec.md` | Q06 | User-triggered action flows for docs, issues, projects, programs, weeks, reviews, admin, and FleetGraph |
+| `workflow-and-action-spec.md` | Q06 | User-triggered action flows for docs, issues, projects, programs, weeks, reviews, and admin |
 | `mutation-side-effects-spec.md` | Q05 | Invalidation, broadcasts, navigation replacements, collaboration resets, and background fan-out after writes |
 | `api-and-service-spec.md` | Q05 | Backend route groups, collaboration service, uploads/comments/history, and support services |
 | `editor-and-collaboration-spec.md` | Q05 | Shared rich-text, collaboration, offline/cache, uploads, comments, and history substrate |
-| `fleetgraph-spec.md` | Q14 | Proactive queue, current-context analysis, review/apply, and follow-up AI behavior |
-| `acceptance-and-rebuild-checklist.md` | Q15 | Final route-by-route QA gate once the rebuild is feature-complete |
+| `acceptance-and-rebuild-checklist.md` | Q14 | Final route-by-route QA gate once the rebuild is feature-complete |
 | `implementation-constraints.md` | Q00 | Stack, caching, security, deployment, and migration constraints that apply throughout the rebuild |
 
 ## Queue Rules
@@ -63,8 +59,7 @@ Use this table when the question is not "what do I build next?" but "when does t
 1. Build the shared substrate before type-specific surfaces.
 2. Build the canonical route and detail shell before building every list or feature in parallel.
 3. Treat unified documents as the core platform layer, not as one product module among many.
-4. Build FleetGraph after the core product because it depends on the surrounding route, mutation, and editor contracts.
-5. Preserve today’s compatibility behaviors deliberately: week/sprint naming overlap, raw-vs-wrapped API split, in-place issue/project conversion, `properties.user_id`, and canonical `/documents/:id/*` routing.
+4. Preserve today’s compatibility behaviors deliberately: week/sprint naming overlap, raw-vs-wrapped API split, in-place issue/project conversion, `properties.user_id`, and canonical `/documents/:id/*` routing.
 
 ## Queue Summary
 
@@ -84,17 +79,15 @@ Use this table when the question is not "what do I build next?" but "when does t
 | Q11 | Dashboard and My Week | Q10 | Personal workflow hub and accountability summaries work |
 | Q12 | Team surfaces | Q10, Q11 | Allocation, reviews, directory, status, org chart, and person detail work |
 | Q13 | Settings, admin, public feedback, and conversions | Q01, Q06, Q07, Q08, Q12 | Operational/admin edges and public intake are complete |
-| Q14 | FleetGraph | Q05, Q07, Q08, Q10, Q12, Q13 | Proactive and on-demand AI product layer works against the rebuilt app |
-| Q15 | Final compatibility, hardening, and acceptance pass | Q01-Q14 | Rebuild is current-state accurate and ready for QA/release review |
+| Q14 | Final compatibility, hardening, and acceptance pass | Q01-Q13 | Rebuild is current-state accurate and ready for QA/release review |
 
 ## Detailed Queue
 
 ### Q00. Intake And Guardrails
 
 - Goal: align the engineer with what Ship is, what the pack covers, and what cannot be redesigned away.
-- Read first: `README.md`, `feature-spec.md`, `product-overview.md`, `implementation-constraints.md`, `constitution-check.md`.
+- Read first: `README.md`, `feature-spec.md`, `product-overview.md`, `implementation-constraints.md`.
 - Build now:
-  - project/repo skeleton decisions
   - stack/runtime assumptions
   - current-state compatibility commitments
 - Produce:
@@ -319,27 +312,10 @@ Use this table when the question is not "what do I build next?" but "when does t
 - Stop when:
   - the product can be administered, invited into, audited, and used for public feedback intake
 
-### Q14. FleetGraph
-
-- Goal: build the AI augmentation layer last, once the product it operates on is already present.
-- Read first: `fleetgraph-spec.md`, `mutation-side-effects-spec.md`, `api-and-service-spec.md`, `state-machine-and-lifecycle-spec.md`, `shared-interaction-patterns-spec.md`.
-- Build now:
-  - workspace queue at `/fleetgraph`
-  - document-context findings panel
-  - guided overlay
-  - analysis FAB
-  - review/apply flows
-  - worker/runtime readiness and route-surface integration
-  - thread-based follow-up turns
-- Produce:
-  - both proactive and on-demand FleetGraph behavior on top of the rebuilt Ship surface
-- Stop when:
-  - FleetGraph can analyze current context, queue findings, review actions, apply them, and refresh the host UI correctly
-
-### Q15. Final Compatibility, Hardening, And Acceptance Pass
+### Q14. Final Compatibility, Hardening, And Acceptance Pass
 
 - Goal: make the rebuild current-state accurate, not just feature-complete.
-- Read first: `acceptance-and-rebuild-checklist.md`, `implementation-constraints.md`, `constitution-check.md`, plus any spec docs touched by remaining gaps.
+- Read first: `acceptance-and-rebuild-checklist.md`, `implementation-constraints.md`, plus any spec docs touched by remaining gaps.
 - Build now:
   - route alias verification
   - week/sprint terminology compatibility
@@ -357,16 +333,14 @@ Use this table when the question is not "what do I build next?" but "when does t
 
 1. Q01 through Q05 build the shared platform layers.
 2. Q06 through Q13 build the product modules on top of that substrate in dependency-safe order.
-3. Q14 comes late because FleetGraph depends on routes, mutations, editor behavior, and domain context already existing.
-4. Q15 exists to catch current-state quirks that are easy to accidentally “clean up” during a rebuild.
+3. Q14 exists to catch current-state quirks that are easy to accidentally “clean up” during a rebuild.
 
 ## Safe Team Split Points
 
 If more than one engineer is building in parallel, the safest split points are:
 
 1. After Q05, one engineer can continue Q06-Q10 while another prepares Q12-Q13 on top of the shared substrate.
-2. FleetGraph should still remain mostly last because it depends on the surrounding product slices being stable.
-3. The final compatibility pass should be shared, because it spans every module and many transitional behaviors.
+2. The final compatibility pass should be shared, because it spans every module and many transitional behaviors.
 
 ## Relationship To Other Rebuild Docs
 

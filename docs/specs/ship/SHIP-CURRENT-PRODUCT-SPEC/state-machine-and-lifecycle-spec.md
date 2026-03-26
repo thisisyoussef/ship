@@ -12,7 +12,6 @@ Use this document with `screen-state-spec.md` for visible UI states, `workflow-a
 | Document visibility/type/content | `documents` table columns plus `properties` | Unified detail page and editor |
 | Approval state | Sprint `properties.plan_approval`, `properties.review_approval`, `properties.review_rating` | Review grids, weekly child-doc review mode, badges |
 | Collaboration sync state | `yjs_state`, `content`, active WebSocket rooms | Editor sync badges and socket close handling |
-| FleetGraph runtime state | Stored finding records plus runtime thread/checkpoint state | React Query findings hooks, FAB/panel state, guided overlay |
 
 ## Session And Auth Lifecycle
 
@@ -167,40 +166,6 @@ Important approval metadata:
 1. Approved states record `approved_by`, `approved_at`, and `approved_version_id`.
 2. Review approval also requires and stores `review_rating` with `value`, `rated_by`, and `rated_at`.
 3. Weekly child-doc review mode reads approval state from the parent sprint, not from the child document itself.
-
-## FleetGraph Lifecycle
-
-### Proactive findings
-
-The persisted finding status enum is:
-
-1. `active`
-2. `dismissed`
-3. `resolved`
-4. `snoozed`
-
-Current transitions:
-
-1. Worker/runtime upserts findings into `active`.
-2. Reviewer can move a finding to `dismissed` or `snoozed`.
-3. Applying or later evidence can move a finding to `resolved`.
-4. UI query scope is either workspace-wide or page-scoped by sorted document IDs.
-
-### Current-page entry runs
-
-The runtime outcome enum surfaced to the UI is:
-
-1. `advisory`
-2. `approval_required`
-3. `fallback`
-4. `quiet`
-
-Those outcomes drive whether the user sees:
-
-1. Analysis text only
-2. A guided approval card/overlay
-3. A safe fallback message
-4. No meaningful intervention
 
 ## Rebuild Requirements
 

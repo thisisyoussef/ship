@@ -161,7 +161,6 @@ Detailed due-state rules that must be preserved:
 | Tabbed doc type | Tab bar plus tab-specific content renders |
 | Weekly review mode | Query params move review actions into the sub-nav/sidebar model |
 | Missing required fields after type change | Fields are highlighted for completion |
-| FleetGraph contextual state | Findings panel, guided overlay, FAB, and debug surfaces appear when relevant |
 
 ### Project detail tabs
 
@@ -227,30 +226,6 @@ Detailed due-state rules that must be preserved:
 | Admin dashboard | Loading, workspaces tab, users tab, audit tab, impersonation banner active |
 | Admin workspace detail | Loading, invite/member lists ready, add-existing-user flow, no-data states |
 
-## FleetGraph States
-
-### Workspace queue (`/fleetgraph`)
-
-| State | Current behavior |
-| --- | --- |
-| Loading | Helper text says FleetGraph is loading Ship context |
-| Empty | Queue-specific empty copy |
-| Findings ready | Cards render with severity/evidence/action controls |
-| Review opened | Review payload or selection UI is attached to the card |
-| Apply running | Action buttons enter busy state |
-| Snoozed | Local info notice appears and auto-refresh is scheduled for snooze expiry |
-| Dismissed/applied | Local success/info notice appears and the finding can disappear from the list |
-
-### Document-context FleetGraph
-
-| State | Current behavior |
-| --- | --- |
-| No findings | Quiet empty panel state |
-| Findings present | Document-scoped findings panel renders |
-| Guided next-step present | Floating overlay auto-surfaces page-specific actions |
-| Analysis only | FAB opens on-demand analysis without applying changes |
-| Follow-up turn active | Thread-based continuation persists inside the FleetGraph conversation surface |
-
 ## Mutation Feedback Patterns
 
 These feedback states recur across screens and must remain recognizable in a rebuild:
@@ -258,4 +233,3 @@ These feedback states recur across screens and must remain recognizable in a reb
 1. Create and save actions typically show toast-based confirmation.
 2. Approval actions change the visible approval state immediately and often also advance review queue context.
 3. Delete/archive actions usually clear selection and show a toast rather than a blocking full-page refresh.
-4. FleetGraph uses local inline notices in addition to any global toast/error treatment.

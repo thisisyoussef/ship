@@ -12,7 +12,6 @@ Use this document with `workflow-and-action-spec.md` for action intent, `payload
 | Realtime user broadcast | `broadcastToUser()` + `/events` WebSocket | Action-items celebration, reviewer nudges, and week/project completion signals appear without polling |
 | Collaboration socket reset | `invalidateDocumentCache()`, `handleVisibilityChange()` | Editors may clear IndexedDB, reconnect, or bounce the user out of a room |
 | Server-side list cache invalidation | `listCacheInvalidationMiddleware` | Successful non-GET workspace writes evict the 3-second document/issue list cache |
-| Background worker hooks | FleetGraph integration helpers | Document and workspace writes mark FleetGraph contexts dirty or schedule sweeps |
 
 ## Cross-Cutting Cache And Invalidation Rules
 
@@ -43,9 +42,9 @@ That pattern exists in:
 
 | Mutation | Immediate client behavior | Server-side side effects | Important current nuance |
 | --- | --- | --- | --- |
-| `POST /api/documents` | Creating UI usually navigates straight to `/documents/:id` | Parent visibility may be inherited; `belongs_to`/`program_id`/`sprint_id` create associations; weekly-plan and retro-like creates can broadcast `accountability:updated`; FleetGraph document mutation is enqueued | The response is the raw inserted row, not the normalized detail shape |
-| `PATCH /api/documents/:id` without content | Unified detail page invalidates detail and relevant list queries after success | Top-level compatibility fields are merged into `properties`; associations may be rewritten; descendant visibility cascade may run; FleetGraph document mutation is enqueued | For sprints, `owner_id` is mirrored into `properties.assignee_ids` for older readers |
-| `PATCH /api/documents/:id` with content | Unified detail page uses optimistic mutation, then invalidates detail and typed list queries | Server recomputes `plan`, `success_criteria`, `vision`, `goals`; clears `yjs_state`; recomputes completeness for projects/sprints; may change parent sprint approval state for weekly-plan/retro resubmission; enqueues FleetGraph mutation | Content is the source of truth and can overwrite manually submitted plan-like fields |
+| `POST /api/documents` | Creating UI usually navigates straight to `/documents/:id` | Parent visibility may be inherited; `belongs_to`/`program_id`/`sprint_id` create associations; weekly-plan and retro-like creates can broadcast `accountability:updated` | The response is the raw inserted row, not the normalized detail shape |
+| `PATCH /api/documents/:id` without content | Unified detail page invalidates detail and relevant list queries after success | Top-level compatibility fields are merged into `properties`; associations may be rewritten; descendant visibility cascade may run | For sprints, `owner_id` is mirrored into `properties.assignee_ids` for older readers |
+| `PATCH /api/documents/:id` with content | Unified detail page uses optimistic mutation, then invalidates detail and typed list queries | Server recomputes `plan`, `success_criteria`, `vision`, `goals`; clears `yjs_state`; recomputes completeness for projects/sprints; may change parent sprint approval state for weekly-plan/retro resubmission | Content is the source of truth and can overwrite manually submitted plan-like fields |
 | Document visibility change | Detail page stays in place; collaborators may be forced out | Descendant visibility cascades; collaboration layer checks active sockets and closes unauthorized editors with `4403` | Moving a private child under a workspace-visible parent auto-promotes visibility even if the request omitted `visibility` |
 | `DELETE /api/documents/:id` | Unified detail page navigates to `/docs`; list UIs remove the row | Route returns `204`; middleware invalidates document/issue list caches | Delete success is status-code-only, not JSON-driven |
 | `POST /api/documents/:id/convert` | `useDocumentConversion()` invalidates issue lists, project lists, and `['document', id]`, then navigates with `replace: true` to `/documents/:id` | Server writes a snapshot, changes type in place, rewrites associations, and preserves undo history | The collaboration server has a conversion-close helper, but the current conversion route does not call it |
@@ -96,8 +95,8 @@ When a document is changed to `private`:
 
 | Mutation | Side effects |
 | --- | --- |
-| `POST /api/issues` | Creates associations from `belongs_to`; if this is the first issue linked to a sprint, broadcasts `accountability:updated` with `type: 'week_issues'`; enqueues FleetGraph `issue-write` mutation |
-| `PATCH /api/issues/:id` | Rewrites associations when `belongs_to` changes; if a new sprint got its first issue, broadcasts `week_issues`; if an `action_items` issue is moved into a closed state, broadcasts to the assignee; enqueues FleetGraph `issue-write` mutation |
+| `POST /api/issues` | Creates associations from `belongs_to`; if this is the first issue linked to a sprint, broadcasts `accountability:updated` with `type: 'week_issues'` |
+| `PATCH /api/issues/:id` | Rewrites associations when `belongs_to` changes; if a new sprint got its first issue, broadcasts `week_issues`; if an `action_items` issue is moved into a closed state, broadcasts to the assignee |
 | `POST /api/projects` / `PATCH /api/projects/:id` | Project list hooks do optimistic updates and then invalidate `projectKeys.lists()` on settle; later plan writes through the project update path can broadcast `accountability:updated` with `type: 'project_plan'` |
 | `POST /api/projects/:id/retro` | Broadcasts `accountability:updated` with `type: 'project_retro'`; logs retro content to history when content exists |
 | `POST /api/programs`, `PATCH /api/programs/:id`, `DELETE /api/programs/:id` | Program list hooks use optimistic cache updates, then invalidate `programKeys.lists()` on settle |
@@ -124,50 +123,10 @@ When a document is changed to `private`:
 
 | Mutation | Side effects |
 | --- | --- |
-| `POST /api/workspaces/:id/switch` | Updates both `users.last_workspace_id` and `sessions.workspace_id`; logs `workspace.switch`; registers a FleetGraph workspace sweep; frontend closes the popover and hard reloads to `/docs` |
-| `POST /api/setup/initialize` | Creates workspace, user, admin membership, linked person document, welcome wiki document, and registers FleetGraph workspace sweep |
+| `POST /api/workspaces/:id/switch` | Updates both `users.last_workspace_id` and `sessions.workspace_id`; logs `workspace.switch`; frontend closes the popover and hard reloads to `/docs` |
+| `POST /api/setup/initialize` | Creates workspace, user, admin membership, linked person document, welcome wiki document |
 | `POST /api/invites/:token/accept` | Uses invite-acceptance service to create membership and person-doc linkage, marks invite used, creates session, and returns a logged-in workspace context |
 | Admin impersonation end | Frontend forces `window.location.href = '/docs'` after success so the full shell reloads with original user context |
-
-## FleetGraph-Specific Side Effects
-
-### Proactive findings hook
-
-`useFleetGraphFindings()` uses two query-key shapes:
-
-1. Workspace queue: `['fleetgraphFindings', 'workspace']`
-2. Page scope: `['fleetgraphFindings', 'documents', ...sortedDocumentIds]`
-
-Mutation fan-out:
-
-1. Dismiss and snooze only invalidate the findings query key.
-2. Apply invalidates:
-   - the findings query key
-   - `['document']`
-   - `['sprints']`
-
-### Current-page entry hook
-
-`useFleetGraphEntry()` apply success currently invalidates:
-
-1. For sprint targets:
-   - `sprintKeys.lists()`
-   - `sprintKeys.active()`
-   - `sprintKeys.detail(targetId)`
-2. For project targets:
-   - `documentKeys.lists()`
-3. Always:
-   - `['document', documentId]`
-   - `documentKeys.detail(documentId)`
-   - `documentContextKeys.detail(documentId)`
-
-It also dispatches:
-
-```text
-window.dispatchEvent(new CustomEvent('fleetgraph:entry-action-applied', ...))
-```
-
-That event is currently used by week-review UI to refresh in-page state after guided actions land.
 
 ## Realtime Celebration Loop
 

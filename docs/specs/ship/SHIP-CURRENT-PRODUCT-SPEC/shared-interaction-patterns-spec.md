@@ -171,7 +171,7 @@ Most detail pages share the same high-level interaction model:
 2. Shared rich-text editor body
 3. Properties sidebar on the right
 4. Optional type selector or document-type-specific tab shell
-5. Contextual quality, review, or FleetGraph surfaces around the editor
+5. Contextual quality or review surfaces around the editor
 
 ### Type change and missing-field guidance
 
@@ -220,18 +220,7 @@ Current transitional nuance:
 | --- | --- |
 | Toast on delete/archive/save | Documents, projects, programs, reviews, retros, and other standard CRUD surfaces |
 | Inline banner for draft status | Week review and project retro |
-| Inline local notice | FleetGraph findings panel after dismiss/snooze/apply |
 | Inline blocking banner | Dashboard accountability banner and some review/change-request states |
-
-## FleetGraph Interaction Pattern
-
-FleetGraph uses a distinct but still shared interaction grammar:
-
-1. Findings cards expose `Review`, `Apply`, `Dismiss`, and `Snooze`.
-2. Some findings need user selection before review can complete, especially owner and assignee actions.
-3. Apply is gesture-guarded for a short interval after opening review so accidental double-actions do not fire immediately.
-4. Snoozing schedules a client-side refresh when the snooze expires.
-5. Local notices explain what changed in Ship after apply.
 
 ## Rebuild Rules
 

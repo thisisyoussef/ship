@@ -2,11 +2,11 @@
 
 ## Status
 
-- State: `in-progress`
+- State: `done`
 - Owner: Codex
 - Depends on: `US-105`
 - Related branch: `codex/us-106-specs-index`
-- Related commit/PR:
+- Related commit/PR: `e2e051a` / [PR #210](https://github.com/thisisyoussef/ship/pull/210)
 - Target environment: `not deployed`
 
 ## Persona
@@ -121,10 +121,10 @@ Validation layers for this story:
 
 ## Acceptance Criteria
 
-- [ ] AC-1: `docs/specs/README.md` exists and clearly distinguishes Ship, FleetGraph, and AI harness specs.
-- [ ] AC-2: `docs/specs/ship/README.md` exists and points directly to the current product-only Ship pack.
-- [ ] AC-3: Repo docs now make the Ship spec-pack discovery path explicit without changing the pack’s scope.
-- [ ] AC-4: Queue/checkpoint metadata is updated so the consolidation is resumable from the repo.
+- [x] AC-1: `docs/specs/README.md` exists and clearly distinguishes Ship, FleetGraph, and AI harness specs.
+- [x] AC-2: `docs/specs/ship/README.md` exists and points directly to the current product-only Ship pack.
+- [x] AC-3: Repo docs now make the Ship spec-pack discovery path explicit without changing the pack’s scope.
+- [x] AC-4: Queue/checkpoint metadata is updated so the consolidation is resumable from the repo.
 
 ## Local Validation
 
@@ -170,6 +170,6 @@ rg -n "US-106|Specs Index And Ship Entrypoint Consolidation|specs index" docs/us
 
 ## Checkpoint Result
 
-- Outcome:
-- Evidence:
-- Residual risk:
+- Outcome: Passed
+- Evidence: `git diff --check` passed; `test -f docs/specs/README.md` passed; `test -f docs/specs/ship/README.md` passed; `rg -n "docs/specs/ship/SHIP-CURRENT-PRODUCT-SPEC|docs/specs/README.md|docs/specs/ship/README.md" docs/CONTEXT.md docs/specs/README.md docs/specs/ship/README.md docs/specs/ship/SHIP-CURRENT-PRODUCT-SPEC/README.md` passed; `rg -n "US-106|Specs Index And Ship Entrypoint Consolidation|specs index" docs/user-stories` passed.
+- Residual risk: The original dirty checkout at `/Users/youss/Development/gauntlet/ship` will still need to merge or rebase onto updated `master` before these discovery files appear there; the clean `master` worktree already reflects them.

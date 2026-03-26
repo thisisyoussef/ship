@@ -4,6 +4,8 @@
 
 This pack is the current-product handoff for Ship. It translates the repo’s code and living docs into an implementation-ready specification so an engineer can rebuild the shipped product behavior without reverse-engineering the entire codebase first.
 
+For repo browsing, the parent discovery path is `docs/specs/README.md` -> `docs/specs/ship/README.md` -> this pack.
+
 This pack describes the product as implemented on local `master` at commit `ce14b05` on March 25, 2026.
 
 ## How To Use This Pack
